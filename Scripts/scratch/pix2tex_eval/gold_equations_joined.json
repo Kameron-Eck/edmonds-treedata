@@ -1,0 +1,442 @@
+[
+ {
+  "id": "E01",
+  "block_id": "01a0aa23-b651-70d5-aa19-a3666655d2fa",
+  "rel_path": "Validation/Allard_2007_total-variation-regularization-image.pdf",
+  "page": 19,
+  "bbox": [
+   112.4844,
+   499.03876280000003,
+   401.7136028,
+   677.3299906270968
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "Let u ^ { 1 } , \\dots , u ^ { n } \\text { be the sequence of detectors dual to } u _ { 1 } , \\dots , u _ { n } \\text { and let } \\omega _ { 1 } , \\dots , \\omega _ { n } \\\\ \\text {be those covecors such that } \\partial X ( x ) = \\sum _ { j = 1 } ^ { n } \\omega _ { j } u _ { j } . \\text { We have} \\\\ \\frac { d } { d t } W _ { t } ( x ) | _ { t = 0 } = X ( x ) \\wedge \\frac { d } { d t } \\xi _ { t } ( x ) | _ { t = 0 } \\\\ = X ( x ) \\wedge \\sum _ { i = 2 } ^ { n } \\partial X ( x ) ( u _ { i } ) \\wedge ( u ^ { i } \\rightharpoonup \\xi _ { 0 } ( x ) ) \\\\ = X ( x ) \\wedge \\sum _ { i = 2 } ^ { n } \\sum _ { \\substack { j = 1 \\\\ i = 2 } } ^ { n } \\langle u _ { i } , \\omega _ { j } \\rangle u _ { j } \\wedge ( u ^ { i } \\rightharpoonup \\xi _ { 0 } ( x ) ) \\\\ = X ( x ) \\wedge \\sum _ { i = 1 } ^ { n } \\langle u _ { i } , \\omega _ { i } \\rangle u _ { i } \\wedge ( u ^ { i } \\rightharpoonup \\xi _ { 0 } ( x ) ) \\\\ + X ( x ) \\wedge \\sum _ { i = 2 } ^ { n } \\langle u _ { i } , \\omega _ { 1 } \\rangle u _ { 1 } \\wedge ( u ^ { i } \\rightharpoonup \\xi _ { 0 } ( x ) ) \\\\ = ( ( \\text {trace} l _ { 1 } ( x ) X ( x ) - l _ { 2 } ( x ) ( X ( x ) ) ) \\bullet \\mathbf n _ { D } ( x ) ) \\, u _ { 1 } \\wedge * u _ { 1 } , \\\\ \\text {so (3.2) holds.} \\quad \\Box",
+  "latex_status": null,
+  "gold_reading": "\\begin{aligned}\\frac{d}{dt}W_t(x)\\big|_{t=0} &= X(x)\\wedge\\frac{d}{dt}\\xi_t(x)\\big|_{t=0}\\\\ &= X(x)\\wedge\\sum_{i=2}^{n}\\partial X(x)(u_i)\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &= X(x)\\wedge\\sum_{i=2}^{n}\\sum_{j=1}^{n}\\langle u_i,\\omega_j\\rangle u_j\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &= X(x)\\wedge\\sum_{i=1}^{n}\\langle u_i,\\omega_i\\rangle u_i\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &\\quad + X(x)\\wedge\\sum_{i=2}^{n}\\langle u_i,\\omega_1\\rangle u_1\\wedge\\left(u^i\\lrcorner\\xi_0(x)\\right)\\\\ &= \\left(\\left(\\operatorname{trace} l_1(x)X(x) - l_2(x)(X(x))\\right)\\bullet\\mathbf{n}_D(x)\\right)u_1\\wedge *u_1,\\end{aligned}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E01.png",
+  "crop_size": [
+   1573,
+   970
+  ]
+ },
+ {
+  "id": "E02",
+  "block_id": "01a0aa24-f9f0-7ec0-970b-854b713035aa",
+  "rel_path": "Validation/Efron_2021_resampling-plans-estimation-prediction.pdf",
+  "page": 14,
+  "bbox": [
+   345.35,
+   318.0987087,
+   559.2756916,
+   327.8888645999999
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\hat { \\mu } = M y",
+  "latex_status": null,
+  "gold_reading": "\\hat{u} = My",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E02.png",
+  "crop_size": [
+   1155,
+   54
+  ]
+ },
+ {
+  "id": "E03",
+  "block_id": "01a0aa26-7fae-7190-b5e9-8f6fe0a3112b",
+  "rel_path": "Validation/Nordman_2004_optimal-spatial-subsample-size.pdf",
+  "page": 17,
+  "bbox": [
+   125.76003599999996,
+   336.92155439999993,
+   389.84048423999997,
+   374.35971176
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "( 4 . 3 ) & & \\frac { - 1 } { s } \\left ( \\sum _ { k \\in \\mathbb { Z } } | k | \\, C o v ( \\nabla ^ { \\prime } Z ( 0 ) , \\nabla ^ { \\prime } Z ( k ) ) \\right ) \\\\ & & \\cdot 1 - 7 \\sum _ { k \\in \\mathbb { Z } } | k | \\, C o v ( \\nabla ^ { \\prime } Z ( 0 ) , \\nabla ^ { \\prime } Z ( k ) )",
+  "latex_status": null,
+  "gold_reading": "\\frac{-1}{s\\lambda_n}\\left(\\sum_{\\mathbf{k}\\in\\mathbb{Z}}|\\mathbf{k}|\\operatorname{Cov}(\\nabla' Z(\\mathbf{0}),\\nabla' Z(\\mathbf{k}))\\right)",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E03.png",
+  "crop_size": [
+   1436,
+   203
+  ]
+ },
+ {
+  "id": "E04",
+  "block_id": "01a0aa23-eb5f-74f8-927a-c434cbc6e70c",
+  "rel_path": "Validation/Bellettini_2002_total-variation-flow.pdf",
+  "page": 25,
+  "bbox": [
+   122.6834,
+   413.4212444,
+   375.27896050000004,
+   439.20293433594406
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\frac { 1 } { 2 } \\, \\int _ { 0 } ^ { T } \\, \\int _ { \\mathbb { R } ^ { N } } \\, t | p ( u _ { n } ) _ { t } | ^ { 2 } \\varphi ^ { 2 } \\leqslant C + T ^ { 2 } \\, \\int _ { \\mathbb { R } ^ { N } } | \\nabla \\varphi | ^ { 2 } .",
+  "latex_status": null,
+  "gold_reading": "\\frac{1}{2}\\int_0^T\\int_{\\mathbb{R}^N} t\\,|p(u_n)_t|^2\\varphi^2 \\leqslant C + T^2\\int_{\\mathbb{R}^N}|\\nabla\\varphi|^2.",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E04.png",
+  "crop_size": [
+   1374,
+   140
+  ]
+ },
+ {
+  "id": "E05",
+  "block_id": "01a0aa25-1115-7284-b733-f3200fbd2f06",
+  "rel_path": "Validation/Galerne_2011_computation-perimeter-measurable-sets.pdf",
+  "page": 6,
+  "bbox": [
+   45.54900000000002,
+   452.34167759999974,
+   288.4743824200001,
+   482.45191668672544
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "V ( f , U ) \\leq \\sum _ { i = 1 } ^ { d } V _ { e _ { i } } ( f , U ) \\leq d \\sup _ { u \\in S ^ { d } } V _ { u } ( f , U ) \\leq d V ( f , U ) \\, .",
+  "latex_status": null,
+  "gold_reading": "V(f,U)\\le\\sum_{i=1}^{d}V_{e_i}(f,U)\\le d\\sup_{u\\in S^{d-1}}V_u(f,U)\\le dV(f,U).",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E05.png",
+  "crop_size": [
+   1322,
+   163
+  ]
+ },
+ {
+  "id": "E06",
+  "block_id": "01a0aa23-b6cb-7839-b443-5481b158a0d2",
+  "rel_path": "Validation/Allard_2007_total-variation-regularization-image.pdf",
+  "page": 27,
+  "bbox": [
+   72.00142646,
+   176.58277280000004,
+   376.84586619999993,
+   217.22933853999996
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\text {ingrating this equation over } & \\, \\mathbb { Z } \\text { and invoking $\\mathbb{ }F$} \\, \\mathbb { S}$, \\, \\text {the} \\, \\text {in} , \\, \\text {we} \\, \\text { inner that} \\\\ & \\, ( 6 . 1 ) \\quad \\int _ { \\Omega } \\kappa ( x , f ( x ) ) \\, d \\mathcal { L } ^ { n } x = \\int _ { 0 } ^ { \\infty } \\left ( \\int _ { \\{ f \\geq z \\} } u ( x , z ) \\, d \\mathcal { L } ^ { n } x \\right ) d \\mathcal { L } ^ { 1 } z .",
+  "latex_status": null,
+  "gold_reading": "\\int_\\Omega \\kappa(x,f(x))\\,d\\mathcal{L}^n x = \\int_0^\\infty\\left(\\int_{\\{f\\ge z\\}} u(x,z)\\,d\\mathcal{L}^n x\\right) d\\mathcal{L}^1 z.",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E06.png",
+  "crop_size": [
+   1658,
+   221
+  ]
+ },
+ {
+  "id": "E07",
+  "block_id": "01a0aa26-18d4-7607-b7d5-b7c62b366be3",
+  "rel_path": "Validation/Liu_2008_local-transition-probability-models-markov.pdf",
+  "page": 6,
+  "bbox": [
+   311.5275,
+   333.87365,
+   562.6530298000001,
+   369.17391684000006
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\text {agronal} & \\quad P ( c _ { 1 } ( u ) | d _ { 1 } ( u ) , c _ { 1 } ( N _ { S } ( u ) ) , c _ { 2 } ( N _ { T } ( u ) ) ) \\\\ \\text {agronal} & \\quad = \\frac { 1 } { \\bar { Z } } \\exp \\left \\{ - [ U _ { D } ( c _ { 1 } ( u ) , d _ { 1 } ( u ) ) + U _ { S } ( c _ { 1 } ( u ) , c _ { 1 } ( N _ { S } ( u ) ) ) + U _ { T } ( c _ { 1 } ( u ) , c _ { 1 } ( N _ { T } ( u ) ) ) ] \\right \\} , \\\\ \\text {city. To} & \\quad \\\\",
+  "latex_status": null,
+  "gold_reading": "P(c_1(u)\\,|\\,d_1(u), c_1(N_S(u)), c_2(N_T(u))) = \\frac{1}{Z}\\exp\\{-[U_D(c_1(u),d_1(u)) + U_S(c_1(u),c_1(N_S(u))) + U_T(c_1(u),c_1(N_T(u)))]\\}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E07.png",
+  "crop_size": [
+   1317,
+   192
+  ]
+ },
+ {
+  "id": "E08",
+  "block_id": "01a0aa25-aa52-7bcf-b048-52922f8c3c34",
+  "rel_path": "Validation/Jackson_2011_multi-state-models-panel-data.pdf",
+  "page": 17,
+  "bbox": [
+   195.576,
+   328.0594959999995,
+   407.42427499999985,
+   380.0758207034577
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "E = \\left ( \\begin{array} { c c c c } 1 - e _ { 1 2 } & e _ { 1 2 } & 0 & 0 \\\\ e _ { 2 1 } & 1 - e _ { 2 1 } - e _ { 2 3 } & e _ { 2 3 } & 0 \\\\ 0 & e _ { 3 2 } & 1 - e _ { 3 2 } & 0 \\\\ 0 & 0 & 0 & 0 \\end{array} \\right )",
+  "latex_status": null,
+  "gold_reading": "E = \\begin{pmatrix} 1-e_{12} & e_{12} & 0 & 0\\\\ e_{21} & 1-e_{21}-e_{23} & e_{23} & 0\\\\ 0 & e_{32} & 1-e_{32} & 0\\\\ 0 & 0 & 0 & 0 \\end{pmatrix}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E08.png",
+  "crop_size": [
+   1152,
+   283
+  ]
+ },
+ {
+  "id": "E09",
+  "block_id": "01a0aa23-ebf1-7730-b8c5-45eb69930d1e",
+  "rel_path": "Validation/Bellettini_2002_total-variation-flow.pdf",
+  "page": 35,
+  "bbox": [
+   139.18118682,
+   186.29279379999997,
+   375.27833327999997,
+   211.20761918951047
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "- \\text {div} \\left ( \\frac { \\nabla u } { \\sqrt { 1 + | \\nabla u | ^ { 2 } } } \\right ) = \\lambda _ { C } \\quad \\text {in} \\ C",
+  "latex_status": null,
+  "gold_reading": "-\\operatorname{div}\\left(\\frac{\\nabla u}{\\sqrt{1+|\\nabla u|^2}}\\right) = \\lambda_C \\qquad \\text{in } C",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E09.png",
+  "crop_size": [
+   1284,
+   136
+  ]
+ },
+ {
+  "id": "E10",
+  "block_id": "01a0aa23-ebd6-72d6-afa6-aebf5a4bb75e",
+  "rel_path": "Validation/Bellettini_2002_total-variation-flow.pdf",
+  "page": 33,
+  "bbox": [
+   87.98801592000001,
+   158.44019460000004,
+   339.75501036,
+   170.4862766
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\mathcal { G } _ { \\lambda } ( D ) \\coloneqq P ( D ) - \\lambda | D | , \\quad D \\subseteq \\mathbb { R } ^ { 2 } , \\ \\ D \\ \\text {of finite perimeter} .",
+  "latex_status": null,
+  "gold_reading": "\\mathcal{G}_\\lambda(D) := P(D) - \\lambda|D|, \\qquad D\\subseteq\\mathbb{R}^2, \\quad D \\text{ of finite perimeter.}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E10.png",
+  "crop_size": [
+   1369,
+   66
+  ]
+ },
+ {
+  "id": "E11",
+  "block_id": "01a0aade-56b4-7acd-a09b-29feddefaf6e",
+  "rel_path": "Validation/Mei_2010_efficient-scalable-schemes-monitoring.pdf",
+  "page": 13,
+  "bbox": [
+   206.10811504000006,
+   310.91585520000007,
+   344.48493529999996,
+   348.9343334
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\int _ { 0 } ^ { a } e ^ { - ( a - y ) } P _ { \\infty } \\left ( \\sum _ { k = 1 } ^ { K - 1 } W _ { n } ^ { ( k ) } \\in d y \\right ) , \\\\ \\intertext { i n t s e q u a l s } \\",
+  "latex_status": null,
+  "gold_reading": "\\int_0^a e^{-(a-y)} P_\\infty\\left(\\sum_{k=1}^{K-1} W_n^{(k)} \\in dy\\right),",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E11.png",
+  "crop_size": [
+   753,
+   207
+  ]
+ },
+ {
+  "id": "E12",
+  "block_id": "01a0aa24-9d48-706a-94e3-fbd12d12d63b",
+  "rel_path": "Validation/Chaux_2008_nonlinear-stein-based-estimator.pdf",
+  "page": 13,
+  "bbox": [
+   244.32071800000014,
+   221.37135099999955,
+   540.0493645661622,
+   253.79811400000006
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\tilde { \\lambda } _ { i _ { 0 } } ( \\beta , \\mathbf a ) = - \\frac { \\sum _ { i = 1 } ^ { i _ { 0 } - 1 } \\mathbf a _ { 1 } ( \\mathbf k _ { i } ) } { 2 \\sum _ { i = 1 } ^ { i _ { 0 } - 1 } \\mathbf a _ { 2 } ( \\mathbf k _ { i } ) } . \\\\",
+  "latex_status": null,
+  "gold_reading": "\\tilde{\\lambda}_{i_0}(\\beta,\\mathbf{a}) = -\\frac{\\sum_{i=1}^{i_0-1}\\alpha_1(\\mathbf{k}_i)}{2\\sum_{i=1}^{i_0-1}\\alpha_2(\\mathbf{k}_i)}.",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E12.png",
+  "crop_size": [
+   1609,
+   177
+  ]
+ },
+ {
+  "id": "E13",
+  "block_id": "01a0aa23-ec56-7ddf-9343-228ae65b3edd",
+  "rel_path": "Validation/Bellettini_2002_total-variation-flow.pdf",
+  "page": 42,
+  "bbox": [
+   120.6425,
+   407.73920083999997,
+   312.65691934000006,
+   437.16175037594405
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\int _ { \\mathbb { R } ^ { 2 } } ( \\xi , D u ) = \\int _ { \\mathbb { R } ^ { 2 } } u ^ { 2 } \\, d x = \\sum _ { i = 1 } ^ { m } \\frac { P ( C _ { i } ) ^ { 2 } } { | C _ { i } | } = \\int _ { \\mathbb { R } ^ { 2 } } | D u | .",
+  "latex_status": null,
+  "gold_reading": "\\int_{\\mathbb{R}^2}(\\xi, Du) = \\int_{\\mathbb{R}^2} u^2\\,dx = \\sum_{i=1}^{m}\\frac{P(C_i)^2}{|C_i|} = \\int_{\\mathbb{R}^2}|Du|.",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E13.png",
+  "crop_size": [
+   1045,
+   160
+  ]
+ },
+ {
+  "id": "E14",
+  "block_id": "01a0aa24-947b-7546-b7f5-c97d427f70c0",
+  "rel_path": "Validation/Charitos_2008_computing-short-interval-transition.pdf",
+  "page": 4,
+  "bbox": [
+   227.31878745000003,
+   440.23007,
+   337.123827,
+   466.2159598
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "A _ { t } ^ { * } \\colon = \\arg \\min _ { A \\in \\mathcal { A } } \\| A ^ { k } - A _ { \\tau } \\|",
+  "latex_status": null,
+  "gold_reading": "A_t^* := \\arg\\min_{A\\in\\mathscr{A}} \\|A^k - A_\\tau\\|",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E14.png",
+  "crop_size": [
+   598,
+   142
+  ]
+ },
+ {
+  "id": "E15",
+  "block_id": "01a0aa25-0aad-7d26-972f-5b95fea04ef8",
+  "rel_path": "Validation/Foody_2010_assessing-accuracy-land-cover-change.pdf",
+  "page": 5,
+  "bbox": [
+   310.50637671999993,
+   154.18787669999995,
+   561.5509393,
+   184.78695200000004
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\rho _ { 0 } = \\frac { S _ { 2 } ^ { * } - S _ { 2 } ^ { 1 } S _ { 2 } ^ { 2 } } { \\sqrt { S _ { 2 } ^ { 1 } ( 1 - S _ { 2 } ^ { 1 } ) S _ { 2 } ^ { 2 } ( 1 - S _ { 2 } ^ { 2 } ) } }",
+  "latex_status": null,
+  "gold_reading": "\\rho_0 = \\frac{S_2^* - S_2^1 S_2^2}{\\sqrt{S_2^1(1-S_2^1)S_2^2(1-S_2^2)}}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E15.png",
+  "crop_size": [
+   1321,
+   166
+  ]
+ },
+ {
+  "id": "E16",
+  "block_id": "01a0aa23-b4f1-7d65-82de-60ee6e0f7e72",
+  "rel_path": "Validation/Allard_2007_total-variation-regularization-image.pdf",
+  "page": 5,
+  "bbox": [
+   243.14460398,
+   134.62077652000005,
+   269.85549999999995,
+   150.58998874709675
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\mathcal { B } _ { \\lambda } ( \\Omega )",
+  "latex_status": null,
+  "gold_reading": "\\mathcal{B}_\\lambda(\\Omega)",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E16.png",
+  "crop_size": [
+   146,
+   87
+  ]
+ },
+ {
+  "id": "E17",
+  "block_id": "01a0aa24-af74-76a5-875b-84ffed02ce80",
+  "rel_path": "Validation/Conley_1999_gmm-estimation-cross-sectional.pdf",
+  "page": 18,
+  "bbox": [
+   91.58499999999995,
+   322.18199999999996,
+   311.072,
+   349.496
+  ],
+  "dx": 40.0,
+  "dy": 37.0,
+  "codeformula_latex": "K _ { M N } ( j , k ) = \\begin{cases} K ( j / L _ { M } , k / L _ { N } ) & \\text {for } | j | < L _ { M } , | k | < L _ { N } , \\\\ 0 & \\text {otherwise} , \\end{cases}",
+  "latex_status": null,
+  "gold_reading": "K_{MN}(j,k) = \\begin{cases} K(j/L_M,\\, k/L_N) & \\text{for } |j| < L_M,\\ |k| < L_N,\\\\ 0 & \\text{otherwise,}\\end{cases}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E17.png",
+  "crop_size": [
+   1194,
+   149
+  ]
+ },
+ {
+  "id": "E18",
+  "block_id": "01a0aa26-8047-760a-8f26-d469f26de10e",
+  "rel_path": "Validation/Nordman_2004_optimal-spatial-subsample-size.pdf",
+  "page": 26,
+  "bbox": [
+   239.15845000000022,
+   537.7853175000001,
+   370.85329000000013,
+   556.7126060000002
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "c _ { 2 } = 0 . 5 \\quad \\text {and} \\quad c _ { 1 } \\in \\{ 0 . 5 , 1 \\}",
+  "latex_status": null,
+  "gold_reading": "c_2 = 0.5 \\quad\\text{and}\\quad c_1 \\in \\{0.5, 1\\}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E18.png",
+  "crop_size": [
+   716,
+   102
+  ]
+ },
+ {
+  "id": "E19",
+  "block_id": "01a0aa23-b64d-7209-8c88-1dc7fa49b73a",
+  "rel_path": "Validation/Allard_2007_total-variation-regularization-image.pdf",
+  "page": 19,
+  "bbox": [
+   111.58866744000008,
+   352.7810028,
+   401.41575794,
+   389.95146339999997
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\xi _ { t } ( x ) = \\bigwedge _ { n - 1 } \\partial h _ { t } ( x ) ( * \\mathbf n _ { D } ( x ) ) \\quad \\text {and} \\quad W _ { t } ( x ) = \\langle \\dot { h } _ { t } ( x ) \\wedge \\xi _ { t } ( x ) , E ^ { n } \\rangle . \\\\ \\text {Suppose } x \\in \\mathbf b ( D ) . \\ \\text {Let } u _ { 1 } , \\dots , u _ { n } \\ \\text {be an orthogonal sequence of vectors in } \\mathbb { R } ^ { n }",
+  "latex_status": null,
+  "gold_reading": "\\xi_t(x) = \\bigwedge_{n-1}\\partial h_t(x)(*\\mathbf{n}_D(x)) \\quad\\text{and}\\quad W_t(x) = \\langle \\dot{h}_t(x)\\wedge\\xi_t(x), \\mathbf{E}^n\\rangle.",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E19.png",
+  "crop_size": [
+   1576,
+   203
+  ]
+ },
+ {
+  "id": "E20",
+  "block_id": "01a0aa26-12e0-7ddf-bbd2-113cd3a36006",
+  "rel_path": "Validation/Leung_2004b_part-4-error-analysis-length.pdf",
+  "page": 11,
+  "bbox": [
+   71.48959382000001,
+   69.53401580000002,
+   385.4921711,
+   253.31663941440007
+  ],
+  "dx": 0.0,
+  "dy": 0.0,
+  "codeformula_latex": "\\text {Since} \\\\ \\sum _ { i = 1 } ^ { n } \\text {e} _ { n , i } \\text {e} ^ { T } = \\sum _ { i = 1 } ^ { n } \\left ( \\begin{array} { c c c c c } 0 & & & \\cdots & 0 \\\\ & \\ddots & & & \\ddots & \\\\ & & 0 & 0 & 0 & \\\\ & & & 0 & 1 & 0 & \\\\ & & & 0 & 0 & 0 & \\\\ & & & \\ddots & & \\ddots & \\\\ & & & & \\cdots & & 0 \\\\ & & 1 & \\cdots & i & i + 1 & i + 2 & \\cdots & n \\\\ & & & 0 & 0 & \\cdots & 0 \\\\ & & & 0 & 1 & \\ddots & i \\\\ & & & \\ddots & \\ddots & 0 & \\equiv G _ { 0 } \\\\ & & & & \\ddots & 1 & \\\\ & & 1 & 0 & \\cdots & 0 & \\\\ & & & & 0 & \\cdots & 0 \\\\ & & & & & \\cdots & \\cdots & \\end{array} \\right ) = G _ { 0 } \\\\ ( G _ { 0 } \\text { is just the forward-shift matrix } I _ { 1 } \\left ( \\text {Turkongon, 2002} \\right ) \\text { and is also a } \\text {permutation matrix} ) , \\text { we have }",
+  "latex_status": null,
+  "gold_reading": "\\sum_{i=1}^{n}\\mathbf{e}_{n,i}\\,\\mathbf{e}_{n,i+1}^{\\mathrm{T}} = \\sum_{i=1}^{n}\\begin{pmatrix} 0 & & \\cdots & & 0\\\\ & \\ddots & & \\ddots & \\\\ & & 0&0&0 & \\\\ \\vdots & & 0&1&0 & & \\vdots\\\\ & & 0&0&0 & \\\\ & \\ddots & & \\ddots & \\\\ 0 & & \\cdots & & 0\\end{pmatrix} = \\begin{pmatrix} 0&1&0&\\cdots&0\\\\ &0&1&\\ddots&\\vdots\\\\ \\vdots& &\\ddots&\\ddots&0\\\\ 0& & &\\ddots&1\\\\ 1&0&\\cdots& &0\\end{pmatrix} \\equiv \\mathbf{G}_0",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_gold\\E20.png",
+  "crop_size": [
+   1696,
+   1000
+  ]
+ }
+]

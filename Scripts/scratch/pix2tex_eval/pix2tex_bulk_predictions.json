@@ -1,0 +1,802 @@
+[
+ {
+  "crop_id": "6dbce6f6e712a699fa54a15b21d0aaa06ec6e1b46f63ec85fefacd177f3a14aa",
+  "pix2tex": "H(r)=1-\\mathrm{e}^{-\\gamma\\kappa_{d}r^{o}}"
+ },
+ {
+  "crop_id": "4a8717a428d2ce0e9b2a9c90ae39024ccf4bcea2fe1bf803f6ed7bcca4603e5c",
+  "pix2tex": "\\begin{array}{r l}{{\\mathrm{m}}(x)=\\int_{\\mathcal{C}}{\\mathbf{1}}_{Z(\\omega)}(x)\\,{\\mathbb{P}}(\\mathrm{d}\\omega)=\\int_{\\mathcal{F}}{\\mathbf{1}}_{F}(x)\\,{\\mathbb{P}}_{Z}(\\mathrm{d}F).}\\\\ {{\\mathrm{easnrahilitv}\\,\\mathrm{ef\\,nur\\,\\,preen\\,\\,Ulue\\,\\,irem\\,\\,\\,The\\,\\,Tree\\,\\,Urem\\,\\,U2.\\,2\\,\\mathbb{Z}\\,.\\,\\mathbf{V}}}\\end{array}"
+ },
+ {
+  "crop_id": "c27a45bc7b30cbc9e96f6d8c368d29341acd197ba08bbefdcc617cafff13203f",
+  "pix2tex": "T(K\\cup K^{\\prime}\\cup C)+T(C)=T(K\\cup C)+T(K^{\\prime}\\cup C)."
+ },
+ {
+  "crop_id": "e76345905a4fa8652fa605f574adfba658f6df5aedf9765c46dda75ac75c6554",
+  "pix2tex": "m(x)=m(0)=:p,"
+ },
+ {
+  "crop_id": "cd8b8d44bdf23a2aa81bba64b946a819d91a377792fbfdc9a6c3401ff5ce0b50",
+  "pix2tex": "k(x,0)=\\mathbb{P}(0\\in Z,x\\in Z)-p^{2}=\\mathbb{E}\\lambda(Z\\cap(Z-x)\\cap C^{d})-p^{2}."
+ },
+ {
+  "crop_id": "1f618b89df94ea6b2ecd33b715a40ed6589f062a8208a7f45bc6c9df1cdc71fd",
+  "pix2tex": "{\\cal A}:=\\{{\\cal A}\\in{\\cal B}:{\\mathcal O}_{A\\cap{\\cal G}}\\mathrm{~is~}{\\mathcal N}{\\cal A}^{\\prime}\\!\\mathrm{\\!nneasurable~for\\all~}{\\cal G}\\in{\\mathcal G}_{c}\\}"
+ },
+ {
+  "crop_id": "464b7258d4e77f4fe7407307493403338aacaed608a9facde3ec14433abe146b",
+  "pix2tex": "\\begin{array}{c}{{\\cdots\\L_{x\\to\\alpha}\\mathrm{ex}\\circ\\L_{y}}}\\\\ {{\\eta=\\displaystyle\\sum_{\\{x.m\\}}m\\,\\delta_{x}}}\\end{array}"
+ },
+ {
+  "crop_id": "5aacd88193a8018d4b11c45c499d53ad75ddc42ba0f0f1ff0d0ca24a9de1a16f",
+  "pix2tex": "p(0,1):=\\mathrm{e}^{-2}+c,\\qquad p(1,0):=\\mathrm{e}^{-2}-c,"
+ },
+ {
+  "crop_id": "5f4ee0ad0a76d70d68c2b020319d4f0c93b4032ccd4ae7e3c1f3281ae095de86",
+  "pix2tex": "\\left.T_{r}(x_{1},\\ldots,x_{r}):=\\sum_{j=1}^{r}\\delta_{x_{j}}.\\right."
+ },
+ {
+  "crop_id": "846acc03ee1d5eb062fd9ce626029cb5989c803538b26211d26fc175f66f2e0b",
+  "pix2tex": "\\alpha_{i}=\\frac{\\psi_{i}\\eta_{i}}{(1-\\psi_{i})(1-\\eta_{i})},~~~\\beta_{i}=\\frac{\\psi_{i}(1-\\psi_{i})}{\\eta_{i}(1-\\eta_{i})}."
+ },
+ {
+  "crop_id": "238186b5a8594d3cef843a276e6bc66a151973fb0381dcca32da6d7d10a73043",
+  "pix2tex": "(1-P^{\\prime\\prime})/(1-P^{\\prime\\prime}+P^{\\prime}),"
+ },
+ {
+  "crop_id": "8f661c5a08e27ab596f267d1e03f553f866101219c128c8aa3567b315e3c66f4",
+  "pix2tex": "\\begin{array}{c}{{\\mathrm{e}^{\\mathbf{v}}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}_{\\mathrm{}}\\mathrm{}^{\\mathrm{}}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\frac{v}{\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\mathrm{}\\boldsymbol{}\\mathrm{}\\atop{\\mathrm{}}}}}\\end{array}"
+ },
+ {
+  "crop_id": "dd1872bce447ff49d3faaee5e37dcd9857b80d12c2a334bbb3f9d03c47fc41c3",
+  "pix2tex": "a_{\\{i,j\\}}=1-e_{\\{i\\}}-e_{\\{j\\}}+2e_{\\{i,j\\}}.\\qquad\\qquad(5)\\qquad\\mathrm{tem}\\qquad\\qquad\\mathrm{tem}\\qquad"
+ },
+ {
+  "crop_id": "2cbb5b87527318c810a35c7b9a1d4e5a9f0f5a54d4ac8f9cedc0524ed53bcb19",
+  "pix2tex": "q_{i j}=\\left\\{\\begin{array}{c c c}{{(2\\pi_{i}-\\mu_{-}^{2}\\mu_{-}^{2})\\left(1-b^{2}\\right)}}&{{i=j~,}}\\\\ {{(2\\pi_{i}-1)(2\\pi_{j}-\\bar{\\pi}_{j}-1)\\left(1-b^{2}\\right)}}&{{i\\not=\\l/j~i\\in\\bar{C}~}}\\\\ {{(2\\pi_{i}-1)(2\\bar{\\pi}_{i}-1)(2\\bar{\\kappa}_{j}-1)\\left(1-b^{2}\\right)}}&{{i\\not=\\bar{\\pi}j,\\bar{\\equiv}C,j\\in C}}\\end{array}\\right."
+ },
+ {
+  "crop_id": "921acd514e985ada565465b6c24547035ef1efc5ed332ad2d8375adec0b7beda",
+  "pix2tex": "O u t_{2}=R e L U(B N(\\,f_{2}(O u t_{1})))\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(50)"
+ },
+ {
+  "crop_id": "5bb1297e5dc1e894be323c8d7ebbe5ecf818b1698913c01c4a8752f5b51b189f",
+  "pix2tex": "\\left.\\begin{array}{l l}{{B_{n}^{\\prime}=\\,\\operatorname*{max}\\left(N_{n-1}^{\\prime}+x_{n},0\\right)}}&{{\\left(n\\gg1\\right)\\right\\}}}\\\\ {{\\aleph^{\\prime}\\,-\\,\\mathbf{q}}}&{{}}\\end{array}\\right."
+ },
+ {
+  "crop_id": "30782d552ce18d82b898c74e0b29e4ff43630f4e81f6399408df0345fa9acb3a",
+  "pix2tex": "|P(U_{\\theta}({\\bf0})\\le u)-P(U_{\\theta_{\\mathrm{a}}}({\\bf0})\\le v)|\\le c_{0}||\\theta-\\theta_{0}||+|u-v|,"
+ },
+ {
+  "crop_id": "6f9d6edbed0437be7d1796c9ef2fd3dba5fe24ca5bd5b078cb10d8d8df9bdedc",
+  "pix2tex": "\\operatorname{exp}(O_{i}t)\\ =\\ \\operatorname{exp}(O t)."
+ },
+ {
+  "crop_id": "b203826979a775bee2f13e0a1c8b538c6a4a80969216a783de02a8d492e53cd7",
+  "pix2tex": "w_{t}(a)=\\sum_{B\\in\\{0,1\\}^{n}}q_{t}(B)p(x_{t}=a|y_{t}=B;\\theta),\\quad t=1,...,n,\\quad a\\in\\{0,1\\}\\quad\\quad(9)"
+ },
+ {
+  "crop_id": "773dcc624a08cbf1c4532c5799aaca90b8972a77f3144ae08ad65b109081117c",
+  "pix2tex": "\\phi=(Q_{H Z}^{\\prime}Q_{H H}^{-1}Q_{H Z})^{-1}Q_{H Z}^{\\prime}Q_{H H}^{-1}\\bar{Q}_{H Z}(\\bar{Q}_{H Z}^{\\prime}Q_{H Z}^{-1}Q_{H Z}^{-1}Q_{H Z})^{-1},"
+ },
+ {
+  "crop_id": "5a89342cc0da5318edcc229a7a3010d1304c00238a58ef0e506d96d6aa722529",
+  "pix2tex": "d_{i,n}^{*}=d_{i j,n}+v_{i j,n}\\geqslant0,"
+ },
+ {
+  "crop_id": "5ef492bd73076b4eb52e6a18750a8b01bf003928bc80aad682dd773d830b5adf",
+  "pix2tex": "({\\mathcal Z}^{n}\\times{\\mathcal Z}^{1})(G)<\\infty\\quad a n d\\quad q[\\mathrm{spt}\\,[G]]\\ i s\\ b o u n d e d."
+ },
+ {
+  "crop_id": "d6bf66dc1bec4acab951d1ebb0db0f81d0f70d86f7674d9838dee73f33bb5840",
+  "pix2tex": "-\\mathcal{R G}=\\Pi_{\\mathcal{R u}_{1}}^{\\mathcal{R u}_{2}}-\\Pi_{\\mathcal{R u}_{4}}^{\\mathcal{R u}_{3}}."
+ },
+ {
+  "crop_id": "cd308393d23c9742d14800d981c09c9eace71b83b4353c469764a2f060710d01",
+  "pix2tex": "\\begin{array}{l l}{{}}&{{}}&{{\\mathrm{~}}}\\\\ {{}}&{{G^{\\mathrm{i}}(x)=\\left\\{\\bigcap^{1}(\\{y:(x,y)\\in G\\})}}&{{i f\\left\\{y:(x,y)\\in G\\}\\in{\\mathcal W}((0,\\infty)),\\right.}}\\end{array}"
+ },
+ {
+  "crop_id": "3e2631c74a9efb25da506c0c53d04b3b9335006c3eb8da2379d64a1228f36f81",
+  "pix2tex": "U_{u}(C(R))=-Z\\bar{Z}^{2}(C(R))=-Z(4-(4-\\pi)R^{2}),"
+ },
+ {
+  "crop_id": "82a13d483c6ec346a7017f79edc008a09fdaa8ffec209d526e8068493f2898c1",
+  "pix2tex": "\\{{\\mathcal{F}}^{C}:C\\in C\\}\\cup\\{{\\mathcal{F}}_{G}:G\\in{\\mathcal{G}}\\}."
+ },
+ {
+  "crop_id": "863e8378873469eeb54d98cf1a55be469620558c466c4d7bf45093b004911b1a",
+  "pix2tex": "\\begin{array}{l l}{{\\phi_{1}(\\hat{x}(v_{01},v_{10}),\\hat{\\beta}(v_{01},v_{10}),v_{01},v_{10})=0}}\\\\ {{\\phi_{2}(\\hat{x}(v_{01},v_{10}),\\hat{\\beta}(v_{01},v_{10}),\\hat{\\beta}(v_{01},v_{10})=0}}\\end{array}\\qquad\\qquad(13)"
+ },
+ {
+  "crop_id": "ec1d9ac1e97a240799d5fef3e4cf65b7928d4251fb9a76499c809d0ddf1cebad",
+  "pix2tex": "V_{i(i)}\\subset W_{i}\\cup V.\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(2.5)"
+ },
+ {
+  "crop_id": "45fbcd14a4ac154998a49ddfb6ded2cd5563464500b2c06b7c6dfacd460dc8ff",
+  "pix2tex": "\\begin{array}{c c c c c c c c c}{{\\mathbb{P}(A_{i}\\setminus A_{i}^{0})<\\epsilon2^{-1}.}}&{{}}&{{}}&{{}}&{{(2.14)}}\\\\ {{.}}&{{.}}&{{.}}&{{}}&{{}}&{{.}}&{{.}}&{{.}}&{{.}}&{{.}}&{{}}&{{.}}&{{.}}&{{.}}&{{.}}&{{}}\\end{array}"
+ },
+ {
+  "crop_id": "706daf3bb5de059a7366deb2ca6b22bd64fb2a133b586d4cf6025ba323af99d4",
+  "pix2tex": "{\\bf S}_{m}(V;V_{1},\\cdot\\cdot\\cdot V_{m})={\\bf S}_{m-1}(V;V_{1},\\cdot\\cdot\\cdot,V_{m-1})."
+ },
+ {
+  "crop_id": "80e5d2c881bf4067daadc194dc7cf004afb45c171122124cb584b8a409c6b1a5",
+  "pix2tex": "\\mathbf{x}_{44}^{\\mathrm{T}}\\equiv(\\mathbf{x}_{1}^{\\mathrm{T}}\\mathbf{\\mu_{2}^{T}}\\mathbf{\\hat{x}_{3}^{T}}\\mathbf{\\hat{x}^{T}}).\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(16)"
+ },
+ {
+  "crop_id": "7a45b0e3bd5247e8b24fa089e9bc31e6d90528bfe1a2cb709b6aabe3c68ee63e",
+  "pix2tex": "\\displaystyle E[F]={\\bf\\Omega}\\sum\\widehat{\\overline{{{\\bf\\pi}}}}\\sigma."
+ },
+ {
+  "crop_id": "a74f5102986de680d249fd72490a7310ba3a79c835c7aac866ac5c8d6d9ef100",
+  "pix2tex": "\\begin{array}{r l}{\\cos{}^{+}{}^{+}{}^{'}\\qquad}\\\\ {\\sum_{\\bf k\\in K_{n}:\\in L_{n}}E_{,i}{\\bf\\hat{x}}\\bigl|\\sum_{j=1}^{n}w_{n j}({\\bf X})g({\\cal Z}({\\bf s}_{j}))\\;\\left({\\bf s}_{j}\\in B_{n}(\\mathrm{i};{\\bf k})\\right)\\bigr|\\frac{\\Phi^{\\scriptstyle n\\to m\\infty,m\\infty,m\\infty,m\\infty,m\\infty,m\\infty,m\\infty,\\infty}}{\\P\\psi_{n}^{\\scriptstyle n\\prime\\prime}}}}\\\\ {\\left(10.14\\right)}&{{}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad({\\in\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\left(\\qquad\\qquad\\qquad\\qquad\\qquad\\left(\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\"
+ },
+ {
+  "crop_id": "b038df75fcbf723b03b6dc897863808efe3eff64c46af8e53cf32f4d9aeb2d20",
+  "pix2tex": "\\begin{array}{c c c c c c c c c}{{\\left(9.7\\right)}}&{{\\qquad}}&{{N=n\\int f_{a}^{2}({\\bf z})\\,d{\\bf z}\\left({\\bf1}+o({\\bf1})\\right)}}&{{\\mathrm{as~}n\\rightarrow\\infty.}}&{{}}&{{}}\\\\ {{\\cdot\\qquad}}&{{\\cdot}}&{{}}&{{\\cdot}}&{{}}&{{\\cdot}}&{{}}&{{\\cdot}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}\\\\ {{\\cdot\\qquad}}&{{\\cdot}}&{{\\cdot}}&{{}}&{{\\cdot}}&{{}}&{{}}&{{\\cdot}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}\\\\ {{\\cdot\\qquad}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{}}&{{{}}}&{{}}&{{{}}}&{{}}&{{{}}&{{{{}}}}&{{{{{{}}}}}&{{{{{}}}&{{{{{{{}}}&{{}}&{{}}}}&{{{{{}&{{}}}}&{{{{{}.}}}&{{{}}}&{{{}&{{{{{{}}}}}&{{{{{{{{{}}}}}}&{{{{{{{{{{}}}"
+ },
+ {
+  "crop_id": "2b196654de8d7b37d67d5be7491fe44f051faefaaa38372d5d2ecce1666897cb",
+  "pix2tex": "h_{2}({\\bf x})\\equiv h({\\bf x}_{1},{\\bf x},{\\bf x}_{3}),\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\{\\Theta\\}"
+ },
+ {
+  "crop_id": "d7f532d5de2a298c16275d165c46bc6ab316df1f95f376ff30de6f8e06896fcc",
+  "pix2tex": "_{\\mathrm{\\boldmath~\\Psi~}}\\quad\\quad\\quad\\ F(W)\\equiv\\mathcal{P}(\\mathbb{W})+\\mathcal{Q}(\\mathbb{N}),}\\\\ {\\cdot\\quad\\cdot}\\end{array}\\begin{array}{c}{{(3)\\qquad\\mathrm{\\boldmath~\\Psi~}}}\\\\ {{\\cdot\\quad\\ddots\\quad\\qquad\\ldots\\nu\\star,\\nu\\quad\\mathrm{\\boldmath~\\Psi~}\\quad\\mathrm{\\boldmath~\\Psi~}}}\\quad\\begin{array}{c}{{\\mathrm{\\boldmath~\\by~}}}\\\\ {{\\mathrm{\\boldmath~\\l~}}}\\\\ {{\\mathrm{\\boldmath~\\l~}}}\\end{array}\\quad\\begin{array}{c}{{\\mathrm{\\boldmath~\\l.}}}\\\\ {{\\mathrm{\\boldmath~\\l~}}}\\\\ {{\\mathrm{\\boldmath~\\l~}}}\\end{array}\\quad\\quad"
+ },
+ {
+  "crop_id": "85f58eb091bed5889fc413841199ebeb86c8977ac9fcfcee5b85a07a8d9d4bbf",
+  "pix2tex": "\\begin{array}{c}{{\\displaystyle\\sum_{\\mathrm{isc}\\K_{n}}^{(\\mathrm{sor}-\\mathrm{e}-\\cdots-\\cdots-\\cdots-\\cdots-\\infty}-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\infty-\\cdots-\\cdots-\\cdots-\\cdots-\\infty-\\left(\\frac{\\mathrm{s}}{\\mathrm{ist}}\\hat{S}(\\mathrm{i,k})\\right)^{2}-\\{E_{*}[\\chi_{n}^{-1}\\tilde{S}(\\mathrm{i,k})\\}^{2}]\\right)^{2}}}\\\\ {{\\displaystyle\\left.\\cdot\\displaystyle\\sum{}_{s}\\right.}}&{{\\displaystyle\\sum_{\\begin{array}{l}{\\mathrm{s}}{\\epsilon}}=\\displaystyle\\sum_{n}^{\\mathrm{s}}\\left(\\frac{\\mathrm{i}\\zeta}{\\mathrm{ist}}\\mathrm{i}}{\\mathrm{s}}_{n}^{d}m_{0n}^{4}m_{n}^{4}b_{n}^{2}b_{n}^{2}b_{n}^{2}\\right)}}\\end{array}"
+ },
+ {
+  "crop_id": "1ace8974c8add4fecd341f419d935305b1190437fa00224d07e55cc035d6658f",
+  "pix2tex": "{\\bf\\nabla}_{}^{}{\\bf\\nabla}"
+ },
+ {
+  "crop_id": "921028fc93cfbf2d8a8a507806c3bf23c33e2ebbdd9aab7bcf539e6051431898",
+  "pix2tex": "\\stackrel{\\vec{\\mathbf{t}}}{}"
+ },
+ {
+  "crop_id": "b2188811c360f528fae660e7703fcefb0ae08d20dd8a878a08fa2fb4274a4590",
+  "pix2tex": "\\mu(M,K,A)=\\mu(K,M,A^{-1})\\qquad\\mathrm{for~}A\\in B(G_{d})."
+ },
+ {
+  "crop_id": "7cbccca3e3ddd714c51c7190a5e2ed716c53cbaebb27f59a2cf54f8dbb01d337",
+  "pix2tex": "A_{r}(M_{1},\\ldots,M_{n}):=\\{x\\in K_{0}:x\\in M_{i}{\\mathrm{~for~precisely~}}r{\\mathrm{~indices~}}i\\}."
+ },
+ {
+  "crop_id": "6d8cd5b6e1828c15f7ff2bb3f9d9037000a187046346dc265b04ccf5718398c6",
+  "pix2tex": "\\int_{G(d,q)}^{\\ast\\quad\\ast}\\sum_{\\iota,\\iota=\\quad\\iota_{\\iota}}^{\\ast\\iota}\\ J_{\\iota}(\\partial_{0}\\cap\\iota)^{d}\\nu_{q}(\\mathrm{d}L)=\\frac{\\kappa_{q}^{d}}{\\kappa_{d}^{q}}V_{d}(\\partial_{0})^{q},\\qquad\\qquad(\\mathrm{s.jj})"
+ },
+ {
+  "crop_id": "e90062d8fbf83b25848270cc25b2485bb165d8d6bba8e501e926526350e39b62",
+  "pix2tex": "\\begin{array}{c}{{\\stackrel{\\circ}{E\\in X}\\sum_{}^{\\circ}\\sum_{}^{\\circ}}}\\\\ {{\\phantom{\\frac{\\circ}{E\\in Y}}\\sum_{k=1}^{\\circ}\\sum_{l>n,n,n,n,n,n,n,n,n,~r,n}}}\\end{array}"
+ },
+ {
+  "crop_id": "664ad4ce4e39fdb93bf122e7b672530d372dd05eb8c6a1c50136ee38464b99f4",
+  "pix2tex": "\\mu(\\{g\\in G_{d}:\\varphi(K\\cap g M)\\neq0\\})\\leq\\mu(\\{g\\in G_{d}:K\\cap g M\\neq\\emptyset\\})<\\infty."
+ },
+ {
+  "crop_id": "276a5aa1cb84aaf0e99a608b515afbd74fa117f28fa06b8e01a6904e769204c0",
+  "pix2tex": "\\ \\}{}"
+ },
+ {
+  "crop_id": "424257bd91dc553ad616a963079794a213247931fbb3e54784068728cbef2fbd",
+  "pix2tex": "\\begin{array}{c}{{\\mathrm{t~sums~of~line~segments.}\\mathrm{~Using~(14.41)},\\,(14.41),\\,(4.41),\\,(4.41),\\,(4.41),\\,(4.45),}}\\\\ {{\\mathrm{}=\\gamma\\int_{{\\cal K}^{a}-1}\\left|\\langle u,v\\rangle\\right|\\widetilde{S}_{d-1}({\\cal X},\\mathrm{anoje~geometric})}}\\\\ {{}}&{{}}\\end{array}"
+ },
+ {
+  "crop_id": "296189e14c72f4105bf893fd0b9c948b39148c23e84c196a306596e01ae9ba34",
+  "pix2tex": "\\begin{array}{l}{{\\mathcal{C}\\,\\theta(\\mathbb{R}^{d}).\\,\\mathrm{By~the~transformation~formula~for~integrals,}}}\\\\ {{\\mathrm{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}}}\\\\ {{\\displaystyle{\\int_{\\tilde{\\bf}}d}_{\\chi\\tilde{\\bf}}g d}^{\\mathrm{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}}}\\end{array}"
+ },
+ {
+  "crop_id": "39c599f0b45b93234391d104a5e0a45d9778a925f808930b9bf3ad774901cddb",
+  "pix2tex": "\\begin{array}{c}{{\\psi(r C)=\\sum_{i=0}^{k}\\varphi_{d-i}(K)V_{i}(r C)=\\sum_{i=0}^{k}\\varphi_{d-i}(K)V_{i}(r C)=\\sum_{i=0}^{k}\\varphi_{d-i}(K)r^{i}V_{i}(C),}}\\\\ {{{}}}\\\\ {{{}}}\\\\ {{{}}}\\\\ {{{}}}\\\\ {{{}}}\\\\ {{{}}}\\\\ {{{}}{\\ast\\cdot{\\cdot\\cdot\\cdot\\cdot{\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot\\cdot}}}\\end{array}"
+ },
+ {
+  "crop_id": "39c7445204565d36b5d47e3f402cdeb85de5606af20e9650a4309b5b58ceeaa5",
+  "pix2tex": "\\begin{array}{c}{{\\mathrm{~s:veo~}}}\\\\ {{{\\cal I}(E,F)=\\int_{I^{\\prime}}\\int_{I^{\\prime}}J(E,F,x_{2},y_{2})\\,\\lambda_{U}(\\mathrm{d}x_{2})\\,\\lambda_{U}(\\mathrm{d}y_{2})}}\\end{array}"
+ },
+ {
+  "crop_id": "b23ac1b38c76c979f6598402c00385d8d66717957036cbe316ae2cee23e7dad5",
+  "pix2tex": "\\begin{array}{l}{{\\mathrm{\\Delta^{a{\\bf{rave}}}}}}\\\\ {{\\displaystyle{\\int_{S^{d-1}}u\\,\\overline{{{S}}}_{d-1}(X,\\mathrm{d}{u})=0.}}}\\\\ {{\\mathrm{\\Delta_{\\bar{\\bf{r}}}_{-1\\ldots\\ldots+1.2}\\,\\cdot\\,{\\;\\;{r r}_{1}}..................}}}\\end{array}"
+ },
+ {
+  "crop_id": "e16f28efcc01c2ecaf3ec6dd0172550c3e8d639c39ba316c5f3adf5eb6f4bbe6",
+  "pix2tex": "\\int_{G_{d}}V_{j}(K\\cap g M)\\,\\mu(\\mathrm{d}g)=\\sum_{k=j}^{d}c_{j,d}^{k,d-k+j}V_{k}(K)V_{d-k+j}(M)\\qquad\\qquad(5.10)"
+ },
+ {
+  "crop_id": "012b7487355b66a03705af0806e7e83b611a8ed8ea95f2594b3270e87f0cca67",
+  "pix2tex": "\\hat{\\beta}=\\arg\\operatorname*{min}_{\\beta}\\hat{\\operatorname{tr}}\\Bigg\\{\\frac{1}{n}\\sum_{i=1}^{n}Q(y_{i},\\mu(x_{i},\\beta))\\Bigg\\};\\qquad\\qquad\\qquad\\qquad\\qquad(30)"
+ },
+ {
+  "crop_id": "8f867dfca19c32ea0033dbab9932345f72eba552bb8c0676b80c6e8c54929f19",
+  "pix2tex": "C=\\left\\{Y_{0}:s(Y_{0},D)\\in\\left[s_{(I_{0})},s_{(I_{1})}\\right]\\right\\}.\\qquad\\qquad\\qquad\\qquad(119)"
+ },
+ {
+  "crop_id": "de23f3e53cf8f2ce788eb06af1b35625fd53de27080d9dd39d2b63497f3320c6",
+  "pix2tex": "{\\hat{\\tilde{u}}}_{i j}^{*}=f(x_{i},d^{*}(j)),\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(52)"
+ },
+ {
+  "crop_id": "4af949cb78273e0ccf1842cd6f6f6af1121838a9c1bfe0280998fae896da4475",
+  "pix2tex": "E\\left\\{{\\bf h}^{T}({\\bf u})\\theta\\right\\}=-E\\left\\{\\mathrm{Tr}\\left({\\frac{\\partial{\\bf h}({\\bf u})}{d{\\bf u}}}\\right)-{\\bf h}^{T}({\\bf u})\\dot{\\theta}_{\\mathrm{ML}}\\right\\}.\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(42)"
+ },
+ {
+  "crop_id": "d595e05314fe558145ee7fe697e5dd4817c15203d71150835f3213b0d271ba39",
+  "pix2tex": "E\\left\\{\\mathbf{h}^{T}(\\mathbf{u})\\theta\\right\\}=-E\\left\\{\\operatorname{Tr}\\left({\\frac{\\partial\\mathbf{h}(\\mathbf{u})}{\\partial\\mathbf{u}}}\\right)\\right\\}-E\\left\\{\\mathbf{h}^{T}(\\mathbf{u}){\\frac{\\partial\\ln q(\\mathbf{u})}{\\partial\\mathbf{u}}}\\right\\},\\qquad\\qquad\\qquad(16)"
+ },
+ {
+  "crop_id": "ddf81c22fd32d0c4b6210d841e9fece4bb536459ecebada2e6a671ef6f3e3d36",
+  "pix2tex": "\\bar{\\cal F}:\\quad x\\sim g(x)\\quad\\mathrm{and}\\quad y\\mid x\\sim p(y\\mid x)."
+ },
+ {
+  "crop_id": "b0fba874ee33c3ea40dc91fa65ceb7e446cd4005a42c8acea3afc88b8156e4cc",
+  "pix2tex": "\\begin{array}{c c c}{{d_{j}^{(k)}=\\displaystyle\\sum_{r\\rightarrow\\infty}\\displaystyle\\frac{1}{r^{d}}\\Xi\\displaystyle\\sum_{K\\in X^{(k)}}V_{j}(K\\cap r C^{d}).\\eqno(10.5)}}\\end{array}"
+ },
+ {
+  "crop_id": "edec7ce3991cf38ee6119f4196ac5b6d295c69997fd643da16db259edb2959c8",
+  "pix2tex": "\\begin{array}{r l}{{}}&{{u\\in S^{\\operatorname{rececosor}9-\\cdots}\\stackrel{\\scriptstyle{\\ F}}{\\longleftrightarrow}\\stackrel{\\scriptstyle{\\underset{\\delta^{\\prime}}}{}}{\\sim}\\underbrace{\\cdots\\subsetneq\\underbrace{\\underbrace{F^{\\prime}}}{\\cdots}\\underbrace{F^{2}}{}_{2}^{\\qquad\\textrm{f i e x}}\\cdots\\underbrace{\\cdots\\subsetneq\\cdots\\leftrightarrow\\tan\\varphi\\leftrightarrow\\cdots\\x}_{\\ Y^{\\prime}}}_{\\vphantom{{\\dotsb}}}}\\\\ {{}}&{{}}&{{h_{2}^{\\ *}(K,M;u)=\\int_{S^{2}}{\\int_{S^{2}}^{}}{f_{(-u,v,w)\\;S_{2}}(K,\\mathrm{d}v)\\;S_{2}(M,\\mathrm{d}w)},\\qquad u\\in S^{2},}}\\\\ {{-*\\Q-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots-\\cdots}.}\\end{array}"
+ },
+ {
+  "crop_id": "77e85e55cae1552a01c3fa736c7a1cc41a6105fba63304ff8324b4b64a99f777",
+  "pix2tex": "\\begin{array}{c c}{{\\mathrm{}}}&{{\\mathrm{~}}}\\\\ {{\\gamma_{k}(z)\\leq\\frac{(d)\\kappa_{d-1}^{k}}{d^{k}\\kappa_{d-1}^{k}}\\gamma(z)^{k}\\qquad\\qquad\\qquad\\qquad\\qquad(11.26)\\nonumber}}\\end{array}"
+ },
+ {
+  "crop_id": "39dce2c8dec7ecc2c61e9cc8f7bd8bee7ac66a4e9cab6dfded70e813e5199bf3",
+  "pix2tex": "\\begin{array}{r l}{\\epsilon^{\\ast}\\stackrel{\\leftarrow,\\rightarrow,\\rightarrow}\\epsilon}{\\mathbb{E}(X^{(k)}(A_{r})\\mid{\\hat{X}(\\textstyle\\eta_{r})=m})}_{}}&{{}}\\\\ {\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad}}&{\\times\\times\\times\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\times\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad{\\qquad{\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad{\\qquad\\qquad{\\qquad{\\qquad\\qquad\\qquad\\qquad{\\qquad\\qquad\\"
+ },
+ {
+  "crop_id": "8c65b3dbb621d9dc2c200f5d5af01e412a484c8740253b76f2840e7f5410d4ad",
+  "pix2tex": "\\begin{array}{l l}{{\\overline{{{V}}}_{j}(Z,z)}}&{{\\qquad\\qquad\\qquad\\qquad}}\\\\ {{\\qquad\\qquad}}&{{\\qquad\\qquad}}\\\\ {{\\qquad\\qquad}}&{{\\qquad\\qquad}}\\\\ {{=\\sum_{k=1}^{\\infty}\\frac{(-1)^{k-1}}{k!}\\sum_{\\quad\\quad\\quad\\operatorname*{m_{1}\\ldots,\\ldots,\\ldots,\\ldots,\\ldots\\ldots\\ldots}\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots.}}}\\end{array}"
+ },
+ {
+  "crop_id": "9ad5d58bc974ca05efe87eb34e6804750bc488135d247da7b0142e38cbb4223d",
+  "pix2tex": "\\begin{array}{r l}{\\{0<d_{B}(x,Z)<\\infty\\}=\\bigcup_{n=1}^{\\infty}(A_{n}\\cap B_{n}\\cap C_{n}).}\\end{array}"
+ },
+ {
+  "crop_id": "14f458f8c00c8ae1ae5e51fe85fce3d0c46ce2abc44c53f5e003479f36cd65b5",
+  "pix2tex": "\\begin{array}{l}{{{}^{\\nu}\\,\\,{}^{\\textrm{f}\\,{}^{\\textrm{s e r e e}}}}}\\\\ {{h_{B}(x,t):=\\sum_{j=0}^{d-1}(j+1){\\kappa_{j+1}}t^{j}\\int_{{\\cal K}_{0}}\\int_{(\\bar{\\mathrm{R}}^{d})^{2}}\\eta(K,x-y-t b)}}\\\\ {{{}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{{{{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}}}{{{{{{{{{{{{{{k e r~"
+ },
+ {
+  "crop_id": "9aaf5397a6f4944a7cd73e268bde1b23dc57296ecd0975f7342542dd53b4fc40",
+  "pix2tex": "\\begin{array}{l}{{\\mathrm{~we~get~flet~of~<3\\bar{s}\\langle~S\\rangle<3\\bar{s}\\cdot\\bar{s}\\langle~S\\scriptstyle s t h}~\\mathrm{ts~cents~ed~in~the~ball~2rsB^{d}\\mathrm{,}~}}}\\\\ {{\\mathrm{~Hew~bet~its~det~only~the~berplares~of~\\hat{X}(\\omega)~i n~t h e~s e t}}}\\\\ {{\\mathrm{~are~neweded.~\\hat{t}\\cdot~A n a t i o r~\\hat{t}~\\hat{u}\\not=\\phi}}}\\end{array}"
+ },
+ {
+  "crop_id": "cf2cc1ad331d3513c5bdbbb8a67a8f439afd6ba01a04f16bf4735d6af3012d02",
+  "pix2tex": "\\begin{array}{c}{{\\l_{}^{\\mid\\star\\star\\star\\star\\cdots\\star\\ n\\cdot n\\d{t r}}}}\\\\ {{\\l_{}^{\\star\\star\\mid\\star\\mid}}}\\\\ {{\\l_{}^{\\star\\star\\mid\\star\\star\\mid}}}\\end{array}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad{\\qquad\\qquad{\\qquad\\qquad\\qquad\\qquad\\qquad{\\qquad\\qquad{\\qquad\\qquad}{\\qquad\\qquad}{\\qquad\\qquad\\qquad}{\\qquad}{\\qquad}{\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad}{\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(1"
+ },
+ {
+  "crop_id": "05512724c20581003b47a080fc9c0edb1778440baa35c0cb1a1e2f1cbb3a8a1e",
+  "pix2tex": "(r g)(\\,x.\\ y\\,)\\,=\\,\\operatorname*{sup}\\;\\left\\{a\\in R\\colon(x,\\ \\gamma.\\ a)\\in r U(\\,\\mathbf{\\Lambda}g\\,)\\;\\right\\}\\quad(\\,4\\,)\\quad\\textrm{e v h o s e}"
+ },
+ {
+  "crop_id": "a1dd1a154221bce0611c333f64f7e7840aa8ec0b4040cfe32f21638fbd904d46",
+  "pix2tex": "\\displaystyle4\\equiv\\left\\{{\\mathrm{parrition~}}(28){\\mathrm{~holds}}\\right\\}"
+ },
+ {
+  "crop_id": "fe1ade295954b4a0198f83b60853e8f77fe9eed2a4f82c7047a336df6bf890a6",
+  "pix2tex": "\\begin{array}{c c c}{{P\\left(L_{(s,t)}\\left|L_{\\mathrm{N(s,t)}}\\right.\\right)=\\displaystyle{\\frac{1}{Z_{(s,t)}}\\exp\\left[-U\\left(L_{(s,t)}\\right)\\right]}}&{{\\quad\\mathrm{~~rhe~}}}&{{}}\\\\ {{\\quad\\quad\\quad}}&{{}}&{{\\quad\\mathrm{~~~~~~~~~~~~~~\\mathrm{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}}}\\\\ {{=\\displaystyle{\\frac{1}{Z_{(s,t)}}\\exp{}^{\\prime}}}\\end{array}}}\\end{array}"
+ },
+ {
+  "crop_id": "6979617eb3f3f2a48e139ff2ae0b7d7d84cc07208e28c3aba7fd71a1b41a4c70",
+  "pix2tex": "T(u)=\\left(\\begin{array}{c c c}{{T_{11}(\\bullet)\\times(1-P(u))}}&{{T_{12}(\\bullet)\\times P(u)}}\\\\ {{T_{21}(\\bullet)\\times P(u)}}&{{T_{22}(\\bullet)\\times(1-P(u))}}&{{T_{23}(\\bullet)\\times P(u)}}\\\\ {{T_{31}(\\bullet)\\times P(u)}}&{{T_{32}(\\bullet)\\times(1-P(u))}}\\end{array}\\right)\\qquad(8)\\qquad\\begin{array}{c c c}{{U_{I}(C_{I}(I)}}\\\\ {{D_{I}(C_{I}(U)}}\\\\ {{\\mathrm{BVE}(\\bullet)\\times P(u)})}&{{}}&{{}}\\\\ {{\\mathrm{of}\\operatorname{IIRe\\mathrm{I}}}}}\\end{array}"
+ },
+ {
+  "crop_id": "d55fa0adb55d71778d204cb8cab55f68b75bbeb6cdec32798f894d342595552a",
+  "pix2tex": "{\\cal Q}=\\sum_{i=1}^{p}\\tilde{\\lambda}_{i}y_{i}^{2}=\\sum_{i=1}^{m}\\dot{\\lambda}_{i}\\left(\\sum_{j=1}^{p_{i}}y_{i,j}^{2}\\right)=\\sum_{i=1}^{m}\\lambda_{i}\\chi_{p_{i},\\delta_{i}^{2}}^{2},"
+ },
+ {
+  "crop_id": "e23ffc4fc481988f42672e6fcbf703bcb65c83f39c905bde2470c9f5beaea6cd",
+  "pix2tex": "\\begin{array}{c c c}{{\\tilde{s}_{\\mathrm{Pace.}}}}&{{}}&{{}}\\\\ {{\\mathrm{}_{\\mathrm{e\\;Space}}}}&{{}}&{{}}\\end{array}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(15)"
+ },
+ {
+  "crop_id": "f5e229bf353129478c03f45269a642e01eef8277482136e58eabb96adb27ab94",
+  "pix2tex": "\\scriptstyle w=\\sum_{i=1}^{k}y_{i}\\alpha E_{i},"
+ },
+ {
+  "crop_id": "1cb193204802c0f7e7fad0dbf2b0b4398a1943a0eb293e898222cac539bb33dd",
+  "pix2tex": "\\xi_{-}^{2}(R)<\\frac{\\pi R^{2}}{4}<\\vert B_{R}\\cap\\Sigma\\vert,\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;(34)"
+ },
+ {
+  "crop_id": "8a6c7d1097fce74f566ecfb72d847551dfcb3192adf07d45eb222f5c501b0231",
+  "pix2tex": "\\sum_{i=1}^{t}y_{i}\\alpha_{i}=0,"
+ },
+ {
+  "crop_id": "63aa4704c79d910b20c953a39b9fc410b286b6e124c516b7645c75b7ea24fd61",
+  "pix2tex": "\\leq P(1-\\phi(x^{*},\\delta_{\\ell})<0)+A\\frac{(h+h^{*})\\ln\\frac{2\\ell}{(h+h^{*})}-\\ln\\eta}{\\ell}},"
+ },
+ {
+  "crop_id": "e51541fa59f1cc3295151dc03a1d56aac13997f7ee69b8dbe76e0870464eb069",
+  "pix2tex": "\\mathrm{Per}(\\Sigma;{\\cal B}_{r})\\geq C|{\\cal B}_{r}\\setminus\\Sigma|^{\\frac{1}{2}}.\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(50)"
+ },
+ {
+  "crop_id": "dcbd937f3f54cc0784420e2ac05b1bc046d2ff2efef3a3f4955e10c263d6289d",
+  "pix2tex": "\\begin{array}{c}{{P\\{y[(w_{\\ell},x)+b_{\\ell}]\\<0\\}\\leq P\\{y(w_{\\ell},x)}}\\\\ {{+b_{\\ell}<1-\\xi^{0}(x)\\}+P\\{1-\\xi^{0}(x)<0\\},}}\\\\ {{\\cdot}}\\end{array}"
+ },
+ {
+  "crop_id": "bf33d10e0d1eee9ea7164dead2b92f10e8f0c023564059f3332617f2a9d90967",
+  "pix2tex": "\\begin{array}{l}{{\\mathrm{~}}}\\\\ {{\\frac{1}{\\sqrt[[object Object]]{4}}}}\\\\ {{\\frac{1}{\\sqrt[[object Object]]{4}}}}\\end{array}"
+ },
+ {
+  "crop_id": "3133d3223fec2cc3ee7ab5bd659eb7c7e00c128a91d29dc89b461c3844217016",
+  "pix2tex": "\\tilde{T}_{n}^{*}=t_{\\bar{N}^{*}}(\\tilde{D}_{n}^{*}(\\tilde{R}_{n});\\dot{\\beta}_{n}),"
+ },
+ {
+  "crop_id": "63de9ed4edd7e7c7a3cb26f91a52ea0af3ac041afac258ffe4c92a8efd7689ea",
+  "pix2tex": "E(x_{1},\\cdot\\cdot\\cdot,x_{n})=\\sum_{i<j<k}E^{i j,k}(x_{i},x_{j},x_{k}),"
+ },
+ {
+  "crop_id": "c582c0a144020e417f6da956a933cea44ea89d12bbd34b548e941bbc4de2b97d",
+  "pix2tex": "\\begin{array}{r l}{{\\vec{Q}_{i}^{(m)}(l)=\\sum_{j\\in\\mathcal{V}}k^{(m)}(\\mathbf{f}_{i},\\mathbf{f}_{j})Q_{j}(l)-Q_{i}(l)=\\left[{\\mathcal{C}}_{\\Lambda^{(m)}}\\otimes Q(l)\\right](\\mathbf{f}_{i})-Q_{i}(l).}\\\\ {\\mathbf{\\quad}}&{{\\bf}\\\\ {\\cdot}&{{\\cdot}\\end{array}}}\\\\ {\\vec{\\mathbf{\\sigma}}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\leq\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\times\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\cdot\\mathbf{\\sigma}\\times\\cdot{\\sigma}\\times\\end{array}"
+ },
+ {
+  "crop_id": "c63d24c7d2697f56d793d8d3d73c89c9816583456668890865428ad1183975fe",
+  "pix2tex": "\\begin{array}{r l}{\\stackrel{\\infty}{\\mathrm{ng}}.\\quad}&{{}\\displaystyle\\sum_{i,x_{i},x_{j}}^{\\infty}\\overbrace{\\psi_{i}(x_{i})\\log{\\cal Q}_{i}(x_{i})+\\sum_{i,x_{i},x_{j}}^{\\prime}\\psi_{i}(x_{i})\\sum_{i<j}\\psi_{i}(x_{i}|\\theta)Q_{i}(x_{i})+\\sum_{i,x_{i}<\\sum_{i},x_{j}}^{\\leftrightarrow}\\psi_{i}(x_{i})\\sum_{i=1}^{\\infty}\\sum_{i,x_{i}}^{\\infty}\\sum_{i,x_{j}}^{\\prime}\\sum_{i,x_{i,x_{j}}^{\\prime}}\\sum_{i,x_{j}}^{\\prime}\\sum_{i,x_{j}}^{\\prime}\\sum_{i,x_{j}}\\sum_{i,x_{j}}\\sum_{i,x_{j}}\\psi_{\\prime}}\\end{array}"
+ },
+ {
+  "crop_id": "f0ebfaf317863a0310d3bc66f5a418d19d465ede93371d242e2b35de4ad7b2ce",
+  "pix2tex": "\\begin{array}{r l}{\\lambda_{n}^{d/2}\\Lambda_{n}^{\\prime}({\\hat{\\beta}}_{n}-\\beta)\\stackrel{d}{\\to}N(0,\\Xi_{c})\\qquad f o r\\ a l m o s t\\ a l l\\mathbf{X}_{1},\\mathbf{X}_{2},\\ldots,(P_{\\mathbf{X}}),}\\end{array}"
+ },
+ {
+  "crop_id": "7538465ab63e77e112d54d6c0a662020096957cae68b73a7be1047dcd6727459",
+  "pix2tex": "\\begin{array}{c}{{\\psi(W;\\theta,\\eta_{0})=(D-\\operatorname{E}_{P}[D\\mid X])\\times(Y-D\\theta-g_{0}(X))}}\\\\ {{=(D-m_{0}(X))\\times(Y-D\\theta-g_{0}(X)).}}\\end{array}"
+ },
+ {
+  "crop_id": "ad3e3e35b1fe036034732ca89a4f98b81033fa09b11160218e53711ecbc213a1",
+  "pix2tex": "\\partial\\ell_{\\theta}(W;\\theta,\\beta)=(Y-D\\theta-X^{\\prime}\\beta)D,~~~\\partial\\ell_{\\theta}(W;\\theta,\\beta)=(Y-D\\theta-X^{\\prime}\\beta)X,"
+ },
+ {
+  "crop_id": "81c8bafdac8562a1168536bd185361aadfa43714486e87e6b7924d84d38b4867",
+  "pix2tex": "R(\\Lambda,{\\bf\\mathfrak{g}},{\\bf a})=\\mathbb{E}[r({\\bf k})-f({\\vec{r}}({\\bf k}))]^{2}]+2\\mathbb{E}[n_{\\Lambda}(|{\\vec{r}}({\\bf k})|^{\\Vert})]^{\\-}{\\bf P}\\mathrm{\\T}^{(\\Delta,n)}+2\\Lambda a^{\\dagger}{\\bf P}^{\\dagger}\\left[\\xi({\\bf k}){\\vec{\\mathbf k}}^{\\dagger}({\\bf k})|^{\\tt p}\\right]]^{\\mathrm{(a,n)}}-\\sigma^{2}~~~~(30)"
+ },
+ {
+  "crop_id": "97c38ed4292437bc2603937db2ed50105187daaf037247a51deb36c22a283ed9",
+  "pix2tex": "\\operatorname{\\mathbb{E}}_{P}[m(W;\\theta_{0},\\beta_{0})]=0,\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(2.17)"
+ },
+ {
+  "crop_id": "cafefa3aae6c09e200f6653be03cd68f1be9691d66cd2b472e971f8d26f7a013",
+  "pix2tex": "\\int_{\\mathbf{R}^{N}}\\left|u-f\\right|d x=\\int_{-\\infty}^{\\infty}\\left|\\{x:u(x)>\\gamma\\}\\ \\triangle\\,\\{x:f(x)>\\gamma\\}\\right|d\\gamma."
+ },
+ {
+  "crop_id": "79bebf05d64348c1be86948eda4ef2e98b490e350004d09383e97213535b33c2",
+  "pix2tex": "\\Sigma(\\gamma):=\\left\\{x:u_{\\lambda}(x)>\\gamma\\right\\}."
+ },
+ {
+  "crop_id": "ae646233268244e3541d6bde6a024d5cf7859bc23a41a5534efb2810d15b1f71",
+  "pix2tex": "\\begin{array}{r l}{{\\mathrm{sucn~as~me~garmke~snrmkage~on~t^{a+}}\\bar{\\nu}\\mathrm{sorm}\\bar{\\nu}\\mathrm{s}}}\\\\ {{\\mathrm{}}}&{{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}&{{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\\\ {{\\mathrm{}}}\\mathrm{{w}\\mathrm{~}_{}}\\mathrm{~aronosed~vecurnikea~saraee.~calar~sinka\\mathrm{~to~the~~scalar~sinkawe}.}}\\end{array}"
+ },
+ {
+  "crop_id": "684a6e9597f847f4a3bc3d88a2b7acd67e514689e517ea78a912e249c84f304c",
+  "pix2tex": "\\begin{array}{c}{{\\operatorname*{man}}}\\\\ {{\\frac{\\mu}{\\lambda}}}\\\\ {{\\frac{\\lambda}{\\lambda}}}\\\\ {{\\frac{\\lambda}{\\lambda}}}\\\\ {{\\frac{\\lambda}{\\lambda}}}\\end{array}"
+ },
+ {
+  "crop_id": "c37133945334f368574cc5703e39b0263d0a5057776995b7ac3ca36fc3d25203",
+  "pix2tex": "\\mathrm{\\bfE}\\tilde{K}_{M N}(m,n,j,k)Y_{m,n}(\\beta)Y_{m-j,n-k}(\\beta)=\\sum_{t=-\\infty}^{\\infty}\\sum_{r=-x}^{\\infty}A_{t,r}\\psi_{t,r}(j,k)\\mathrm{\\bfE}F_{m n}F_{m-j,n-k}"
+ },
+ {
+  "crop_id": "4fa2d98bbf1c856864d5f196659f7813e4a2b0103db4a4ba39cf46606baa8dfd",
+  "pix2tex": "\\begin{array}{l}{{\\longrightarrow\\longrightarrow\\longrightarrow}}\\\\ {{\\frac{1}{\\sqrt{0!}}}}\\\\ {{\\frac{1}{\\sqrt{0!}}}}\\\\ {{\\frac{1}{\\sqrt{0!}}}}\\\\ {{\\frac{1}{\\sqrt{0!}}}}\\\\ {{\\frac{1}{\\sqrt{0!}}}}\\\\ {{\\frac{1}{\\sqrt{0!}}}}\\end{array}"
+ },
+ {
+  "crop_id": "64e8bf2aa9b49c744c1b2871b0359fc1d681126a6e9bf9ffe201c5681d5d6153",
+  "pix2tex": "|A_{1}|\\leqslant k,|A_{2}|\\leqslant l,\\,\\,Y(A_{1},\\,A_{2})\\geqslant n"
+ },
+ {
+  "crop_id": "b076bb45a15532a956b109ab49be862560b2b413e3c49959349a2149311b7926",
+  "pix2tex": "\\frac{1}{\\sqrt{T_{\\tau}}_{\\mathrm{\\bf~\\ell}}:=1;\\tau_{\\tau}}g(X_{s};\\beta)\\;\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(3.8)"
+ },
+ {
+  "crop_id": "d4fc85aa4dfbc9d1cd0360b1f87c1f6bda2ebebd9758b52acb722ea5d2762b97",
+  "pix2tex": "\\begin{array}{r l}{\\operatorname{tact},\\ {\\mathsf{\\Sigma}}^{\\mathrm{treort}}\\operatorname{o.1.1}\\ {\\mathsf{l o g e u r t}}\\ \\operatorname{wntm}\\ ({\\mathsf{I}}^{\\mathrm{tt.20}})\\ {\\mathsf{y r e n s}}}\\\\ {\\operatorname{ts}_{d}\\qquad\\operatorname{\\Gamma}}_{k=0}^{d}c_{d,0}^{d-k,k}V_{k}(K)V_{d-k}(M)\\epsilon^{d-k}=\\int_{S O_{d}}V_{d}(K+\\epsilon\\partial M)\\nu(\\mathrm{d}\\vartheta)}\\\\ {\\operatorname{mparing}\\operatorname{the}\\ \\operatorname{the}\\ \\operatorname{coeffients,\\we\\os\\obtain}\\ \\right,}\\end{array}"
+ },
+ {
+  "crop_id": "52ab104e118134446ef80e5230837a32e645f5facd9c370a0165e5f319417f06",
+  "pix2tex": "\\begin{array}{c c c}{{\\pi_{1}(K,M,\\vartheta,x):=y,}}&{{}}&{{\\pi_{2}(K,M,\\vartheta,\\vartheta,x):=\\vartheta^{-1}z.}}\\end{array}"
+ },
+ {
+  "crop_id": "39a15c51f0f978a7cc9a0b7fe438ed36c4c32005e8084731db180ffbf392829d",
+  "pix2tex": "(A+\\vartheta B)\\cap\\mathrm{bd}\\left(K+\\vartheta M\\right)=\\pi^{-1}(A\\times B)"
+ },
+ {
+  "crop_id": "b9649e7d40ef3253d3b18bae5c7d6d41c956d3e7d85cb273b47ea9f7e1fc6892",
+  "pix2tex": "\\begin{array}{c}{{\\vartheta\\mapsto\\varphi(K,M,\\vartheta,U)}}\\\\ {{\\mathrm{~}\\quad\\rightarrow\\eta\\cdot\\mathbf{\\epsilon}\\ \\cdot\\quad\\mathrm{~}\\quad\\cdot\\quad}}\\end{array}\\"
+ },
+ {
+  "crop_id": "e2ad4716e5fb5b22da166b65825a3b1bb8585433b2bf2d50fdfc2e0a15fc549c",
+  "pix2tex": "\\begin{array}{r c l c r c l}{{\\pi(K,M,\\vartheta,\\cdot):=\\pi_{1}(K,M,\\vartheta,\\cdot)\\times\\pi_{2}(K,M,\\vartheta,\\cdot)\\,.}}&{{}}&{{}}\\\\ {{\\vphantom{\\pi}\\cdot\\textrm{}\\cdot{}}}&{{\\cdot\\,}}&{{}}&{{}}&{{\\cdots,d}}&{{}}&{{\\qquad\\qquad\\pi=d}}&{{\\textrm{m a}}}&{{}\\cdot\\,}}&{{}}&{{}}&{{}}\\end{array}"
+ },
+ {
+  "crop_id": "f357c902f2d949a7b7b0a8e71139d42d49449e9cd7f0809643a082a997c1b3b7",
+  "pix2tex": "\\rho d_{u}^{F}\\geq1-x_{u}\\Rightarrow x_{u}\\geq1-\\rho d_{u}^{F}.\\qquad\\qquad(18)"
+ },
+ {
+  "crop_id": "0364dbc80c61eb6d3329bdbc5394e1fdb64be5387aa06532bcde5991f7b7f9d4",
+  "pix2tex": "\\begin{array}{l l}{{P({\\mathcal C}^{t}(i,j)\\mid{\\mathcal C}^{t}(k,l),{\\mathcal C}^{t-1}(q,r),{\\mathcal C}^{g}(q,r))}}&{{\\mathrm{if~separ}}}\\\\ {{{\\mathrm{~=}}}}&{{{\\mathcal C}^{t}(k,l),{\\mathfrak C}^{t-1}(q,r){\\mathcal C}^{g}(q,r))/T}.}}&{{\\quad\\quad(17)\\quad{\\begin{array}{l}{{\\mathrm{~if~they}}}\\\\ {{\\mathrm{~a......~t.}}}\\end{array}}}\\end{array}"
+ },
+ {
+  "crop_id": "6ede6ebcd12a2273d078814b259049fa77643567295614ac6bc218cdcb061509",
+  "pix2tex": "\\mathbb{E}_{1}\\eta(h)\\sim{\\frac{h}{\\operatorname*{min}_{1\\leq i\\leq N}{\\mathcal{I}}_{i}}},\\quad{\\mathrm{as~}}h\\to\\infty,"
+ },
+ {
+  "crop_id": "c72deaa64dd8b9ddc65f3c3521744ffa73979fd78886aae32e213130742b07ba",
+  "pix2tex": "{\\bf X}_{k+\\tau\\mid k+\\tau-1}=\\mu_{\\bf x}+{\\bf F}{\\bf x}_{k+\\tau-1\\mid k+\\tau-1}\\qquad\\qquad\\qquad\\qquad(I8)\\qquad\\qquad\\qquad\\qquad(J8)\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad."
+ },
+ {
+  "crop_id": "ddd5b00fa18d57a6afdd5b2ca081f911c30abfdc1ede1357a765efcf02430f1d",
+  "pix2tex": "\\operatorname*{inf}_{\\phi\\in\\Lambda_{\\mathrm{p}}(\\gamma)}{\\mathrm{SADD}}(\\phi)\\sim{\\mathrm{SADD}}(\\hat{\\phi}_{\\mathrm{op}})\\sim{\\mathrm{SADD}}(\\hat{\\phi}_{\\mathrm{op}})\\sim{\\frac{\\log\\gamma}{{\\mathcal T}_{\\mathrm{iot,opt}}^{q}}}\\ \\ a s\\ \\gamma\\ \\rightarrow\\infty.\\ \\ (3.10)"
+ },
+ {
+  "crop_id": "892b99c817a1a08e1e7670320f54e473cb52c1f81f3522e7bb33edf48db4e385",
+  "pix2tex": "N_{t}^{\\mathrm{ter~}}~=~\\ (\\mathrm{Events~of~type~}i\\mathrm{with~type~}j\\mathrm{~direct~ancestor})"
+ },
+ {
+  "crop_id": "65a91f8fe9c600c17a998c96b6d5702c516300ca4f0f7b5de54555727932916d",
+  "pix2tex": "H^{-1}={\\binom{4/9}{5/9}}\\ {\\overline{{g\\vert9}}}."
+ },
+ {
+  "crop_id": "9c346aec36f769ea23f5e97c4c9978b0b16523f93ff8d915dcc43d3b3ca25471",
+  "pix2tex": "p(x|y)=p(x_{J}|y)p(x_{J^{c}}|y),"
+ },
+ {
+  "crop_id": "e66923abacd0d96b7b012e7a5f7d1e950a4f9cc19b3c9fed0640ddede26459a6",
+  "pix2tex": "\\operatorname*{min}_{v\\in L^{2}(\\mathbb{R}^{2})\\cap\\mathrm{Ne}\\mathbb{R}^{2})}\\left\\{\\int_{\\mathbb{R}^{2}}\\left|D u\\right|+\\frac{1}{2\\hat{\\lambda}}\\;\\int_{\\mathbb{R}^{2}}(u-f)^{2}\\,d x\\right\\},\\qquad\\qquad(7)"
+ },
+ {
+  "crop_id": "ef91ef1988a3fbbe61a950c97e3b474510fd1b3bc1840dad6a5e5eac848a5bc2",
+  "pix2tex": "\\int_{\\mathbb{R}^{N}}j(u(T,\\,x)-{\\bar{u}}(T,\\,x))\\ll\\int_{\\mathbb{R}^{N}}j(u_{0}-{\\bar{u}}_{0}).\\quad\\mathbb{N}"
+ },
+ {
+  "crop_id": "6361d16ceece4ae715bd4a53bfa69d682b51e75c0b9fe0ddc2ca1cc36c7d8b9d",
+  "pix2tex": "\\begin{array}{c c}{{{\\cal C}(\\mu_{\\delta},\\nu_{\\beta})(x-y),(\\mu,\\nu)(y))\\leq(\\mu^{\\prime},\\nu^{\\prime})(x)\\approx(\\mu,\\nu)(y)\\leq I((\\mu_{\\beta},\\nu_{\\beta})(x-y),(\\mu^{\\prime},\\nu^{\\prime})(x))}}&{{}}\\\\ {{\\mathrm{~.}}}&{{\\cdot}}&{{\\cdot}}\\\\ {{\\cdot}}&{{\\cdot}}&{{\\cdot}}\\end{array}"
+ },
+ {
+  "crop_id": "6031d4eb368cb4d551474ec45752c857815f0302adcfe85f92f60f8532199ad9",
+  "pix2tex": "\\left.\\sum_{i,1}^{m}x_{i}<\\frac{-\\log\\alpha-m}{\\left[\\begin{array}{c c}{\\rho(\\theta_{\\mathrm{e}_{0}}-\\theta_{\\mathrm{e}_{1}})+\\log\\left(\\frac{e^{\\theta_{0}}-1}{e^{\\theta_{+}}-1}\\right)\\right]}}\\\\ {\\ln\\left.\\left.\\sum_{\\mathrm{DG}}^{m}\\left(\\frac{\\theta_{\\mathrm{e}_{0}}}{\\theta_{\\mathrm{e}_{0}}}\\right)\\right.}\\end{array}\\right.\\right.\\qquad~~~~~~~~~~~~~~~~~~~~~~~~(4.3)"
+ },
+ {
+  "crop_id": "86241a7a9051a5f1503513769704b7db5ce81a5e4a9d3703e6aacae3f3bba979",
+  "pix2tex": "\\sigma(l\\cap S)=\\sigma(l\\cap T),~~~~~\\mathrm{for}~\\mu{\\mathrm{-almost~lines~}}l."
+ },
+ {
+  "crop_id": "194e0a67582af737f0b79a23e3701a346b5e80214378c8ab1e04d694cd847c0a",
+  "pix2tex": "\\begin{array}{c c}{{\\leq\\delta(\\chi_{i}(\\mu_{i},\\nu_{i}))\\leq\\nonumber}}&{{\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad}}&{{\\qquad\\qquad\\qquad\\qquad}}\\\\ {{\\leq\\sqrt{\\delta}\\delta(\\mu_{i},\\nu_{i})\\qquad\\qquad\\qquad\\qquad\\qquad}}&{{\\qquad\\qquad}}\\end{array}"
+ },
+ {
+  "crop_id": "9b40288c88e9316f33c57ab29a7a2d533ec3e270d96e1cc31faaba40f1e830d1",
+  "pix2tex": "{\\mathfrak{c}}-C r||,\\equiv\\ \\}"
+ },
+ {
+  "crop_id": "c69021663366034f7be632acb3ff503dc67704324c4e0776f5abb1f7efc4f4cd",
+  "pix2tex": "\\begin{array}{r l}{h(y)=\\operatorname*{lim}_{z\\to y}\\mathbf{f}{\\frac{g(z)-g(y)}{z-y}}}&{{}f o r\\ y\\in\\mathbb{R}.}\\\\ {\\circ,\\quad,\\quad\\cdot\\quad,\\quad\\cdot\\quad}&{\\circ,}\\\\ {\\circ}&{\\qquad,\\quad\\cdot\\quad,\\quad}\\end{array}"
+ },
+ {
+  "crop_id": "281d2c46dcaa5df9c438bffbae1ccea994ed77ffa93a547bea9a10ea42a8cc7e",
+  "pix2tex": "{}{\\binom{\\sharp}{0.1}}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\left\\{g>y\\right\\}\\in\\operatorname{k}(\\left\\{\\left\\{\\int>y\\right\\}\\right\\})."
+ },
+ {
+  "crop_id": "eb5ae0ff2b9062a8b30f9cc0cd66051cfb2db56443d8c75192c4eeb837206dec",
+  "pix2tex": "\\kappa(x,y)=\\operatorname*{lim}_{r\\sqcup0}\\frac{\\hat{F}(y{\\bf1_{B^{n}}}(x,r))}{\\tilde{Z}^{n}({\\bf B}^{n}(x,r))}~~~f o r~(x,y)\\in\\Omega\\times[0,\\infty)."
+ },
+ {
+  "crop_id": "a64497440b72406846839dd43985ab7b8eb9217bdf9a98579da0db513ba7c568",
+  "pix2tex": "\\begin{array}{c}{{\\operatorname{tero--}\\rightarrow\\mp\\ --\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\mp\\phi\\ --\\mp\\mp\\phi\\mp\\mp\\phi\\ --\\phi\\mp\\phi\\mp\\phi\\mp\\phi\\ --\\phi\\ --\\mp\\phi\\ --\\phi\\ --\\phi\\ --\\phi\\ --\\phi\\ --\\phi\\mp\\phi\\Bigl(\\mp\\phi\\dag\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\ \\ \\phi\\phi\\phi\\phi\\phi\\ \\phi\\ \\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\ \\ \\ \\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\phi\\in\\in\\ \\phi\\Bigl"
+ },
+ {
+  "crop_id": "2efb2fd217de114150e81bdb560ff1eaa0c1c8855c2b1235ee24bf9d55a818bc",
+  "pix2tex": "\\begin{array}{l}{{\\mathrm{~woreover,~we~^{T}~r o m~[r~L},~\\mathrm{sect.~}\\mathrm{~wave~}\\mathrm{~rer.~}\\cdot\\mathrm{~wave~}\\mathrm{~rer.~}\\cdot\\mathrm{~wore}\\cdot\\mathrm{~wo.}\\cdot\\mathrm{~raver.~wo.}\\cdot\\mathrm{~r.w.}\\cdot}}\\\\ {{(2.8)}}\\\\ {{}}&{{}}\\\\ {{}}\\\\ {{}}&{{}}\\\\ {{}}\\\\ {{\\mathrm{~}\\mathrm{~}\\mathrm{~}\\mathrm{~}\\cdot\\ldots+w......\\cdot\\mathrm{~wh.}\\mathrm{~rav....\\cdot}\\mathrm{~r.w.}\\mathrm{~}\\mathrm{~r.w.}\\cdot\\mathrm{~}\\mathrm{~}\\ldots\\mathrm{~w.~w............}\\mathrm{~r.~w.............}\\mathrm{~r.~w.~r.~w.....}\\mathrm{~r..}\\mathrm{~r.....~r.}\\mathrm{~r...............}\\mathrm{\\ldots}\\mathrm{\\mathrm{~r......}\\mathrm{\\ldots}\\ldots}\\right.}\\mathrm{\\mathrm{\\ldots}\\mathrm{\\ldots}\\mathrm{~n}\\ldots}\\mathrm{\\mathrm{~c.}\\ldots\\ldots}\\ldots}\\ldots}\\ldots}\\mathrm{\\mathrm{\\mathrm{\\mathrm{\\mathrm{\\mathrm{\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots\\ldots"
+ },
+ {
+  "crop_id": "a3c33842a8f71fe6fc06faafbb103e99129d33e3d3b9d1ee87c2f6fea2ba090a",
+  "pix2tex": "(\\mathcal{L}^{n}\\times\\mathcal{L}^{1})((G\\sim\\{(x,y):f(x)>y>0\\})\\cup(\\{(x,y):f(x)>y>0\\}\\sim0\\}\\sim G))=0."
+ },
+ {
+  "crop_id": "9248fb0261955b753aa6675aa61ce806843e60b3f37d01a288f3f98a84aec010",
+  "pix2tex": "\\begin{array}{r}{\\mathbf{\\theta}}\\\\ {\\left[\\begin{array}{r}{}\\\\ {}\\\\ {}\\\\ {}\\\\ {}&{}\\\\ {\\mathbf{\\theta}}\\\\ {\\mathbf{}}\\\\ {\\mathbf{}}\\\\ {\\mathbf{}}\\\\ {\\mathbf{}}\\\\ {\\mathbf{}}\\end{array}\\right]}\\end{array}"
+ },
+ {
+  "crop_id": "83ea57f012a1c0b9dc4d0a53d02f96defcf27ed2990bd6e67991b009230b19e3",
+  "pix2tex": "(10.3)~~~~~~~~~~~\\sum_{\\bf k\\in\\mathbb{Z}^{d}}|\\sigma({\\bf k})|\\leq|\\sigma({\\bf0})|+C\\sum_{x=1}^{\\infty}x^{d-1}\\alpha_{1}(x)^{\\delta/({\\bf2r+6})}<\\infty."
+ },
+ {
+  "crop_id": "3b615afca31c83f9d51a24051c91cd8818657f16f318c46059d9dc92649c6b0f",
+  "pix2tex": "\\begin{array}{r}{\\mathrm{~\\varepsilon~^{*}~}}\\\\ {G_{n}=\\mathrm{max}\\left\\{0,\\quad\\underbrace{\\mathrm{~\\par}}_{i=1,\\ldots,\\quad(k_{1},\\ldots,k_{m})\\epsilon\\Delta}_{i=1}^{m}\\sum_{\\mathrm{~\\scriptsize~i=1,\\ldots,t~(k_{i},\\ldots,k_{m})\\epsilon\\Delta~}}_{\\mathrm{~\\varepsilon~\\l=1~}}^{\\mathrm{~\\scriptsize~~g}}\\underbrace{\\mathrm{~\\langle~}}_{k_{j},l\\mathrm{~\\leq~1~}_{i}}\\mathrm{~\\langle~x~\\mathrm{~stra~\\scriptstyle{~\\hat{~}_{i}~\\hat{~}_{i}~\\mathrm{~\\scriptstyle{~\\hat{~}~\\hat{~}~\\hat{~}~\\hat{~}~}_{i}~\\mathrm{~\\hat{~}~\\hat{~}~\\hat{~}~\\hat{~}~\\hat{~}~}_{j}~\\mathrm{~\\hat{~}~}~}_{\\mathrm{~\\hat{~\\hat{~\\hat{~\\scriptstyle{~\\hat{~\\hat{~}~\\hat{~}~\\hat{~\\hat{~\\hat{~\\scriptstyle{~\\scriptstyle{i}~\\hat{\\hat{~\\hat{~\\scriptstyle{~\\hat{\\scriptstyle\\hat{\\hat{\\hat{\\scriptstyle\\scriptstyle{\\hat{\\scriptstyle{\\hat{\\scriptstyle{\\hat{\\scriptstyle{\\hat{\\scriptstyle{\\hat{\\hat{\\hat{\\hat{\\scriptstyle{\\hat{\\scriptstyle{\\scriptstyle\\hat{\\scriptstyle\\hat{\\hat{\\scriptstyle\\scriptstyle\\scriptstyle\\hat{\\scriptstyle\\hat{\\scriptstyle\\scriptstyle\\"
+ },
+ {
+  "crop_id": "9372ae79f84e3d2ff405f91ee520084225385991c13c63e600d8c311d8e868c5",
+  "pix2tex": "\\begin{array}{c}{{\\mathrm{\\c~^{*}~^{*}\\sim\\sigma~\\ v~\\ o~\\ v~\\ o~\\ u r e.~v~\\ o~\\ v~\\ o~\\ v~\\ u r~\\ o~\\ v~\\cdot~\\omega~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~a~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~\\ u~}}}}}}}&{\\ u~}}}&{\\ u~}}}&{\\mathrm{\\u~}\\ u~}}&{\\mathrm{\\u~}&{\\mathrm{\\u~}_{\\ u~}\\mathrm{"
+ },
+ {
+  "crop_id": "80227ea8a2c53153de94f0a0d773f7b248fe3a6d9554ef957a5acb35ec5faf1c",
+  "pix2tex": "\\ \\lambda(x,t)=\\lambda_{0}+\\sum_{t,c,t}\\lambda_{t}(x,t)\\qquad\\qquad(1)"
+ },
+ {
+  "crop_id": "6265319728edbcc63cae90d47a1c0d3c15b3cd27c6ac69def0a16b3bb2f58b04",
+  "pix2tex": "R_{n}=\\Delta_{n}R_{0}."
+ },
+ {
+  "crop_id": "15fb2a44fc8c07b5f4b8836d62ab4174f0e098ace3d3aeda07ba07a851c604a8",
+  "pix2tex": "\\begin{array}{r l}{{}}&{{}}&{{\\ddots}}\\\\ {{}}&{{}}\\\\ {{\\prod_{i}p_{i i}\\geq\\prod_{i}\\exp(Q_{i i})=\\exp\\left(\\sum_{i}Q_{i i}\\right)=\\exp(\\mathrm{trace}(Q))=\\deg(P),}\\end{array}"
+ },
+ {
+  "crop_id": "80848b58ffba1ecc7b1a66a9ecdc5b3b36bf8f66b22d9a8e5b33c1dc08a398a0",
+  "pix2tex": "s=1~J-\\infty"
+ },
+ {
+  "crop_id": "1037f1bd2c550fd9c03d7f878644017d9ce78f7b3db741f9f95a5a3188dccfe7",
+  "pix2tex": "\\mathrm{\\bf{F}}_{\\mathrm{12}}(\\omega)=\\{{\\bf{I}}-{\\bf{G}}_{\\mathrm{11}}^{*}(i\\omega)\\}^{-1}{\\bf{G}}_{\\mathrm{12}}^{*}(i\\omega)\\,{\\bf{F}}_{\\mathrm{22}}(\\omega)."
+ },
+ {
+  "crop_id": "ce722c1389c6d1996c547c6a7a8e5d11ebe4670fb283d4dac70bf27cba39681f",
+  "pix2tex": "\\pi(Z|\\theta)={\\frac{\\exp(Q(Z|\\theta))}{\\sum_{Y\\in\\Omega}\\exp(Q(Y|\\theta))}}."
+ },
+ {
+  "crop_id": "b8fdb23d234776f10d3d188dcbcbaea860d3bdab5cb5bf7e1100200d7b2c938f",
+  "pix2tex": "\\begin{array}{l l}{{\\mathrm{conex}\\rightarrow\\mathrm{nece}\\star\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\ '\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\ '\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\ '\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{~e}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{~e}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\mathrm{ne}\\leftrightarrow\\cdots\\overbrace{n e}\\leftrightarrow\\mathrm{~if}\\times\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\ :\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\cdots\\"
+ },
+ {
+  "crop_id": "9c197d9f5965aaf812030951c1472408ec4505ba1099a903eb26fa4f0cfa7050",
+  "pix2tex": "I S_{2}\\left(x_{i}^{t},x_{j}^{t},\\mathbf{y}^{t}\\right)=\\left\\{\\begin{array}{l l}{{\\beta\\cdot\\exp\\left(-{\\frac{\\eta\\left||\\mathbf{s}_{i}^{t}\\right(\\mathbf{y}^{t}\\right)|^{2}}{R}}\\right),}}&{{{\\mathrm{~if~}}x_{i}^{t}=x_{j}^{t}\\quad\\quad{\\mathrm{~in~the~m~}}}\\\\ {{0,}}&{{{\\mathrm{~if~}}x_{i}^{t}\\neq x_{j}^{t}\\cdot}}&{{{\\mathrm{~all~imag}}}}\\end{array}\\right."
+ },
+ {
+  "crop_id": "9afb679fdd788f7f91dcfcf56b8390c008265a054df4fc0a92c49d870287c14f",
+  "pix2tex": "D=\\pm\\{(p_{11},p_{21}-p_{21},p_{11}+p_{111}-p_{211})^{c}-4(p_{11},-p_{21})(p_{111}p_{21}-p_{211}p_{11})\\}^{n/2}"
+ },
+ {
+  "crop_id": "b761342d72a078dc874cdd0e80cfd1433d8a4b989a514a123f0be7c2a3fc1172",
+  "pix2tex": "\\begin{array}{c}{{\\mathrm{roots,\\,Dy~1neorm}\\cos\\theta\\mathrm{nurbe~1nlubstung~tacthe~blubstung~the~blutbtle~bthe~nuatr}}}\\\\ {{\\mathrm{\\wbol~\\b.0250}}}&{{0.3750}}\\\\ {{\\mathrm{which~roots~but~noots~p.}}}\\end{array}"
+ },
+ {
+  "crop_id": "320faf2fe35c7ac59dc2695173efc4d8fbef6c396079ce4165bcfbeab4fe2ab6",
+  "pix2tex": "\\qquad V(K[1],M[d-1])=\\frac{1}{d}V_{1,d-1}^{(0)}(K,-M),\\qquad\\qquad\\qquad."
+ },
+ {
+  "crop_id": "99b4d8aa9c6769531127d16030d7002cdfc9fce7d954b9c3e928f3ad2edb34f0",
+  "pix2tex": "R_{p q}:\\mathbf{C}(G(d,p))\\to\\mathbf{C}(G(d,q))"
+ },
+ {
+  "crop_id": "02268edb5c71299441a9d6f10dae509051b066f9bed17995508d5279bda01151",
+  "pix2tex": "\\int_{S O_{d}}^{}\\chi(K\\cap\\vartheta M)\\,\\upsilon(\\mathrm{d}\\vartheta)=2\\,\\sum_{k=0}^{{\\bf\\sigma}_{l}\\frac{(d-1)}{2}}\\sum_{i=2k}^{}v_{i}(K)v_{d-1-i+2k}(M)"
+ },
+ {
+  "crop_id": "4d1ebcffc0f237d833afe8f82b08f664fd7dcdc7636bd66ac34c11302b6aeaa4",
+  "pix2tex": "V(f,U)\\leq\\sum_{i=1}^{d}V_{e_{i}}(f,U)<+\\infty\\,,"
+ },
+ {
+  "crop_id": "6f9281497f9e267db785138477379090d04f4da1431eb6847cd8e9d09ab9372e",
+  "pix2tex": "M_{\\psi}(\\tau)=\\left\\{\\begin{array}{l}{{\\exp\\langle t(x),~\\tau\\rangle\\,\\mathrm{d}P_{\\psi}(x)=\\frac{C(\\psi+\\tau)}{C(\\psi)}.}}\\end{array}\\right.\\qquad\\qquad\\qquad\\qquad\\qquad(4)"
+ },
+ {
+  "crop_id": "5a963544bd67fbd0ae198e065ec883b4d5caca32adbff60dbc526c0bb4d66349",
+  "pix2tex": "\\begin{array}{l l}{{\\mathrm{~\\en}\\sim\\infty\\infty\\cdot\\star\\cdots\\cdots\\cdots\\star\\cdots\\cdot\\star\\Sigma-\\cdot\\star\\cdot\\star\\Sigma-\\cdot\\star\\sec\\times}}\\\\ {{\\mathrm{~\\vphantom{~\\s}~}\\leq\\mathcal{L}^{d}\\left(A\\cap\\left(y+A\\right)\\right)-\\mathcal{L}^{d}\\left(A\\cap\\left(z+A\\right)\\right)\\right)}}\\\\ {{\\mathrm{~\\deltanll}}}&{{\\mathrm{~\\leq\\mathcal{L}^{d}\\left(y+A\\right)\\right)-\\mathcal{L}^{d}\\left(A\\cap\\left(z+A\\right)\\right)\\right.}}}\\\\ {{\\mathrm{~\\f~\\scriptsize.\\E}=g_{A}(0)-g_{A}(z-y)\\ .}}\\end{array}"
+ },
+ {
+  "crop_id": "ceadec707084d9861b2277063fcdac7d894737964b6766be4d1a014b1ba47c3c",
+  "pix2tex": "\\begin{array}{c c}{{}}&{{\\cdots}}\\\\ {{\\mathrm{~f~}}}&{{g_{A}(0)-g_{A}(y)=\\displaystyle\\frac{1}{2}\\int_{\\mathbb{R}^{d}}|1_{A}(x+y)-\\mathrm{~l_{A}}(x)|\\ \\mathrm{d}x\\,.}}\\end{array}"
+ },
+ {
+  "crop_id": "32d97f1ea8bfce090d730d9fb185d4419abf2d8398821f87559c8b300a8498b2",
+  "pix2tex": "\\theta={\\frac{n(S_{2}^{\\prime}-1)+e}{n(S_{1}^{\\prime}+S_{2}^{\\prime}-1)}}.\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(14)\\quad\\qquad\\qquad\\qquad\\qquad\\qquad(14)\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(14)\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(14)\\qquad\\qquad\\qquad\\qquad(18)\\times\\times\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(18,-18,23,25,"
+ },
+ {
+  "crop_id": "c782b0a2438e4b0ede21bbc3a4553dd8a64b4f60ee58bd65e30a7748fc136d0b",
+  "pix2tex": "\\hat{\\sigma}_{1}^{2}=m^{-2}\\sum_{i=1}^{m}\\,\\Delta_{i}^{2}-m^{-3}\\left(\\sum_{i=1}^{m}\\,\\Delta_{i}\\right)^{2}"
+ },
+ {
+  "crop_id": "978693c45eafcb932491d20e34d6d9f6e2ed829f703458b9e0c261e112914d53",
+  "pix2tex": "\\begin{array}{c l l}{{}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}&{{s(K):=\\frac{1}{\\kappa_{d}}\\int_{S^{d-1}}h(K,u)u\\,\\sigma(\\mathrm{d}u).\\mathrm{~}}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}&{{}}&{{\\mathrm{~}}}&{{(14.28)}}\\\\ {{}}&{{}}&{{\\mathrm{~}}}\\\\ {{}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}&{{}}&{{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{}}&{{\\mathrm{{}}}}}&{{{{{\\mathrm{n o r m e r m a r m e r a r a r n r e r e x r a r a r a r a r a r a r a r a r a r e n r e r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r e r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a r a"
+ },
+ {
+  "crop_id": "2ea48ecfe6467298ded285ba1f26a6f25288f9477cb0ab9f4de8a00adef11f2d",
+  "pix2tex": "(3.21)"
+ },
+ {
+  "crop_id": "ee424104e21e7639b251b1d6db02a012481cfb1073a566f020f5f0334082b5a4",
+  "pix2tex": "c_{N i}=[k((1-r)^{2}+r^{2})]^{1/2}\\sigma_{i}\\quad(i=1,...,N)\\qquad\\qquad\\qquad\\qquad(12)"
+ },
+ {
+  "crop_id": "0f454d27133490ccd0cc788240a7e5da5cbb4c9df29652d4c587faa6f1770c27",
+  "pix2tex": "\\int\\left(\\bar{\\Phi}_{\\Lambda[0]}\\in J_{\\Lambda[0]}\\right)>\\nu\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\left(\\sum\\right)"
+ },
+ {
+  "crop_id": "0db59d3f339f68aa24e8acc5fdc02694d07065f2f4a3f26961d3d02c6eb9c591",
+  "pix2tex": "\\sum_{\\begin{array}{c}{{\\mathrm{~\\Phi~}}}\\\\ {{\\qquad\\qquad\\qquad}}\\\\ {{\\qquad\\qquad\\qquad}}\\end{array}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(\\qquad\\qquad\\qquad\\qquad\\qquad(\\qquad\\qquad\\qquad\\qquad\\qquad(\\mathrm{~\\Lambda~})\\qquad"
+ },
+ {
+  "crop_id": "e701063021170490899346bed9f77c00753ff097ef882b8bc0d6a53fb0cb6d3a",
+  "pix2tex": "\\begin{array}{c l}{{\\displaystyle\\Psi(Z):=\\sum_{k=1}^{\\infty}\\left[\\psi\\left(\\mathrm{cl}\\left(Z\\cap C_{0k}^{d}\\right)-z_{k}\\right)+z_{k}\\right]\\,.}}\\\\ {{}}&{{}}&{{}}\\\\ {{\\displaystyle\\gamma(\\,Y\\,\\mathrm{{\\it~i.e}\\,\\,*\\,*\\,v...................................+\\mathrm{{r.v.}}\\,\\,s...+\\mathrm{{r.v.}}\\,\\,s.........................................}}}\\end{array}"
+ },
+ {
+  "crop_id": "7e1b2d6b4d2dde0f1e601243984bd218d4f1e421673ea4cbc62f356892fcf425",
+  "pix2tex": "\\begin{array}{c}{{\\operatorname*{lim}^{\\infty\\rightarrow\\infty}\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty\\rightarrow\\infty}}\\\\ {{\\operatorname*{lim}\\left(A\\right)=\\wp\\left(A\\right)=\\gamma\\int_{E(d,k)}\\int_{L^{\\perp}}{\\bf{\\c~1}}_{A}(L+x)\\,\\lambda_{L^{\\perp}}(\\mathrm{d}x)\\,\\mathrm{Q}(\\mathrm{d}L).}}\\end{array}"
+ },
+ {
+  "crop_id": "a38323e548ac96f1a7fb23cd3f707d8d0d77b58eb8fcd1b9ea082c72b9e7072a",
+  "pix2tex": "(5.4)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\\mathrm{Per}\\,(U,\\Omega)\\le\\mathrm{Per}\\,(U^{\\prime},\\Omega)+\\lambda|U\\bigtriangleup U^{\\prime}|."
+ },
+ {
+  "crop_id": "776f18043f85b14333253a363f77bf73f33e4eeb9e33b4bba8430e6f693a7020",
+  "pix2tex": "\\begin{array}{c c c}{{\\Omega_{i}=2\\operatorname{cov}(\\widehat{\\lambda}_{i},y_{i}),}}&{{\\qquad}}&{{(3.14)\\quad\\mathrm{~[he~\\\\!~c~}}}\\\\ {{\\cdot}}&{{\\cdot}}&{{\\cdot}}&{{\\cdot}}\\end{array}"
+ },
+ {
+  "crop_id": "09a93926d34a5202e8a7fff38ccf7d8bc158e74ecec344d3209ad1dc8552b8a8",
+  "pix2tex": "\\omega(\\pi)=\\frac{1}{n}E_{\\pi}\\Biggl\\{\\sum_{i=1}^{n}\\left\\{\\sum_{i=1}^{n}\\left\\{_{i}\\cdot(y_{i}-\\pi_{i})\\right\\}\\,.\\qquad(3.10)\\begin{array}{l l}{{m e a s}}\\\\ {{\\hat{\\eta}_{1}\\right\\},}}\\\\ {{\\mathrm{grolp}}}\\end{array}\\right."
+ },
+ {
+  "crop_id": "acc18a2aa6b0a6df6d449177065bb2f94c266f5654473bebb23463a94876a43c",
+  "pix2tex": "\\mu_{\\epsilon}(K_{1}\\cup K_{2},A)+\\mu_{\\epsilon}(K_{1}\\cap K_{2},A)=\\mu_{\\epsilon}(K_{1},A)+\\mu_{\\epsilon}(K_{2},A)"
+ },
+ {
+  "crop_id": "ee23dcff18cbcff2f01158b48b5591071bb5edd3e68110151540aa541aff6fb6",
+  "pix2tex": "\\left.\\begin{array}{c}{{\\Phi^{\\circ}\\,\\Theta^{\\circ}}}\\\\ {{i\\in{I}\\displaystyle\\left.\\frac{1}{i\\in{I}}\\right.\\int_{\\hat{J}}\\in{J}}}\\\\ {{\\cdot\\quad\\cdot\\quad-r^{\\circ}\\quad\\cdot\\quad-r^{\\circ}}}\\end{array}\\right.."
+ },
+ {
+  "crop_id": "3a480ea90c920e7f7ea3b953fd81a8be3628fadfac065df44e8ab67d9ced272f",
+  "pix2tex": "\\begin{array}{c}{{\\gamma_{q,t}:S O(L^{\\perp})\\rightarrow\\ A(d,q)}}\\\\ {{\\vartheta}}\\end{array}"
+ },
+ {
+  "crop_id": "4771c1e527107fb6fa98d54f4b55ce102426cc8ba3f55acd1cf319a27ec2f14d",
+  "pix2tex": "(C_{i})_{i\\in I},\\ C_{i}\\in C,\\ \\ \\ \\ \\mathrm{and}\\ \\ \\ (G_{j})_{j\\in J},\\ G_{j}\\in\\mathcal{G}."
+ },
+ {
+  "crop_id": "8f3b1e85baef9da321ca4cd3b7a52f6413ff98e5d88ec7d7e8fe1bd36fe593bb",
+  "pix2tex": "C_{i}\\subset C+\\epsilon B^{d}\\qquad\\mathrm{and}\\qquad C\\subset C_{i}+\\epsilon B^{d}."
+ },
+ {
+  "crop_id": "db61ab9596ce515530b450a594b342fcabcfd3b4c4708ed1726cf9d428b601d2",
+  "pix2tex": "\\left.\\begin{array}{r l}{\\operatorname{etely~by}}&{{}\\operatorname{Later}\\mathrm{in~apl}\\right\\}\\left[\\operatorname{stations,we~use~of~the~specific~function}}\\\\ {\\operatorname{rerbones}}&{{}\\qquad\\qquad\\operatorname{forms}\\qquad\\qquad}\\\\ {\\operatorname{cor}\\qquad\\qquad\\qquad\\qquad\\qquad\\operatorname{cor}\\operatorname{incfor}.}\\end{array}\\right."
+ },
+ {
+  "crop_id": "21a9b682f2c09a666be2ab5a50d8e3898dd70f3110143ea457d0a5179013c144",
+  "pix2tex": "\\begin{array}{l l}{{\\mathrm{sparsely~poputaread~nercuenoreners.~1nstead~of~tne~kemet}}}\\\\ {{\\mathrm{nate}}}&{{\\mathrm{~}}}\\\\ {{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{\\mathrm{~}}}&{{\\mathrm{~}}}\\\\ {{\\mathrm{~}}}&{{\\mathrm{~}}}\\end{array}}}\\end{array}"
+ },
+ {
+  "crop_id": "b72e079138870f62af24582aeac260d49c681d102b4e54476fc7acd7b2e22a26",
+  "pix2tex": "G_{i j}(z_{i},z_{j})\\;=\\;(z_{i}-\\ell)\\lambda_{i j}(z_{j}-\\ell)."
+ },
+ {
+  "crop_id": "e5efca238f51d3b42b715cbf1df3e00c5e61edb32aee600f92e6a316a1773104",
+  "pix2tex": "(3.6)\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\ell_{n}(t,k,\\hat{\\mu}_{n})=(U_{n.k.t}^{+})^{2}/2."
+ },
+ {
+  "crop_id": "9b4ec9128ea4dd4f69b3d2a4097119e9b82f71e43742ef86cc4644b57496312b",
+  "pix2tex": "\\begin{array}{l l}{{(3.2)}}&{{\\displaystyle\\sum_{n=1}^{N}\\log(1-p_{0}+p_{0}\\exp[\\ell_{n}(t,k,\\mu_{n})]).}}\\\\ {{\\mathrm{Exoression~(3.2)~sueests~several~chane{cral~chan}}\\left.\\mathrm{detection~rules}.}}\\end{array}\\right."
+ },
+ {
+  "crop_id": "211b73752150d53c53f5d6bbc962537b14870f203b418066c66b075214b6c062",
+  "pix2tex": "\\begin{array}{l l}{{\\delta_{(\\mu_{3},\\nu_{3})}((\\mu,\\nu)\\wedge\\langle\\mu^{\\prime},\\nu^{\\prime}))\\times\\delta_{(\\mu_{3},\\nu_{1})}((\\mu,\\nu))\\times\\delta_{(\\mu_{3},\\nu_{3})}((\\mu,\\nu^{\\prime})),}}\\\\ {{\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(23)\\qquad\\qquad(\\qquad\\qquad\\qquad(\\qquad\\qquad\\qquad\\qquad}}&{\\qquad\\qquad0\\qquad\\qquad}}&{\\qquad\\qquad\\qquad\\qquad0\\qquad\\qquad0\\qquad\\qquad0\\qquad\\qquad(11}&{\\qquad\\qquad(1}&{1}&{1}&{\\qquad(1}&{\\qquad0}}&{1}&{1}&{1}&{1}&{1}&{0}&{1}&{1}&{1}&{1}&{1}&{1}&{1}&{1}&{1}&{0}&{1}&{\\qquad X}&{1}&{1}&{1}&{1}&{1}&{0}&{0}&{1}&{1}&{{1}&{0.}&{1}&{1}&{1}&{0.}&{1}&"
+ },
+ {
+  "crop_id": "cead220f56fa29705eac03bdc7b943c1170c70dfcce7802a1c7615ee8a8d2e41",
+  "pix2tex": "\\begin{array}{c}{{\\forall x\\in S,\\;\\bigwedge_{p_{i\\in I}}(\\mu_{i},\\,\\nu_{i})(x)=\\left(\\operatorname*{inf}_{i\\in I}\\mu_{i}(x),\\;s_{\\operatorname*{in}}{}_{t\\in I}\\nu_{i}(x)\\right),}}\\\\ {{\\mathrm{~\\rhe~orre.\\,\\operatorname*{stratrant}~i c~\\ r.~\\operatorname*{in}\\varepsilon\\ r n.~\\operatorname*{in}\\ell\\pi\\ t r a n c\\ s t r a n c}\\ ^{\\prime}\\operatorname*{in}\\Pi^{\\prime}\\pi^{\\prime}\\ s^{\\prime}\\operatorname*{in}^{\\prime}\\operatorname*{in}^{\\prime}\\operatorname*{in}^{\\prime}\\operatorname*{in}^{\\prime}\\pi^{\\prime}\\operatorname*{in}^{\\prime}\\operatorname*{in}^{\\prime}\\operatorname*{in}^{\\prime}\\operatorname*}\\operatorname*^{i n}^{\\operatorname*{in}\\operatorname*{in}^{\\prime}_{i n}\\operatorname*}\\operatorname*^{i n}^{\\operatorname*}\\operatorname*{in}^{i n}^{i n}^{i n}^{i n}^{\\operatorname*}^{i n}^{i n}^{i n}^{\\operatorname*}^{\\operatorname*}^{\\operatorname*}^{\\operatorname*}^{\\operatorname*}}^{\\operatorname*}^{\\operatorname*}^{\\operatorname*}^{i n}_{\\operatorname*}_{i n}{\\operatorname*}^{\\operatorname*}^{\\operatorname*}^{\\operatorname*}^"
+ },
+ {
+  "crop_id": "ed4768de1585a1a038c259360f45823ac3c7147d6179cf34810062490452313f",
+  "pix2tex": "\\begin{array}{r c l}{{\\Theta_{\\nu}=\\left\\{\\overline{{{\\mu}}}_{g},\\overline{{{\\overline{{{\\Sigma}}}}}}_{g},\\overline{{{\\mu}}}_{c},\\overline{{{\\Sigma}}}_{c}\\right\\}.}}&{{}}&{{}}&{{(13)}}\\\\ {{}}&{{}}&{{}}\\\\ {{\\d.\\cdot\\cdot\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\mathbf{\\epsilon}\\cdot\\end{array}"
+ },
+ {
+  "crop_id": "20e1cb2c99466abfb677069c9ea964cbd80076012a9d64f30b09fcda5f0614be",
+  "pix2tex": "(\\mathrm{i})-(\\mathrm{i}\\mathrm{i}\\mathrm{i}\\mathrm{\\!}\\mathrm{\\!}\\Rightarrow\\gamma_{C}\\,\\mathrm{solution\\,\\of}\\mathrm{~(64).}"
+ },
+ {
+  "crop_id": "7c5ed73cf6231c617198ae702b06c2f693153a981d87bb34600501265d4dcd63",
+  "pix2tex": "\\xi:L_{1}^{\\perp}\\times\\cdot\\cdot\\cdot\\times L_{q}^{\\perp}\\to L^{\\perp}."
+ },
+ {
+  "crop_id": "7283212ebc978f1cdec3ead83bddc28d67d323d4aa5951049ffa78fb598e8f30",
+  "pix2tex": "(L_{1}+t_{1})\\cap.\\cdot\\cdot\\top\\left(L_{q}+t_{q}\\right)=L+\\xi(t_{1},\\cdot\\cdot\\cdot,t_{q})"
+ },
+ {
+  "crop_id": "fb6026d964156d77e64fb17c0b07b7fd059d5be16aad004ad7e672ac6aa59fed",
+  "pix2tex": "h(\\mathbb{R}K_{n},u)=\\mathbb{R}\\,h(K_{n},u)\\qquad{\\mathrm{for~}}u\\in S^{d-1}."
+ },
+ {
+  "crop_id": "7a396574c18d6d90b932cfba7ea24e300e1570fe014b72f4b87de5001e082572",
+  "pix2tex": "\\begin{array}{r}{{\\mathrm{for~}}f\\in\\mathbf{C}_{c}(U),\\,\\mathrm{For}\\,\\,(D,M)\\in G{\\mathrm{~we~get}}}\\\\ {{I_{1}((D,M),f)\\ =\\int_{\\mathbb{R}^{d}}\\cdots\\int_{\\mathbb{R}^{d}}f(D^{-1}(x_{1},\\ldots,x_{q})M^{-t})\\,\\lambda(\\mathrm{d}x_{1})\\cdots\\lambda(\\mathrm{d}x_{q})}}\\\\ {{\\mathrm{because~}\\lambda\\,\\,{\\mathrm{is~rothntiantiantiant}}\\:\\,\\mathrm{nn}\\:\\,\\mathrm{the~larar~map~}\\:(x_{1},\\ldots,x_{q})\\,M}}\\end{array}"
+ },
+ {
+  "crop_id": "690f3cc9f422b3c75600665b615f470c76715db30380ba704cd8f524ff4794a4",
+  "pix2tex": "c_{1}(d)(\\log n)^{d-1}<\\Xi f_{i}(K,n)<c_{2}n^{(d-1)/(d+1)}\\qquad\\qquad\\qquad(8.37)"
+ },
+ {
+  "crop_id": "1eb609f2d1140aa3fbaa901a6ab876c5a01081b08af21cae748fcb6847b6c8af",
+  "pix2tex": "\\left(\\z,r,u_{0},\\ast\\cdot,u_{d}\\right)\\mapsto\\left(z+r u_{0},\\ast\\cdot,z+r u_{d}\\right)"
+ },
+ {
+  "crop_id": "f331589c86529770dd2e913baa11b87fb4fae7d95f0a725ace09f62a7b16f9d8",
+  "pix2tex": "\\mathbf{\\Sigma}\\cdot\\!\\!\\!\\slash"
+ },
+ {
+  "crop_id": "6c2a826e89d85cea6bc185f186b509b7b8732a87a334f526876de0932c423176",
+  "pix2tex": "\\operatorname*{lim}_{n\\rightarrow\\infty}f_{i}(K,n)n^{-(d-1)/(d+1)}=c_{d,i}\\mathcal{Q}(K)\\qquad\\mathrm{in~probability}"
+ },
+ {
+  "crop_id": "085310886ace1dcee8fe4d45decd05c2d35f8ed7c912f8a5023e99b2aea1c927",
+  "pix2tex": "\\begin{array}{r l}{{\\frac{1}{2}}\\sum_{k=1}^{n-d-1}(-1)^{k-1}{\\binom{n}{k}}\\int_{0,{\\mathrm{~if~}}n-d{\\mathrm{~is~odd}}}^{n}}\\\\ {{\\mathrm{~wrz...}}}&{{\\cdot\\quad s}}&{{\\mathrm{~a...~.~*-.......~v..~*~*....~v...~*.~.~.~*.~.~.~}}}\\end{array}"
+ },
+ {
+  "crop_id": "12d0fbccaa46efab274e29097a330a3fcc769827e13022cae1d33a4185aaa9e8",
+  "pix2tex": "\\partial_{r}^{2}\\mathbf{E}_{P}[\\psi(W;\\theta_{0},\\eta_{0}+r(\\eta-\\eta_{0}))]=0."
+ },
+ {
+  "crop_id": "2c12dcd3b35f6f108dc44955c5c6342d157dfcaeb9b635a0faa9287f25dfaa02",
+  "pix2tex": "\\mathrm{Z_{5}}:=\\operatorname*{sup}_{\\|\\theta-\\theta_{0}\\|\\le\\tau_{N}}\\left\\|\\mathrm{G}_{n}\\Bigl(\\psi(W;\\theta,\\widehat{\\eta}_{0})-\\psi(W;\\theta_{0},\\eta_{0})\\Bigr)\\right\\|\\qquad\\qquad(\\mathrm{A.36})"
+ },
+ {
+  "crop_id": "3554f3274fffdd5003db22e79a93f59d3ffc1ba4fa487a757726e25e74145a2e",
+  "pix2tex": "\\sqrt{N}\\sigma^{-1}(\\tilde{\\theta}_{0}-\\theta_{0})=\\frac{1}{\\sqrt{N}}\\sum_{i=1}^{N}\\bar{\\psi}(W_{i})+O_{P}(\\rho_{N})\\sim N(0,\\mathrm{I}_{d}),\\qquad\\qquad(3.10)"
+ },
+ {
+  "crop_id": "7752f1ccd22f47874da3a78f32ef151db3c43a4ecfdf523e596ca001e678bfdc",
+  "pix2tex": "\\begin{array}{c}{{\\operatorname{exonex}\\operatorname{exow}\\cdot\\exp\\cdot\\exp\\cdot\\exp\\cdot\\exp\\cdot\\exp\\cdot\\Psi\\cdot\\dots\\exp\\cdot}}\\\\ {{\\sqrt{n}\\mathbb{E}_{n}[\\psi(W;\\theta,\\eta)]=\\sqrt{n}\\mathbb{E}_{n}[\\psi(W;\\theta_{0},\\eta_{0})]+\\mathrm{G}_{n}[\\psi(W;\\theta,\\eta)]}}\\\\ {{\\operatorname{}+\\sqrt{n}\\!\\left(\\mathbf{E}_{P_{N}}[\\psi(W;\\theta,\\eta)\\right),}}\\end{array}"
+ },
+ {
+  "crop_id": "d0734423884fd83be1cfd763bb3d773ea7c5490b3c0155f9c3a2f3b7a5369e7e",
+  "pix2tex": "\\lambda_{N}^{\\prime}:=\\operatorname*{sup}_{r\\in\\{0,1\\},n\\in T_{N}}\\|\\partial_{r}^{2}\\mathrm{\\bfE}p[\\psi(W;\\theta_{0},\\eta_{0}+r(\\eta-\\eta_{0}))]]\\leqslant\\delta_{N}/\\sqrt{N}."
+ },
+ {
+  "crop_id": "e3ab9f96fa2655342454ac167f8c3b95dc340db60d28dad91cf7b43bbffc6796",
+  "pix2tex": "I_{2}\\stackrel{<}{\\sim}{\\cal N}^{-1/2}(1+N^{-1/2+1/q}\\log n)\\stackrel{<}{\\sim}{\\cal N}^{-1/2}=o(\\tau_{N})."
+ },
+ {
+  "crop_id": "216b247a1fb6c838dcc3c6d2841435e49cedcef7b3fcf81ae25efa750cb6e0be",
+  "pix2tex": "f_{k}(r):=\\mathbb{E}_{P_{N}}[\\psi(W;\\theta_{0},\\eta_{0}+r({\\hat{\\eta}}_{0,k}-\\eta_{0}))\\mid(W_{i})_{i\\in I_{k}^{*}}]-\\operatorname{E}_{P_{N}}[\\psi(W;\\theta_{0},\\eta_{0})],\\quad r\\in[0,1]."
+ },
+ {
+  "crop_id": "64f26a6254547bb3f1f11a8e208b6235692b6c03da34cd48baff09d647bcfad0",
+  "pix2tex": "\\sqrt{n}\\sigma^{-1}(\\tilde{\\theta}_{0,k}-\\theta_{0})={\\frac{1}{\\sqrt{n}}}\\sum_{i\\in I_{k}}\\bar{\\psi}(W_{i})+{\\cal O}_{P_{N}}(\\rho_{N})."
+ },
+ {
+  "crop_id": "4f759d960069f570d64c0ab9266b21f3b3bb70e1ed3a2b9722cb9ffb833189b0",
+  "pix2tex": "\\begin{array}{l}{{{\\cal Z}_{1}:=\\operatorname*{sup}_{\\theta\\in\\Theta,\\eta\\in T_{N}}\\left|\\mathrm{E}_{P_{N}}[\\psi(W;\\theta,\\eta)]-\\mathrm{E}_{P_{N}}[\\psi(W;\\theta,\\eta_{0})]\\right|,}}\\\\ {{{\\cal Z}_{2}:=\\operatorname*{max}_{\\eta\\in\\{\\eta_{0},\\tilde{\\eta}_{0}\\}}\\operatorname*{sup}_{\\theta\\in\\Theta}\\left\\|\\Xi_{n}[\\psi(W;\\theta,\\eta)]-\\mathrm{E}_{P_{N}}[\\psi(W;\\theta,\\eta)]\\right\\|}}\\end{array}"
+ },
+ {
+  "crop_id": "61b9150763593aca9e355450f9cc8952eb7eb6ba40ef153c7c3d8d2666ccb729",
+  "pix2tex": "\\begin{array}{r l}{{\\mathrm{}\\quad}}&{{\\cdots}}\\\\ {{\\qquad}}&{{\\displaystyle=\\;\\prod_{i=}^{N}\\left\\{{\\mathrm{Pr}}[y_{i}^{1},\\cdots,y_{i}^{R}|y_{i}=1,\\alpha]{\\mathrm{Pr}}[y_{i}=0]x_{i},w]\\right\\}.}}\\\\ {{\\qquad}}&{{\\qquad}}\\\\ {{\\qquad}}&{{\\qquad}}&{{\\qquad}}\\\\ {{\\qquad}}&{{\\qquad}}\\\\ {{\\qquad}}&{{\\qquad}}\\\\ {{\\qquad}}&{{\\qquad}}\\\\ {{\\operatorname{tme~laberwarivvowarivvosen}}\\end{array}"
+ },
+ {
+  "crop_id": "b6611f853e428c88fe47355d76d30e8cf61f698dbad255ab96cd519c849fdade",
+  "pix2tex": "{\\hat{m}}_{1}(s)={\\frac{1}{T}}\\sum_{i=1}^{n}k(s-s_{i}),"
+ },
+ {
+  "crop_id": "1493b970d995a741fbe47b8a18893386d95ee9f8ce31f27ec8f2aedf44b8f8b2",
+  "pix2tex": "\\begin{array}{c c}{{P r e c}}&{{}}&{{}}\\\\ {{}}&{{}}&{{}}\\end{array}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(19)"
+ },
+ {
+  "crop_id": "d3153e60e4747824d3c9aec2028004da5c193e14a981b4e0ba2e748c45ef172d",
+  "pix2tex": "{\\cal O}_{z}^{2}\\quad\\Big|\\Big({\\cal O}_{0}^{2}+{\\frac{\\mathcal{C}^{2}}{1-\\phi^{2}}}+2\\Bigg|\\Big({\\cal O}_{0}\\mathcal{Q}+{\\frac{\\phi\\mathcal{Q}^{2}}{1-\\phi^{2}}}\\left|{\\bar{\\sum_{2}^{2}}}\\,\\phi^{k-1}\\rho(k)\\right|^{2}\\!\\sigma^{2},"
+ },
+ {
+  "crop_id": "417d5968355816ed9d2adfe43de5e2eca02ce867544ee66ab828261e24a24c1a",
+  "pix2tex": "\\begin{array}{l l}{{\\overline{{{\\cal V}}}_{d}(Z)=1-\\mathrm{e}^{-\\overline{{{\\cal V}}}_{d}(X)},~~~~~~}}&{{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+ },
+ {
+  "crop_id": "5a1597f83504e8a37cb5ceff1e2a0a61ac9bb29b73ab42a9cad96ed0d3f7258a",
+  "pix2tex": "\\begin{array}{c c c c c c}{{}}&{{}}&{{\\operatorname*{lim}_{r\\rightarrow\\infty}\\frac{|Z_{r}^{1}|}{V_{d}(r W)}=0,\\qquad\\operatorname*{lim}_{r\\rightarrow\\infty}\\frac{|Z_{r}^{2}|}{V_{d}(r W)}=1,}}&{{}}&{{(9.15)}}\\\\ {{}}&{{..}}&{{}}&{{}}&{{}}&{{}}\\end{array}"
+ },
+ {
+  "crop_id": "799c1546552dc52fa67e953597a0ee103baecef005ee2f414c6d919b08162f98",
+  "pix2tex": "\\begin{array}{r l}{b:=c{\\big(}d{\\big)}\\displaystyle\\operatorname{{\\scriptscriptstyle~SUp}}\\big|\\varphi(L){\\big|}<\\mathbf{{\\x}}\\\\ {\\cdot}&{{\\vdots}\\end{array}\\big|}\\end{array}"
+ },
+ {
+  "crop_id": "95b52036d46a4c225a463db823c713181a28ff21336f0cab1e4e66b0316d1dc9",
+  "pix2tex": "\\sum_{i=j}^{d}(-1)^{d-i}\\sum_{F\\in{\\mathcal T}_{i}(X)}V_{j}(F\\cap B^{d})=V_{j}(B^{d})\\qquad\\mathrm{{a.s.}}\\qquad(10.23)"
+ },
+ {
+  "crop_id": "754a75542f142a1e0b639fb0ad7fcdfa27aaff7e7f369a503ea6aa59d428fb24",
+  "pix2tex": null
+ },
+ {
+  "crop_id": "768210b0d92054a164dd00a6e5f0d3fad68583c769c44f0337eec3f6b3fec3be",
+  "pix2tex": "V_{j}(B^{d})=\\sum_{i=j}^{a}(-1)^{d-i}\\sum_{F\\in\\mathcal{F}:[m]}V_{j}(F\\cap B^{d})."
+ },
+ {
+  "crop_id": "cd187f7fda35c38d8e870ab071237a571046700d05917b4ef22161ec273d5192",
+  "pix2tex": "\\gamma^{(2)}p_{2}=\\gamma^{(1)}w_{13}=\\gamma^{(3)}l_{31},\\qquad\\gamma^{(0)}a_{02}=\\gamma^{(2)}w_{21}=\\gamma^{(1)}a_{12},"
+ },
+ {
+  "crop_id": "b2ec8a13fd4e10de432704735e2f1463222c9ba7205a43713041ee019a529d97",
+  "pix2tex": "\\begin{array}{c c c}{{\\mathrm{}}}&{{}}&{{}}\\\\ {{}}&{{d_{j}^{(k)}=\\left(\\frac{d-j}{d-k}\\right)\\left(\\frac{d}{j}\\right)\\frac{\\kappa_{d-1}^{d-j}}{d^{d-j}\\kappa_{d}^{d-1}\\kappa_{j}}\\hat{\\gamma}^{d-j}~~~~}}&{{~~~}}&{{~~~~~(10.45)}}\\\\ {{}}&{{}}&{{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+ },
+ {
+  "crop_id": "856030fc0165f4c33145cc8882f79e4a149fbf6ca28f264f0445c8fe1cabb0dc",
+  "pix2tex": "\\begin{array}{l}{{I:=}}\\\\ {{\\displaystyle\\int_{S^{1}}\\int_{S^{1}}\\int_{S^{1}}\\int_{S^{1}}L(\\mathrm{conv}\\left\\{u_{0},u_{1},u_{2}\\right\\})A(\\mathrm{conv}\\left\\{u_{0},u_{1},u_{2}\\right\\})\\sigma(\\mathrm{d}u_{0})\\sigma(\\mathrm{d}u_{1})\\sigma(\\mathrm{d}u_{2})}}\\end{array}"
+ }
+]

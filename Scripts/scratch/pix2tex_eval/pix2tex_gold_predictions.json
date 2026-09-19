@@ -1,0 +1,102 @@
+[
+ {
+  "id": "E01",
+  "pix2tex": "\\begin{array}{l}{{\\frac{\\omega}{\\phi}}}\\\\ {{\\frac{\\theta}{\\phi}}}\\\\ {{\\vdots}}\\\\ {{\\vdots}}\\\\ {{\\vdots}}\\\\ {{\\vdots}}\\end{array}",
+  "seconds": 2.266
+ },
+ {
+  "id": "E02",
+  "pix2tex": "\\bar{\\mu}=M y\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(65)",
+  "seconds": 0.802
+ },
+ {
+  "id": "E03",
+  "pix2tex": "\\begin{array}{c c c c c}{{(4.3)}}&{{}}&{{}}&{{\\displaystyle{\\frac{-1}{s\\lambda_{n}}}\\left(\\sum_{{\\bf k}\\in\\overline{{{Z}}}}\\vert{\\bf C o v}({\\nabla^{\\prime}}^{2}Z({\\bf0}),\\nabla^{\\prime}Z({\\bf k}))\\right)}}&{{}}&{{}}\\\\ {{\\cdot\\:\\:\\:,}}&{{}}&{{}}&{{}}&{{}}&{{}}\\\\ {{\\cdot\\:\\:,}}&{{\\cdot\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\cdots\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:\\:",
+  "seconds": 10.763
+ },
+ {
+  "id": "E04",
+  "pix2tex": "\\frac{1}{2}\\,\\int_{0}^{T}\\,\\int_{\\mathbb{R}^{N}}\\,t|p(u_{n})_{t}|^{2}\\varphi^{2}\\leqslant C+T^{2}\\,\\int_{\\mathbb{R}^{N}}|\\nabla\\varphi|^{2}.\\qquad\\qquad(59)",
+  "seconds": 1.943
+ },
+ {
+  "id": "E05",
+  "pix2tex": "V(f,U)\\leq\\sum_{i=1}^{d}V_{e_{i}}(f,U)\\leq d\\operatorname*{sup}_{u\\in S^{d-1}}V_{u}(f,U)\\leq d V(f,U)\\,.",
+  "seconds": 1.628
+ },
+ {
+  "id": "E06",
+  "pix2tex": "\\begin{array}{l l l l}{{\\mathrm{trueglenusf}\\;\\mathrm{unk~oven~oreung~unu~stanu~ure~unve~nnre.}}}\\\\ {{\\mathrm{(6.1)}\\;}}&{{\\displaystyle\\int_{\\Omega}\\kappa(x,f(x))\\,d\\mathcal{L}^{n}x=\\int_{0}^{\\infty}\\left(\\int_{\\{f\\geq z\\}}\\right)_{\\theta\\geq'\\;\\;\\;\\;\\;\\;,\\;\\;\\;\\;\\;\\;,\\;\\;\\;\\;\\;}}}\\\\ {{\\mathrm{(6.1)}\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;\\;.}}&{{\\displaystyle~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}&{{{\\quad~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}}&{{{{{{{{{{{{{{{{{-~~~~",
+  "seconds": 10.651
+ },
+ {
+  "id": "E07",
+  "pix2tex": "\\begin{array}{l l l}{{\\mathrm{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+  "seconds": 10.671
+ },
+ {
+  "id": "E08",
+  "pix2tex": "E=\\left(\\begin{array}{l l l l}{{1-e_{12}}}&{{e_{12}}}&{{0}}&{{0}}\\\\ {{e_{21}}}&{{1-e_{21}-e_{23}}}&{{e_{23}}}&{{0}}\\\\ {{0}}&{{e_{32}}}&{{0}}&{{0}}\\\\ {{0}}&{{0}}&{{0}}\\end{array}\\right)",
+  "seconds": 3.855
+ },
+ {
+  "id": "E09",
+  "pix2tex": "-{\\mathrm{div}}\\Biggl({\\frac{\\nabla u}{\\sqrt{1+|\\nabla u|^{2}}}}\\Biggr)=\\lambda_{C}\\qquad\\mathrm{in~C}\\qquad\\qquad\\qquad(77)",
+  "seconds": 1.519
+ },
+ {
+  "id": "E10",
+  "pix2tex": "\\mathcal{P}_{\\lambda}(D):=\\cal{P}(D)-\\lambda|D|,\\qquad D\\subseteq\\mathbb{R}^{2},\\quad D{\\mathrm{~of~finite~perimeter}}.",
+  "seconds": 1.452
+ },
+ {
+  "id": "E11",
+  "pix2tex": "\\int_{0}^{a}e^{-(a-y)}P_{\\infty}\\left(\\sum_{k=1}^{K-1}W_{n}^{(k)}\\in d y\\right),",
+  "seconds": 1.317
+ },
+ {
+  "id": "E12",
+  "pix2tex": "\\hat{\\bf i}_{k_{i}}\\bigl(\\S_{i}\\Lambda\\bigr)=-\\frac{\\sum_{i=1}^{\\left|i\\right|-1}\\left|0_{i}\\left(\\S_{i}\\right)}{2\\sum_{i=1}^{\\left|i\\right|}\\left|0_{2}\\right|}.\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\left(\\Im\\bigl)",
+  "seconds": 2.569
+ },
+ {
+  "id": "E13",
+  "pix2tex": "\\int_{\\mathbb{R}^{2}}(\\xi,D u)=\\int_{\\mathbb{R}^{2}}u^{2}\\,d x=\\sum_{i=1}^{m}{\\frac{P(C_{i})^{2}}{|C_{i}|}}=\\int_{\\mathbb{R}^{2}}|D u|.",
+  "seconds": 1.97
+ },
+ {
+  "id": "E14",
+  "pix2tex": "A_{t}^{*}:=\\arg\\operatorname*{min}_{A\\in{\\mathcal A}}\\|A^{k}-A_{\\tau}\\|",
+  "seconds": 1.031
+ },
+ {
+  "id": "E15",
+  "pix2tex": "\\begin{array}{c c c}{{\\stackrel{\\circ}{\\d c}}}&{{\\left|\\begin{array}{c c}{{\\phantom{\\circ}{S_{2}^{*}}}}\\\\ {{0}}\\end{array}\\right|}}&{{\\rho_{0}=\\frac{S_{2}^{*}-S_{2}^{1}S_{2}^{2}}}{\\sqrt{S_{2}^{1}(1-S_{2}^{1})S_{2}^{2}(1-S_{2}^{2})}}}\\end{array}\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad\\qquad(9)",
+  "seconds": 3.874
+ },
+ {
+  "id": "E16",
+  "pix2tex": "{\\mathcal{B}}_{\\lambda}(\\Omega)",
+  "seconds": 0.379
+ },
+ {
+  "id": "E17",
+  "pix2tex": "K_{M N}(j,k)=\\stackrel{\\textstyle{\\textstyle\\int}K(j/L_{M},\\,k/L_{N})}{\\left(0\\right.}\\stackrel{\\mathrm{~~for~}|j|<L_{M},\\;|k|<L_{N},}{\\mathrm{~\\otherwise,~}}",
+  "seconds": 1.712
+ },
+ {
+  "id": "E18",
+  "pix2tex": "c_{2}=0.5~~~\\mathrm{and}~~~c_{1}\\in\\{0.5,1\\}",
+  "seconds": 0.629
+ },
+ {
+  "id": "E19",
+  "pix2tex": "\\begin{array}{l l}{{\\xi_{t}(x)=\\sum\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\infty}}}\\\\ {{\\S_{t}(x)=\\Lambda_{n-\\Upsilon\\dag\\ w\\rightarrow\\Upsilon\\ w\\rightarrow\\Upsilon\\rightarrow\\Upsilon\\ w\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\rightarrow\\Psi\\rightarrow\\bar{\\ w\\ w\\ w\\ w\\rightarrow\\ w\\rightarrow\\sigma r\\rightarrow\\bar{\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\rightarrow\\ w\\rightarrow\\bar{\\ w\\ w\\ w\\ w\\ w\\ w\\rightarrow\\ w\\ w\\rightarrow\\ w\\rightarrow\\ w\\rightarrow\\bar{\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\rightarrow\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\rightarrow\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\ w\\Bigr)}}}\\Psi\\rightarrow\\ }}}}\\end{array}",
+  "seconds": 8.307
+ },
+ {
+  "id": "E20",
+  "pix2tex": "\\begin{array}{c}{{\\mathrm{\\boldmath{~\\hat{e}~}_{1}\\cdot\\psi_{1}\\rangle}}}\\\\ {{\\mathrm{\\bar{e}~}_{1\\mu_{1}\\quad\\mu_{1}\\quad\\mu_{1}\\quad}}}\\\\ {{\\mathrm{\\bar{e}~}_{1\\mu_{1}\\quad\\mu_{1}\\quad\\mu_{1}\\quad}}}\\\\ {{\\mathrm{\\bar{e}_{1\\mu_{1}\\quad\\mu_{1}\\quad}}}}\\\\ {{\\mathrm{\\bar{e}_{n}\\quad\\mu_{1}\\quad}}}\\end{array}",
+  "seconds": 2.653
+ }
+]

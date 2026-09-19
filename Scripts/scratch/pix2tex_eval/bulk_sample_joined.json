@@ -1,0 +1,1602 @@
+[
+ {
+  "crop_id": "6dbce6f6e712a699fa54a15b21d0aaa06ec6e1b46f63ec85fefacd177f3a14aa",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 79,
+  "codeformula_latex": "H ( r ) = 1 - e ^ { - \\gamma \\kappa _ { d } r ^ { d } }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6dbce6f6e712a699fa54a15b21d0aaa06ec6e1b46f63ec85fefacd177f3a14aa.png"
+ },
+ {
+  "crop_id": "4a8717a428d2ce0e9b2a9c90ae39024ccf4bcea2fe1bf803f6ed7bcca4603e5c",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 51,
+  "codeformula_latex": "m ( x ) = \\int _ { \\Omega } 1 _ { Z ( \\omega ) } ( x ) \\, \\mathbb { P } ( d \\omega ) = \\int _ { \\mathcal { F } } 1 _ { F } ( x ) \\, \\mathbb { P } _ { Z } ( d F ) . \\\\ \\text {easurability of the integer and follows from Theorem 12.2.7. We may }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\4a8717a428d2ce0e9b2a9c90ae39024ccf4bcea2fe1bf803f6ed7bcca4603e5c.png"
+ },
+ {
+  "crop_id": "c27a45bc7b30cbc9e96f6d8c368d29341acd197ba08bbefdcc617cafff13203f",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 49,
+  "codeformula_latex": "T ( K \\cup K ^ { \\prime } \\cup C ) + T ( C ) = T ( K \\cup C ) + T ( K ^ { \\prime } \\cup C ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\c27a45bc7b30cbc9e96f6d8c368d29341acd197ba08bbefdcc617cafff13203f.png"
+ },
+ {
+  "crop_id": "e76345905a4fa8652fa605f574adfba658f6df5aedf9765c46dda75ac75c6554",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 51,
+  "codeformula_latex": "m ( x ) = m ( 0 ) = \\colon p ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e76345905a4fa8652fa605f574adfba658f6df5aedf9765c46dda75ac75c6554.png"
+ },
+ {
+  "crop_id": "cd8b8d44bdf23a2aa81bba64b946a819d91a377792fbfdc9a6c3401ff5ce0b50",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 51,
+  "codeformula_latex": "k ( x , 0 ) = \\mathbb { P } ( 0 \\in Z , x \\in Z ) - p ^ { 2 } = \\mathbb { E } \\lambda ( Z \\cap ( Z - x ) \\cap C ^ { d } ) - p ^ { 2 } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\cd8b8d44bdf23a2aa81bba64b946a819d91a377792fbfdc9a6c3401ff5ce0b50.png"
+ },
+ {
+  "crop_id": "1f618b89df94ea6b2ecd33b715a40ed6589f062a8208a7f45bc6c9df1cdc71fd",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 56,
+  "codeformula_latex": "\\mathcal { A } \\coloneqq \\{ A \\in \\mathcal { B } \\colon \\Phi _ { A \\cap G } \\text { is } \\mathcal { M } ^ { \\prime } \\text {-measurable for all } G \\in \\mathcal { G } _ { c } \\}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\1f618b89df94ea6b2ecd33b715a40ed6589f062a8208a7f45bc6c9df1cdc71fd.png"
+ },
+ {
+  "crop_id": "464b7258d4e77f4fe7407307493403338aacaed608a9facde3ec14433abe146b",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 58,
+  "codeformula_latex": "\\eta = \\sum _ { ( x , m ) } m \\, \\delta _ { x }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\464b7258d4e77f4fe7407307493403338aacaed608a9facde3ec14433abe146b.png"
+ },
+ {
+  "crop_id": "5aacd88193a8018d4b11c45c499d53ad75ddc42ba0f0f1ff0d0ca24a9de1a16f",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 72,
+  "codeformula_latex": "p ( 0 , 1 ) \\colon = e ^ { - 2 } + c , \\quad p ( 1 , 0 ) \\colon = e ^ { - 2 } - c ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\5aacd88193a8018d4b11c45c499d53ad75ddc42ba0f0f1ff0d0ca24a9de1a16f.png"
+ },
+ {
+  "crop_id": "5f4ee0ad0a76d70d68c2b020319d4f0c93b4032ccd4ae7e3c1f3281ae095de86",
+  "shard_id": "full20",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 68,
+  "codeformula_latex": "\\Gamma _ { r } ( x _ { 1 } , \\dots , x _ { r } ) \\colon = \\sum _ { j = 1 } ^ { r } \\delta _ { x _ { j } } . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\5f4ee0ad0a76d70d68c2b020319d4f0c93b4032ccd4ae7e3c1f3281ae095de86.png"
+ },
+ {
+  "crop_id": "846acc03ee1d5eb062fd9ce626029cb5989c803538b26211d26fc175f66f2e0b",
+  "shard_id": "full17",
+  "file": "Parisi_2014_ranking-combining-multiple-predictors.pdf",
+  "page": 3,
+  "codeformula_latex": "\\alpha _ { i } = \\frac { \\psi _ { i } \\eta _ { i } } { ( 1 - \\psi _ { i } ) ( 1 - \\eta _ { i } ) } , \\ \\beta _ { i } = \\frac { \\psi _ { i } ( 1 - \\psi _ { i } ) } { \\eta _ { i } ( 1 - \\eta _ { i } ) } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\846acc03ee1d5eb062fd9ce626029cb5989c803538b26211d26fc175f66f2e0b.png"
+ },
+ {
+  "crop_id": "238186b5a8594d3cef843a276e6bc66a151973fb0381dcca32da6d7d10a73043",
+  "shard_id": "full17",
+  "file": "Page_1954_continuous-inspection-schemes.pdf",
+  "page": 9,
+  "codeformula_latex": "( 1 - P ^ { \\prime \\prime } ) / ( 1 - P ^ { \\prime \\prime } + P ^ { \\prime } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\238186b5a8594d3cef843a276e6bc66a151973fb0381dcca32da6d7d10a73043.png"
+ },
+ {
+  "crop_id": "8f661c5a08e27ab596f267d1e03f553f866101219c128c8aa3567b315e3c66f4",
+  "shard_id": "full17",
+  "file": "Nordman_2004_optimal-spatial-subsample-size.pdf",
+  "page": 44,
+  "codeformula_latex": "\\sup _ { i \\in \\mathbb { Z } ^ { d } } | s _ { i , n } | & \\leq \\sup _ { i \\in \\mathbb { Z } ^ { d } } \\left \\{ \\frac { 1 } { s ^ { N _ { i , n } } } \\sum _ { k \\in \\mathbb { Z } ^ { d } } | s _ { i , n } ( k ) - s ^ { N _ { i , n } } | \\cdot | \\sigma ( k ) | \\right \\} \\\\ & \\leq \\mathcal { C } \\cdot \\frac { ( \\max _ { s } ) ^ { d - 1 } } { s ^ { N _ { n } } - \\mathcal { C } ( s _ { n } \\max _ { n } ) ^ { d - 1 } } \\sum _ { x = 1 } ^ { \\infty } x ^ { 2 d - 1 } \\alpha _ { 1 } ( x ) ^ { \\delta / ( 2 r + \\delta ) } \\\\ & = O ( [ \\det ( \\Delta _ { n } ) ] ^ { - 1 / d } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\8f661c5a08e27ab596f267d1e03f553f866101219c128c8aa3567b315e3c66f4.png"
+ },
+ {
+  "crop_id": "dd1872bce447ff49d3faaee5e37dcd9857b80d12c2a334bbb3f9d03c47fc41c3",
+  "shard_id": "full17",
+  "file": "Platanios_2014_estimating-accuracy-unlabeled-data.pdf",
+  "page": 3,
+  "codeformula_latex": "a _ { \\{ i , j \\} } = 1 - e _ { \\{ i \\} } - e _ { \\{ j \\} } + 2 e _ { \\{ i , j \\} } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\dd1872bce447ff49d3faaee5e37dcd9857b80d12c2a334bbb3f9d03c47fc41c3.png"
+ },
+ {
+  "crop_id": "2cbb5b87527318c810a35c7b9a1d4e5a9f0f5a54d4ac8f9cedc0524ed53bcb19",
+  "shard_id": "full17",
+  "file": "Parisi_2014_ranking-combining-multiple-predictors.pdf",
+  "page": 15,
+  "codeformula_latex": "q _ { i j } = \\left \\{ \\begin{array} { c c } 1 - \\mu _ { i } ^ { 2 } & i = j \\\\ ( 2 \\pi _ { i } - 1 ) ( 2 \\pi _ { j } - 1 ) \\left ( 1 - b ^ { 2 } \\right ) & i \\neq j , i \\in P , j \\in P \\\\ ( 2 \\pi _ { i } - 1 ) ( 2 \\pi _ { c } - 1 ) ( 2 \\xi _ { j } - 1 ) \\left ( 1 - b ^ { 2 } \\right ) & i \\in P , j \\in C \\\\ ( 2 \\xi _ { i } - 1 ) ( 2 \\xi _ { j } - 1 ) \\left ( 1 - b ^ { 2 } \\right ) & i \\neq j , i \\in C , j \\in C \\end{array} \\right \\} ( S 3 2 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\2cbb5b87527318c810a35c7b9a1d4e5a9f0f5a54d4ac8f9cedc0524ed53bcb19.png"
+ },
+ {
+  "crop_id": "921acd514e985ada565465b6c24547035ef1efc5ed332ad2d8375adec0b7beda",
+  "shard_id": "full17",
+  "file": "Papadopoulos_2024_decision-fusion-pixel-level-multi.pdf",
+  "page": 24,
+  "codeformula_latex": "O u t _ { 2 } = R e L U ( B N ( \\ f _ { 2 } ( O u t _ { 1 } ) ) )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\921acd514e985ada565465b6c24547035ef1efc5ed332ad2d8375adec0b7beda.png"
+ },
+ {
+  "crop_id": "5bb1297e5dc1e894be323c8d7ebbe5ecf818b1698913c01c4a8752f5b51b189f",
+  "shard_id": "full17",
+  "file": "Page_1954_continuous-inspection-schemes.pdf",
+  "page": 5,
+  "codeformula_latex": "S _ { n } ^ { \\prime } & = \\max \\left ( S _ { n - 1 } ^ { \\prime } + x _ { n } , 0 \\right ) \\ \\ ( n \\geqslant 1 ) \\right \\} \\\\ S ^ { \\prime } & = 0",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\5bb1297e5dc1e894be323c8d7ebbe5ecf818b1698913c01c4a8752f5b51b189f.png"
+ },
+ {
+  "crop_id": "30782d552ce18d82b898c74e0b29e4ff43630f4e81f6399408df0345fa9acb3a",
+  "shard_id": "full12",
+  "file": "Kaiser_2012_goodness-fit-tests-class-markov.pdf",
+  "page": 14,
+  "codeformula_latex": "| P ( U _ { \\theta } ( 0 ) \\leq u ) - P ( U _ { \\theta _ { 0 } } ( 0 ) \\leq v ) | \\leq c _ { 0 } [ | | \\theta - \\theta _ { 0 } | | + | u - v | ]",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\30782d552ce18d82b898c74e0b29e4ff43630f4e81f6399408df0345fa9acb3a.png"
+ },
+ {
+  "crop_id": "6f9d6edbed0437be7d1796c9ef2fd3dba5fe24ca5bd5b078cb10d8d8df9bdedc",
+  "shard_id": "full12",
+  "file": "Kalbfleisch_1985_analysis-panel-data-markov.pdf",
+  "page": 9,
+  "codeformula_latex": "\\exp ( Q _ { k } t ) = \\exp ( Q t ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6f9d6edbed0437be7d1796c9ef2fd3dba5fe24ca5bd5b078cb10d8d8df9bdedc.png"
+ },
+ {
+  "crop_id": "b203826979a775bee2f13e0a1c8b538c6a4a80969216a783de02a8d492e53cd7",
+  "shard_id": "full12",
+  "file": "Kats_2019b_soft-staple-algorithm-combined.pdf",
+  "page": 3,
+  "codeformula_latex": "w _ { t } ( a ) = \\sum _ { B \\in \\{ 0 , 1 \\} ^ { m } } q _ { t } ( B ) p ( x _ { t } = a | y _ { t } = B ; \\theta ) , \\quad t = 1 , \\dots , n , \\quad a \\in \\{ 0 , 1 \\} \\quad ( 9 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b203826979a775bee2f13e0a1c8b538c6a4a80969216a783de02a8d492e53cd7.png"
+ },
+ {
+  "crop_id": "773dcc624a08cbf1c4532c5799aaca90b8972a77f3144ae08ad65b109081117c",
+  "shard_id": "full12",
+  "file": "Kelejian_2007_hac-estimation-spatial-framework.pdf",
+  "page": 14,
+  "codeformula_latex": "\\Phi = ( Q ^ { \\prime } _ { H Z } Q ^ { - 1 } _ { H H } Q _ { H Z } ) ^ { - 1 } Q ^ { \\prime } _ { H Z } Q ^ { - 1 } _ { H H } \\Psi Q ^ { - 1 } _ { H H } Q _ { H Z } ( Q ^ { \\prime } _ { H Z } Q ^ { - 1 } _ { H H } Q _ { H Z } ) ^ { - 1 } ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\773dcc624a08cbf1c4532c5799aaca90b8972a77f3144ae08ad65b109081117c.png"
+ },
+ {
+  "crop_id": "5a89342cc0da5318edcc229a7a3010d1304c00238a58ef0e506d96d6aa722529",
+  "shard_id": "full12",
+  "file": "Kelejian_2007_hac-estimation-spatial-framework.pdf",
+  "page": 5,
+  "codeformula_latex": "d _ { i j , n } ^ { * } = d _ { i j , n } + v _ { i j , n } \\geqslant 0 ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\5a89342cc0da5318edcc229a7a3010d1304c00238a58ef0e506d96d6aa722529.png"
+ },
+ {
+  "crop_id": "5ef492bd73076b4eb52e6a18750a8b01bf003928bc80aad682dd773d830b5adf",
+  "shard_id": "full01",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 28,
+  "codeformula_latex": "( \\mathcal { L } ^ { n } \\times \\mathcal { L } ^ { 1 } ) ( G ) < \\infty \\ \\ a n d \\ \\ q [ \\text {spt} \\, [ G ] ] \\ i s \\ b o u n d e d .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\5ef492bd73076b4eb52e6a18750a8b01bf003928bc80aad682dd773d830b5adf.png"
+ },
+ {
+  "crop_id": "d6bf66dc1bec4acab951d1ebb0db0f81d0f70d86f7674d9838dee73f33bb5840",
+  "shard_id": "full01",
+  "file": "Averkov_2009_confirmation-matheron-s-conjecture.pdf",
+  "page": 10,
+  "codeformula_latex": "- \\mathcal { R } G = \\Pi _ { \\mathcal { R } u _ { 1 } } ^ { \\mathcal { R } u _ { 2 } } - \\Pi _ { \\mathcal { R } u _ { 4 } } ^ { \\mathcal { R } u _ { 3 } } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\d6bf66dc1bec4acab951d1ebb0db0f81d0f70d86f7674d9838dee73f33bb5840.png"
+ },
+ {
+  "crop_id": "cd308393d23c9742d14800d981c09c9eace71b83b4353c469764a2f060710d01",
+  "shard_id": "full01",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 28,
+  "codeformula_latex": "G ^ { \\downarrow } ( x ) & = \\begin{cases} \\mathcal { L } ^ { 1 } ( \\{ y \\colon ( x , y ) \\in G \\} ) & \\text {if } \\{ y \\colon ( x , y ) \\in G \\} \\in \\mathcal { M } ( ( 0 , \\infty ) ) , \\\\ 0 & \\text {otherwise.} \\end{cases}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\cd308393d23c9742d14800d981c09c9eace71b83b4353c469764a2f060710d01.png"
+ },
+ {
+  "crop_id": "3e2631c74a9efb25da506c0c53d04b3b9335006c3eb8da2379d64a1228f36f81",
+  "shard_id": "full01",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 40,
+  "codeformula_latex": "U _ { y } ( C ( R ) ) = - Z \\mathcal { L } ^ { 2 } ( C ( R ) ) = - Z ( 4 - ( 4 - \\pi ) R ^ { 2 } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\3e2631c74a9efb25da506c0c53d04b3b9335006c3eb8da2379d64a1228f36f81.png"
+ },
+ {
+  "crop_id": "82a13d483c6ec346a7017f79edc008a09fdaa8ffec209d526e8068493f2898c1",
+  "shard_id": "full19",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 26,
+  "codeformula_latex": "\\{ \\mathcal { F } ^ { C } \\colon C \\in \\mathcal { C } \\} \\cup \\{ \\mathcal { F } _ { G } \\colon G \\in \\mathcal { G } \\} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\82a13d483c6ec346a7017f79edc008a09fdaa8ffec209d526e8068493f2898c1.png"
+ },
+ {
+  "crop_id": "863e8378873469eeb54d98cf1a55be469620558c466c4d7bf45093b004911b1a",
+  "shard_id": "full19",
+  "file": "Rosychuk_2003_bias-correction-two-state-latent.pdf",
+  "page": 10,
+  "codeformula_latex": "\\phi _ { 1 } ( \\hat { \\mathfrak { x } } ( v _ { 0 1 } , v _ { 1 0 } ) , \\hat { \\beta } ( v _ { 0 1 } , v _ { 1 0 } ) , v _ { 0 1 } , v _ { 1 0 } ) & = 0 \\\\ \\phi _ { 2 } ( \\hat { \\mathfrak { x } } ( v _ { 0 1 } , v _ { 1 0 } ) , \\hat { \\beta } ( v _ { 0 1 } , v _ { 1 0 } ) , v _ { 0 1 } , v _ { 1 0 } ) & = 0",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\863e8378873469eeb54d98cf1a55be469620558c466c4d7bf45093b004911b1a.png"
+ },
+ {
+  "crop_id": "ec1d9ac1e97a240799d5fef3e4cf65b7928d4251fb9a76499c809d0ddf1cebad",
+  "shard_id": "full19",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 33,
+  "codeformula_latex": "V _ { j ( i ) } \\subset W _ { i } \\cup V .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ec1d9ac1e97a240799d5fef3e4cf65b7928d4251fb9a76499c809d0ddf1cebad.png"
+ },
+ {
+  "crop_id": "45fbcd14a4ac154998a49ddfb6ded2cd5563464500b2c06b7c6dfacd460dc8ff",
+  "shard_id": "full19",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 38,
+  "codeformula_latex": "\\mathbb { P } ( A _ { i } \\vee A _ { i } ^ { 0 } ) & < \\epsilon 2 ^ { - i } . & & ( 2 . 1 4 ) \\\\ \\\\ ( 0 . 4 0 ) & \\leq 0 . 4 0 .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\45fbcd14a4ac154998a49ddfb6ded2cd5563464500b2c06b7c6dfacd460dc8ff.png"
+ },
+ {
+  "crop_id": "706daf3bb5de059a7366deb2ca6b22bd64fb2a133b586d4cf6025ba323af99d4",
+  "shard_id": "full19",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 35,
+  "codeformula_latex": "S _ { m } ( V ; V _ { 1 } , \\dots , V _ { m } ) = S _ { m - 1 } ( V ; V _ { 1 } , \\dots , V _ { m - 1 } ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\706daf3bb5de059a7366deb2ca6b22bd64fb2a133b586d4cf6025ba323af99d4.png"
+ },
+ {
+  "crop_id": "80e5d2c881bf4067daadc194dc7cf004afb45c171122124cb584b8a409c6b1a5",
+  "shard_id": "full14",
+  "file": "Leung_2004a_general-framework-error-analysis.pdf",
+  "page": 10,
+  "codeformula_latex": "x _ { ( 4 ) } ^ { T } \\equiv ( x _ { 1 } ^ { T } \\ x _ { 2 } ^ { T } \\ x _ { 3 } ^ { T } \\ x ^ { T } ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\80e5d2c881bf4067daadc194dc7cf004afb45c171122124cb584b8a409c6b1a5.png"
+ },
+ {
+  "crop_id": "7a45b0e3bd5247e8b24fa089e9bc31e6d90528bfe1a2cb709b6aabe3c68ee63e",
+  "shard_id": "full14",
+  "file": "Leung_1998_locational-error-model-spatial-features.pdf",
+  "page": 15,
+  "codeformula_latex": "E [ F ] = \\sqrt { \\frac { \\pi } { 2 } } \\sigma .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7a45b0e3bd5247e8b24fa089e9bc31e6d90528bfe1a2cb709b6aabe3c68ee63e.png"
+ },
+ {
+  "crop_id": "a74f5102986de680d249fd72490a7310ba3a79c835c7aac866ac5c8d6d9ef100",
+  "shard_id": "full14",
+  "file": "Lahiri_2006_resampling-methods-spatial-regression.pdf",
+  "page": 36,
+  "codeformula_latex": "\\sum _ { k \\in K _ { n } } \\sum _ { i \\in \\mathcal { I } _ { n } } E _ { \\cdot | X } \\left | \\sum _ { j = 1 } ^ { n } w _ { n j } ( X ) g ( Z ( s _ { j } ) ) & \\ ( s _ { j } \\in B _ { n } ( i ; k ) ) | \\\\ & = O ( | \\mathcal { K } _ { n } | | \\mathcal { I } _ { n } | b _ { n } ^ { d r } [ M _ { n } ( X ) m _ { n } ] ^ { 2 r } ) & a . s . & ( P _ { X } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\a74f5102986de680d249fd72490a7310ba3a79c835c7aac866ac5c8d6d9ef100.png"
+ },
+ {
+  "crop_id": "b038df75fcbf723b03b6dc897863808efe3eff64c46af8e53cf32f4d9aeb2d20",
+  "shard_id": "full14",
+  "file": "Lahiri_2006_resampling-methods-spatial-regression.pdf",
+  "page": 32,
+  "codeformula_latex": "N = n \\int f _ { a } ^ { 2 } ( z ) \\, d z \\, ( 1 + o ( 1 ) ) \\quad \\text {as } n \\to \\infty . \\\\ \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b038df75fcbf723b03b6dc897863808efe3eff64c46af8e53cf32f4d9aeb2d20.png"
+ },
+ {
+  "crop_id": "2b196654de8d7b37d67d5be7491fe44f051faefaaa38372d5d2ecce1666897cb",
+  "shard_id": "full14",
+  "file": "Leung_2004a_general-framework-error-analysis.pdf",
+  "page": 7,
+  "codeformula_latex": "h _ { 2 } ( \\mathbf x ) \\equiv h ( \\mathbf x _ { 1 } , \\mathbf x , \\mathbf x _ { 3 } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\2b196654de8d7b37d67d5be7491fe44f051faefaaa38372d5d2ecce1666897cb.png"
+ },
+ {
+  "crop_id": "d7f532d5de2a298c16275d165c46bc6ab316df1f95f376ff30de6f8e06896fcc",
+  "shard_id": "full14",
+  "file": "Lee_2015_deeply-supervised-nets.pdf",
+  "page": 3,
+  "codeformula_latex": "F ( W ) \\equiv \\mathcal { P } ( W ) + \\mathcal { Q } ( W ) , & & ( 3 ) & & b y \\\\ 1 & & 1 & & 1 + 1 - 1 + 1 \\div 2 \\cdot \\mathcal { P } ( W ) \\wedge ( 3 ) & & t h e",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\d7f532d5de2a298c16275d165c46bc6ab316df1f95f376ff30de6f8e06896fcc.png"
+ },
+ {
+  "crop_id": "85f58eb091bed5889fc413841199ebeb86c8977ac9fcfcee5b85a07a8d9d4bbf",
+  "shard_id": "full14",
+  "file": "Lahiri_2006_resampling-methods-spatial-regression.pdf",
+  "page": 37,
+  "codeformula_latex": "\\sum _ { k \\in K _ { n } } E _ { \\cdot | X } \\left ( \\sum _ { i \\in \\mathcal { I } _ { n } } [ \\{ \\Lambda _ { n } ^ { - 1 } \\tilde { S } ( i , k ) \\} ^ { 2 } - \\{ E _ { \\cdot | X } ( \\Lambda _ { n } ^ { - 1 } \\tilde { S } ( i , k ) ) \\} ^ { 2 } ] \\right ) ^ { 2 } \\\\ = O ( | K _ { n } | \\lambda _ { n } ^ { d } b _ { n } ^ { d } m _ { 0 n } ^ { 4 } m _ { n } ^ { 4 } b _ { n } ^ { 2 d } ) \\quad a . s . \\ ( P _ { X } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\85f58eb091bed5889fc413841199ebeb86c8977ac9fcfcee5b85a07a8d9d4bbf.png"
+ },
+ {
+  "crop_id": "1ace8974c8add4fecd341f419d935305b1190437fa00224d07e55cc035d6658f",
+  "shard_id": "full26",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 373,
+  "codeformula_latex": "1",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\1ace8974c8add4fecd341f419d935305b1190437fa00224d07e55cc035d6658f.png"
+ },
+ {
+  "crop_id": "921028fc93cfbf2d8a8a507806c3bf23c33e2ebbdd9aab7bcf539e6051431898",
+  "shard_id": "full26",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 370,
+  "codeformula_latex": "=",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\921028fc93cfbf2d8a8a507806c3bf23c33e2ebbdd9aab7bcf539e6051431898.png"
+ },
+ {
+  "crop_id": "b2188811c360f528fae660e7703fcefb0ae08d20dd8a878a08fa2fb4274a4590",
+  "shard_id": "full26",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 354,
+  "codeformula_latex": "\\mu ( M , K , A ) = \\mu ( K , M , A ^ { - 1 } ) \\quad \\text {for } A \\in \\mathcal { B } ( G _ { d } ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b2188811c360f528fae660e7703fcefb0ae08d20dd8a878a08fa2fb4274a4590.png"
+ },
+ {
+  "crop_id": "7cbccca3e3ddd714c51c7190a5e2ed716c53cbaebb27f59a2cf54f8dbb01d337",
+  "shard_id": "full26",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 337,
+  "codeformula_latex": "A _ { r } ( M _ { 1 } , \\dots , M _ { n } ) \\coloneqq \\{ x \\in K _ { 0 } \\colon x \\in M _ { i } \\text { for precisely } r \\text { indices } i \\} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7cbccca3e3ddd714c51c7190a5e2ed716c53cbaebb27f59a2cf54f8dbb01d337.png"
+ },
+ {
+  "crop_id": "6d8cd5b6e1828c15f7ff2bb3f9d9037000a187046346dc265b04ccf5718398c6",
+  "shard_id": "full26",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 361,
+  "codeformula_latex": "\\int _ { G ( d , q ) } V _ { q } ( Q _ { 0 } \\cap L ) ^ { d } \\nu _ { q } ( \\mathrm d L ) & = \\frac { \\kappa _ { q } ^ { d } } { \\kappa _ { d } ^ { q } } V _ { d } ( Q _ { 0 } ) ^ { q } , \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6d8cd5b6e1828c15f7ff2bb3f9d9037000a187046346dc265b04ccf5718398c6.png"
+ },
+ {
+  "crop_id": "e90062d8fbf83b25848270cc25b2485bb165d8d6bba8e501e926526350e39b62",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 169,
+  "codeformula_latex": "\\mathbb { E } \\sum _ { E \\in X } V _ { k - 1 } ( K \\cap E ) \\\\ K \\text { is homotetic to the   root}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e90062d8fbf83b25848270cc25b2485bb165d8d6bba8e501e926526350e39b62.png"
+ },
+ {
+  "crop_id": "664ad4ce4e39fdb93bf122e7b672530d372dd05eb8c6a1c50136ee38464b99f4",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 178,
+  "codeformula_latex": "\\mu ( \\{ g \\in G _ { d } \\colon \\varphi ( K \\cap g M ) \\neq 0 \\} ) \\leq \\mu ( \\{ g \\in G _ { d } \\colon K \\cap g M \\neq \\emptyset \\} ) < \\infty .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\664ad4ce4e39fdb93bf122e7b672530d372dd05eb8c6a1c50136ee38464b99f4.png"
+ },
+ {
+  "crop_id": "276a5aa1cb84aaf0e99a608b515afbd74fa117f28fa06b8e01a6904e769204c0",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 180,
+  "codeformula_latex": ")",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\276a5aa1cb84aaf0e99a608b515afbd74fa117f28fa06b8e01a6904e769204c0.png"
+ },
+ {
+  "crop_id": "424257bd91dc553ad616a963079794a213247931fbb3e54784068728cbef2fbd",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 157,
+  "codeformula_latex": "r \\text { sums of line segments.} \\ U \\text {ing (14.40), (14.41), (4.44), (4.45), we get } \\\\ h ( \\Pi _ { X } , u ) & = \\frac { 1 } { 2 } \\int _ { S ^ { d - 1 } } | \\langle u , v \\rangle | \\, \\overline { S } _ { d - 1 } ( X , d v ) \\\\ & = \\overline { V } _ { d - 1 } ( X | u ^ { \\perp } ) \\\\ & = \\gamma \\int _ { \\mathcal { K } _ { 0 } } h ( \\Pi _ { K } , u ) \\, \\mathbb { Q } ( d K ) . \\\\ \\intertext { a n t s u p o r t i n f o t h e a s s o i a t i d z o n i o d h a s a simple geometric }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\424257bd91dc553ad616a963079794a213247931fbb3e54784068728cbef2fbd.png"
+ },
+ {
+  "crop_id": "296189e14c72f4105bf893fd0b9c948b39148c23e84c196a306596e01ae9ba34",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 187,
+  "codeformula_latex": "\\in \\mathcal { B } ( \\mathbb { R } ^ { d } ) . & \\text { By the transformation formula for integrals,} \\\\ & \\int _ { \\mathbb { R } ^ { d } \\times \\mathbb { R } ^ { d } } f ( y , z ) \\, \\varphi ^ { ( j ) } ( x , \\vartheta , K , M , d ( y , z ) ) \\\\ & = \\int _ { \\mathbb { R } ^ { d } } f ( y , \\vartheta ^ { - 1 } ( y - x ) ) \\, \\Phi _ { j } ( K \\cap ( \\vartheta M + x ) , d y )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\296189e14c72f4105bf893fd0b9c948b39148c23e84c196a306596e01ae9ba34.png"
+ },
+ {
+  "crop_id": "39c599f0b45b93234391d104a5e0a45d9778a925f808930b9bf3ad774901cddb",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 179,
+  "codeformula_latex": "\\psi ( r C ) = \\sum _ { i = 0 } ^ { d } \\varphi _ { d - i } ( K ) V _ { i } ( r C ) = \\sum _ { i = 0 } ^ { k } \\varphi _ { d - i } ( K ) r ^ { i } V _ { i } ( C ) . \\\\ \\intertext { t h o r $ b n d $ u s i n g $ t h o r $ t o r $ t i o n $ i v i o n $ o f $ ) }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\39c599f0b45b93234391d104a5e0a45d9778a925f808930b9bf3ad774901cddb.png"
+ },
+ {
+  "crop_id": "39c7445204565d36b5d47e3f402cdeb85de5606af20e9650a4309b5b58ceeaa5",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 146,
+  "codeformula_latex": "I ( E , F ) = \\int _ { U } \\int _ { U } J ( E , F , x _ { 2 } , y _ { 2 } ) \\, \\lambda _ { U } ( d x _ { 2 } ) \\, \\lambda _ { U } ( d y _ { 2 } )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\39c7445204565d36b5d47e3f402cdeb85de5606af20e9650a4309b5b58ceeaa5.png"
+ },
+ {
+  "crop_id": "b23ac1b38c76c979f6598402c00385d8d66717957036cbe316ae2cee23e7dad5",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 156,
+  "codeformula_latex": "\\int _ { S ^ { d - 1 } } u \\, \\overline { S } _ { d - 1 } ( X , d u ) = 0 .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b23ac1b38c76c979f6598402c00385d8d66717957036cbe316ae2cee23e7dad5.png"
+ },
+ {
+  "crop_id": "e16f28efcc01c2ecaf3ec6dd0172550c3e8d639c39ba316c5f3adf5eb6f4bbe6",
+  "shard_id": "full22",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 180,
+  "codeformula_latex": "\\int _ { G _ { d } } V _ { j } ( K \\cap g M ) \\, \\mu ( d g ) = \\sum _ { k = j } ^ { d } c _ { j , d } ^ { k , d - k + j } V _ { k } ( K ) V _ { d - k + j } ( M ) \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e16f28efcc01c2ecaf3ec6dd0172550c3e8d639c39ba316c5f3adf5eb6f4bbe6.png"
+ },
+ {
+  "crop_id": "012b7487355b66a03705af0806e7e83b611a8ed8ea95f2594b3270e87f0cca67",
+  "shard_id": "full09",
+  "file": "Efron_2021_resampling-plans-estimation-prediction.pdf",
+  "page": 7,
+  "codeformula_latex": "\\hat { \\beta } = \\arg \\min _ { \\beta } \\left \\{ \\frac { 1 } { n } \\sum _ { i = 1 } ^ { n } Q ( y _ { i } , \\mu ( x _ { i } , \\beta ) ) \\right \\} ;",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\012b7487355b66a03705af0806e7e83b611a8ed8ea95f2594b3270e87f0cca67.png"
+ },
+ {
+  "crop_id": "8f867dfca19c32ea0033dbab9932345f72eba552bb8c0676b80c6e8c54929f19",
+  "shard_id": "full09",
+  "file": "Efron_2021_resampling-plans-estimation-prediction.pdf",
+  "page": 21,
+  "codeformula_latex": "\\mathcal { C } = \\left \\{ Y _ { 0 } \\colon s ( Y _ { 0 } , D ) \\in \\left [ s _ { ( I _ { 0 } ) } , s _ { ( I _ { 1 } ) } \\right ] \\right \\} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\8f867dfca19c32ea0033dbab9932345f72eba552bb8c0676b80c6e8c54929f19.png"
+ },
+ {
+  "crop_id": "de23f3e53cf8f2ce788eb06af1b35625fd53de27080d9dd39d2b63497f3320c6",
+  "shard_id": "full09",
+  "file": "Efron_2021_resampling-plans-estimation-prediction.pdf",
+  "page": 11,
+  "codeformula_latex": "\\hat { \\mu } _ { i j } ^ { * } = f ( x _ { i } , d ^ { * } ( j ) ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\de23f3e53cf8f2ce788eb06af1b35625fd53de27080d9dd39d2b63497f3320c6.png"
+ },
+ {
+  "crop_id": "4af949cb78273e0ccf1842cd6f6f6af1121838a9c1bfe0280998fae896da4475",
+  "shard_id": "full09",
+  "file": "Eldar_2009_generalized-sure-exponential-families.pdf",
+  "page": 15,
+  "codeformula_latex": "E \\left \\{ \\mathbf h ^ { T } ( \\mathbf u ) \\theta \\right \\} = - E \\left \\{ \\text {Tr} \\left ( \\frac { \\partial \\mathbf h ( \\mathbf u ) } { d \\mathbf u } \\right ) - \\mathbf h ^ { T } ( \\mathbf u ) \\hat { \\mathbf h } _ { M L } \\right \\} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\4af949cb78273e0ccf1842cd6f6f6af1121838a9c1bfe0280998fae896da4475.png"
+ },
+ {
+  "crop_id": "d595e05314fe558145ee7fe697e5dd4817c15203d71150835f3213b0d271ba39",
+  "shard_id": "full09",
+  "file": "Eldar_2009_generalized-sure-exponential-families.pdf",
+  "page": 9,
+  "codeformula_latex": "E \\left \\{ h ^ { T } ( u ) \\theta \\right \\} = - E \\left \\{ T r \\left ( \\frac { \\partial h ( u ) } { \\partial u } \\right ) \\right \\} - E \\left \\{ h ^ { T } ( u ) \\frac { \\partial \\ln q ( u ) } { \\partial u } \\right \\} ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\d595e05314fe558145ee7fe697e5dd4817c15203d71150835f3213b0d271ba39.png"
+ },
+ {
+  "crop_id": "ddf81c22fd32d0c4b6210d841e9fece4bb536459ecebada2e6a671ef6f3e3d36",
+  "shard_id": "full09",
+  "file": "Efron_2021_resampling-plans-estimation-prediction.pdf",
+  "page": 23,
+  "codeformula_latex": "F \\colon \\ x \\sim g ( x ) \\ \\text { and } \\ y \\ | \\ x \\sim p ( y \\ | \\ x ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ddf81c22fd32d0c4b6210d841e9fece4bb536459ecebada2e6a671ef6f3e3d36.png"
+ },
+ {
+  "crop_id": "b0fba874ee33c3ea40dc91fa65ceb7e446cd4005a42c8acea3afc88b8156e4cc",
+  "shard_id": "full28",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 450,
+  "codeformula_latex": "d _ { j } ^ { ( k ) } & = \\lim _ { r \\to \\infty } \\frac { 1 } { r ^ { d } } \\mathbb { E } \\sum _ { K \\in X ^ { ( k ) } } V _ { j } ( K \\cap r C ^ { d } ) . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b0fba874ee33c3ea40dc91fa65ceb7e446cd4005a42c8acea3afc88b8156e4cc.png"
+ },
+ {
+  "crop_id": "edec7ce3991cf38ee6119f4196ac5b6d295c69997fd643da16db259edb2959c8",
+  "shard_id": "full28",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 441,
+  "codeformula_latex": "h _ { 2 } ^ { * } ( K , M ; w ) = \\int _ { S ^ { 2 } } \\int _ { S ^ { 2 } } f ( - u , v , w ) \\, S _ { 2 } ( K , d v ) \\, S _ { 2 } ( M , d w ) , \\quad u \\in S ^ { 2 } , \\\\ \\intertext { w i t h } \\intertext { w i t h } \\intertext { s i n t h }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\edec7ce3991cf38ee6119f4196ac5b6d295c69997fd643da16db259edb2959c8.png"
+ },
+ {
+  "crop_id": "77e85e55cae1552a01c3fa736c7a1cc41a6105fba63304ff8324b4b64a99f777",
+  "shard_id": "full30",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 548,
+  "codeformula_latex": "\\gamma _ { k } ( z ) & \\leq \\frac { \\binom { d } { k } \\kappa _ { d - 1 } ^ { k } } { d ^ { k } \\kappa _ { d - k } \\kappa _ { d } ^ { k - 1 } } \\gamma ( z ) ^ { k }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\77e85e55cae1552a01c3fa736c7a1cc41a6105fba63304ff8324b4b64a99f777.png"
+ },
+ {
+  "crop_id": "39dce2c8dec7ecc2c61e9cc8f7bd8bee7ac66a4e9cab6dfded70e813e5199bf3",
+  "shard_id": "full30",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 552,
+  "codeformula_latex": "\\mathbb { E } ( X ^ { ( k ) } ( A _ { r } ) \\, | \\, \\widehat { X } ( \\mathcal { H } _ { r } ) = m ) \\\\ = \\widehat { \\theta } ( \\mathcal { H } _ { r } ) ^ { - m } 2 ^ { m } \\int _ { ( S ^ { d - 1 } ) ^ { m } } \\int _ { ( 0 , \\infty ) ^ { m } } f ( u _ { 1 } , \\dots , u _ { m } , \\tau _ { 1 } , \\dots , \\tau _ { m } ) \\\\ \\times g ( u _ { 1 } , \\tau _ { 1 } ) \\cdots g ( u _ { m } , \\tau _ { m } ) \\, d ( \\tau _ { 1 } , \\dots , \\tau _ { m } ) \\, \\phi ^ { m } ( d ( u _ { 1 } , \\dots , u _ { m } ) ) . \\\\ \\text {Similarly for the stationary Poisson hyperplane process} \\, \\widehat { X } \\, \\colon _ { 0 } \\, \\text {got}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\39dce2c8dec7ecc2c61e9cc8f7bd8bee7ac66a4e9cab6dfded70e813e5199bf3.png"
+ },
+ {
+  "crop_id": "8c65b3dbb621d9dc2c200f5d5af01e412a484c8740253b76f2840e7f5410d4ad",
+  "shard_id": "full30",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 530,
+  "codeformula_latex": "& \\overline { V } _ { j } ( Z , z ) \\\\ & = \\sum _ { k = 1 } ^ { \\infty } \\frac { ( - 1 ) ^ { k - 1 } } { k ! } \\sum _ { m _ { 1 } + \\dots + m _ { k } = ( k - 1 ) d + j } ^ { d } \\overline { V } _ { m _ { 1 } , \\dots , m _ { k } } ^ { ( j ) } ( X , \\dots , X ; z , \\dots , z ) . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\8c65b3dbb621d9dc2c200f5d5af01e412a484c8740253b76f2840e7f5410d4ad.png"
+ },
+ {
+  "crop_id": "9ad5d58bc974ca05efe87eb34e6804750bc488135d247da7b0142e38cbb4223d",
+  "shard_id": "full30",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 536,
+  "codeformula_latex": "\\{ 0 < d _ { B } ( x , Z ) < \\infty \\} = \\bigcup _ { n = 1 } ^ { \\infty } ( A _ { n } \\cap B _ { n } \\cap C _ { n } ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9ad5d58bc974ca05efe87eb34e6804750bc488135d247da7b0142e38cbb4223d.png"
+ },
+ {
+  "crop_id": "14f458f8c00c8ae1ae5e51fe85fce3d0c46ce2abc44c53f5e003479f36cd65b5",
+  "shard_id": "full30",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 534,
+  "codeformula_latex": "h _ { B } ( x , t ) & = \\sum _ { j = 0 } ^ { d - 1 } ( j + 1 ) \\kappa _ { j + 1 } t ^ { j } \\int _ { K _ { 0 } } \\int _ { ( \\mathbb { R } ^ { d } ) ^ { 2 } } \\eta ( K , x - y - t b ) \\\\ & \\quad \\times \\Xi _ { d - 1 - j } ( K ; B ; d ( y , b ) ) \\, \\mathbb { Q } ( d K ) . \\\\ \\intertext { I f $ B = R ^ { d } $ the measure $\\Xi ( K ; B )$ is the (ordinary) support measure }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\14f458f8c00c8ae1ae5e51fe85fce3d0c46ce2abc44c53f5e003479f36cd65b5.png"
+ },
+ {
+  "crop_id": "9aaf5397a6f4944a7cd73e268bde1b23dc57296ecd0975f7342542dd53b4fc40",
+  "shard_id": "full30",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 519,
+  "codeformula_latex": "\\text {we get } & \\mathbb { P } ( E ) < 3 \\epsilon . & \\text {Now let } \\omega \\in \\Omega \\ \\& \\ E . \\text {Every cell of } X ( \\omega ) \\cap C _ { 1 } \\text { is contained in the ball } 2 r s B ^ { d } . \\\\ \\text {Hence, for its determination only the hyperplanes of } \\widehat { X } ( \\omega ) \\text { in the set } \\\\ & \\mathcal { E } \\coloneqq \\{ H \\in \\mathcal { E } _ { d - 1 } ^ { d } \\colon H \\cap 2 r s B ^ { d } \\neq \\emptyset \\} \\\\ \\text {are needed. Analogously, the determination of } a \\text { cell from } X ( \\omega ) \\cup ( C _ { 2 } + x )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9aaf5397a6f4944a7cd73e268bde1b23dc57296ecd0975f7342542dd53b4fc40.png"
+ },
+ {
+  "crop_id": "cf2cc1ad331d3513c5bdbbb8a67a8f439afd6ba01a04f16bf4735d6af3012d02",
+  "shard_id": "full30",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 534,
+  "codeformula_latex": "H _ { B } ( x , r ) = 1 - \\exp \\left ( - \\int _ { 0 } ^ { r } h _ { B } ( x , t ) \\, d t \\right )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\cf2cc1ad331d3513c5bdbbb8a67a8f439afd6ba01a04f16bf4735d6af3012d02.png"
+ },
+ {
+  "crop_id": "05512724c20581003b47a080fc9c0edb1778440baa35c0cb1a1e2f1cbb3a8a1e",
+  "shard_id": "full15",
+  "file": "Maragos_1989_pattern-spectrum-multiscale-shape.pdf",
+  "page": 3,
+  "codeformula_latex": "( r g ) ( x , y ) = \\sup \\left \\{ a \\in R \\colon ( x , v , a ) \\in r U ( \\ g ) \\right \\} \\quad ( 4 ) \\quad e q w h o s e",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\05512724c20581003b47a080fc9c0edb1778440baa35c0cb1a1e2f1cbb3a8a1e.png"
+ },
+ {
+  "crop_id": "a1dd1a154221bce0611c333f64f7e7840aa8ec0b4040cfe32f21638fbd904d46",
+  "shard_id": "full15",
+  "file": "Leung_2004a_general-framework-error-analysis.pdf",
+  "page": 15,
+  "codeformula_latex": "A \\equiv \\{ p a r t i t i o n \\left ( 2 8 \\right ) h o l d s \\}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\a1dd1a154221bce0611c333f64f7e7840aa8ec0b4040cfe32f21638fbd904d46.png"
+ },
+ {
+  "crop_id": "fe1ade295954b4a0198f83b60853e8f77fe9eed2a4f82c7047a336df6bf890a6",
+  "shard_id": "full15",
+  "file": "Liu_2012_spatial-temporal-modeling-approach.pdf",
+  "page": 7,
+  "codeformula_latex": "P \\left ( L _ { ( s , t ) } \\left | L _ { \\mathbb { N } ( s , t ) } \\right ) = \\frac { 1 } { \\mathcal { Z } _ { ( s , t ) } } \\exp \\left [ - U \\left ( L _ { ( s , t ) } \\right | L _ { \\mathbb { N } ( s , t ) } \\right ) \\right ] & & \\quad \\text {put} a n t \\\\ = \\frac { 1 } { \\mathcal { Z } _ { ( s , t ) } } \\exp \\left [ - \\sum _ { c \\in \\mathbb { C } ( s , t ) } V _ { c } ( L _ { c } ) \\right ] , & & \\quad ( i . e . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\fe1ade295954b4a0198f83b60853e8f77fe9eed2a4f82c7047a336df6bf890a6.png"
+ },
+ {
+  "crop_id": "6979617eb3f3f2a48e139ff2ae0b7d7d84cc07208e28c3aba7fd71a1b41a4c70",
+  "shard_id": "full15",
+  "file": "Liu_2008_local-transition-probability-models-markov.pdf",
+  "page": 6,
+  "codeformula_latex": "T ( u ) = \\left ( \\begin{array} { c c c } T _ { 1 , 1 } ( \\bullet ) \\times ( 1 - P ( u ) ) & T _ { 1 , 2 } ( \\bullet ) \\times P ( u ) & T _ { 1 , 3 } ( \\bullet ) \\times P ( u ) \\\\ T _ { 2 , 1 } ( \\bullet ) \\times P ( u ) & T _ { 2 , 2 } ( \\bullet ) \\times ( 1 - P ( u ) ) & T _ { 2 , 3 } ( \\bullet ) \\times P ( u ) \\\\ T _ { 3 , 1 } ( \\bullet ) \\times P ( u ) & T _ { 3 , 2 } ( \\bullet ) \\times P ( u ) & T _ { 3 , 3 } ( \\bullet ) \\times ( 1 - P ( u ) ) \\end{array} \\right ) \\quad ( 8 ) \\quad \\text {by Eq.} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6979617eb3f3f2a48e139ff2ae0b7d7d84cc07208e28c3aba7fd71a1b41a4c70.png"
+ },
+ {
+  "crop_id": "d55fa0adb55d71778d204cb8cab55f68b75bbeb6cdec32798f894d342595552a",
+  "shard_id": "full15",
+  "file": "Leung_2004b_part-4-error-analysis-length.pdf",
+  "page": 23,
+  "codeformula_latex": "Q = \\sum _ { i = 1 } ^ { p } \\tilde { \\lambda } _ { i } y _ { i } ^ { 2 } = \\sum _ { i = 1 } ^ { m } \\lambda _ { i } \\left ( \\sum _ { j = 1 } ^ { p _ { i } } y _ { i , j } ^ { 2 } \\right ) = \\sum _ { i = 1 } ^ { m } \\lambda _ { i } \\chi _ { p _ { i } , \\delta _ { i } ^ { 2 } } ^ { 2 } ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\d55fa0adb55d71778d204cb8cab55f68b75bbeb6cdec32798f894d342595552a.png"
+ },
+ {
+  "crop_id": "e23ffc4fc481988f42672e6fcbf703bcb65c83f39c905bde2470c9f5beaea6cd",
+  "shard_id": "full34",
+  "file": "Vapnik_2009_new-learning-paradigm-learning.pdf",
+  "page": 4,
+  "codeformula_latex": "\\begin{smallmatrix} \\text {space} & & \\ell \\\\ \\text {ve} \\text { cor} & & \\sum _ { i = 1 } ^ { \\ell } y _ { i } \\alpha _ { i } = 0 , \\end{smallmatrix}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e23ffc4fc481988f42672e6fcbf703bcb65c83f39c905bde2470c9f5beaea6cd.png"
+ },
+ {
+  "crop_id": "f5e229bf353129478c03f45269a642e01eef8277482136e58eabb96adb27ab94",
+  "shard_id": "full34",
+  "file": "Vapnik_2009_new-learning-paradigm-learning.pdf",
+  "page": 4,
+  "codeformula_latex": "w = \\sum _ { i = 1 } ^ { \\ell } y _ { i } \\alpha _ { i } z _ { i } , \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\f5e229bf353129478c03f45269a642e01eef8277482136e58eabb96adb27ab94.png"
+ },
+ {
+  "crop_id": "1cb193204802c0f7e7fad0dbf2b0b4398a1943a0eb293e898222cac539bb33dd",
+  "shard_id": "full34",
+  "file": "Vixie_2007_some-properties-minimizers-chan-esedoglu.pdf",
+  "page": 9,
+  "codeformula_latex": "\\xi _ { - } ^ { 2 } ( R ) < \\frac { \\pi R ^ { 2 } } { 4 } < | B _ { R } \\cap \\Sigma | ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\1cb193204802c0f7e7fad0dbf2b0b4398a1943a0eb293e898222cac539bb33dd.png"
+ },
+ {
+  "crop_id": "8a6c7d1097fce74f566ecfb72d847551dfcb3192adf07d45eb222f5c501b0231",
+  "shard_id": "full34",
+  "file": "Vapnik_2009_new-learning-paradigm-learning.pdf",
+  "page": 6,
+  "codeformula_latex": "\\sum _ { i = 1 } ^ { \\ell } y _ { i } \\alpha _ { i } = 0 ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\8a6c7d1097fce74f566ecfb72d847551dfcb3192adf07d45eb222f5c501b0231.png"
+ },
+ {
+  "crop_id": "63aa4704c79d910b20c953a39b9fc410b286b6e124c516b7645c75b7ea24fd61",
+  "shard_id": "full34",
+  "file": "Vapnik_2009_new-learning-paradigm-learning.pdf",
+  "page": 3,
+  "codeformula_latex": "& \\quad \\leq P ( 1 - \\phi ( x ^ { * } , \\delta _ { \\ell } ) < 0 ) + A \\frac { ( h + h ^ { * } ) \\ln \\frac { 2 \\ell } { ( h + h ^ { * } ) } - \\ln \\eta } { \\ell } ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\63aa4704c79d910b20c953a39b9fc410b286b6e124c516b7645c75b7ea24fd61.png"
+ },
+ {
+  "crop_id": "e51541fa59f1cc3295151dc03a1d56aac13997f7ee69b8dbe76e0870464eb069",
+  "shard_id": "full34",
+  "file": "Vixie_2007_some-properties-minimizers-chan-esedoglu.pdf",
+  "page": 10,
+  "codeformula_latex": "P e r ( \\Sigma ; B _ { r } ) \\geq C | B _ { r } \\ \\rangle \\ \\Sigma | ^ { \\frac { 1 } { 2 } } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e51541fa59f1cc3295151dc03a1d56aac13997f7ee69b8dbe76e0870464eb069.png"
+ },
+ {
+  "crop_id": "dcbd937f3f54cc0784420e2ac05b1bc046d2ff2efef3a3f4955e10c263d6289d",
+  "shard_id": "full34",
+  "file": "Vapnik_2009_new-learning-paradigm-learning.pdf",
+  "page": 3,
+  "codeformula_latex": "P \\{ y [ ( w _ { \\ell } , x ) + b _ { \\ell } ] < 0 \\} & \\leq P \\{ y ( w _ { \\ell } , x ) \\\\ & + b _ { \\ell } < 1 - \\xi ^ { 0 } ( x ) \\} + P \\{ 1 - \\xi ^ { 0 } ( x ) < 0 \\} ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\dcbd937f3f54cc0784420e2ac05b1bc046d2ff2efef3a3f4955e10c263d6289d.png"
+ },
+ {
+  "crop_id": "bf33d10e0d1eee9ea7164dead2b92f10e8f0c023564059f3332617f2a9d90967",
+  "shard_id": "full34",
+  "file": "Vapnik_2009_new-learning-paradigm-learning.pdf",
+  "page": 6,
+  "codeformula_latex": "\\maximize & \\text { the functional} \\\\ R ( \\alpha , \\beta ) & = \\sum _ { i = 1 } ^ { \\ell } \\alpha _ { i } - \\frac { 1 } { 2 } \\sum _ { i , j = 1 } ^ { \\ell } y _ { i } y _ { j } \\alpha _ { i } \\alpha _ { j } K ( x _ { i } , x _ { j } ) \\\\ & - \\frac { 1 } { 2 \\gamma } \\sum _ { i , j = 1 } ^ { n } ( \\alpha _ { i } + \\beta _ { i } - C ) ( \\alpha _ { j } + \\beta _ { j } - C ) K ^ { * } ( x _ { i } ^ { * } , x _ { j } ^ { * } ) \\\\ & - \\frac { 1 } { 2 \\gamma } \\sum _ { i , j = n + 1 } ^ { \\ell } ( \\alpha _ { i } + \\beta _ { i } - C ) ( \\alpha _ { j } + \\beta _ { j } - C ) K ^ { * } ( x _ { i } ^ { * * } , x _ { j } ^ { * * } ) \\\\ \\intertext { s u c t o \\text { constraints} }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\bf33d10e0d1eee9ea7164dead2b92f10e8f0c023564059f3332617f2a9d90967.png"
+ },
+ {
+  "crop_id": "3133d3223fec2cc3ee7ab5bd659eb7c7e00c128a91d29dc89b461c3844217016",
+  "shard_id": "full13",
+  "file": "Lahiri_2006_resampling-methods-spatial-regression.pdf",
+  "page": 18,
+  "codeformula_latex": "\\tilde { T } _ { n } ^ { * } = t _ { \\tilde { N } ^ { * } } ( \\tilde { \\mathcal { D } } _ { n } ^ { * } ( \\tilde { R } _ { n } ) ; \\hat { \\beta } _ { n } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\3133d3223fec2cc3ee7ab5bd659eb7c7e00c128a91d29dc89b461c3844217016.png"
+ },
+ {
+  "crop_id": "63de9ed4edd7e7c7a3cb26f91a52ea0af3ac041afac258ffe4c92a8efd7689ea",
+  "shard_id": "full13",
+  "file": "Kolmogorov_2004_what-energy-functions-can-be.pdf",
+  "page": 8,
+  "codeformula_latex": "E ( x _ { 1 } , \\dots , x _ { n } ) = \\sum _ { i < j < k } E ^ { i , j , k } ( x _ { i } , x _ { j } , x _ { k } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\63de9ed4edd7e7c7a3cb26f91a52ea0af3ac041afac258ffe4c92a8efd7689ea.png"
+ },
+ {
+  "crop_id": "c582c0a144020e417f6da956a933cea44ea89d12bbd34b548e941bbc4de2b97d",
+  "shard_id": "full13",
+  "file": "Krahenbuhl_2011_efficient-inference-fully-connected.pdf",
+  "page": 4,
+  "codeformula_latex": "\\tilde { Q } _ { i } ^ { ( m ) } ( l ) & = \\underbrace { \\sum _ { j \\in \\mathcal { V } } k ^ { ( m ) } ( \\mathbf f _ { i } , \\mathbf f _ { j } ) Q _ { j } ( l ) - Q _ { i } ( l ) } _ { \\text {message passing} } = \\underbrace { [ G _ { \\Lambda ^ { ( m ) } } \\otimes Q ( l ) ] \\left ( \\mathbf f _ { i } \\right ) } _ { \\overline { Q } _ { i } ^ { ( m ) } ( l ) } - Q _ { i } ( l ) . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\c582c0a144020e417f6da956a933cea44ea89d12bbd34b548e941bbc4de2b97d.png"
+ },
+ {
+  "crop_id": "c63d24c7d2697f56d793d8d3d73c89c9816583456668890865428ad1183975fe",
+  "shard_id": "full13",
+  "file": "Krahenbuhl_2013_parameter-learning-convergent.pdf",
+  "page": 2,
+  "codeformula_latex": "\\begin{array} { r l } & { \\log _ { h m } } & { \\sum _ { i , x _ { i } } Q _ { i } ( x _ { i } ) \\log Q _ { i } ( x _ { i } ) + \\sum _ { i , x _ { i } } \\psi _ { i } ( x _ { i } | \\theta ) Q _ { i } ( x _ { i } ) + } \\\\ & { d o w s } & { \\sum _ { i < j } \\sum _ { x _ { i } , x _ { j } } \\psi _ { i j } ( x _ { i } , x _ { j } | \\theta ) Q _ { i } ( x _ { i } ) Q _ { j } ( x _ { j } ) + \\log Z ( I , \\theta ) . \\ ( 3 ) } \\\\ & { e a n } & { \\end{array}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\c63d24c7d2697f56d793d8d3d73c89c9816583456668890865428ad1183975fe.png"
+ },
+ {
+  "crop_id": "f0ebfaf317863a0310d3bc66f5a418d19d465ede93371d242e2b35de4ad7b2ce",
+  "shard_id": "full13",
+  "file": "Lahiri_2006_resampling-methods-spatial-regression.pdf",
+  "page": 9,
+  "codeformula_latex": "\\lambda _ { n } ^ { d / 2 } \\Lambda _ { n } ^ { \\prime } ( \\hat { \\beta } _ { n } - \\beta ) \\stackrel { d } { \\rightarrow } N ( 0 , \\Xi _ { c } ) \\quad \\text {for all } X _ { 1 } , X _ { 2 } , \\dots , ( P _ { X } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\f0ebfaf317863a0310d3bc66f5a418d19d465ede93371d242e2b35de4ad7b2ce.png"
+ },
+ {
+  "crop_id": "7538465ab63e77e112d54d6c0a662020096957cae68b73a7be1047dcd6727459",
+  "shard_id": "full05",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 21,
+  "codeformula_latex": "\\psi ( W ; \\theta , \\eta _ { 0 } ) & = ( D - E _ { P } [ D \\, | \\, X ] ) \\times ( Y - D \\theta - g _ { 0 } ( X ) ) \\\\ & = ( D - m _ { 0 } ( X ) ) \\times ( Y - D \\theta - g _ { 0 } ( X ) ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7538465ab63e77e112d54d6c0a662020096957cae68b73a7be1047dcd6727459.png"
+ },
+ {
+  "crop_id": "ad3e3e35b1fe036034732ca89a4f98b81033fa09b11160218e53711ecbc213a1",
+  "shard_id": "full05",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 14,
+  "codeformula_latex": "\\partial \\ell _ { \\theta } ( W ; \\theta , \\beta ) = ( Y - D \\theta - X ^ { \\prime } \\beta ) D , \\quad \\partial \\ell _ { \\beta } ( W ; \\theta , \\beta ) = ( Y - D \\theta - X ^ { \\prime } \\beta ) X ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ad3e3e35b1fe036034732ca89a4f98b81033fa09b11160218e53711ecbc213a1.png"
+ },
+ {
+  "crop_id": "81c8bafdac8562a1168536bd185361aadfa43714486e87e6b7924d84d38b4867",
+  "shard_id": "full05",
+  "file": "Chaux_2008_nonlinear-stein-based-estimator.pdf",
+  "page": 11,
+  "codeformula_latex": "R ( \\lambda , \\beta , a ) = E [ [ r ( k ) - f ( \\bar { r } ( k ) ) ] ^ { 2 } ] + 2 E [ \\eta _ { \\lambda } ( \\| \\bar { r } ( k ) \\| ^ { \\beta } ) ] a ^ { \\top } P ^ { \\top } \\Gamma ^ { ( \\bar { n } , n ) } + 2 \\lambda a ^ { \\top } P ^ { \\top } E [ \\xi ( k ) \\bar { r } ^ { \\top } ( k ) ] \\Gamma ^ { ( \\bar { n } , n ) } - \\sigma ^ { 2 } \\quad ( 3 0 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\81c8bafdac8562a1168536bd185361aadfa43714486e87e6b7924d84d38b4867.png"
+ },
+ {
+  "crop_id": "97c38ed4292437bc2603937db2ed50105187daaf037247a51deb36c22a283ed9",
+  "shard_id": "full05",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 16,
+  "codeformula_latex": "E _ { P } [ m ( W ; \\theta _ { 0 } , \\beta _ { 0 } ) ] = 0 ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\97c38ed4292437bc2603937db2ed50105187daaf037247a51deb36c22a283ed9.png"
+ },
+ {
+  "crop_id": "cafefa3aae6c09e200f6653be03cd68f1be9691d66cd2b472e971f8d26f7a013",
+  "shard_id": "full05",
+  "file": "Chan_2005_aspects-total-variation-regularized-l.pdf",
+  "page": 9,
+  "codeformula_latex": "\\int _ { \\mathbb { R } ^ { N } } | u - f | \\, d x = \\int _ { - \\infty } ^ { \\infty } | \\{ x \\colon u ( x ) > \\gamma \\} \\, \\triangle \\left \\{ x \\colon f ( x ) > \\gamma \\} | \\, d \\gamma .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\cafefa3aae6c09e200f6653be03cd68f1be9691d66cd2b472e971f8d26f7a013.png"
+ },
+ {
+  "crop_id": "79bebf05d64348c1be86948eda4ef2e98b490e350004d09383e97213535b33c2",
+  "shard_id": "full05",
+  "file": "Chan_2005_aspects-total-variation-regularized-l.pdf",
+  "page": 10,
+  "codeformula_latex": "\\Sigma ( \\gamma ) \\colon = \\{ x \\colon u _ { \\lambda } ( x ) > \\gamma \\} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\79bebf05d64348c1be86948eda4ef2e98b490e350004d09383e97213535b33c2.png"
+ },
+ {
+  "crop_id": "ae646233268244e3541d6bde6a024d5cf7859bc23a41a5534efb2810d15b1f71",
+  "shard_id": "full05",
+  "file": "Chaux_2008_nonlinear-stein-based-estimator.pdf",
+  "page": 7,
+  "codeformula_latex": "\\text { such as the garrrote shrinkage based on } [ 44 ] , \\text { which is denned as:} \\\\ f ( \\bar { r } _ { j , m } ^ { ( b ) } ( k ) ) = \\left ( \\frac { | \\bar { r } _ { j , m } ^ { ( b ) } ( k ) | ^ { 2 } - \\lambda } { | \\bar { r } _ { j , m } ^ { ( b ) } ( k ) | ^ { 2 } } \\right ) _ { + } r _ { j , m } ^ { ( b ) } ( k ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ae646233268244e3541d6bde6a024d5cf7859bc23a41a5534efb2810d15b1f71.png"
+ },
+ {
+  "crop_id": "684a6e9597f847f4a3bc3d88a2b7acd67e514689e517ea78a912e249c84f304c",
+  "shard_id": "full07",
+  "file": "Conley_1999_gmm-estimation-cross-sectional.pdf",
+  "page": 31,
+  "codeformula_latex": "\\ m a t h s c r { A } \\ \\text {used on the second term in m plices} \\text { that for some constant } c _ { j } . \\\\ \\left | \\frac { 1 } { M N } \\sum _ { j = L _ { m } + 1 } ^ { M - 1 } \\sum _ { k = L _ { x } + 1 } ^ { N - 1 } \\sum _ { m = j + 1 } ^ { M } \\sum _ { n = k + 1 } ^ { N } E Y _ { m , n } ( \\beta ) Y _ { m - j , n - k } ( \\beta ) \\right | \\\\ \\leq c _ { j } \\sum _ { j = L _ { m } + 1 } ^ { M - 1 } \\sum _ { k = L _ { x } + 1 } ^ { N - 1 } \\frac { ( M - j ) ( N - k ) } { M N } \\alpha _ { x , x } ( \\max ( j , k ) ) ^ { ( 2 + \\delta ) } \\\\ \\leq c _ { j } \\sum _ { j = L _ { m } + 1 } ^ { M - 1 } \\sum _ { k = L _ { x } + 1 } ^ { N - 1 } \\tilde { \\alpha } _ { \\infty , \\varphi } ( \\max ( j , k ) ) ^ { \\delta / ( 2 + \\delta ) } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\684a6e9597f847f4a3bc3d88a2b7acd67e514689e517ea78a912e249c84f304c.png"
+ },
+ {
+  "crop_id": "c37133945334f368574cc5703e39b0263d0a5057776995b7ac3ca36fc3d25203",
+  "shard_id": "full07",
+  "file": "Conley_1999_gmm-estimation-cross-sectional.pdf",
+  "page": 41,
+  "codeformula_latex": "E \\tilde { K } _ { M N } ( m , n , j , k ) Y _ { m , n } ( \\beta ) Y _ { m - j , n - k } ( \\beta ) = \\sum _ { t = - \\alpha } ^ { \\infty } \\sum _ { r = - \\alpha } ^ { \\infty } A _ { t , r } \\psi _ { t , r } ( j , k ) E F _ { m n } F _ { m - j , n - k }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\c37133945334f368574cc5703e39b0263d0a5057776995b7ac3ca36fc3d25203.png"
+ },
+ {
+  "crop_id": "4fa2d98bbf1c856864d5f196659f7813e4a2b0103db4a4ba39cf46606baa8dfd",
+  "shard_id": "full07",
+  "file": "Conley_1999_gmm-estimation-cross-sectional.pdf",
+  "page": 43,
+  "codeformula_latex": "\\frac { 1 } { M N } \\sum _ { j = 0 } ^ { L _ { m } } \\sum _ { 0 \\, m = j + 1 \\, n = k + 1 } ^ { T _ { m } } | E \\{ ( \\widetilde { K } _ { M N } ( m , n , j , k ) - 1 ) Y _ { m , n } ( \\beta ) Y _ { m - j , n - k } ( \\beta ) \\} | \\\\ \\leq & \\frac { \\widetilde { L } _ { m } } { M N } \\sum _ { j = 0 } ^ { L _ { m } } \\sum _ { m = j + 1 \\, n = k + 1 } ^ { M } \\left \\{ ( c _ { 9 } + c _ { 1 1 } ) \\widetilde { \\alpha } _ { \\infty , \\infty } \\\\ & ( \\min ( j , k ) ) ^ { \\delta / ( 2 + \\delta ) } + c _ { 1 0 } ( 1 / L _ { M } ^ { 2 } ) \\right \\} < \\infty , \\\\ \\intertext { s u r g h e r } \\text {where the right-hand side is finite since } \\widetilde { \\alpha } \\quad ( m ) ^ { \\delta / ( 2 + \\delta ) } = O ( m ^ { - 4 } ) \\text { .} \\text { All the points of }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\4fa2d98bbf1c856864d5f196659f7813e4a2b0103db4a4ba39cf46606baa8dfd.png"
+ },
+ {
+  "crop_id": "64e8bf2aa9b49c744c1b2871b0359fc1d681126a6e9bf9ffe201c5681d5d6153",
+  "shard_id": "full07",
+  "file": "Conley_1999_gmm-estimation-cross-sectional.pdf",
+  "page": 7,
+  "codeformula_latex": "| \\Lambda _ { 1 } | \\leqslant k , | \\Lambda _ { 2 } | \\leqslant l , \\Upsilon ( \\Lambda _ { 1 } , \\Lambda _ { 2 } ) \\geqslant n",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\64e8bf2aa9b49c744c1b2871b0359fc1d681126a6e9bf9ffe201c5681d5d6153.png"
+ },
+ {
+  "crop_id": "b076bb45a15532a956b109ab49be862560b2b413e3c49959349a2149311b7926",
+  "shard_id": "full07",
+  "file": "Conley_1999_gmm-estimation-cross-sectional.pdf",
+  "page": 9,
+  "codeformula_latex": "\\frac { 1 } { \\sqrt { T } } \\sum _ { \\tau } \\, g ( X _ { s } ; \\beta )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b076bb45a15532a956b109ab49be862560b2b413e3c49959349a2149311b7926.png"
+ },
+ {
+  "crop_id": "d4fc85aa4dfbc9d1cd0360b1f87c1f6bda2ebebd9758b52acb722ea5d2762b97",
+  "shard_id": "full23",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 223,
+  "codeformula_latex": "f a r t , \\, \\text {Theorem} \\, 6 . 1 . 1 \\, \\text { together with } ( 1 4 . 2 0 ) \\, \\text { yields} \\\\ \\sum _ { k = 0 } ^ { d } c _ { d , 0 } ^ { d - k , k } V _ { k } ( K ) V _ { d - k } ( M ) \\epsilon ^ { d - k } = \\int _ { S O _ { d } } V _ { d } ( K + \\epsilon \\vartheta M ) \\, \\nu ( d \\vartheta ) \\\\ = \\sum _ { k = 0 } ^ { d } \\epsilon ^ { d - k } \\binom { d } { k } \\int _ { S O _ { d } } V ( K [ k ] , \\vartheta M [ d - k ] ) \\, \\nu ( d \\vartheta ) . \\\\ \\text {comparing the coefficients, we obtain}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\d4fc85aa4dfbc9d1cd0360b1f87c1f6bda2ebebd9758b52acb722ea5d2762b97.png"
+ },
+ {
+  "crop_id": "52ab104e118134446ef80e5230837a32e645f5facd9c370a0165e5f319417f06",
+  "shard_id": "full23",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 217,
+  "codeformula_latex": "\\pi _ { 1 } ( K , M , \\vartheta , x ) \\colon = y , \\quad \\pi _ { 2 } ( K , M , \\vartheta , x ) \\colon = \\vartheta ^ { - 1 } z ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\52ab104e118134446ef80e5230837a32e645f5facd9c370a0165e5f319417f06.png"
+ },
+ {
+  "crop_id": "39a15c51f0f978a7cc9a0b7fe438ed36c4c32005e8084731db180ffbf392829d",
+  "shard_id": "full23",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 217,
+  "codeformula_latex": "( A + \\vartheta B ) \\cap b d \\left ( K + \\vartheta M \\right ) = \\pi ^ { - 1 } ( A \\times B )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\39a15c51f0f978a7cc9a0b7fe438ed36c4c32005e8084731db180ffbf392829d.png"
+ },
+ {
+  "crop_id": "b9649e7d40ef3253d3b18bae5c7d6d41c956d3e7d85cb273b47ea9f7e1fc6892",
+  "shard_id": "full23",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 221,
+  "codeformula_latex": "\\vartheta & \\mapsto \\varphi ( K , M , \\vartheta , U ) \\\\ \\intertext { v } \\vartheta \\subsetneq \\varpi \\vartheta \\subsetneq \\varpi",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b9649e7d40ef3253d3b18bae5c7d6d41c956d3e7d85cb273b47ea9f7e1fc6892.png"
+ },
+ {
+  "crop_id": "e2ad4716e5fb5b22da166b65825a3b1bb8585433b2bf2d50fdfc2e0a15fc549c",
+  "shard_id": "full23",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 220,
+  "codeformula_latex": "\\pi ( K , M , \\vartheta , \\cdot ) \\colon = \\pi _ { 1 } ( K , M , \\vartheta , \\cdot ) \\times \\pi _ { 2 } ( K , M , \\vartheta , \\cdot ) . \\\\ ( K , M , \\vartheta , \\cdot ) \\colon = \\pi _ { 1 } ( K , M , \\vartheta , \\cdot ) \\cdot \\mathbb { m } { d } \\quad \\mathbb { m } { d } \\quad \\mathbb { m } { d } \\quad \\mathbb { m } { d } \\quad \\mathbb { m } { d } = 0",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e2ad4716e5fb5b22da166b65825a3b1bb8585433b2bf2d50fdfc2e0a15fc549c.png"
+ },
+ {
+  "crop_id": "f357c902f2d949a7b7b0a8e71139d42d49449e9cd7f0809643a082a997c1b3b7",
+  "shard_id": "full33",
+  "file": "Sinop_2007_seeded-image-segmentation-framework.pdf",
+  "page": 5,
+  "codeformula_latex": "\\rho d _ { u } ^ { F } \\geq 1 - x _ { u } \\Rightarrow x _ { u } \\geq 1 - \\rho d _ { u } ^ { F } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\f357c902f2d949a7b7b0a8e71139d42d49449e9cd7f0809643a082a997c1b3b7.png"
+ },
+ {
+  "crop_id": "0364dbc80c61eb6d3329bdbc5394e1fdb64be5387aa06532bcde5991f7b7f9d4",
+  "shard_id": "full33",
+  "file": "Solberg_1996_markov-random-field-model.pdf",
+  "page": 6,
+  "codeformula_latex": "P ( \\mathcal { C } ^ { t } ( i , j ) \\, | \\, \\mathcal { C } ^ { t } ( k , l ) , \\mathcal { C } ^ { t - 1 } ( q , r ) , \\mathcal { C } ^ { g } ( q , r ) ) & & \\text {if } \\text {they} \\\\ = \\frac { 1 } { Z } e ^ { - U ( \\mathcal { C } ^ { t } ( i , j ) , \\mathcal { C } ^ { t } ( k , l ) , \\mathcal { C } ^ { t - 1 } ( q , r ) \\mathcal { C } ^ { \\rho } ( q , r ) ) / T } . & & ( 1 7 ) \\quad l _ { c } ( i , j ) \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\0364dbc80c61eb6d3329bdbc5394e1fdb64be5387aa06532bcde5991f7b7f9d4.png"
+ },
+ {
+  "crop_id": "6ede6ebcd12a2273d078814b259049fa77643567295614ac6bc218cdcb061509",
+  "shard_id": "full33",
+  "file": "Tartakovsky_2008_asymptotically-optimal-quickest.pdf",
+  "page": 25,
+  "codeformula_latex": "\\mathbb { E } _ { 1 } \\eta ( h ) \\sim \\frac { h } { \\min _ { 1 \\leq i \\leq N } \\mathcal { I } _ { i } } , \\ \\text { as } h \\to \\infty ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6ede6ebcd12a2273d078814b259049fa77643567295614ac6bc218cdcb061509.png"
+ },
+ {
+  "crop_id": "c72deaa64dd8b9ddc65f3c3521744ffa73979fd78886aae32e213130742b07ba",
+  "shard_id": "full33",
+  "file": "Truccolo_2005_point-process-framework-relating.pdf",
+  "page": 6,
+  "codeformula_latex": "x _ { k + \\tau | k + \\tau - 1 } = \\mu _ { x } + F x _ { k + \\tau - 1 | k + \\tau - 1 } \\quad ( 1 8 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\c72deaa64dd8b9ddc65f3c3521744ffa73979fd78886aae32e213130742b07ba.png"
+ },
+ {
+  "crop_id": "ddd5b00fa18d57a6afdd5b2ca081f911c30abfdc1ede1357a765efcf02430f1d",
+  "shard_id": "full33",
+  "file": "Tartakovsky_2008_asymptotically-optimal-quickest.pdf",
+  "page": 16,
+  "codeformula_latex": "\\inf _ { \\phi \\in \\Delta _ { m } ( \\mathfrak { v } ) } \\S A D D ( \\phi ) \\sim \\S A D D ( \\phi _ { o p l } ) \\sim \\S A D D ( \\hat { \\phi } _ { o p l } ) \\sim \\frac { \\log \\gamma } { \\mathcal { J } _ { t o t , o p l } ^ { q } } \\ \\ a s \\ \\gamma \\to \\infty . \\ ( 3 . 1 0 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ddd5b00fa18d57a6afdd5b2ca081f911c30abfdc1ede1357a765efcf02430f1d.png"
+ },
+ {
+  "crop_id": "892b99c817a1a08e1e7670320f54e473cb52c1f81f3522e7bb33edf48db4e385",
+  "shard_id": "full02",
+  "file": "Bacry_2015_hawkes-processes-finance.pdf",
+  "page": 19,
+  "codeformula_latex": "N _ { t } ^ { i \\leftarrow j } \\ = \\ ( E v e n t s \\ o f t y p e \\ i \\text { with type } j \\text { direct ancestor} )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\892b99c817a1a08e1e7670320f54e473cb52c1f81f3522e7bb33edf48db4e385.png"
+ },
+ {
+  "crop_id": "65a91f8fe9c600c17a998c96b6d5702c516300ca4f0f7b5de54555727932916d",
+  "shard_id": "full02",
+  "file": "Bell_1977_markov-analysis-land-use-change.pdf",
+  "page": 5,
+  "codeformula_latex": "H ^ { - 1 } = \\begin{bmatrix} 4 / 9 & 5 / 9 \\\\ 5 / 9 & - 5 / 9 \\end{bmatrix} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\65a91f8fe9c600c17a998c96b6d5702c516300ca4f0f7b5de54555727932916d.png"
+ },
+ {
+  "crop_id": "9c346aec36f769ea23f5e97c4c9978b0b16523f93ff8d915dcc43d3b3ca25471",
+  "shard_id": "full02",
+  "file": "Batson_2019_noise2self-blind-denoising-self.pdf",
+  "page": 6,
+  "codeformula_latex": "p ( x | y ) = p ( x _ { J } | y ) p ( x _ { J ^ { c } } | y ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9c346aec36f769ea23f5e97c4c9978b0b16523f93ff8d915dcc43d3b3ca25471.png"
+ },
+ {
+  "crop_id": "e66923abacd0d96b7b012e7a5f7d1e950a4f9cc19b3c9fed0640ddede26459a6",
+  "shard_id": "full02",
+  "file": "Bellettini_2002_total-variation-flow.pdf",
+  "page": 4,
+  "codeformula_latex": "\\min _ { u \\in L ^ { 2 } ( \\mathbb { R } ^ { 2 } ) \\cap \\text {BV} ( \\mathbb { R } ^ { 2 } ) } \\left \\{ \\int _ { \\mathbb { R } ^ { 2 } } \\left | D u \\right | + \\frac { 1 } { 2 \\lambda } \\, \\int _ { \\mathbb { R } ^ { 2 } } ( u - f ) ^ { 2 } \\, d x \\right \\} ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e66923abacd0d96b7b012e7a5f7d1e950a4f9cc19b3c9fed0640ddede26459a6.png"
+ },
+ {
+  "crop_id": "ef91ef1988a3fbbe61a950c97e3b474510fd1b3bc1840dad6a5e5eac848a5bc2",
+  "shard_id": "full02",
+  "file": "Bellettini_2002_total-variation-flow.pdf",
+  "page": 19,
+  "codeformula_latex": "\\int _ { \\mathbb { R } ^ { n } } \\, j ( u ( T , x ) - \\bar { u } ( T , x ) ) \\leqslant \\int _ { \\mathbb { R } ^ { n } } \\, j ( u _ { 0 } - \\bar { u } _ { 0 } ) . \\quad \\text {,}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ef91ef1988a3fbbe61a950c97e3b474510fd1b3bc1840dad6a5e5eac848a5bc2.png"
+ },
+ {
+  "crop_id": "6361d16ceece4ae715bd4a53bfa69d682b51e75c0b9fe0ddc2ca1cc36c7d8b9d",
+  "shard_id": "full04",
+  "file": "Bloch_2012_mathematical-morphology-bipolar-fuzzy.pdf",
+  "page": 27,
+  "codeformula_latex": "C ( ( \\mu _ { B } , \\nu _ { B } ) ( x - y ) , ( \\mu , \\nu ) ( y ) ) \\preceq ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) ( x ) & \\Leftrightarrow ( \\mu , \\nu ) ( y ) \\preceq I ( ( \\mu _ { B } , \\nu _ { B } ) ( x - y ) , ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) ( x ) ) \\\\ \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6361d16ceece4ae715bd4a53bfa69d682b51e75c0b9fe0ddc2ca1cc36c7d8b9d.png"
+ },
+ {
+  "crop_id": "6031d4eb368cb4d551474ec45752c857815f0302adcfe85f92f60f8532199ad9",
+  "shard_id": "full04",
+  "file": "Chakraborty_2017_effect-misclassification-due.pdf",
+  "page": 6,
+  "codeformula_latex": "\\sum _ { i \\, 1 } ^ { m } x _ { i } < \\frac { - \\log \\alpha - m \\left [ \\rho ( \\theta _ { e _ { i } } - \\theta _ { e _ { i } } ) + \\log \\left ( \\frac { e ^ { \\theta _ { e _ { 0 } } } - 1 } { e ^ { \\theta _ { e _ { 1 } } } - 1 } \\right ) \\right ] } { \\log \\left ( \\frac { \\theta _ { e _ { 1 } } } { \\theta _ { e _ { i } } } \\right ) } \\, .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6031d4eb368cb4d551474ec45752c857815f0302adcfe85f92f60f8532199ad9.png"
+ },
+ {
+  "crop_id": "86241a7a9051a5f1503513769704b7db5ce81a5e4a9d3703e6aacae3f3bba979",
+  "shard_id": "full04",
+  "file": "Cabo_1995_line-transects-covariance-functions-set.pdf",
+  "page": 11,
+  "codeformula_latex": "\\sigma ( l \\cap S ) = \\sigma ( l \\cap T ) , \\quad \\text {for } \\mu \\text {-almost lines} \\, l .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\86241a7a9051a5f1503513769704b7db5ce81a5e4a9d3703e6aacae3f3bba979.png"
+ },
+ {
+  "crop_id": "194e0a67582af737f0b79a23e3701a346b5e80214378c8ab1e04d694cd847c0a",
+  "shard_id": "full04",
+  "file": "Bloch_2012_mathematical-morphology-bipolar-fuzzy.pdf",
+  "page": 23,
+  "codeformula_latex": "\\varepsilon \\delta ( \\wedge _ { i } ( \\mu _ { i } , \\nu _ { i } ) ) \\preceq \\wedge _ { i } \\varepsilon \\delta ( \\mu _ { i } , \\nu _ { i } )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\194e0a67582af737f0b79a23e3701a346b5e80214378c8ab1e04d694cd847c0a.png"
+ },
+ {
+  "crop_id": "9b40288c88e9316f33c57ab29a7a2d533ec3e270d96e1cc31faaba40f1e830d1",
+  "shard_id": "full04",
+  "file": "Cabo_1995_line-transects-covariance-functions-set.pdf",
+  "page": 18,
+  "codeformula_latex": "s - C _ { T } \\| _ { 1 } \\leq \\frac { 1 } { 7 }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9b40288c88e9316f33c57ab29a7a2d533ec3e270d96e1cc31faaba40f1e830d1.png"
+ },
+ {
+  "crop_id": "c69021663366034f7be632acb3ff503dc67704324c4e0776f5abb1f7efc4f4cd",
+  "shard_id": "full00",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 27,
+  "codeformula_latex": "h ( y ) = \\liminf _ { z \\to y } \\frac { g ( z ) - g ( y ) } { z - y } \\quad \\text {for } y \\in \\mathbb { R } . \\\\ \\dot { \\cdot } f _ { 0 } = \\liminf _ { z \\to y } \\frac { g ( z ) - g ( y ) } { z - y } \\quad \\text {for } y \\in \\mathbb { R } . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\c69021663366034f7be632acb3ff503dc67704324c4e0776f5abb1f7efc4f4cd.png"
+ },
+ {
+  "crop_id": "281d2c46dcaa5df9c438bffbae1ccea994ed77ffa93a547bea9a10ea42a8cc7e",
+  "shard_id": "full00",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 20,
+  "codeformula_latex": "\\{ g > y \\} \\in \\mathbf k ( \\{ f > y \\} ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\281d2c46dcaa5df9c438bffbae1ccea994ed77ffa93a547bea9a10ea42a8cc7e.png"
+ },
+ {
+  "crop_id": "eb5ae0ff2b9062a8b30f9cc0cd66051cfb2db56443d8c75192c4eeb837206dec",
+  "shard_id": "full00",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 7,
+  "codeformula_latex": "\\kappa ( x , y ) = \\lim _ { r \\downarrow 0 } \\sup _ { \\mathcal { L } ^ { n } ( \\mathbf B ^ { n } ( x , r ) ) } \\frac { \\hat { F } ( y 1 _ { \\mathbf B ^ { n } ( x , r ) } ) } { \\mathcal { L } ^ { n } ( \\mathbf B ^ { n } ( x , r ) ) } \\ \\ f o r \\ ( x , y ) \\in \\Omega \\times [ 0 , \\infty ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\eb5ae0ff2b9062a8b30f9cc0cd66051cfb2db56443d8c75192c4eeb837206dec.png"
+ },
+ {
+  "crop_id": "a64497440b72406846839dd43985ab7b8eb9217bdf9a98579da0db513ba7c568",
+  "shard_id": "full00",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 17,
+  "codeformula_latex": "d o t s \\, \\text {move} \\, \\text {and} \\, \\text {make} \\, \\text {a} \\, \\text {and} \\, \\text {move} \\, \\text {a} \\, \\text {and} \\, \\text {move} \\, \\text {a} \\, \\text {and} \\, \\text {move} \\, \\text {a} \\, \\text {and} \\\\ [ f \\wedge y ] ( \\omega ) = \\int _ { - \\infty } ^ { y } [ \\{ f \\geq z \\} ] ( \\omega ) \\, d \\mathcal { L } ^ { 1 } z \\quad \\text {and} \\quad [ f \\vee y ] ( \\omega ) = \\int _ { y } ^ { \\infty } [ \\{ f > y \\} ] ( \\omega ) \\, d \\mathcal { L } ^ { 1 } y \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\a64497440b72406846839dd43985ab7b8eb9217bdf9a98579da0db513ba7c568.png"
+ },
+ {
+  "crop_id": "2efb2fd217de114150e81bdb560ff1eaa0c1c8855c2b1235ee24bf9d55a818bc",
+  "shard_id": "full00",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 15,
+  "codeformula_latex": "\\text {Moreover, we have from [F, E, sec. 4.3.2] that} \\\\ ( 2 . 8 ) & & \\int \\Phi ( y ) \\langle T , f , y \\rangle ( \\psi ) \\, d \\mathcal { L } ^ { l } y = [ T \\rangle f ^ { \\# } ( \\Phi \\wedge \\mathbf V ^ { l } ) ] ( \\psi ) \\\\ \\intertext { w h e n o v e r } \\text {when} \\, \\Phi \\text { is a bounded Borel function on } \\mathbb { P } ^ { l } \\text { and } y \\in \\mathcal { D } ^ { m - l } ( \\mathbf Q ) \\text { and } \\mathbf h { t } { 3 }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\2efb2fd217de114150e81bdb560ff1eaa0c1c8855c2b1235ee24bf9d55a818bc.png"
+ },
+ {
+  "crop_id": "a3c33842a8f71fe6fc06faafbb103e99129d33e3d3b9d1ee87c2f6fea2ba090a",
+  "shard_id": "full00",
+  "file": "Allard_2007_total-variation-regularization-image.pdf",
+  "page": 9,
+  "codeformula_latex": "( \\mathcal { L } ^ { n } \\times \\mathcal { L } ^ { 1 } ) ( ( G \\sim \\{ ( x , y ) \\colon f ( x ) > y > 0 \\} ) \\cup ( \\{ ( x , y ) \\colon f ( x ) > y > 0 \\} \\sim G ) ) = 0 .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\a3c33842a8f71fe6fc06faafbb103e99129d33e3d3b9d1ee87c2f6fea2ba090a.png"
+ },
+ {
+  "crop_id": "9248fb0261955b753aa6675aa61ce806843e60b3f37d01a288f3f98a84aec010",
+  "shard_id": "full16",
+  "file": "Mei_2010_efficient-scalable-schemes-monitoring.pdf",
+  "page": 14,
+  "codeformula_latex": "Hence, \\text { given } t \\geqslant 0 , \\text { we have} \\\\ P _ { \\infty } \\{ N _ { \\text {sum} } ( a ) \\geqslant t B \\} & = P _ { \\infty } \\left \\{ \\max _ { i < t B } \\sum _ { k = 1 } ^ { K } W _ { i } ^ { ( k ) } < a \\right \\} \\geqslant P _ { \\infty } \\left \\{ \\max _ { j = 1 , \\dots , l ( t B ) + 1 } M _ { + } ( j ) < a \\right \\} \\\\ & = E _ { \\infty } \\left [ P _ { \\infty } \\left \\{ \\max _ { j = 1 , \\dots , l ( t B ) + 1 } M _ { + } ( j ) < a \\right | l ( t B ) \\right \\} \\right ] \\\\ & = E _ { \\infty } [ P _ { \\infty } \\{ M _ { + } ( 1 ) < a \\} ] ^ { l ( t B ) + 1 } \\geqslant E _ { \\infty } \\left [ \\left \\{ 1 - \\frac { E _ { \\infty } ( \\tau _ { 1 } ) } { B } \\right \\} ^ { l ( t B ) + 1 } \\right ] \\\\ & = E _ { \\infty } \\exp \\left [ \\left \\{ l ( t B ) + 1 \\right \\} \\log \\left \\{ 1 - \\frac { E _ { \\infty } ( \\tau _ { 1 } ) } { B } \\right \\} \\right ] . \\\\ \\text {Now log} ( 1 - x ) & = - x + o ( x ) \\text { as } x \\to 0 . \\text { Also, } it is \\text { well known from renewal theory that } l ( n ) / n \\text { and} \\\\ \\{ ( n ) + 1 \\} / n \\text { converges to } 1 / E _ { \\infty } ( \\tau _ { 1 } ) \\text { almost surely under the probability measure } P _ { \\infty } \\text { as } n \\to \\infty \\text { see, for}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9248fb0261955b753aa6675aa61ce806843e60b3f37d01a288f3f98a84aec010.png"
+ },
+ {
+  "crop_id": "83ea57f012a1c0b9dc4d0a53d02f96defcf27ed2990bd6e67991b009230b19e3",
+  "shard_id": "full16",
+  "file": "Nordman_2004_optimal-spatial-subsample-size.pdf",
+  "page": 40,
+  "codeformula_latex": "( 1 0 . 3 ) \\quad \\sum _ { k \\in \\mathbb { Z } ^ { d } } | \\sigma ( k ) | \\leq | \\sigma ( 0 ) | + \\mathcal { C } \\sum _ { x = 1 } ^ { \\infty } x ^ { d - 1 } \\alpha _ { 1 } ( x ) ^ { \\delta / ( 2 r + \\delta ) } < \\infty .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\83ea57f012a1c0b9dc4d0a53d02f96defcf27ed2990bd6e67991b009230b19e3.png"
+ },
+ {
+  "crop_id": "3b615afca31c83f9d51a24051c91cd8818657f16f318c46059d9dc92649c6b0f",
+  "shard_id": "full16",
+  "file": "Mei_2010_efficient-scalable-schemes-monitoring.pdf",
+  "page": 5,
+  "codeformula_latex": "G _ { n } = \\max \\left \\{ 0 , \\max _ { i = 1 , \\dots , n \\ ( k _ { 1 } , \\dots , k _ { n } ) \\in \\Delta } \\sum _ { l = i } ^ { n } \\sum _ { j = 1 } ^ { m } \\log \\frac { g _ { k _ { j } } ( X _ { k _ { j } , l } ) } { f _ { k _ { j } } ( X _ { k _ { j } , l } ) } \\right \\} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\3b615afca31c83f9d51a24051c91cd8818657f16f318c46059d9dc92649c6b0f.png"
+ },
+ {
+  "crop_id": "9372ae79f84e3d2ff405f91ee520084225385991c13c63e600d8c311d8e868c5",
+  "shard_id": "full16",
+  "file": "Nordman_2004_optimal-spatial-subsample-size.pdf",
+  "page": 37,
+  "codeformula_latex": "\\| \\sigma _ { 1 n } ( k ) \\| & \\leq 8 [ E ( | Y _ { 0 , n } Q _ { 0 , n } | ^ { ( 2 r + \\delta ) / r } ) ] ^ { 2 r / ( 2 r + \\delta ) } \\\\ & \\quad \\times \\alpha ( \\text {dis} ( R _ { 0 , n } \\sqcap Z ^ { d } , R _ { k , n } \\sqcap Z ^ { d } ) , s N _ { n } ) ^ { \\delta / ( 2 r + \\delta ) } \\\\ & \\leq \\mathcal { C } ( _ { s } N _ { n } ) ^ { - 3 } \\alpha ( \\text {dis} ( F _ { 0 , n } , F _ { k , n } ) , s N _ { n } ) ^ { \\delta / ( 2 r + \\delta ) } \\\\ \\intertext { y t h e s t a t i o n a r i t y o f t h e r a n d f e l d $ Z ( \\cdot ) $ a n d $ L e m m a s $ 9 . 1 $ a n d $ 9 . 2 $ U s i n }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9372ae79f84e3d2ff405f91ee520084225385991c13c63e600d8c311d8e868c5.png"
+ },
+ {
+  "crop_id": "80227ea8a2c53153de94f0a0d773f7b248fe3a6d9554ef957a5acb35ec5faf1c",
+  "shard_id": "full16",
+  "file": "Marsan_2008_extending-earthquakes-reach-through.pdf",
+  "page": 3,
+  "codeformula_latex": "\\lambda ( x , t ) = \\lambda _ { 0 } + \\sum _ { t _ { i } < t } \\lambda _ { i } ( x , t ) \\quad ( 1 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\80227ea8a2c53153de94f0a0d773f7b248fe3a6d9554ef957a5acb35ec5faf1c.png"
+ },
+ {
+  "crop_id": "6265319728edbcc63cae90d47a1c0d3c15b3cd27c6ac69def0a16b3bb2f58b04",
+  "shard_id": "full16",
+  "file": "Nordman_2004_optimal-spatial-subsample-size.pdf",
+  "page": 6,
+  "codeformula_latex": "R _ { n } = \\Delta _ { n } R _ { 0 } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6265319728edbcc63cae90d47a1c0d3c15b3cd27c6ac69def0a16b3bb2f58b04.png"
+ },
+ {
+  "crop_id": "15fb2a44fc8c07b5f4b8836d62ab4174f0e098ace3d3aeda07ba07a851c604a8",
+  "shard_id": "full11",
+  "file": "Israel_2001_finding-generators-markov-chains.pdf",
+  "page": 19,
+  "codeformula_latex": "\\prod _ { i } p _ { i i } \\geq \\prod _ { i } \\exp ( Q _ { i i } ) = \\exp \\left ( \\sum _ { i } Q _ { i i } \\right ) = \\exp ( \\text {trace} ( Q ) ) = \\det ( P ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\15fb2a44fc8c07b5f4b8836d62ab4174f0e098ace3d3aeda07ba07a851c604a8.png"
+ },
+ {
+  "crop_id": "80848b58ffba1ecc7b1a66a9ecdc5b3b36bf8f66b22d9a8e5b33c1dc08a398a0",
+  "shard_id": "full11",
+  "file": "Hawkes_1971_spectra-some-self-exciting-mutually.pdf",
+  "page": 4,
+  "codeformula_latex": "8 = 1 \\int - \\infty",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\80848b58ffba1ecc7b1a66a9ecdc5b3b36bf8f66b22d9a8e5b33c1dc08a398a0.png"
+ },
+ {
+  "crop_id": "1037f1bd2c550fd9c03d7f878644017d9ce78f7b3db741f9f95a5a3188dccfe7",
+  "shard_id": "full11",
+  "file": "Hawkes_1971_spectra-some-self-exciting-mutually.pdf",
+  "page": 8,
+  "codeformula_latex": "F _ { 1 2 } ( \\omega ) = \\{ I - G _ { 1 1 } ^ { * } ( i \\omega ) \\} ^ { - 1 } G _ { 1 2 } ^ { * } ( i \\omega ) \\, F _ { 2 2 } ( \\omega ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\1037f1bd2c550fd9c03d7f878644017d9ce78f7b3db741f9f95a5a3188dccfe7.png"
+ },
+ {
+  "crop_id": "ce722c1389c6d1996c547c6a7a8e5d11ebe4670fb283d4dac70bf27cba39681f",
+  "shard_id": "full11",
+  "file": "Hughes_2011_autologistic-models-binary-data-lattice.pdf",
+  "page": 15,
+  "codeformula_latex": "\\pi ( Z | \\theta ) = \\frac { \\exp ( Q ( Z | \\theta ) ) } { \\sum _ { Y \\in \\Omega } \\exp ( Q ( Y | \\theta ) ) } \\, .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ce722c1389c6d1996c547c6a7a8e5d11ebe4670fb283d4dac70bf27cba39681f.png"
+ },
+ {
+  "crop_id": "b8fdb23d234776f10d3d188dcbcbaea860d3bdab5cb5bf7e1100200d7b2c938f",
+  "shard_id": "full11",
+  "file": "Hughes_1999_non-homogeneous-hidden-markov-model.pdf",
+  "page": 5,
+  "codeformula_latex": "L ( \\theta ) & = P ( _ { 1 } R _ { T | 1 } X _ { T } , \\theta ) \\\\ & = \\sum _ { S _ { 1 } , \\dots , S _ { T } } P ( _ { 1 } R _ { T , \\ 1 } S _ { T | 1 } X _ { T } , \\theta ) \\\\ & = \\sum _ { S _ { 1 } , \\dots , S _ { T } } P ( S _ { 1 } | X _ { 1 } ) \\prod _ { 2 } ^ { T } P ( S _ { 1 } | S _ { t - 1 } , X _ { t } ) \\, P ( R _ { t } | S _ { t } ) . \\\\ \\intertext { t i o n o f the l i k i h o o d i s made tr a c t a r b l e by s c c e s s i v e l y s p a n g e a s f o r t h e m p l i t e } \\intertext { p s i n e a t i o n o ( 4 ) s o f r e t o t h e r t o w s p o s i b l o w } \\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b8fdb23d234776f10d3d188dcbcbaea860d3bdab5cb5bf7e1100200d7b2c938f.png"
+ },
+ {
+  "crop_id": "9c197d9f5965aaf812030951c1472408ec4505ba1099a903eb26fa4f0cfa7050",
+  "shard_id": "full11",
+  "file": "Hoberg_2015_conditional-random-fields-multitemporal-multiscale.pdf",
+  "page": 4,
+  "codeformula_latex": "I S _ { 2 } \\left ( x _ { i } ^ { t } , x _ { j } ^ { t } , y ^ { t } \\right ) = \\begin{cases} \\beta \\cdot \\exp \\left ( - \\frac { \\eta \\cdot \\| g _ { i } ^ { t } ( y ^ { t } ) \\| ^ { 2 } } { R } \\right ) , & \\text {if} \\ x _ { i } ^ { t } = x _ { j } ^ { t } \\\\ 0 , & \\text {if} \\ x _ { i } ^ { t } \\neq x _ { j } ^ { t } . & \\text {all image} \\end{cases}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9c197d9f5965aaf812030951c1472408ec4505ba1099a903eb26fa4f0cfa7050.png"
+ },
+ {
+  "crop_id": "9afb679fdd788f7f91dcfcf56b8390c008265a054df4fc0a92c49d870287c14f",
+  "shard_id": "full11",
+  "file": "Hui_1980_estimating-error-rates-diagnostic-tests.pdf",
+  "page": 4,
+  "codeformula_latex": "D = \\pm \\{ ( p _ { 1 1 } p _ { 2 . 1 } - p _ { 2 1 } p _ { 1 . 1 } + p _ { 1 1 1 } - p _ { 2 1 1 } ) ^ { 2 } - 4 ( p _ { 1 1 . } - p _ { 2 1 } ) ( p _ { 1 1 1 } p _ { 2 . 1 } - p _ { 2 1 1 } p _ { 1 . 1 } ) \\} ^ { 1 / 2 }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9afb679fdd788f7f91dcfcf56b8390c008265a054df4fc0a92c49d870287c14f.png"
+ },
+ {
+  "crop_id": "b761342d72a078dc874cdd0e80cfd1433d8a4b989a514a123f0be7c2a3fc1172",
+  "shard_id": "full11",
+  "file": "Higham_2011_pth-roots-stochastic-matrices.pdf",
+  "page": 9,
+  "codeformula_latex": "\\text {roots, by Theorem 2.3. An example illustrating this fact is the stochastic matrix} \\\\ A & = \\begin{bmatrix} 0 . 5 0 0 & 0 . 3 7 5 0 & 0 . 1 2 5 0 \\\\ 0 . 7 5 0 & 0 . 1 2 5 0 & 0 . 1 5 0 \\\\ 0 . 0 8 3 3 & 0 . 0 4 1 7 & 0 . 8 7 5 0 \\end{bmatrix} , \\quad A ( A ) = \\{ 1 , 3 / 4 , - 1 / 4 \\} , \\\\ \\text {which has pth roots for all $p$ but no real pth roots for any even $p$} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b761342d72a078dc874cdd0e80cfd1433d8a4b989a514a123f0be7c2a3fc1172.png"
+ },
+ {
+  "crop_id": "320faf2fe35c7ac59dc2695173efc4d8fbef6c396079ce4165bcfbeab4fe2ab6",
+  "shard_id": "full24",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 250,
+  "codeformula_latex": "V ( K [ 1 ] , M [ d - 1 ] ) & = \\frac { 1 } { d } V _ { 1 , d - 1 } ^ { ( 0 ) } ( K , - M ) , \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\320faf2fe35c7ac59dc2695173efc4d8fbef6c396079ce4165bcfbeab4fe2ab6.png"
+ },
+ {
+  "crop_id": "99b4d8aa9c6769531127d16030d7002cdfc9fce7d954b9c3e928f3ad2edb34f0",
+  "shard_id": "full24",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 271,
+  "codeformula_latex": "R _ { p q } \\colon C ( G ( d , p ) ) \\to C ( G ( d , q ) )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\99b4d8aa9c6769531127d16030d7002cdfc9fce7d954b9c3e928f3ad2edb34f0.png"
+ },
+ {
+  "crop_id": "02268edb5c71299441a9d6f10dae509051b066f9bed17995508d5279bda01151",
+  "shard_id": "full24",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 265,
+  "codeformula_latex": "\\int _ { S O _ { d } } \\chi ( K \\cap \\vartheta M ) \\, \\nu ( d \\vartheta ) = 2 \\, \\sum _ { k = 0 } ^ { \\lfloor \\frac { d - 1 } { 2 } \\rfloor } \\sum _ { i = 2 k } ^ { d - 1 } v _ { i } ( K ) v _ { d - 1 - i + 2 k } ( M ) \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\02268edb5c71299441a9d6f10dae509051b066f9bed17995508d5279bda01151.png"
+ },
+ {
+  "crop_id": "4d1ebcffc0f237d833afe8f82b08f664fd7dcdc7636bd66ac34c11302b6aeaa4",
+  "shard_id": "full10",
+  "file": "Galerne_2011_computation-perimeter-measurable-sets.pdf",
+  "page": 6,
+  "codeformula_latex": "V ( f , U ) \\leq \\sum _ { i = 1 } ^ { d } V _ { e _ { i } } ( f , U ) < + \\infty \\, ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\4d1ebcffc0f237d833afe8f82b08f664fd7dcdc7636bd66ac34c11302b6aeaa4.png"
+ },
+ {
+  "crop_id": "6f9281497f9e267db785138477379090d04f4da1431eb6847cd8e9d09ab9372e",
+  "shard_id": "full10",
+  "file": "Geyer_1992_constrained-monte-carlo-maximum.pdf",
+  "page": 2,
+  "codeformula_latex": "M _ { \\psi } ( \\tau ) = \\int \\exp \\langle t ( x ) , \\ \\tau \\rangle \\, d P _ { \\psi } ( x ) = \\frac { c ( \\psi + \\tau ) } { c ( \\psi ) } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6f9281497f9e267db785138477379090d04f4da1431eb6847cd8e9d09ab9372e.png"
+ },
+ {
+  "crop_id": "5a963544bd67fbd0ae198e065ec883b4d5caca32adbff60dbc526c0bb4d66349",
+  "shard_id": "full10",
+  "file": "Galerne_2011_computation-perimeter-measurable-sets.pdf",
+  "page": 4,
+  "codeformula_latex": "d ( \\mathcal { S } ) & | - \\Lambda , \\Lambda _ { 2 } - y \\, | \\, \\Lambda \\, \\text { and } \\Lambda _ { 3 } - \\mathcal { Z } \\, | \\, \\Lambda \\, \\text { w} \\, \\mathcal { G } \\text { c} \\\\ g _ { A } ( y ) - g _ { A } ( z ) & = \\mathcal { L } ^ { d } \\left ( A \\cap ( y + A ) \\right ) - \\mathcal { L } ^ { d } \\left ( A \\cap ( z + A ) \\right ) \\\\ \\text {null} & \\quad \\leq \\mathcal { L } ^ { d } ( y + A ) - \\mathcal { L } ^ { d } \\left ( ( y + A ) \\cap ( z + A ) \\right ) \\\\ \\text {ball} & \\quad = \\mathcal { L } ^ { d } ( A ) - \\mathcal { L } ^ { d } \\left ( A \\cap ( ( z - y ) + A ) \\right ) \\\\ > 0 & \\quad = g _ { A } ( 0 ) - g _ { A } ( z - y ) \\ . \\\\ \\text {s for} & \\quad .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\5a963544bd67fbd0ae198e065ec883b4d5caca32adbff60dbc526c0bb4d66349.png"
+ },
+ {
+  "crop_id": "ceadec707084d9861b2277063fcdac7d894737964b6766be4d1a014b1ba47c3c",
+  "shard_id": "full10",
+  "file": "Galerne_2011_computation-perimeter-measurable-sets.pdf",
+  "page": 7,
+  "codeformula_latex": "g _ { A } ( 0 ) - g _ { A } ( y ) = \\frac { 1 } { 2 } \\int _ { \\mathbb { R } ^ { d } } | \\mathbb { I } _ { A } ( x + y ) - \\mathbb { I } _ { A } ( x ) | \\, d x \\, . \\\\ P r o f .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ceadec707084d9861b2277063fcdac7d894737964b6766be4d1a014b1ba47c3c.png"
+ },
+ {
+  "crop_id": "32d97f1ea8bfce090d730d9fb185d4419abf2d8398821f87559c8b300a8498b2",
+  "shard_id": "full10",
+  "file": "Foody_2010_assessing-accuracy-land-cover-change.pdf",
+  "page": 8,
+  "codeformula_latex": "\\theta = \\frac { n ( S _ { 2 } ^ { \\prime } - 1 ) + e } { n ( S _ { 1 } ^ { \\prime } + S _ { 2 } ^ { \\prime } - 1 ) } . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\32d97f1ea8bfce090d730d9fb185d4419abf2d8398821f87559c8b300a8498b2.png"
+ },
+ {
+  "crop_id": "c782b0a2438e4b0ede21bbc3a4553dd8a64b4f60ee58bd65e30a7748fc136d0b",
+  "shard_id": "full10",
+  "file": "Hall_1985_resampling-coverage-pattern.pdf",
+  "page": 13,
+  "codeformula_latex": "\\hat { \\sigma } _ { 1 } ^ { 2 } = m ^ { - 2 } \\sum _ { i = 1 } ^ { m } \\Delta _ { i } ^ { 2 } - m ^ { - 3 } \\left ( \\sum _ { i = 1 } ^ { m } \\Delta _ { i } \\right ) ^ { 2 }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\c782b0a2438e4b0ede21bbc3a4553dd8a64b4f60ee58bd65e30a7748fc136d0b.png"
+ },
+ {
+  "crop_id": "978693c45eafcb932491d20e34d6d9f6e2ed829f703458b9e0c261e112914d53",
+  "shard_id": "full32",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 610,
+  "codeformula_latex": "s ( K ) \\colon = \\frac { 1 } { \\kappa _ { d } } \\int _ { S ^ { d - 1 } } h ( K , u ) u \\, \\sigma ( d u ) . \\\\ h ( K + t , u ) = h ( K , u ) + \\langle t , u \\rangle , \\, \\text {the Steiner point has the property}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\978693c45eafcb932491d20e34d6d9f6e2ed829f703458b9e0c261e112914d53.png"
+ },
+ {
+  "crop_id": "2ea48ecfe6467298ded285ba1f26a6f25288f9477cb0ab9f4de8a00adef11f2d",
+  "shard_id": "full32",
+  "file": "Singer_1976_representation-social-processes-markov.pdf",
+  "page": 23,
+  "codeformula_latex": "( 3 . 2 1 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\2ea48ecfe6467298ded285ba1f26a6f25288f9477cb0ab9f4de8a00adef11f2d.png"
+ },
+ {
+  "crop_id": "ee424104e21e7639b251b1d6db02a012481cfb1073a566f020f5f0334082b5a4",
+  "shard_id": "full32",
+  "file": "Shi_1998_generic-statistical-approach-modelling.pdf",
+  "page": 8,
+  "codeformula_latex": "c _ { N i } = \\lceil k ( 1 - r ) ^ { 2 } + r ^ { 2 } \\rceil ^ { 1 / 2 } \\sigma _ { i } \\quad ( i = 1 , \\, \\dots , \\, N )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ee424104e21e7639b251b1d6db02a012481cfb1073a566f020f5f0334082b5a4.png"
+ },
+ {
+  "crop_id": "0f454d27133490ccd0cc788240a7e5da5cbb4c9df29652d4c587faa6f1770c27",
+  "shard_id": "full32",
+  "file": "Shi_1998_generic-statistical-approach-modelling.pdf",
+  "page": 6,
+  "codeformula_latex": "P ( \\phi _ { N 0 } \\in J _ { N 0 } ) > \\gamma",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\0f454d27133490ccd0cc788240a7e5da5cbb4c9df29652d4c587faa6f1770c27.png"
+ },
+ {
+  "crop_id": "0db59d3f339f68aa24e8acc5fdc02694d07065f2f4a3f26961d3d02c6eb9c591",
+  "shard_id": "full21",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 134,
+  "codeformula_latex": "\\sum _ { E \\in X } \\lambda _ { E } ( A ) \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\0db59d3f339f68aa24e8acc5fdc02694d07065f2f4a3f26961d3d02c6eb9c591.png"
+ },
+ {
+  "crop_id": "e701063021170490899346bed9f77c00753ff097ef882b8bc0d6a53fb0cb6d3a",
+  "shard_id": "full21",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 127,
+  "codeformula_latex": "\\Psi ( Z ) \\coloneqq \\sum _ { k = 1 } ^ { \\infty } \\left [ \\psi \\left ( \\text {cl} \\left ( Z \\cap C _ { 0 k } ^ { d } \\right ) - z _ { k } \\right ) + z _ { k } \\right ] . \\\\ \\left ( Z \\right ) \\text { is a simple point process in } K ^ { \\prime } \\text { with } a \\text { locally finite} \\text { with } \\text { mo} 2",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e701063021170490899346bed9f77c00753ff097ef882b8bc0d6a53fb0cb6d3a.png"
+ },
+ {
+  "crop_id": "7e1b2d6b4d2dde0f1e601243984bd218d4f1e421673ea4cbc62f356892fcf425",
+  "shard_id": "full21",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 138,
+  "codeformula_latex": "( \\mbox m a t h s c r { E } X ( A ) = \\Theta ( A ) = \\gamma \\int _ { G ( d , k ) } \\int _ { L ^ { \\perp } } 1 _ { A } ( L + x ) \\, \\lambda _ { L ^ { \\perp } } ( d x ) \\, \\mathbb { Q } ( d L ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7e1b2d6b4d2dde0f1e601243984bd218d4f1e421673ea4cbc62f356892fcf425.png"
+ },
+ {
+  "crop_id": "a38323e548ac96f1a7fb23cd3f707d8d0d77b58eb8fcd1b9ea082c72b9e7072a",
+  "shard_id": "full08",
+  "file": "Duval_2009_tvl1-model-geometric-point-view.pdf",
+  "page": 11,
+  "codeformula_latex": "\\Pr ( U , \\Omega ) \\leq \\Pr ( U ^ { \\prime } , \\Omega ) + \\lambda | U \\bigtriangleup U ^ { \\prime } | .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\a38323e548ac96f1a7fb23cd3f707d8d0d77b58eb8fcd1b9ea082c72b9e7072a.png"
+ },
+ {
+  "crop_id": "776f18043f85b14333253a363f77bf73f33e4eeb9e33b4bba8430e6f693a7020",
+  "shard_id": "full08",
+  "file": "Efron_2004_estimation-prediction-error-covariance.pdf",
+  "page": 6,
+  "codeformula_latex": "\\Omega _ { i } = 2 \\, c o v ( \\widehat { \\lambda } _ { i } , y _ { i } ) , & & ( 3 . 1 4 ) & & \\text {the  } \\, \\text {pos} \\\\ & & \\vdots & & \\vdots \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\776f18043f85b14333253a363f77bf73f33e4eeb9e33b4bba8430e6f693a7020.png"
+ },
+ {
+  "crop_id": "09a93926d34a5202e8a7fff38ccf7d8bc158e74ecec344d3209ad1dc8552b8a8",
+  "shard_id": "full08",
+  "file": "Efron_1986_how-biased-apparent-error-rate.pdf",
+  "page": 4,
+  "codeformula_latex": "\\omega ( \\pi ) \\, = \\, \\frac { 1 } { n } \\, E _ { \\pi } \\left \\{ \\sum _ { i = 1 } ^ { n } \\, \\hat { \\zeta } _ { i } \\cdot ( y _ { i } - \\pi _ { i } ) \\right \\} \\, . \\quad ( 3 . 1 0 ) \\quad \\hat { \\eta } _ { g } \\} , \\, \\quad ( 3 . 1 0 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\09a93926d34a5202e8a7fff38ccf7d8bc158e74ecec344d3209ad1dc8552b8a8.png"
+ },
+ {
+  "crop_id": "acc18a2aa6b0a6df6d449177065bb2f94c266f5654473bebb23463a94876a43c",
+  "shard_id": "full31",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 602,
+  "codeformula_latex": "\\mu _ { \\epsilon } ( K _ { 1 } \\cup K _ { 2 } , A ) + \\mu _ { \\epsilon } ( K _ { 1 } \\cap K _ { 2 } , A ) = \\mu _ { \\epsilon } ( K _ { 1 } , A ) + \\mu _ { \\epsilon } ( K _ { 2 } , A )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\acc18a2aa6b0a6df6d449177065bb2f94c266f5654473bebb23463a94876a43c.png"
+ },
+ {
+  "crop_id": "ee23dcff18cbcff2f01158b48b5591071bb5edd3e68110151540aa541aff6fb6",
+  "shard_id": "full31",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 561,
+  "codeformula_latex": "\\bigcap _ { i \\in I } \\mathcal { F } _ { C _ { i } } \\cap \\bigcap _ { j \\in J } \\mathcal { F } ^ { G _ { j } } & = \\emptyset . \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ee23dcff18cbcff2f01158b48b5591071bb5edd3e68110151540aa541aff6fb6.png"
+ },
+ {
+  "crop_id": "3a480ea90c920e7f7ea3b953fd81a8be3628fadfac065df44e8ab67d9ced272f",
+  "shard_id": "full31",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 588,
+  "codeformula_latex": "\\gamma _ { q , t } \\colon S O ( L ^ { \\perp } ) & \\to \\ A ( d , q ) \\\\ \\vartheta & \\mapsto \\vartheta L _ { q } + t",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\3a480ea90c920e7f7ea3b953fd81a8be3628fadfac065df44e8ab67d9ced272f.png"
+ },
+ {
+  "crop_id": "4771c1e527107fb6fa98d54f4b55ce102426cc8ba3f55acd1cf319a27ec2f14d",
+  "shard_id": "full31",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 561,
+  "codeformula_latex": "( C _ { i } ) _ { i \\in I } , \\ C _ { i } \\in \\mathcal { C } , \\quad \\text {and} \\quad ( G _ { j } ) _ { j \\in J } , \\ G _ { j } \\in \\mathcal { G } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\4771c1e527107fb6fa98d54f4b55ce102426cc8ba3f55acd1cf319a27ec2f14d.png"
+ },
+ {
+  "crop_id": "8f3b1e85baef9da321ca4cd3b7a52f6413ff98e5d88ec7d7e8fe1bd36fe593bb",
+  "shard_id": "full31",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 571,
+  "codeformula_latex": "C _ { i } \\subset C + \\epsilon B ^ { d } \\quad \\text {and} \\quad C \\subset C _ { i } + \\epsilon B ^ { d } ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\8f3b1e85baef9da321ca4cd3b7a52f6413ff98e5d88ec7d7e8fe1bd36fe593bb.png"
+ },
+ {
+  "crop_id": "db61ab9596ce515530b450a594b342fcabcfd3b4c4708ed1726cf9d428b601d2",
+  "shard_id": "full35",
+  "file": "Zhuang_2002_stochastic-declustering-space-time.pdf",
+  "page": 3,
+  "codeformula_latex": "\\text {172 by} \\quad \\text {Later, in applications, we make use of the specific function } \\\\ \\text {are-Jones} \\quad \\text {forms} \\quad \\intertext { t e l e y by } \\quad \\text {172 by} \\quad \\text {Later, in applications, we make use of the specific function } \\\\ \\quad \\text {forms} \\quad \\intertext { r e - Jones } \\quad \\text {forms} \\quad \\intertext { f o r m a s } \\quad \\kappa ( M ) \\quad \\text {Ae} ^ { \\alpha ( M \\ M _ { 0 } ) } \\\\ \\quad \\intertext { g ( t ) } \\quad \\intertext { ( p \\ 1 ) c ^ { p \\ 1 } ( t \\ \\ c ) \\ ^ { p } \\quad \\text {for } t > 0 } \\\\ \\quad 0 \\quad \\text {otherwise,}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\db61ab9596ce515530b450a594b342fcabcfd3b4c4708ed1726cf9d428b601d2.png"
+ },
+ {
+  "crop_id": "21a9b682f2c09a666be2ab5a50d8e3898dd70f3110143ea457d0a5179013c144",
+  "shard_id": "full35",
+  "file": "Zhuang_2002_stochastic-declustering-space-time.pdf",
+  "page": 4,
+  "codeformula_latex": "\\text {sparse populated areas. Therefore, instead of the kernel} \\\\ \\text {mate} \\\\ m _ { 1 } ( x , y ) \\, \\underbrace { \\sum _ { T } ^ { N } k _ { d } ( x \\, \\ x _ { j } , y \\, \\ y _ { j } ) , } _ { j \\ 1 }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\21a9b682f2c09a666be2ab5a50d8e3898dd70f3110143ea457d0a5179013c144.png"
+ },
+ {
+  "crop_id": "b72e079138870f62af24582aeac260d49c681d102b4e54476fc7acd7b2e22a26",
+  "shard_id": "full35",
+  "file": "Wolters_2017b_better-autologistic-regression.pdf",
+  "page": 20,
+  "codeformula_latex": "G _ { i j } ( z _ { i } , z _ { j } ) \\, = \\, ( z _ { i } - \\ell ) \\lambda _ { i j } ( z _ { j } - \\ell ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b72e079138870f62af24582aeac260d49c681d102b4e54476fc7acd7b2e22a26.png"
+ },
+ {
+  "crop_id": "e5efca238f51d3b42b715cbf1df3e00c5e61edb32aee600f92e6a316a1773104",
+  "shard_id": "full35",
+  "file": "Xie_2013_sequential-multi-sensor-change-point.pdf",
+  "page": 5,
+  "codeformula_latex": "\\ell _ { n } ( t , k , \\hat { \\mu } _ { n } ) = ( U _ { n , k , t } ^ { + } ) ^ { 2 } / 2 .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e5efca238f51d3b42b715cbf1df3e00c5e61edb32aee600f92e6a316a1773104.png"
+ },
+ {
+  "crop_id": "9b4ec9128ea4dd4f69b3d2a4097119e9b82f71e43742ef86cc4644b57496312b",
+  "shard_id": "full35",
+  "file": "Xie_2013_sequential-multi-sensor-change-point.pdf",
+  "page": 4,
+  "codeformula_latex": "( 3 . 2 ) & \\sum _ { n = 1 } ^ { N } \\log ( 1 - p _ { 0 } + p _ { 0 } \\exp [ \\ell _ { n } ( t , k , \\mu _ { n } ) ] ) . \\\\ \\intertext { Expression ( 3 . 2 ) suggests several change-point detection rules. }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\9b4ec9128ea4dd4f69b3d2a4097119e9b82f71e43742ef86cc4644b57496312b.png"
+ },
+ {
+  "crop_id": "211b73752150d53c53f5d6bbc962537b14870f203b418066c66b075214b6c062",
+  "shard_id": "full03",
+  "file": "Bloch_2012_mathematical-morphology-bipolar-fuzzy.pdf",
+  "page": 10,
+  "codeformula_latex": "\\delta _ { ( \\mu _ { B } , \\nu _ { B } ) } ( ( \\mu , \\nu ) \\wedge ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) ) & \\preceq \\delta _ { ( \\mu _ { B } , \\nu _ { G } ) } ( ( \\mu , \\nu ) ) \\wedge \\delta _ { ( \\mu _ { B } , \\nu _ { B } ) } ( ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) ) , \\\\ \\intertext { b s . } \\delta _ { ( \\mu _ { B } , \\nu _ { B } ) } ( ( \\mu , \\nu ) \\wedge ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) ) & \\preceq \\delta _ { ( \\mu _ { B } , \\nu _ { G } ) } ( ( \\mu , \\nu ) ) \\wedge \\delta _ { ( \\mu _ { B } , \\nu _ { B } ) } ( ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) ) , \\\\ \\intertext { c . } \\delta _ { ( \\mu , \\nu ) } ( ( \\mu , \\nu ) ) & \\prec \\delta _ { ( \\mu , \\nu ^ { \\prime } ) } ( ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) ) \\prec \\delta _ { C } \\cdot ( ( \\mu , \\nu ) \\wedge ( \\mu ^ { \\prime } , \\nu ^ { \\prime } ) )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\211b73752150d53c53f5d6bbc962537b14870f203b418066c66b075214b6c062.png"
+ },
+ {
+  "crop_id": "cead220f56fa29705eac03bdc7b943c1170c70dfcce7802a1c7615ee8a8d2e41",
+  "shard_id": "full03",
+  "file": "Bloch_2012_mathematical-morphology-bipolar-fuzzy.pdf",
+  "page": 12,
+  "codeformula_latex": "\\forall x \\in \\mathcal { S } , \\, \\bigwedge _ { p _ { i } \\in I } ( \\mu _ { i } , \\nu _ { i } ) ( x ) = \\left ( \\inf _ { i \\in I } \\mu _ { i } ( x ) , \\sup _ { i \\in I } \\nu _ { i } ( x ) \\right ) , \\\\ \\intertext { The greatest element is the pair of functions ( \\mu _ { i } , \\nu _ { i } ) \\text { constantly} }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\cead220f56fa29705eac03bdc7b943c1170c70dfcce7802a1c7615ee8a8d2e41.png"
+ },
+ {
+  "crop_id": "ed4768de1585a1a038c259360f45823ac3c7147d6179cf34810062490452313f",
+  "shard_id": "full03",
+  "file": "Benedek_2009_change-detection-optical-aerial-images.pdf",
+  "page": 5,
+  "codeformula_latex": "\\Theta _ { \\nu } = \\left \\{ \\overline { \\mu } _ { g } , \\overline { \\overline { \\Sigma } } _ { g } , \\overline { \\mu } _ { c } , \\overline { \\overline { \\Sigma } } _ { c } \\right \\} . \\\\ \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\ed4768de1585a1a038c259360f45823ac3c7147d6179cf34810062490452313f.png"
+ },
+ {
+  "crop_id": "20e1cb2c99466abfb677069c9ea964cbd80076012a9d64f30b09fcda5f0614be",
+  "shard_id": "full03",
+  "file": "Bellettini_2002_total-variation-flow.pdf",
+  "page": 34,
+  "codeformula_latex": "( i ) - ( \\mathbb { i } i ) \\Rightarrow \\chi _ { C } \\text { solution of } ( 6 4 ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\20e1cb2c99466abfb677069c9ea964cbd80076012a9d64f30b09fcda5f0614be.png"
+ },
+ {
+  "crop_id": "7c5ed73cf6231c617198ae702b06c2f693153a981d87bb34600501265d4dcd63",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 283,
+  "codeformula_latex": "\\xi \\colon L _ { 1 } ^ { \\perp } \\times \\dots \\times L _ { q } ^ { \\perp } \\rightarrow L ^ { \\perp } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7c5ed73cf6231c617198ae702b06c2f693153a981d87bb34600501265d4dcd63.png"
+ },
+ {
+  "crop_id": "7283212ebc978f1cdec3ead83bddc28d67d323d4aa5951049ffa78fb598e8f30",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 283,
+  "codeformula_latex": "( L _ { 1 } + t _ { 1 } ) \\cap \\dots \\cap ( L _ { q } + t _ { q } ) = L + \\xi ( t _ { 1 } , \\dots , t _ { q } )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7283212ebc978f1cdec3ead83bddc28d67d323d4aa5951049ffa78fb598e8f30.png"
+ },
+ {
+  "crop_id": "fb6026d964156d77e64fb17c0b07b7fd059d5be16aad004ad7e672ac6aa59fed",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 315,
+  "codeformula_latex": "h ( \\mathbb { E } K _ { n } , u ) = \\mathbb { E } \\, h ( K _ { n } , u ) \\quad \\text {for } u \\in S ^ { d - 1 } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\fb6026d964156d77e64fb17c0b07b7fd059d5be16aad004ad7e672ac6aa59fed.png"
+ },
+ {
+  "crop_id": "7a396574c18d6d90b932cfba7ea24e300e1570fe014b72f4b87de5001e082572",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 287,
+  "codeformula_latex": "f \\text { for } f \\in C _ { c } ( U ) . \\text { For } ( D , M ) \\in G \\text { we get } \\\\ I _ { 1 } ( ( D , M ) , f ) \\, = \\int _ { \\mathbb { R } ^ { d } } \\dots \\int _ { \\mathbb { R } ^ { d } } f ( D ^ { - 1 } ( x _ { 1 } , \\dots , x _ { q } ) M ^ { - t } ) \\, \\lambda ( d x _ { 1 } ) \\cdots \\lambda ( d x _ { q } ) \\\\ = | \\det M | ^ { d } I _ { 1 } ( f ) , \\\\ \\text { because } \\lambda \\text { is rotation invariant, and the linear map } ( x _ { 1 } , \\dots , x _ { q } ) \\mapsto ( x _ { 1 } , \\dots , x _ { q } ) M",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7a396574c18d6d90b932cfba7ea24e300e1570fe014b72f4b87de5001e082572.png"
+ },
+ {
+  "crop_id": "690f3cc9f422b3c75600665b615f470c76715db30380ba704cd8f524ff4794a4",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 326,
+  "codeformula_latex": "c _ { 1 } ( d ) ( \\log n ) ^ { d - 1 } < \\mathbb { E } f _ { i } ( K , n ) < c _ { 2 } n ^ { ( d - 1 ) / ( d + 1 ) }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\690f3cc9f422b3c75600665b615f470c76715db30380ba704cd8f524ff4794a4.png"
+ },
+ {
+  "crop_id": "1eb609f2d1140aa3fbaa901a6ab876c5a01081b08af21cae748fcb6847b6c8af",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 290,
+  "codeformula_latex": "( z , r , u _ { 0 } , \\dots , u _ { d } ) \\mapsto ( z + r u _ { 0 } , \\dots , z + r u _ { d } )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\1eb609f2d1140aa3fbaa901a6ab876c5a01081b08af21cae748fcb6847b6c8af.png"
+ },
+ {
+  "crop_id": "f331589c86529770dd2e913baa11b87fb4fae7d95f0a725ace09f62a7b16f9d8",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 301,
+  "codeformula_latex": ")",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\f331589c86529770dd2e913baa11b87fb4fae7d95f0a725ace09f62a7b16f9d8.png"
+ },
+ {
+  "crop_id": "6c2a826e89d85cea6bc185f186b509b7b8732a87a334f526876de0932c423176",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 325,
+  "codeformula_latex": "\\lim _ { n \\to \\infty } f _ { i } ( K , n ) n ^ { - ( d - 1 ) / ( d + 1 ) } = c _ { d , i } \\Omega ( K ) \\quad \\text {in probability} .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\6c2a826e89d85cea6bc185f186b509b7b8732a87a334f526876de0932c423176.png"
+ },
+ {
+  "crop_id": "085310886ace1dcee8fe4d45decd05c2d35f8ed7c912f8a5023e99b2aea1c927",
+  "shard_id": "full25",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 311,
+  "codeformula_latex": "\\frac { 1 } { 2 } \\sum _ { k = 1 } ^ { n - d - 1 } ( - 1 ) ^ { k - 1 } \\binom { n } { k } \\mathbb { E } V _ { d } ( \\mu , n - k ) = \\begin{cases} \\mathbb { E } V _ { d } ( \\mu , n ) , \\text { if } n - d \\text { is even} , \\\\ 0 , \\text { if } n - d \\text { is odd} . \\end{cases} \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\085310886ace1dcee8fe4d45decd05c2d35f8ed7c912f8a5023e99b2aea1c927.png"
+ },
+ {
+  "crop_id": "12d0fbccaa46efab274e29097a330a3fcc769827e13022cae1d33a4185aaa9e8",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 26,
+  "codeformula_latex": "\\partial _ { r } ^ { 2 } E _ { P } [ \\psi ( W ; \\theta _ { 0 } , \\eta _ { 0 } + r ( \\eta - \\eta _ { 0 } ) ) ] = 0 .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\12d0fbccaa46efab274e29097a330a3fcc769827e13022cae1d33a4185aaa9e8.png"
+ },
+ {
+  "crop_id": "2c12dcd3b35f6f108dc44955c5c6342d157dfcaeb9b635a0faa9287f25dfaa02",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 64,
+  "codeformula_latex": "\\mathcal { I } _ { 5 } \\colon = \\sup _ { \\| \\theta - \\theta _ { 0 } \\| \\leqslant \\tau _ { N } } \\left \\| \\mathbb { G } _ { n } \\left ( \\psi ( W ; \\theta , \\widehat { \\eta } _ { 0 } ) - \\psi ( W ; \\theta _ { 0 } , \\eta _ { 0 } ) \\right ) \\right \\|",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\2c12dcd3b35f6f108dc44955c5c6342d157dfcaeb9b635a0faa9287f25dfaa02.png"
+ },
+ {
+  "crop_id": "3554f3274fffdd5003db22e79a93f59d3ffc1ba4fa487a757726e25e74145a2e",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 27,
+  "codeformula_latex": "\\sqrt { N } \\sigma ^ { - 1 } ( \\tilde { \\theta } _ { 0 } - \\theta _ { 0 } ) = \\frac { 1 } { \\sqrt { N } } \\sum _ { i = 1 } ^ { N } \\bar { \\psi } ( W _ { i } ) + O _ { P } ( \\rho _ { N } ) \\sim N ( 0 , I _ { d } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\3554f3274fffdd5003db22e79a93f59d3ffc1ba4fa487a757726e25e74145a2e.png"
+ },
+ {
+  "crop_id": "7752f1ccd22f47874da3a78f32ef151db3c43a4ecfdf523e596ca001e678bfdc",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 63,
+  "codeformula_latex": "\\i m o c { C } , & \\text { for } \\theta \\in \\mathcal { O } \\ \\mathcal { U } \\ \\mathcal { N } , \\ \\mathcal { W } \\ \\text {C} \\\\ & \\sqrt { n } \\mathbb { E } _ { n } [ \\psi ( W ; \\theta , \\eta ) ] = \\sqrt { n } \\mathbb { E } _ { n } [ \\psi ( W ; \\theta _ { 0 } , \\eta _ { 0 } ) ] + \\mathbb { G } _ { n } [ \\psi ( W ; \\theta , \\eta ) - \\psi ( W ; \\theta _ { 0 } , \\eta _ { 0 } ) ] \\\\ & \\quad + \\sqrt { n } \\left ( E _ { P _ { N } } [ \\psi ( W ; \\theta , \\eta ) ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\7752f1ccd22f47874da3a78f32ef151db3c43a4ecfdf523e596ca001e678bfdc.png"
+ },
+ {
+  "crop_id": "d0734423884fd83be1cfd763bb3d773ea7c5490b3c0155f9c3a2f3b7a5369e7e",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 25,
+  "codeformula_latex": "\\lambda _ { N } ^ { \\prime } \\colon = \\sup _ { r \\in ( 0 , 1 ) , \\eta \\in \\mathcal { T } _ { N } } \\| \\partial _ { r } ^ { 2 } E _ { P } [ \\psi ( W ; \\theta _ { 0 } , \\eta _ { 0 } + r ( \\eta - \\eta _ { 0 } ) ) ] \\| \\leqslant \\delta _ { N } / \\sqrt { N } .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\d0734423884fd83be1cfd763bb3d773ea7c5490b3c0155f9c3a2f3b7a5369e7e.png"
+ },
+ {
+  "crop_id": "e3ab9f96fa2655342454ac167f8c3b95dc340db60d28dad91cf7b43bbffc6796",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 63,
+  "codeformula_latex": "I _ { 2 } \\lesssim N ^ { - 1 / 2 } ( 1 + N ^ { - 1 / 2 + 1 / q } \\log n ) \\lesssim N ^ { - 1 / 2 } = o ( \\tau _ { N } ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\e3ab9f96fa2655342454ac167f8c3b95dc340db60d28dad91cf7b43bbffc6796.png"
+ },
+ {
+  "crop_id": "216b247a1fb6c838dcc3c6d2841435e49cedcef7b3fcf81ae25efa750cb6e0be",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 58,
+  "codeformula_latex": "f _ { k } ( r ) \\colon = E _ { P _ { N } } [ \\psi ( W ; \\theta _ { 0 } , \\eta _ { 0 } + r ( \\widehat { \\eta } _ { 0 , k } - \\eta _ { 0 } ) ) \\ | \\ ( W _ { i } ) _ { i \\in I _ { k } ^ { c } } ] - E _ { P _ { N } } [ \\psi ( W ; \\theta _ { 0 } , \\eta _ { 0 } ) ] , \\ \\ r \\in [ 0 , 1 ] .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\216b247a1fb6c838dcc3c6d2841435e49cedcef7b3fcf81ae25efa750cb6e0be.png"
+ },
+ {
+  "crop_id": "64f26a6254547bb3f1f11a8e208b6235692b6c03da34cd48baff09d647bcfad0",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 59,
+  "codeformula_latex": "\\sqrt { n } \\sigma ^ { - 1 } ( \\check { \\theta } _ { 0 , k } - \\theta _ { 0 } ) = \\frac { 1 } { \\sqrt { n } } \\sum _ { i \\in I _ { k } } \\bar { \\psi } ( W _ { i } ) + O _ { P _ { N } } ( \\rho _ { N } ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\64f26a6254547bb3f1f11a8e208b6235692b6c03da34cd48baff09d647bcfad0.png"
+ },
+ {
+  "crop_id": "4f759d960069f570d64c0ab9266b21f3b3bb70e1ed3a2b9722cb9ffb833189b0",
+  "shard_id": "full06",
+  "file": "Chernozhukov_2018_double-debiased-machine-learning.pdf",
+  "page": 63,
+  "codeformula_latex": "\\mathcal { I } _ { 1 } & \\colon = \\sup _ { \\theta \\in \\Theta , \\eta \\in \\mathcal { T } _ { N } } \\left \\| E _ { P _ { N } } [ \\psi ( W ; \\theta , \\eta ) ] - E _ { P _ { N } } [ \\psi ( W ; \\theta , \\eta _ { 0 } ) ] \\right \\| , \\\\ \\mathcal { I } _ { 2 } & \\colon = \\max _ { \\eta \\in \\{ \\eta _ { 0 } , \\widehat { \\eta } _ { 0 } \\} } \\sup _ { \\theta \\in \\Theta } \\left \\| \\mathbb { E } _ { n } [ \\psi ( W ; \\theta , \\eta ) ] - E _ { P _ { N } } [ \\psi ( W ; \\theta , \\eta ) ] \\right \\| .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\4f759d960069f570d64c0ab9266b21f3b3bb70e1ed3a2b9722cb9ffb833189b0.png"
+ },
+ {
+  "crop_id": "61b9150763593aca9e355450f9cc8952eb7eb6ba40ef153c7c3d8d2666ccb729",
+  "shard_id": "full18",
+  "file": "Raykar_2010_learning-crowds.pdf",
+  "page": 6,
+  "codeformula_latex": "\\Pr [ \\mathcal { D } | \\theta ] \\ & = \\ \\prod _ { i = 1 } ^ { N } \\{ \\Pr [ y _ { i } ^ { 1 } , \\dots , y _ { i } ^ { R } | y _ { i } = 1 , \\alpha ] \\Pr [ y _ { i } = 1 | x _ { i } , w ] \\\\ & + \\quad \\Pr [ y _ { i } ^ { 1 } , \\dots , y _ { i } ^ { R } | y _ { i } = 0 , \\beta ] \\Pr [ y _ { i } = 0 | x _ { i } , w ] \\} \\, . \\\\ \\text {true label} \\, y _ { i } , \\, \\text {we assume that } y _ { i } ^ { 1 } , \\dots , y _ { i } ^ { R } \\text { are independent, that is, the annotators } \\\\ \\text {indently} \\, ^ { 9 } \\, \\text {Hence} \\, .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\61b9150763593aca9e355450f9cc8952eb7eb6ba40ef153c7c3d8d2666ccb729.png"
+ },
+ {
+  "crop_id": "b6611f853e428c88fe47355d76d30e8cf61f698dbad255ab96cd519c849fdade",
+  "shard_id": "full18",
+  "file": "Reinhart_2018_review-self-exciting-spatio-temporal.pdf",
+  "page": 11,
+  "codeformula_latex": "\\hat { m } _ { 1 } ( s ) = \\frac { 1 } { T } \\sum _ { i = 1 } ^ { n } k ( s - s _ { i } ) ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b6611f853e428c88fe47355d76d30e8cf61f698dbad255ab96cd519c849fdade.png"
+ },
+ {
+  "crop_id": "1493b970d995a741fbe47b8a18893386d95ee9f8ce31f27ec8f2aedf44b8f8b2",
+  "shard_id": "full18",
+  "file": "RST-Net A Semantic Segmentation Network for Remote Sensing Images Based on a Dual-Branch Encoder Structure.pdf",
+  "page": 11,
+  "codeformula_latex": "P r e c i s i o n _ { i } = \\frac { T P _ { i } } { T P _ { i } + F P _ { i } }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\1493b970d995a741fbe47b8a18893386d95ee9f8ce31f27ec8f2aedf44b8f8b2.png"
+ },
+ {
+  "crop_id": "d3153e60e4747824d3c9aec2028004da5c193e14a981b4e0ba2e748c45ef172d",
+  "shard_id": "full18",
+  "file": "Psarakis_2007_spc-procedures-monitoring.pdf",
+  "page": 9,
+  "codeformula_latex": "\\sigma _ { z } ^ { 2 } \\left \\{ \\theta _ { 0 } ^ { 2 } + \\frac { \\alpha ^ { 2 } } { 1 - \\phi ^ { 2 } } + 2 \\left ( \\theta _ { 0 } \\alpha + \\frac { \\phi \\alpha ^ { 2 } } { 1 - \\phi ^ { 2 } } \\right ) \\sum _ { k } ^ { \\infty } \\phi ^ { k - 1 } \\rho ( k ) \\right \\} \\sigma _ { x } ^ { 2 } ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\d3153e60e4747824d3c9aec2028004da5c193e14a981b4e0ba2e748c45ef172d.png"
+ },
+ {
+  "crop_id": "417d5968355816ed9d2adfe43de5e2eca02ce867544ee66ab828261e24a24c1a",
+  "shard_id": "full27",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 386,
+  "codeformula_latex": "\\overline { V } _ { d } ( Z ) & = 1 - e ^ { - \\overline { V } _ { d } ( X ) } , \\\\ \\overline { V } _ { d - 1 } ( Z ) & = \\overline { V } _ { d - 1 } ( X ) e ^ { - \\overline { V } _ { d } ( X ) } ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\417d5968355816ed9d2adfe43de5e2eca02ce867544ee66ab828261e24a24c1a.png"
+ },
+ {
+  "crop_id": "5a1597f83504e8a37cb5ceff1e2a0a61ac9bb29b73ab42a9cad96ed0d3f7258a",
+  "shard_id": "full27",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 396,
+  "codeformula_latex": "\\lim _ { r \\to \\infty } \\frac { | Z _ { r } ^ { 1 } | } { V _ { d } ( r W ) } = 0 , \\quad \\lim _ { r \\to \\infty } \\frac { | Z _ { r } ^ { 2 } | } { V _ { d } ( r W ) } = 1 , \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\5a1597f83504e8a37cb5ceff1e2a0a61ac9bb29b73ab42a9cad96ed0d3f7258a.png"
+ },
+ {
+  "crop_id": "799c1546552dc52fa67e953597a0ee103baecef005ee2f414c6d919b08162f98",
+  "shard_id": "full27",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 401,
+  "codeformula_latex": "b \\colon = c ( d ) \\sup _ { L \\in \\mathcal { K } , \\, L \\subset C ^ { d } } | \\varphi ( L ) | < \\infty \\\\ \\\\ b \\colon = c ( d ) \\sup _ { L \\in \\mathcal { K } , \\, L \\subset C ^ { d } } | \\varphi ( L ) | < \\infty \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\799c1546552dc52fa67e953597a0ee103baecef005ee2f414c6d919b08162f98.png"
+ },
+ {
+  "crop_id": "95b52036d46a4c225a463db823c713181a28ff21336f0cab1e4e66b0316d1dc9",
+  "shard_id": "full29",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 460,
+  "codeformula_latex": "\\sum _ { i = j } ^ { d } ( - 1 ) ^ { d - i } \\sum _ { F \\in \\mathcal { F } _ { i } ( X ) } V _ { j } ( F \\cap B ^ { d } ) = V _ { j } ( B ^ { d } ) \\quad \\text {a.s.} \\quad ( 1 0 . 2 3 )",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\95b52036d46a4c225a463db823c713181a28ff21336f0cab1e4e66b0316d1dc9.png"
+ },
+ {
+  "crop_id": "754a75542f142a1e0b639fb0ad7fcdfa27aaff7e7f369a503ea6aa59d428fb24",
+  "shard_id": "full29",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 481,
+  "codeformula_latex": "^ { - }",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\754a75542f142a1e0b639fb0ad7fcdfa27aaff7e7f369a503ea6aa59d428fb24.png"
+ },
+ {
+  "crop_id": "768210b0d92054a164dd00a6e5f0d3fad68583c769c44f0337eec3f6b3fec3be",
+  "shard_id": "full29",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 459,
+  "codeformula_latex": "V _ { j } ( B ^ { d } ) = \\sum _ { i = j } ^ { d } ( - 1 ) ^ { d - i } \\sum _ { F \\in \\mathcal { F } _ { i } ( m ) } V _ { j } ( F \\cap B ^ { d } ) .",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\768210b0d92054a164dd00a6e5f0d3fad68583c769c44f0337eec3f6b3fec3be.png"
+ },
+ {
+  "crop_id": "cd187f7fda35c38d8e870ab071237a571046700d05917b4ef22161ec273d5192",
+  "shard_id": "full29",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 464,
+  "codeformula_latex": "\\gamma ^ { ( 2 ) } p _ { 2 } = \\gamma ^ { ( 1 ) } w _ { 1 3 } = \\gamma ^ { ( 3 ) } l _ { 3 1 } , \\quad \\gamma ^ { ( 0 ) } a _ { 0 2 } = \\gamma ^ { ( 2 ) } w _ { 2 1 } = \\gamma ^ { ( 1 ) } a _ { 1 2 } ,",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\cd187f7fda35c38d8e870ab071237a571046700d05917b4ef22161ec273d5192.png"
+ },
+ {
+  "crop_id": "b2ec8a13fd4e10de432704735e2f1463222c9ba7205a43713041ee019a529d97",
+  "shard_id": "full29",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 489,
+  "codeformula_latex": "\\ s o t a p { t } { c , \\, \\text { when } } \\\\ d _ { j } ^ { ( k ) } = \\begin{pmatrix} d - j \\\\ d - k \\end{pmatrix} \\begin{pmatrix} d \\\\ j \\end{pmatrix} \\frac { \\kappa _ { d - 1 } ^ { d - j } } { d ^ { d - j } \\kappa _ { d } ^ { d - j - 1 } \\kappa _ { j } } \\widehat { \\gamma } ^ { d - j } \\\\ \\text {cividially} y \\\\ ( k ) \\end{pmatrix}",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\b2ec8a13fd4e10de432704735e2f1463222c9ba7205a43713041ee019a529d97.png"
+ },
+ {
+  "crop_id": "856030fc0165f4c33145cc8882f79e4a149fbf6ca28f264f0445c8fe1cabb0dc",
+  "shard_id": "full29",
+  "file": "Schneider_2008_stochastic-integral-geometry.pdf",
+  "page": 480,
+  "codeformula_latex": "I \\coloneqq & \\\\ \\int _ { S ^ { 1 } } \\int _ { S ^ { 1 } } \\int _ { S ^ { 1 } } L ( \\text {conv} \\{ u _ { 0 } , u _ { 1 } , u _ { 2 } \\} ) A ( \\text {conv} \\{ u _ { 0 } , u _ { 1 } , u _ { 2 } \\} ) \\, \\sigma ( d u _ { 0 } ) \\sigma ( d u _ { 1 } ) \\sigma ( d u _ { 2 } ) \\\\ \\int _ { S ^ { 1 } } \\int _ { S ^ { 1 } } \\int _ { S ^ { 1 } } L ( \\text {conv} \\{ u _ { 0 } , u _ { 1 } , u _ { 2 } \\} ) A ( \\text {conv} \\{ u _ { 0 } , u _ { 1 } , u _ { 2 } \\} ) \\, \\sigma ( d u _ { 0 } ) \\sigma ( d u _ { 1 } ) \\sigma ( d u _ { 2 } ) \\\\",
+  "crop_path": "D:\\edmonds-pipeline\\treedata-pix2tex\\Scripts\\scratch\\pix2tex_eval\\crops_bulk\\856030fc0165f4c33145cc8882f79e4a149fbf6ca28f264f0445c8fe1cabb0dc.png"
+ }
+]

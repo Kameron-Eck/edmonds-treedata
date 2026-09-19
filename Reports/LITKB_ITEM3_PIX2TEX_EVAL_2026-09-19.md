@@ -127,10 +127,10 @@ stdout. Two findings worth flagging on their own:
   pix2tex dropped a `1-e_{32}` term to `0` and dropped the last matrix entry outright.
   Confirmed on the crop both times.
 - Catastrophic garbling (a 1–6-char token repeated 15+ times — the same regex used on
-  the bulk sample in §5) hit 4/20 pix2tex outputs (E01, E03, E07, E19; E03's own
-  garbling is a long run of `\:` spacing tokens) — a failure mode CodeFormula's 20-sample
-  errors never showed; CodeFormula's failures are near-misses or contamination, not
-  collapse.
+  the bulk sample in §5) hit 4/20 pix2tex outputs (**E03, E06, E07, E19** — measured by
+  running the regex, not eyeballed; E03's own garbling is a long run of `\:` spacing
+  tokens, E06's a long run of `~`) — a failure mode CodeFormula's 20-sample errors never
+  showed; CodeFormula's failures are near-misses or contamination, not collapse.
 
 ## 5. Bounded sample of the real corpus (agreement rate only — no gold there)
 
@@ -187,8 +187,9 @@ because that database does not exist on the server** — confirmed directly
 not exist`). Creating it requires `litkb.db.provision.provision_workers`, which connects
 as `_c.SUPERUSER` — genuine server-admin access this evaluation-only item has no reason to
 hold and should not exercise. This is a blocker for the orchestrator, not something worked
-around here: the 23 non-litkb skips and the 2,756 passes are the only litkb-adjacent
-signal this run actually produced.
+around here: this gate exercised only the non-litkb suite (2,756 passed, 23 skipped for
+other reasons, 1 xfailed, the one known-tolerated fail) — zero litkb tests ran, against
+`litkb_test_w13` or anywhere else.
 
 ## 8. Did NOT test
 

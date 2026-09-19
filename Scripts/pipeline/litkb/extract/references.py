@@ -59,6 +59,24 @@ THE RESOLUTION RULE, and why it is not `resolver.resolve_doi`.
     accepted ones is ``ambiguous`` — resolved to nothing, with both DOIs recorded. Stages are tried
     in the resolver's own order (Crossref -> Semantic Scholar -> arXiv) and the first stage with any
     acceptance decides.
+  * **CROSSREF SEARCH, A SECOND PROPOSER, for the reference this whole ladder above cannot even
+    start on**: no parsed title or no parsed first author (`resolve_by_raw_search`, Item 2,
+    2026-09-19). `resolve_by_search` cannot run `judge_candidate` with nothing to search on, so this
+    is the one branch where the query is the RAW citation string instead — Crossref's own
+    bibliographic search, top hit only, handed to the **unchanged** `confirm_s2_candidate` exactly as
+    the S2 leg above hands it a Semantic Scholar candidate. Every refusal therefore keeps the same
+    name (`crossref_title_ratio`, `review_record`, …) and joins the same histogram; `source` on the
+    `Resolution` is `crossref_raw_search` so the two proposers stay distinguishable in a report.
+    Design source: `Reports/LITKB_REFMATCHER_2026-09-15.md` §9 ("Integration point, named, not
+    implemented") — its recommendation, until this landed, was "an argument for a design, not an
+    adopted design" (§9). MEASURED, not assumed: with no parsed first author, `confirm_s2_candidate`'s
+    review detector cannot use its author-position signature at all (`review_signature`'s and
+    `review_hint`'s author branches both require `ref["first_author"]` to be non-empty), and a real
+    review record that does not literally spell "review" in its own Crossref title (neither of two
+    measured cases does — `qc/fixtures/litkb_crossref_raw_search_item2.json`) is refused by
+    `crossref_title_ratio` instead, because `ref["title"]` is empty and `title_match_ratio` on an
+    empty string is 0.0 by construction. The refusal is still correct; the MECHANISM is
+    title-blindness, not discrimination — see `qc/test_litkb_crossref_raw_search.py`.
 
 An arXiv-stage acceptance yields the ``10.48550/arXiv.`` DOI form for the record only and is marked
 ``archive_ok=False``: the graph may use it as a node key, the acquisition path may never ask the
@@ -95,8 +113,8 @@ import xml.etree.ElementTree as ET
 from litkb.admit.registry import confirm_doi
 from litkb.admit.resolver import (ARXIV_DOI_PREFIX, REGISTRY_STAGES, RESOLVE_TITLE_RATIO,
                                   _ascii_fold, _norm_text, _year_int, confirm_s2_candidate,
-                                  family_matches, judge_candidate, normalize_doi, strip_tags,
-                                  title_match_ratio)
+                                  family_matches, judge_candidate, normalize_doi, search_crossref,
+                                  strip_tags, title_match_ratio)
 from litkb.extract.grobid import NS, TEI_NS, parse_coords
 
 STAGE = "6-references"
@@ -612,11 +630,63 @@ def registry_stages(s2=None, ref=None):
                  for name, fn in REGISTRY_STAGES)
 
 
+def resolve_by_raw_search(ref, client, pacer=None, breaker=None):
+    """Crossref SEARCH, a second PROPOSER, for the class `resolve_by_search`'s own ladder can never
+    reach: no parsed title or no parsed first author, so there is nothing to hand `judge_candidate`.
+    Module docstring, "CROSSREF SEARCH, A SECOND PROPOSER" — read that first; this is `resolve_by_
+    search`'s only caller for it, gated to exactly the class named there.
+
+    The one field a parse failure does not remove is the RAW citation string, so that is the query:
+    `resolver.search_crossref`'s own `works?query.bibliographic=<raw>` request, reused unchanged.
+    The top hit — and only the top hit, per the design source's §9 — is a PROPOSAL, never a
+    resolution: it goes to the UNCHANGED `confirm_s2_candidate`, so every refusal keeps its existing
+    name and the histograms stay comparable with the S2 leg's own.
+    """
+    raw = (ref.get("raw") or "").strip()
+    if not raw:
+        return Resolution("unresolved",
+                          reason="no_title_or_author (nothing to search on); raw_search_no_raw_string")
+    if breaker is not None and breaker.is_open("crossref"):
+        return Resolution("unresolved", source="crossref_raw_search",
+                          reason="no_title_or_author (nothing to search on)",
+                          transient="skipped=crossref (rate-limited)")
+    try:
+        cands, err = search_crossref(client, raw, pacer)
+    except Exception as e:                            # a registry outage is not a resolution
+        return Resolution("unresolved", source="crossref_raw_search",
+                          reason=f"registry_error crossref_raw_search: {type(e).__name__}")
+    if breaker is not None:
+        breaker.record("crossref", err)
+    if not cands:
+        return Resolution("unresolved", source="crossref_raw_search",
+                          reason=f"crossref_raw_search_no_candidates ({err or 'no results'})")
+    cand = cands[0]
+    # BEGIN guard: crossref raw-string search is a proposer, never a resolution on its own
+    verdict, why, rec = confirm_s2_candidate(cand, ref, client, pacer)
+    # END guard: crossref raw-string search is a proposer, never a resolution on its own
+    if verdict == "refused":
+        return Resolution("unresolved", source="crossref_raw_search", reason=why)
+    if verdict == "ambiguous":
+        return Resolution("ambiguous", source="crossref_raw_search", reason=why,
+                          candidates=[{"doi": normalize_doi(cand.get("doi") or ""),
+                                       "title": (cand.get("titles") or [""])[0],
+                                       "year": cand.get("year")}])
+    d = (cand.get("doi") or "").strip()
+    d = d if d.startswith(ARXIV_DOI_PREFIX) else normalize_doi(d)
+    if not d:
+        return Resolution("unresolved", source="crossref_raw_search",
+                          reason="accepted at crossref_raw_search but the candidate carries no DOI")
+    return Resolution("resolved", doi=d, source="crossref_raw_search",
+                      reason=f"via=crossref_raw_search; {why}",
+                      registry_title=(rec or {}).get("title") or (cand.get("titles") or [""])[0],
+                      archive_ok=not d.startswith(ARXIV_DOI_PREFIX))
+
+
 def resolve_by_search(ref, client, pacer, breaker=None, s2=None):
     """Title + first author + year, stage by stage, through `judge_candidate`."""
     title, surname, year = ref.get("title") or "", ref.get("first_author") or "", ref.get("year")
     if not title or not surname:
-        return Resolution("unresolved", reason="no_title_or_author (nothing to search on)")
+        return resolve_by_raw_search(ref, client, pacer, breaker)
     best_overall = (0.0, "none", "-")
     skipped = []
     for source, search in registry_stages(s2, ref):

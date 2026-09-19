@@ -342,3 +342,68 @@ decisions:
       the one store of use histories and approvals has any copy.
     evidence:
       - LITERATURE_KB_DESIGN_2026-09-13.md
+
+  - id: litkb-ligature-repair
+    question: >-
+      How is the corpus-wide ligature defect (ff/fi/fl extracted as C0 control bytes, so
+      "floating point" and "oating point" are different search terms) repaired: (a) a new
+      canonical extraction run once the extractor step that resolves ligatures is identified
+      and shown to fix the one measured conflict file; (b) an in-place UPDATE of block text
+      with a per-file byte table; or (c) leave the bytes and normalise only the search index?
+    owner: kam
+    status: open
+    why: >-
+      Measured 2026-09-19 (branch work/20260919-ligature, commit da91101, refereed on
+      work/20260919-referee-items123 commit 2734331): the same C0 byte maps to two different
+      ligatures inside one file, so a fixed byte table is wrong by construction; and any
+      quote_verified use whose quote spans or follows a changed byte flips to false when the
+      block text changes (54/54 spanning, 48/48 after, measured through the real trigger on a
+      worker DB). Today 0 of 8 live uses on current runs are affected; every use recorded
+      before the repair widens that exposure. Option (a) costs a corpus re-extraction and is
+      only worth it if the extractor change is shown first on the conflict file; (b) mutates
+      versioned rows the append-only design says never to mutate; (c) leaves quotes and
+      full text carrying control bytes. The 0x05 glyph (111 occurrences) is unresolved and
+      may be a second defect with the same shape.
+    evidence:
+      - docs/LITKB_AGENT_BASE_BRIEF.md
+      - Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md
+
+  - id: litkb-crossref-raw-proposer
+    question: >-
+      The Crossref raw-string search proposer for the 50 title/author-blind references is
+      built behind the unchanged confirm gate and confirms nothing (0/50 end to end). Ship it
+      as a discovery lead only (proposals recorded, never auto-confirmed), or fund a second
+      build that derives a title and first author from the raw citation string so the gate
+      has something to compare?
+    owner: kam
+    status: open
+    why: >-
+      Measured 2026-09-19 (work/20260919-crossref-proposer 8829558; referee 2734331): the
+      proposer answers all 50 and is right or an edition variant on 25 (referee blind
+      re-score agreed 17/18); the gate refuses all 50 because 28 comparisons run an empty
+      title at ratio 0.0 — the refusal is the routing condition, not discrimination, so the
+      "100% specificity" on the 24 wrong proposals says nothing about the gate. A discovery
+      lead is safe and immediate; the raw-string parse is new, unsettled work. Independently
+      of either choice, one real gate false positive was found (Burnicki_2011 ref b10 refused
+      as review_record because GROBID dropped the first author) and is a small fix.
+    evidence:
+      - Reports/LITKB_IMPROVEMENT_REVIEW_B_2026-09-16.md
+      - Reports/LITKB_REFERENCES_2026-09-15.md
+
+  - id: litkb-second-formula-decoder
+    question: >-
+      Adopt pix2tex agreement with CodeFormula as the `stable` criterion for equation LaTeX,
+      drop the second-decoder idea, or evaluate an architecturally different decoder
+      (PP-FormulaNet via TurboOCR, L4-sized) instead?
+    owner: kam
+    status: open
+    why: >-
+      Measured 2026-09-19 (work/20260919-pix2tex 0b2cae0; referee 2734331): the two decoders
+      agree on 6/20 gold equations and 24/199 of a bulk sample of ingest-accepted crops, and
+      none of the 6 gold agreements was both-wrong. Coverage that low cannot carry the
+      stable classification alone. pix2tex's own correctness (reported 8/20 vs CodeFormula's
+      11/20) is a single nondeterministic run and is not citable until a seeded protocol
+      exists. Any further decoder evaluation is GPU time and a new item.
+    evidence:
+      - Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md
+      - Reports/gold/p5_gold_2026-09-16.json

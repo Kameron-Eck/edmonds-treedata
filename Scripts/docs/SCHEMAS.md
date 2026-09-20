@@ -1761,3 +1761,29 @@ required fields (`.claude/skills/literature/SKILL.md`, "Stage 1 — discover") t
 null or blank. A `hunt_state_or_refusal` outside `litkb_acceptance.CLOSED_STATES` is what the
 acceptance counter `unknown_states` refuses; `error` is deliberately OUTSIDE that vocabulary, so a
 driver that crashed on every row cannot report a full set of known states.
+
+The driver hunts each drop-off **by `hunt_request_id` alone** (plus the row's `ref_scheme`): given
+the id, `hunt` fills `title`/`author`/`year` from the row's `claimed_*` columns itself
+(`litkb.hunt.fill_from_request`), so a title row that lacks its author or year is refused
+`malformed-ref` naming the blank COLUMN, and the driver never carries a second copy of those facts.
+
+## `hunt_requests.ref_scheme` (litkb, migration 0023 widened by 0027)
+
+The one vocabulary, stated by the CHECK constraint `hunt_requests_ref_scheme_check` and by its
+Python twin `litkb.hunt_request.REF_SCHEMES`; the two are held equal by
+`qc/test_litkb_hunt_request.py::test_the_sql_check_and_the_python_vocabulary_agree`, which reads
+the highest-numbered migration that states the CHECK. Values: `doi arxiv jstor isbn pmid pmcid
+openalex s2 handle url tracker legacy_stem title other`. `title` (0027) is a reference carried as
+title + author + year with no identifier. A scheme being RECORDABLE is not a promise a hunt can
+follow it: `litkb.hunt.HUNTABLE` is `doi arxiv url title`, and everything else is refused
+`unsupported-ref-scheme` (S3 owns those routes). The scout's own contract is narrower still —
+`ALLOWED_SCHEMES` in `qc/instruments/litkb_acceptance.py` equals `HUNTABLE`, and a drop-off outside
+it counts as `ref_scheme_outside_set`.
+
+A hunt that cannot follow a reference ends in one of `litkb.hunt.REF_REFUSALS` — `malformed-ref`
+(the string is not a well-formed DOI / arXiv id / URL, or a `title` row lacks author or year),
+`unknown-ref-scheme` (a scheme outside `REF_SCHEMES`), `unsupported-ref-scheme` (recordable, not
+huntable), `ref-scheme-mismatch` (the caller's scheme disagrees with the request row's),
+`unresolved-title` (no registry candidate), `ambiguous-title` (a candidate the confirm gate
+refused). Each is a RESULT in the hunt's return dict, never a traceback; until S3 gives them a
+table, the scout-run CSV above is their only home.

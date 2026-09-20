@@ -26,6 +26,11 @@ introduces (S1): the scout says what kind of thing it dropped off, and hunt refu
 (`ref-scheme-mismatch`) instead of re-guessing. The scheme travels from the drop-off row, never
 from this driver's own reading of the string — re-classifying here would be a second home for the
 same fact (CLAUDE.md 3.3) and would hide exactly the disagreement the refusal exists to surface.
+The same reasoning covers `title`/`author`/`year`: they are NOT passed. Given `hunt_request_id`,
+hunt fills them from the row itself (`litkb.hunt.fill_from_request`: `claimed_title`,
+`claimed_authors` through the one surname parser, `claimed_year`), and an explicit kwarg would
+override that path — bypassing the guard that names the blank COLUMN when a title row lacks its
+author or year. The driver hunts by id alone; a caller passes those kwargs only to correct a row.
 
 Every hunt is wrapped: a raised exception becomes a row with `hunt_ok=false` and
 `hunt_state_or_refusal=error`, never a dead run with nothing written. `error` is outside
@@ -79,10 +84,7 @@ def _hunt_once(hunt, row, *, db, worktree, agent, session, spend):
                    db=db,
                    worktree=worktree,
                    agent=agent,
-                   session=session,
-                   title=row.get("claimed_title"),
-                   author=row.get("claimed_authors"),
-                   year=row.get("claimed_year"))
+                   session=session)
     except Exception as e:                  # noqa: BLE001 — a crash is a ROW, never a dead run
         return False, "error", f"{type(e).__name__}: {str(e).splitlines()[0][:300]}", \
             round(time.monotonic() - t0, 2)

@@ -374,14 +374,16 @@ REQUIRED_FIELDS = ("ref", "ref_scheme", "claimed_title", "claimed_authors", "cla
 ALLOWED_SCHEMES = ("doi", "arxiv", "url", "title")
 
 #: Every value `hunt_state_or_refusal` may take: the ladder states (`litkb.hunt.STATES`), the
-#: deliberate no-spend stop, and the five refusal codes the ref-validating `ref_kind` introduces.
-#: `error` is NOT here, on purpose — see the module docstring.
-#: `test_the_closed_vocabulary_matches_hunts_own` pins the first four against `litkb.hunt.STATES`
-#: so this constant cannot drift away from the module it describes.
+#: deliberate no-spend stop, and the six refusal codes the ref-validating `ref_kind` introduces
+#: (`litkb.hunt.REF_REFUSALS`). `error` is NOT here, on purpose — see the module docstring.
+#: `test_the_closed_vocabulary_matches_hunts_own` pins this against `litkb.hunt.STATES` and
+#: `litkb.hunt.REF_REFUSALS` so this constant cannot drift away from the module it describes —
+#: it already had, once: the builders worked in parallel and the sixth code (`unknown-ref-scheme`)
+#: was added after this list was written.
 CLOSED_STATES = ("absent", "held", "bound-unextracted", "extracted",
                  "held-no-spend",
-                 "malformed-ref", "unsupported-ref-scheme", "unresolved-title",
-                 "ambiguous-title", "ref-scheme-mismatch")
+                 "malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme",
+                 "ref-scheme-mismatch", "unresolved-title", "ambiguous-title")
 
 #: The CSV the driver (qc/instruments/litkb_scout_run.py) writes, and this checker reads.
 RUN_CSV_COLUMNS = ("hr_id", "ref", "ref_scheme", "claimed_title", "claimed_year",

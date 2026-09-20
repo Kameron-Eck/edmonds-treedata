@@ -109,6 +109,14 @@ def _now():
 #: scout may drop off a PMID today and nothing should pretend a hunt can chase it.
 HUNTABLE = ("doi", "arxiv", "url", "title")
 
+#: The refusal codes the ref-VALIDATING path can answer with, closed (S1). A hunt that ends here
+#: ended in a NAMED state — never a traceback — and the scout instrument
+#: (qc/instruments/litkb_acceptance.py CLOSED_STATES) counts anything outside STATES +
+#: `held-no-spend` + this tuple as `unknown_states`; its test pins that constant to this one.
+#: S3 gives these a database home; until then the scout-run CSV is where they are recorded.
+REF_REFUSALS = ("malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme",
+                "ref-scheme-mismatch", "unresolved-title", "ambiguous-title")
+
 #: A DOI's registrant prefix is `10.` plus 4-9 digits, then a slash and a non-empty suffix. Checked
 #: AFTER `normalize_doi` has stripped the `https://doi.org/` / `doi:` wrapper, the invisible
 #: characters and the trailing punctuation, so the shape is tested on the canonical form that
@@ -271,9 +279,9 @@ def resolve_title(ref, author, year, *, client=None, pacer=None):
             (f"no registry returned a candidate for this title (searched by title, first author "
              f"{surname!r} and year {year}). Check the title, or drop the reference off and hunt "
              f"it by identifier." if code == "unresolved-title" else
-             f"a registry candidate was found for this title and gate 0 refused it: the title "
-             f"ratio, the first-author family name or the year did not agree. litkb does not "
-             f"admit a work it is not sure is the one asked for."),
+             "a registry candidate was found for this title and gate 0 refused it: the title "
+             "ratio, the first-author family name or the year did not agree. litkb does not "
+             "admit a work it is not sure is the one asked for."),
             ref_scheme="title", resolver_detail=evidence, surname=surname, year=year)
     # END guard: a title resolves through gate 0 or is refused by name, never admitted on a guess
     return doi, source, evidence

@@ -792,12 +792,13 @@ def test_the_closed_vocabulary_matches_hunts_own(mod):
     """`CLOSED_STATES` stays pinned to `litkb.hunt.STATES`. If hunt gained a ladder state and this
     constant did not, every run carrying it would be refused as `unknown_states`."""
     pytest.importorskip("litkb", reason="litkb imports only with PYTHONPATH=pipeline")
-    from litkb.hunt import STATES
+    from litkb.hunt import REF_REFUSALS, STATES
     assert mod.CLOSED_STATES[:len(STATES)] == tuple(STATES)
     assert "error" not in mod.CLOSED_STATES
-    assert set(mod.CLOSED_STATES) - set(STATES) == {
-        "held-no-spend", "malformed-ref", "unsupported-ref-scheme", "unresolved-title",
-        "ambiguous-title", "ref-scheme-mismatch"}
+    # pinned to hunt's own closed tuple, not to a list retyped here: the merge of the two S1
+    # builders found this constant one code short (`unknown-ref-scheme`)
+    assert set(mod.CLOSED_STATES) - set(STATES) == {"held-no-spend", *REF_REFUSALS}
+    assert len(mod.CLOSED_STATES) == len(STATES) + 1 + len(REF_REFUSALS)
 
 
 def test_the_required_field_set_is_the_eight_the_skill_names(mod):
@@ -885,7 +886,10 @@ def test_the_driver_passes_the_scheme_and_the_request_id_through(driver, tmp_pat
     assert [kw["ref_scheme"] for _, kw in seen] == ["doi"] * 3
     assert [kw["hunt_request_id"] for _, kw in seen] == ["hr-0", "hr-1", "hr-2"]
     assert all(kw["spend"] is False for _, kw in seen)
-    assert all(kw["title"] == GOOD_DROPOFF["claimed_title"] for _, kw in seen)
+    # the row's claimed_* fields are NOT re-sent: given the id, hunt fills them from the row
+    # itself (`litkb.hunt.fill_from_request`), and an explicit kwarg would override that path
+    # and bypass the blank-column guard (merge of the S1 builders, 2026-09-20)
+    assert all(not ({"title", "author", "year"} & kw.keys()) for _, kw in seen)
 
 
 def test_the_driver_never_spends_even_when_the_manifest_omits_the_key(driver, tmp_path):

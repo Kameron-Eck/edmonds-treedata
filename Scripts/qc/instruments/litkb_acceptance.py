@@ -4,6 +4,9 @@ r"""The acceptance instrument for the litkb work plan: a session's "done" is a C
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py plan --file LITKB_WORKPLAN.md
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py disposition --manifest frozen.json
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py guard-checkout --path <wt> --vault <dir>
+    PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py scout --freeze --workstream scout-1 \
+        --topic "…" --launch-cmd "…" --log <run.jsonl> --out <manifest.json>
+    PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py scout --manifest <manifest.json>
 
 WHY THIS EXISTS. A multi-session plan whose sessions are graded by their own author's prose is
 not graded at all. Every subcommand here reads a document or a manifest FROZEN BEFORE the work,
@@ -16,11 +19,11 @@ input in qc/test_litkb_acceptance.py that makes it fail, and the known-bads are 
 the real fixtures, not assertions about the code.
 
 SUBCOMMANDS THAT EXIST TODAY. `plan` (does the work plan still grade itself) and `disposition`
-(did the worktree disposition actually happen), both landing with session S0. `scout`,
-`first-work`, `edges`, `readability`, `run`, `synthesis` and `soak` land with their own sessions
-and are deliberately absent until then — an acceptance command that cannot fail is worse than no
-command. `guard-checkout` is not a session gate: it is the safety interlock the owner runs BEFORE
-removing any checkout.
+(did the worktree disposition actually happen), both landing with session S0; `scout` (did the
+discovery run actually discover), landing with S1. `first-work`, `edges`, `readability`, `run`,
+`synthesis` and `soak` land with their own sessions and are deliberately absent until then — an
+acceptance command that cannot fail is worse than no command. `guard-checkout` is not a session
+gate: it is the safety interlock the owner runs BEFORE removing any checkout.
 
 WHAT `plan` COUNTS, and the choices inside each count, because every one of them is a choice:
 
@@ -57,13 +60,48 @@ TOKENS ARE NEVER READ HERE. Existence, size and containment only; offences name 
 file name, never a byte of content. `guard-checkout` does hash token files, and prints the file
 NAME and nothing else — not the hash, which is itself a value derived from a secret.
 
-The git queries are the two module-level functions `_worktree_list` and `_rev_parse`, injected
-into the checker so the tests can exercise parity without a second remote.
+WHAT `scout` COUNTS, and the two halves it reads. A discovery run is graded against a manifest
+FROZEN BEFORE IT (`scout --freeze`): repo HEAD, the migration tips, the workstream, the baseline
+`hunt_requests` count in it, the launch command verbatim, the log path and the UTC freeze time.
+`scout --manifest` then reads three sources and exits 0 only when every bound holds:
 
-Stdlib only; reads only; writes no file and touches no database. It is not run on Colab, so it
-does not filter an injected `-f` argument (CLAUDE.md 3.10 applies to the Colab entry points).
+  the DATABASE   `dropoffs` (hunt_requests in that workstream created AFTER the freeze; >= 10),
+                 `missing_required_fields` (a drop-off with any of the eight REQUIRED fields null
+                 or blank) and `ref_scheme_outside_set` (a scheme outside ALLOWED_SCHEMES).
+  the DRIVER CSV `missing_hunt_results` (a drop-off with no row in it) and `unknown_states`
+                 (a state outside CLOSED_STATES).
+  the LOG        `human_input_events` and `stated_reason`.
+
+THE VOCABULARY AND THE FIELD SET ARE MODULE CONSTANTS, NOT MANIFEST FIELDS, and the manifest
+records them only so a reader can see what the run was graded against. The manifest is written by
+the session being graded; a gate whose vocabulary that session could widen grades nothing.
+
+`human_input_events` is defined HERE, before any run, from the headless `--output-format
+stream-json` log: the `permission_denials` entries on the final `result` message, plus every
+`AskUserQuestion` tool_use anywhere in the log, plus 1 when `result.subtype` is not `"success"`.
+The three key names were read off a real 1-turn probe of this CLI (`claude -p … --output-format
+json`), not assumed. `stated_reason` is 1 when the log's final text carries a `SCOUT-STOP:` line;
+it is NOT a bound for a real run — the nonsense-topic run is what reads it, because that run's
+whole result is `n=0` with a reason.
+
+A generic `error` refusal is deliberately OUTSIDE `CLOSED_STATES`. hunt() returns `refused:
+"error"` for any unexpected exception, so a driver that crashed on every row would otherwise
+report a full set of "known" states and pass.
+
+The git queries are the two module-level functions `_worktree_list` and `_rev_parse`, injected
+into the checker so the tests can exercise parity without a second remote. The database read is
+the module-level `_hunt_request_rows`, injected the same way.
+
+`plan`, `disposition` and `guard-checkout` are stdlib-only, read-only, and touch no database.
+`scout --freeze` WRITES its manifest and `scout` READS the litkb database, so psycopg and the
+`litkb` package are imported lazily, inside the scout functions only: the other three subcommands
+still run on a machine with neither installed, which is what keeps them usable from CI and from a
+cold checkout. Nothing here ever writes to a database. It is not run on Colab, so it does not
+filter an injected `-f` argument (CLAUDE.md 3.10 applies to the Colab entry points).
 """
 import argparse
+import csv
+import datetime as dt
 import hashlib
 import json
 import os
@@ -321,6 +359,335 @@ def cmd_guard_checkout(args):
     return 2
 
 
+# ── scout ─────────────────────────────────────────────────────────────────────────────────
+
+#: The eight fields a drop-off MUST carry. The database leaves `abstract_passage` nullable; the
+#: scout's contract does not (.claude/skills/literature/SKILL.md, "Stage 1 — discover"), and this
+#: is where that difference is enforced. Blank counts as missing: `claimed_authors = ""` passes
+#: every CHECK the table has and tells the resolver nothing.
+REQUIRED_FIELDS = ("ref", "ref_scheme", "claimed_title", "claimed_authors", "claimed_year",
+                   "expected_claim", "why_relevant", "abstract_passage")
+
+#: Narrower than `hunt_requests.ref_scheme`'s own CHECK (doi, arxiv, jstor, isbn, pmid, pmcid,
+#: openalex, s2, handle, url, tracker, legacy_stem, other). These four are what the hunt that
+#: follows a drop-off can resolve; the rest come back `unsupported-ref-scheme`.
+ALLOWED_SCHEMES = ("doi", "arxiv", "url", "title")
+
+#: Every value `hunt_state_or_refusal` may take: the ladder states (`litkb.hunt.STATES`), the
+#: deliberate no-spend stop, and the five refusal codes the ref-validating `ref_kind` introduces.
+#: `error` is NOT here, on purpose — see the module docstring.
+#: `test_the_closed_vocabulary_matches_hunts_own` pins the first four against `litkb.hunt.STATES`
+#: so this constant cannot drift away from the module it describes.
+CLOSED_STATES = ("absent", "held", "bound-unextracted", "extracted",
+                 "held-no-spend",
+                 "malformed-ref", "unsupported-ref-scheme", "unresolved-title",
+                 "ambiguous-title", "ref-scheme-mismatch")
+
+#: The CSV the driver (qc/instruments/litkb_scout_run.py) writes, and this checker reads.
+RUN_CSV_COLUMNS = ("hr_id", "ref", "ref_scheme", "claimed_title", "claimed_year",
+                   "fields_missing", "hunt_ok", "hunt_state_or_refusal", "message", "seconds")
+
+STOP_LINE = "SCOUT-STOP:"
+
+
+def _utc_now():
+    return dt.datetime.now(dt.timezone.utc)
+
+
+def _parse_utc(text):
+    """An ISO-8601 instant as an AWARE datetime. `hunt_requests.created_at` is timestamptz, and a
+    naive/aware comparison raises — or, worse, a naive one silently compares wall clocks and zeroes
+    `dropoffs` on a machine that is not on UTC."""
+    s = str(text).strip().replace("Z", "+00:00")
+    d = dt.datetime.fromisoformat(s)
+    return d if d.tzinfo else d.replace(tzinfo=dt.timezone.utc)
+
+
+def _repo_root():
+    """The repository root: `Scripts`'s parent. Resolved from this file, never from the cwd."""
+    return SCRIPTS.parent
+
+
+def _repo_head(repo):
+    return (_rev_parse(repo, "HEAD") or "unresolved")
+
+
+def repo_migration_tip():
+    """The highest migration version ON DISK. Always readable; needs no credential."""
+    try:
+        from litkb.db import migrate
+        found = migrate.discover()
+    except Exception:                       # noqa: BLE001 — a tip we cannot read is recorded as null
+        return None
+    return max((row[0] for row in found), default=None)
+
+
+def db_migration_tip(db, passfile=None):
+    """(tip, note). The highest version APPLIED to `db`.
+
+    `litkb_meta` is readable by `litkb_owner` alone — measured: litkb_reader and litkb_writer both
+    get `permission denied for schema litkb_meta`, and litkb_ingest refuses the login outright. So
+    this is an ADMIN read and it is allowed to fail: an unreadable tip is recorded as null with the
+    reason beside it, never silently replaced by the on-disk tip, which is a different fact.
+    """
+    try:
+        from litkb.db import connect as c
+        if passfile:
+            os.environ["PGPASSFILE"] = str(passfile)
+        conn = c.connect_admin(db, c.OWNER, autocommit=True)
+        try:
+            return conn.execute("SELECT max(version) FROM litkb_meta.schema_migrations").fetchone()[0], None
+        finally:
+            conn.close()
+    except Exception as e:                  # noqa: BLE001 — the reason is the useful half
+        return None, f"{type(e).__name__}: {str(e).splitlines()[0][:160]}"
+
+
+def _connect(db, role):
+    from litkb.db import connect as c
+    return c.connect(db, role, autocommit=True)
+
+
+def resolve_workstream(db, role, slug):
+    """The OPEN workstream with this slug, or None. `workstreams_open_slug` is a UNIQUE index on
+    slug WHERE state = 'open', so an open slug names exactly one row — which is why this resolves
+    by slug at all rather than demanding the id be frozen."""
+    conn = _connect(db, role)
+    try:
+        row = conn.execute("SELECT id FROM litkb.workstreams WHERE slug = %s AND state = 'open'",
+                           (slug,)).fetchone()
+        return str(row[0]) if row else None
+    finally:
+        conn.close()
+
+
+def count_hunt_requests(db, role, ws_id):
+    conn = _connect(db, role)
+    try:
+        return conn.execute("SELECT count(*) FROM litkb.hunt_requests WHERE workstream_id = %s",
+                            (ws_id,)).fetchone()[0]
+    finally:
+        conn.close()
+
+
+def _hunt_request_rows(db, role, ws_id, since):
+    """[dict] — every drop-off in `ws_id` created strictly after `since` (an AWARE datetime),
+    oldest first. Module-level so the tests can inject it; the real one opens a reader connection.
+    """
+    conn = _connect(db, role)
+    try:
+        cols = ("id", "ref", "ref_scheme", "claimed_title", "claimed_authors", "claimed_year",
+                "expected_claim", "why_relevant", "abstract_passage", "created_at")
+        rows = conn.execute(
+            "SELECT id, ref, ref_scheme, claimed_title, claimed_authors, claimed_year, "
+            "       expected_claim, why_relevant, abstract_passage, created_at "
+            "  FROM litkb.hunt_requests WHERE workstream_id = %s AND created_at > %s "
+            " ORDER BY created_at, id", (ws_id, since)).fetchall()
+        return [dict(zip(cols, r)) for r in rows]
+    finally:
+        conn.close()
+
+
+def missing_fields(row):
+    """The REQUIRED fields this drop-off leaves null or blank, in contract order."""
+    out = []
+    for f in REQUIRED_FIELDS:
+        v = row.get(f)
+        if v is None or (isinstance(v, str) and not v.strip()):
+            out.append(f)
+    return out
+
+
+def read_run_csv(path):
+    """{hr_id: row} from the driver's CSV. A missing file is an EMPTY mapping, not an error: "the
+    driver never ran" and "the driver skipped every row" must both land on `missing_hunt_results`,
+    which names the drop-offs, rather than on a traceback that names nothing."""
+    p = Path(path)
+    if not p.is_file():
+        return {}
+    with open(p, encoding="utf-8", newline="") as fh:
+        return {str(r.get("hr_id", "")).strip(): r for r in csv.DictReader(fh)}
+
+
+def read_log(path):
+    """(human_input_events, stated_reason, [offence lines]) from a stream-json log.
+
+    Definition fixed BEFORE any run (module docstring). Unparseable lines are skipped: the CLI
+    interleaves nothing else on stdout today, but a log that gained a banner must not make the
+    gate throw — it must still count what it can and say the log was unreadable if it found no
+    result message at all.
+    """
+    p = Path(path)
+    if not p.is_file():
+        return 1, 0, [f"scout log missing: {p}"]
+    events, stated, offences, saw_result = 0, 0, [], False
+    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if not isinstance(msg, dict):
+            continue
+        events += _ask_user_questions(msg)
+        if msg.get("type") == "result":
+            saw_result = True
+            denials = msg.get("permission_denials") or []
+            if denials:
+                events += len(denials)
+                offences.append(f"scout log: {len(denials)} permission denial(s)")
+            subtype = msg.get("subtype")
+            if subtype != "success":
+                events += 1
+                offences.append(f"scout log: result.subtype={subtype!r}, not 'success'")
+            text = msg.get("result") or ""
+            stated = 1 if any(ln.strip().startswith(STOP_LINE)
+                              for ln in str(text).splitlines()) else 0
+    if not saw_result:
+        events += 1
+        offences.append(f"scout log: no final `result` message in {p}")
+    return events, stated, offences
+
+
+def _ask_user_questions(msg):
+    """Every AskUserQuestion tool_use in one stream-json message. The shape is
+    {"message": {"content": [{"type": "tool_use", "name": …}, …]}} on an assistant message; this
+    walks defensively because the gate must not depend on one CLI version's envelope."""
+    content = (msg.get("message") or {}).get("content")
+    if not isinstance(content, list):
+        return 0
+    return sum(1 for b in content if isinstance(b, dict) and b.get("type") == "tool_use"
+               and b.get("name") == "AskUserQuestion")
+
+
+def check_scout(manifest, rows=None, run_csv=None, log=None):
+    """(counters dict, stated_reason, [offence lines]).
+
+    `rows` is injected by the tests; the default reads the database the manifest names.
+    """
+    db = manifest["db"]
+    role = manifest.get("reader_role") or "litkb_reader"
+    ws_id = manifest.get("workstream_id")
+    since = _parse_utc(manifest["frozen_at"])
+    offences = []
+
+    if rows is None:
+        if not ws_id:
+            ws_id = resolve_workstream(db, role, manifest["workstream_slug"])
+        if not ws_id:
+            offences.append(f"no OPEN workstream with slug {manifest['workstream_slug']!r} in {db}")
+            rows = []
+        else:
+            rows = _hunt_request_rows(db, role, ws_id, since)
+
+    # The drop-offs are the rows created AFTER the freeze. A manifest frozen after the run grades
+    # nothing, and says so by counting zero.
+    n_missing, n_scheme = 0, 0
+    for r in rows:
+        gaps = missing_fields(r)
+        if gaps:
+            n_missing += 1
+            offences.append(f"drop-off {r.get('id')}: missing {', '.join(gaps)}")
+        scheme = (r.get("ref_scheme") or "").strip()
+        if scheme not in ALLOWED_SCHEMES:
+            n_scheme += 1
+            offences.append(f"drop-off {r.get('id')}: ref_scheme {scheme!r} outside "
+                            f"{{{', '.join(ALLOWED_SCHEMES)}}}")
+
+    results = read_run_csv(run_csv or manifest["run_csv"])
+    n_noresult, n_unknown = 0, 0
+    for r in rows:
+        hit = results.get(str(r.get("id")))
+        if hit is None:
+            n_noresult += 1
+            offences.append(f"drop-off {r.get('id')}: no row in the driver CSV")
+            continue
+        state = (hit.get("hunt_state_or_refusal") or "").strip()
+        if state not in CLOSED_STATES:
+            n_unknown += 1
+            offences.append(f"drop-off {r.get('id')}: state {state!r} outside the closed vocabulary")
+
+    events, stated, log_offences = read_log(log or manifest["log"])
+    offences += log_offences
+
+    return ({"dropoffs": len(rows),
+             "missing_required_fields": n_missing,
+             "ref_scheme_outside_set": n_scheme,
+             "missing_hunt_results": n_noresult,
+             "unknown_states": n_unknown,
+             "human_input_events": events}, stated, offences)
+
+
+#: The bounds. `dropoffs` is the only one that is a FLOOR; every other counter must be zero.
+MIN_DROPOFFS = 10
+
+
+def scout_ok(counters):
+    return (counters["dropoffs"] >= MIN_DROPOFFS
+            and not any(v for k, v in counters.items() if k != "dropoffs"))
+
+
+def cmd_scout(args):
+    if args.freeze:
+        return _scout_freeze(args)
+    manifest = json.loads(read_text(args.manifest))
+    counters, stated, offences = check_scout(manifest, run_csv=args.csv, log=args.log)
+    for line in offences:
+        print(line, file=sys.stderr)
+    print(" ".join(f"{k}={v}" for k, v in counters.items()) + f" stated_reason={stated}")
+    return 0 if scout_ok(counters) else 1
+
+
+def _scout_freeze(args):
+    for required in ("workstream", "topic", "launch_cmd", "log", "out"):
+        if not getattr(args, required):
+            print(f"scout --freeze needs --{required.replace('_', '-')}", file=sys.stderr)
+            return 2
+    repo = Path(args.repo or _repo_root())
+    role = args.role
+    frozen_at = _utc_now()
+    ws_id = resolve_workstream(args.db, role, args.workstream)
+    baseline = count_hunt_requests(args.db, role, ws_id) if ws_id else 0
+    db_tip, db_tip_note = db_migration_tip(args.db, args.passfile)
+    run_csv = args.csv or str(
+        repo / "Reports" / f"LITKB_SCOUT_RUN_{frozen_at.strftime('%Y-%m-%d')}.csv")
+    manifest = {
+        "kind": "litkb-scout",
+        "frozen_at": frozen_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "repo": str(repo),
+        "repo_head": _repo_head(repo),
+        "db": args.db,
+        "reader_role": role,
+        "repo_migration_tip": repo_migration_tip(),
+        "db_migration_tip": db_tip,
+        "db_migration_tip_note": db_tip_note,
+        "workstream_slug": args.workstream,
+        "workstream_id": ws_id,
+        "baseline_hunt_requests": baseline,
+        "topic": args.topic,
+        "launch_cmd": args.launch_cmd,
+        "log": str(args.log),
+        "run_csv": run_csv,
+        "worktree": str(args.worktree or repo),
+        "spend": False,
+        # recorded for the READER of the manifest; the checker uses the module constants, because
+        # the session being graded writes this file (module docstring).
+        "allowed_ref_schemes": list(ALLOWED_SCHEMES),
+        "closed_states": list(CLOSED_STATES),
+        "required_fields": list(REQUIRED_FIELDS),
+        "min_dropoffs": MIN_DROPOFFS,
+    }
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+    print(f"frozen {out} workstream={args.workstream} id={ws_id} baseline={baseline} "
+          f"head={manifest['repo_head'][:12]} repo_tip={manifest['repo_migration_tip']} "
+          f"db_tip={db_tip}")
+    return 0
+
+
 # ── cli ───────────────────────────────────────────────────────────────────────────────────
 
 def build_parser():
@@ -343,6 +710,23 @@ def build_parser():
     g.add_argument("--path", required=True, help="the checkout root about to be removed")
     g.add_argument("--vault", required=True, help="the token vault directory")
     g.set_defaults(func=cmd_guard_checkout)
+
+    s = sub.add_parser("scout", help="did the discovery run actually discover (S1)")
+    s.add_argument("--freeze", action="store_true",
+                   help="write the manifest BEFORE the run instead of checking one")
+    s.add_argument("--manifest", help="the manifest frozen before the run (check mode)")
+    s.add_argument("--workstream", help="the workstream slug the run opens (freeze)")
+    s.add_argument("--topic", help="the topic the scout is launched on (freeze)")
+    s.add_argument("--launch-cmd", dest="launch_cmd", help="the launch command, verbatim (freeze)")
+    s.add_argument("--log", help="the stream-json log (freeze records it; check reads it)")
+    s.add_argument("--csv", help="the driver's run CSV (default: the manifest's run_csv)")
+    s.add_argument("--out", help="where to write the frozen manifest (freeze)")
+    s.add_argument("--db", default="litkb", help="the database (default: %(default)s)")
+    s.add_argument("--role", default="litkb_reader", help="read role (default: %(default)s)")
+    s.add_argument("--repo", help="repository root (default: this instrument's own)")
+    s.add_argument("--worktree", help="the worktree the run and the driver use")
+    s.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
+    s.set_defaults(func=cmd_scout)
     return ap
 
 

@@ -1,0 +1,2 @@
+{"type":"system","subtype":"init"}
+{"type":"result","subtype":"error_max_turns","is_error":true,"num_turns":30,"permission_denials":[],"result":"SCOUT-STOP: n=10 reason=cap"}

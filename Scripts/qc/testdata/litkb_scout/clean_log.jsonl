@@ -1,0 +1,3 @@
+{"type":"system","subtype":"init","tools":["mcp__litkb__litkb_search","mcp__litkb__litkb_hunt_request_add"]}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__litkb__litkb_hunt_request_add","input":{}}]}}
+{"type":"result","subtype":"success","is_error":false,"num_turns":9,"permission_denials":[],"result":"SCOUT-STOP: n=12 reason=cap\n\nDrop-offs recorded: 12."}

@@ -49,13 +49,36 @@ names another.
    `kind` (method, theorem, parameter, empirical evidence, negative result, context,
    contradiction) and its `stance` — use the database's vocabulary, do not invent a second one.
 4. Write the claim sections. Every assertion carries its quote and its citation. When you cannot
-   say something with a quote in front of you, **do not say it** — put it in `Scope` as a limit
-   of this review, in your own words and with no quote.
+   say something with a quote in front of you, **do not say it.** `Scope` takes the LIMITS of
+   this review — what it read, what it did not, what it could not answer — in your own words,
+   with no quote and no citation, and **no fact about the literature.** Two rules hold there and
+   both matter:
+   * **`Scope` is the one section the grader cannot look inside.** An uncited sentence there
+     asserting something about a paper is a grammar violation that no guard will catch. It is
+     still a violation, and only a reader can catch it, which is exactly why you must not write
+     one.
+   * **There is exactly one `## Scope`.** A second one fails as `duplicate-section`. You may not
+     open a fresh `Scope` under your findings to keep writing.
 5. Write **Expectations not supported**. Walk every EXPECTED line whose `resolution_state` is
-   `contradicted`, `unconfirmed` or `open`, name it by its hunt_request id (and its ref), give
-   its `expected_claim`, and say what was actually found. A contradicted expectation is the most
-   valuable thing in the whole document: it is the pipeline catching itself. Write it plainly and
-   do not soften it.
+   `contradicted`, `unconfirmed` or `open`, name it by its **hunt_request id** (and its ref), and
+   give its `expected_claim`. A contradicted expectation is the most valuable thing in the whole
+   document: it is the pipeline catching itself. Write it plainly and do not soften it.
+
+   **This section is non-claim, so it may not contain a citation token — and it may not assert
+   what the evidence said either.** The two ways of writing "what was actually found" here are
+   both wrong: with a citation it FAILS as `claim-outside-claim-section`, and without one it
+   passes silently as exactly the unpoliced literature assertion the rule above forbids. The
+   grammar's resolution, and the only one to use:
+
+   * **the finding goes in a claim section**, as a cited sentence with its verbatim quote — the
+     same as any other claim;
+   * **the entry here names the expectation**, by hunt_request id, and says what state it came
+     back in. It is about the EXPECTATION, not about the evidence. Point at the claim section by
+     its heading if you want the reader to find the quote.
+
+   So: *"hunt_request `01a0…` (10.1/xyz) expected that X; it came back CONTRADICTED — see
+   *What the record shows*"* — and the sentence that says what the record shows lives there,
+   carrying its quote.
 6. Write the **Sources** table.
 
 ## What you never do

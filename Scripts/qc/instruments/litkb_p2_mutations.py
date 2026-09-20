@@ -1197,6 +1197,20 @@ replace("RC15", f"{PKG}/review_check.py",
         "differently, which is worse than neither -- the block keeps its CRLF while the quote is "
         "rewritten to LF, so every CRLF-crossing quote fails `quote-not-verbatim` while still "
         "passing the span guard", tests=TESTS_REVIEW)
+# RC16: the EXPORT's half, and the only one the writer agent ever touches. Its input is the MCP
+# tool litkb_brief -> brief.build(), never render(), so a canonicalisation that lived in the
+# markdown would have fixed the path nobody walks (auditor 3c). Its tests are the brief's.
+# A `replace`, not a `block`: deleting the dict entry removes the KEY and crashes the exporter,
+# which would "fire" for a reason that is not the defect. This makes the export the identity.
+replace("RC16", f"{PKG}/brief.py",
+        '                "quote": canonical_newlines(quote),',
+        '                "quote": quote,',
+        "the brief hands the writer the stored bytes, CR and all: on a block with `\\r\\n` -- "
+        "48.9 % of current-run blocks -- the agent must reproduce a raw CR byte in its markdown "
+        "for the quote to match, which no LLM has ever been observed doing, so the one "
+        "instruction grammar §3 gives ('copy the quote out of the brief') yields a review that "
+        "cannot pass. render() still canonicalises, which is why only the MCP path breaks -- and "
+        "the MCP path is the writer's only path", tests=TESTS_BRIEF)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

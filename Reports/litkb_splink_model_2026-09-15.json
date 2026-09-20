@@ -1,11 +1,11 @@
 {
     "link_type": "link_only",
-    "probability_two_random_records_match": 0.0008245961233455444,
+    "probability_two_random_records_match": 0.0008237853110315371,
     "retain_matching_columns": true,
     "retain_intermediate_calculation_columns": true,
     "additional_columns_to_retain": [],
     "sql_dialect": "duckdb",
-    "linker_uid": "1jfpg3hj",
+    "linker_uid": "ka3r6rao",
     "em_convergence": 0.0001,
     "max_iterations": 25,
     "bayes_factor_column_prefix": "bf_",
@@ -37,40 +37,40 @@
                 {
                     "sql_condition": "\"title_l\" = \"title_r\"",
                     "label_for_charts": "Exact match on title",
-                    "m_probability": 0.6399461562494585,
-                    "u_probability": 0.0004947576740073266,
+                    "m_probability": 0.6393773689894218,
+                    "u_probability": 0.0004942711866189222,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "jaro_winkler_similarity(\"title_l\", \"title_r\") >= 0.97",
                     "label_for_charts": "Jaro-Winkler distance of title >= 0.97",
-                    "m_probability": 0.038704894697098965,
-                    "u_probability": 3.158027706429744e-05,
+                    "m_probability": 0.03867501219934989,
+                    "u_probability": 3.154922467780354e-05,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "jaro_winkler_similarity(\"title_l\", \"title_r\") >= 0.92",
                     "label_for_charts": "Jaro-Winkler distance of title >= 0.92",
-                    "m_probability": 0.06492471500404225,
-                    "u_probability": 7.105562339466925e-05,
+                    "m_probability": 0.06487577096971443,
+                    "u_probability": 7.098575552505797e-05,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "jaro_winkler_similarity(\"title_l\", \"title_r\") >= 0.85",
                     "label_for_charts": "Jaro-Winkler distance of title >= 0.85",
-                    "m_probability": 0.04176130967949124,
-                    "u_probability": 0.0004552823276769548,
+                    "m_probability": 0.04238799869766365,
+                    "u_probability": 0.00045614920679990954,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "ELSE",
                     "label_for_charts": "All other comparisons",
-                    "m_probability": 0.21466292436990908,
-                    "u_probability": 0.9989473240978568,
+                    "m_probability": 0.21468384914385033,
+                    "u_probability": 0.9989470446263783,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 }
@@ -90,8 +90,8 @@
                 {
                     "sql_condition": "\"first_author_l\" = \"first_author_r\"",
                     "label_for_charts": "Exact match on first_author",
-                    "m_probability": 0.7252869277532398,
-                    "u_probability": 0.001628970461006056,
+                    "m_probability": 0.7245304294802699,
+                    "u_probability": 0.0016270265821743065,
                     "fix_m_probability": false,
                     "fix_u_probability": false,
                     "tf_adjustment_column": "first_author",
@@ -106,16 +106,16 @@
                 {
                     "sql_condition": "jaro_winkler_similarity(\"first_author_l\", \"first_author_r\") >= 0.9",
                     "label_for_charts": "Jaro-Winkler distance of first_author >= 0.9",
-                    "m_probability": 0.01338280876392914,
-                    "u_probability": 0.00038066988011370656,
+                    "m_probability": 0.013369579402312228,
+                    "u_probability": 0.0003802156201135709,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "ELSE",
                     "label_for_charts": "All other comparisons",
-                    "m_probability": 0.26133026348283106,
-                    "u_probability": 0.9979903596588803,
+                    "m_probability": 0.2620999911174178,
+                    "u_probability": 0.9979927577977121,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 }
@@ -135,32 +135,32 @@
                 {
                     "sql_condition": "\"year_l\" = \"year_r\"",
                     "label_for_charts": "Exact match on year",
-                    "m_probability": 0.5238642826802653,
-                    "u_probability": 0.018412219945715808,
+                    "m_probability": 0.5231452352529309,
+                    "u_probability": 0.018401845386065256,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "ABS(\"year_l\" - \"year_r\") <= 1",
                     "label_for_charts": "Absolute difference of 'year' <= 1",
-                    "m_probability": 0.04526640015709076,
-                    "u_probability": 0.03568610632787623,
+                    "m_probability": 0.04642984671011976,
+                    "u_probability": 0.035667301686378286,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "ABS(\"year_l\" - \"year_r\") <= 3",
                     "label_for_charts": "Absolute difference of 'year' <= 3",
-                    "m_probability": 0.09624637939604988,
-                    "u_probability": 0.07176202319625839,
+                    "m_probability": 0.09614104310306983,
+                    "u_probability": 0.07172616273987527,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "ELSE",
                     "label_for_charts": "All other comparisons",
-                    "m_probability": 0.3346229377665941,
-                    "u_probability": 0.8741396505301495,
+                    "m_probability": 0.3342838749338796,
+                    "u_probability": 0.8742046901876812,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 }
@@ -180,32 +180,32 @@
                 {
                     "sql_condition": "\"journal_l\" = \"journal_r\"",
                     "label_for_charts": "Exact match on journal",
-                    "m_probability": 0.4121742597213343,
-                    "u_probability": 0.002877710300875147,
+                    "m_probability": 0.41192390523443095,
+                    "u_probability": 0.002874880693892969,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "jaro_winkler_similarity(\"journal_l\", \"journal_r\") >= 0.95",
                     "label_for_charts": "Jaro-Winkler distance of journal >= 0.95",
-                    "m_probability": 0.03891964203339721,
-                    "u_probability": 0.00044161451959267553,
+                    "m_probability": 0.03889732055842282,
+                    "u_probability": 0.0004411802870267044,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "jaro_winkler_similarity(\"journal_l\", \"journal_r\") >= 0.85",
                     "label_for_charts": "Jaro-Winkler distance of journal >= 0.85",
-                    "m_probability": 0.1797351711402816,
-                    "u_probability": 0.008473658992772531,
+                    "m_probability": 0.17963994134465772,
+                    "u_probability": 0.008465326978030376,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 },
                 {
                     "sql_condition": "ELSE",
                     "label_for_charts": "All other comparisons",
-                    "m_probability": 0.3691709271049869,
-                    "u_probability": 0.9882070161867597,
+                    "m_probability": 0.3695388328624885,
+                    "u_probability": 0.98821861204105,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 }
@@ -225,8 +225,8 @@
                 {
                     "sql_condition": "\"volume_l\" = \"volume_r\"",
                     "label_for_charts": "Exact match on volume",
-                    "m_probability": 0.907737840317534,
-                    "u_probability": 0.010716340069793304,
+                    "m_probability": 0.9076105254950104,
+                    "u_probability": 0.010722921991459924,
                     "fix_m_probability": false,
                     "fix_u_probability": false,
                     "tf_adjustment_column": "volume",
@@ -235,8 +235,8 @@
                 {
                     "sql_condition": "ELSE",
                     "label_for_charts": "All other comparisons",
-                    "m_probability": 0.09226215968246596,
-                    "u_probability": 0.9892836599302067,
+                    "m_probability": 0.09238947450498958,
+                    "u_probability": 0.98927707800854,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 }
@@ -256,8 +256,8 @@
                 {
                     "sql_condition": "\"pages_l\" = \"pages_r\"",
                     "label_for_charts": "Exact match on pages",
-                    "m_probability": 0.19448724665040146,
-                    "u_probability": 0.0011062478957241113,
+                    "m_probability": 0.19447125481890987,
+                    "u_probability": 0.001136454581832733,
                     "fix_m_probability": false,
                     "fix_u_probability": false,
                     "tf_adjustment_column": "pages",
@@ -266,8 +266,8 @@
                 {
                     "sql_condition": "ELSE",
                     "label_for_charts": "All other comparisons",
-                    "m_probability": 0.8055127533495985,
-                    "u_probability": 0.9988937521042759,
+                    "m_probability": 0.80552874518109,
+                    "u_probability": 0.9988635454181672,
                     "fix_m_probability": false,
                     "fix_u_probability": false
                 }

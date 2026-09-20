@@ -438,7 +438,7 @@ def test_g_a_workstream_that_is_no_longer_open_widens_nothing(kb):
     kb["conn"].execute("UPDATE litkb.workstreams SET state = 'merged', closed_at = now(), "
                        "merge_commit = %s WHERE id = %s",
                        (uuid.uuid4().hex + uuid.uuid4().hex[:8], kb["ws"]["A"]))
-    after, briefed, used = _mcp([
+    after, briefed, used, mine, cands = _mcp([
         ("litkb_search", {"query": QUERY, "limit": 50}),
         ("litkb_brief", {}),
         ("litkb_record_use", {
@@ -446,7 +446,9 @@ def test_g_a_workstream_that_is_no_longer_open_widens_nothing(kb):
             "kind": "context", "quote": PASSAGE[:80], "block_id": block,
             "gap": f"web-gate-merged-{uuid.uuid4().hex[:6]}",
             "gap_question": "does a merged workstream still quote its proposal?",
-            "feeds": "decision litkb-web-source-gate"})], env)
+            "feeds": "decision litkb-web-source-gate"}),
+        ("litkb_my_uses", {}),
+        ("litkb_candidates", {})], env)
     assert after["ok"], after
     assert block not in block_ids(after), ("a merged workstream still reads its proposal", after)
     assert unapproved_hits(kb, after) == [], after
@@ -454,6 +456,13 @@ def test_g_a_workstream_that_is_no_longer_open_widens_nothing(kb):
         after["proposals"]
     assert briefed["ok"] is False and briefed["refused"] == "workstream-not-open", briefed
     assert used["ok"] is False and used["refused"] == "workstream-not-open", used
+    # MUTATION ROWS W12/W13. The same rule at the two other tools that answer ABOUT one workstream
+    # from its own `ws_heads`/`candidates`: each already presented the token and neither looked at
+    # the state, so a merged worktree read its own proposed versions back as though the branch were
+    # still in flight. `litkb_ws_status` is deliberately NOT in this list — reporting the state is
+    # its job, and it is the tool that tells a session why the other four now refuse.
+    assert mine["ok"] is False and mine["refused"] == "workstream-not-open", mine
+    assert cands["ok"] is False and cands["refused"] == "workstream-not-open", cands
     # and nothing was written by the refused call
     assert kb["conn"].execute(
         "SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s AND entity = 'use'",
@@ -487,6 +496,53 @@ def test_h_a_stale_token_file_refuses_search_and_names_the_file(kb):
     assert "REFUSED" in r["message"], r["message"]
     assert "removed" in r["message"] and "opened" in r["message"], r["message"]
     assert gone not in json.dumps(r), "the refusal named the workstream"
+
+
+# ── (i) the quote path presents the token BEFORE it widens ────────────────────────────────
+
+@pg_only
+def test_i_record_use_presents_the_token_before_it_widens(kb):
+    """MUTATION ROW (W11), and the hole this branch opened at its second call site.
+
+    `litkb_search` widens only after `_require_token` — the P8 referee's F-1 rule, because a
+    workstream id is not a secret. `litkb_record_use` resolved its workstream with `_session()` and
+    presented that token to nobody: it bound the UNVERIFIED id straight into
+    `visibility.FILE_JOIN`, so a `.litkb-workstream` naming a real workstream with a wrong token
+    reached that workstream's unapproved proposal blocks. The WRITE was still refused — the
+    database checks the token on `write_proposal` — but the refusals on the way there are built
+    from the block: `quote-not-in-block` returns the proposal's `work_key`, which is a fact about a
+    source no second session has approved and this caller cannot read.
+
+    THE QUOTE IS DELIBERATELY NOT IN THE BLOCK, and that is what lets this row tell the two worlds
+    apart. With the guard the call is refused `bad-token` having resolved nothing. Without it the
+    block resolves, the quote misses, and the refusal names the work — and a row that asserted only
+    `refused == "bad-token"` would pass in both worlds, because the database refuses the write on
+    the token either way."""
+    from litkb import workstream
+
+    _work, _file, block = propose_web_source(kb)
+    key = kb["conn"].execute(
+        "SELECT w.key FROM litkb.blocks b JOIN litkb.files f ON f.id = b.file_id "
+        "JOIN litkb.file_versions fv ON fv.file_id = f.id "
+        "JOIN litkb.works w ON w.id = fv.work_id WHERE b.id = %s LIMIT 1", (block,)).fetchone()[0]
+    forged = _git_worktree(kb["tmp"] / "forged-use")
+    (forged / workstream.TOKEN_FILE).write_text(
+        json.dumps({"workstream_id": kb["ws"]["A"], "token": "0" * 64}), encoding="utf-8")
+    r = _mcp([("litkb_record_use", {
+        "statement": "tries to quote a proposal with a forged token",
+        "kind": "context", "quote": "a sentence that is nowhere in that block at all",
+        "block_id": block, "gap": f"web-gate-forged-{uuid.uuid4().hex[:6]}",
+        "gap_question": "does a forged token resolve a block?",
+        "feeds": "decision litkb-web-source-gate"})],
+        dict(kb["env"], LITKB_WORKTREE=str(forged)))[0]
+    assert r["ok"] is False and r["refused"] == "bad-token", r
+    assert key not in json.dumps(r), ("the refusal named the proposal's work", r)
+    assert block not in json.dumps(r), ("the refusal named the block", r)
+    assert kb["ws"]["A"] not in json.dumps(r), "the refusal named the workstream"
+    # nothing was written: the gap this call would have opened does not exist
+    assert kb["conn"].execute(
+        "SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s AND entity = 'gap'",
+        (kb["ws"]["A"],)).fetchone()[0] == 0, "a forged token opened a gap"
 
 
 @pg_only

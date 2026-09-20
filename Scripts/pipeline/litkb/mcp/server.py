@@ -227,11 +227,10 @@ def _require_open(conn, ws_id):
     an InvalidParameterValue that `_guarded` turns into an opaque `error`; this makes the refusal
     the read path's own, before a row is read or a gap is proposed.
 
-    AT `_brief` this runs only after `_require_token`, so the state is told to nobody who has not
-    proved the workstream is theirs. AT `_record_use` it does NOT: that function presents its token
-    to the DATABASE on the write and checks none itself, so it already binds an unverified
-    workstream id into `visibility.FILE_JOIN` one statement later. The call-site comment there says
-    what that costs. Do not read the `_brief` property as this function's."""
+    Every call site runs this AFTER `_require_token`, so a workstream's state is told to nobody who
+    has not presented its token. That was not true of `_record_use` when this function was written —
+    it checked no token itself and left that to the database's own check on the write — and the
+    fix was to give `_record_use` the token check rather than to accept the disclosure."""
     if not visibility.is_open(conn, ws_id):
         row = conn.execute("SELECT state FROM litkb.workstreams WHERE id = %s", (ws_id,)).fetchone()
         raise Refusal("workstream-not-open",
@@ -683,6 +682,9 @@ def _my_uses(limit=50):
     ws_id, token = _session()
     with _conn("reader") as conn:
         _require_token(conn, ws_id, token)
+        # BEGIN guard: my_uses reads an OPEN workstream
+        _require_open(conn, ws_id)
+        # END guard: my_uses reads an OPEN workstream
         rows = conn.execute(
             "SELECT uv.version_id::text, u.id::text, w.key, g.slug, uv.statement, uv.kind, "
             "       uv.status, uv.state, uv.feeds, uv.created_at, "
@@ -724,6 +726,9 @@ def _candidates(limit, state=None):
     ws_id, token = _session()
     with _conn("reader") as conn:
         _require_token(conn, ws_id, token)
+        # BEGIN guard: candidates reads an OPEN workstream
+        _require_open(conn, ws_id)
+        # END guard: candidates reads an OPEN workstream
         # `ids`, not `identifiers`: that is the column 0001_core.sql defines, and this statement
         # named the wrong one from the day it was written. It never showed, because the P8 gate's
         # only candidates test is the one that refuses WITHOUT a workstream — with a real
@@ -904,13 +909,25 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
                        "quote.", length=len(statement), cap=STATEMENT_MAX)
     # END guard: the statement is a statement
     with _conn("writer") as conn:
+        # BEGIN guard: the quote path presents the workstream token before it widens
+        # The P8 referee's F-1 rule at this function, which did not have it. Until 2026-09-20 the
+        # block lookup below joined `main_files`, so an unverified workstream id bought nothing and
+        # presenting the token could be left to the DATABASE on the write. The web-source decision
+        # changed that: the lookup now binds this id into `visibility.FILE_JOIN`, and a workstream
+        # id is not a secret — a tracked report prints one. So a `.litkb-workstream` naming a real
+        # workstream with a wrong token reached that workstream's unapproved proposals here. The
+        # write was still refused, but the refusals BUILT FROM THE BLOCK leak: `quote-not-in-block`
+        # returns `work_key`, and `stale-run` and `work-mismatch` are facts about a source no second
+        # session has approved. Refused here, before the block is resolved.
+        _require_token(conn, ws_id, token)
+        # END guard: the quote path presents the workstream token before it widens
         # BEGIN guard: a use is recorded into an OPEN workstream
-        # Before the block lookup, because that lookup is the half this decision WIDENED: it binds
-        # the caller's workstream into visibility.FILE_JOIN, and a merged or abandoned workstream
-        # may not read its unapproved proposals back (audit item 4). The database refuses the write
-        # itself (`_write_version`, 0007:41-44) — this makes the refusal legible and makes it
-        # happen before a row is read. It discloses one bit (the state) to a caller whose token the
-        # DATABASE would have refused; the block lookup below already trusted the same id.
+        # Before the block lookup, for the same reason: that lookup is the half this decision
+        # WIDENED, and a merged or abandoned workstream may not read its unapproved proposals back
+        # (audit item 4). The database refuses the write itself (`_write_version`, 0007:41-44) with
+        # an InvalidParameterValue that `_guarded` turns into an opaque `error`; this makes the
+        # refusal legible, and makes it happen before a row is read or a gap is proposed. It runs
+        # AFTER the token check above, so the state is told to nobody who has not presented it.
         _require_open(conn, ws_id)
         # END guard: a use is recorded into an OPEN workstream
         # BEGIN guard: every feeds token is in the convention's vocabulary

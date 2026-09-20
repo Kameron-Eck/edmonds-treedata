@@ -55,10 +55,19 @@ that has been merged or abandoned — the write functions refuse on `workstreams
 `ws_heads` load-bearing for SEARCH. A merged workstream's `.litkb-workstream` survives the merge
 (nothing deletes it), so without `is_open` below a finished worktree would go on searching, briefing
 and quoting material that never entered main. `is_open` is that check, in Python rather than in a
-new migration. Where the caller's token is checked in Python — `server._caller_workstream` (search)
-and `server._brief` — the state is asked AFTER that check, so a workstream's state is told to
-nobody who has not proved it owns it. `server._record_use` checks no token itself (the DATABASE
-refuses its write), so that one property does not hold there; its call-site comment says so.
+new migration, and it is asked AFTER the token is presented at every site that asks it: a
+workstream's state is told to nobody who has not presented its token.
+
+THE TOKEN IS PRESENTED AT EVERY WIDENING SITE, and that is what makes it safe to grant this
+widening on a file sitting in the worktree (the P8 referee's F-1: a workstream id is not a secret —
+a tracked report prints one). `server._caller_workstream` (search), `server._record_use` (the quote
+path) and `server._brief` each call `_require_token` before the id below is bound. `_record_use`
+did not, for one day: it had always left the token to the DATABASE's check on the write, which was
+sound while its block lookup joined `main_files` and an unverified id bought nothing — and stopped
+being sound the moment that lookup began binding `ws`, because the refusals built from the block
+(`quote-not-in-block` carries `work_key`) then describe a source the caller may not read
+(`qc/test_litkb_web_gate.py::test_i_record_use_presents_the_token_before_it_widens`). The CLI's
+`use.locate_quote` takes `ws` from its caller and defaults to None; `commands.py` passes none.
 """
 
 

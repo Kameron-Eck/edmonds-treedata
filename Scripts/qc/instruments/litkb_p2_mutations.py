@@ -1189,6 +1189,29 @@ replace("W10", f"{PKG}/commands.py",
         "exists to hold, in the artifact Kam reviews inside the merge (auditor-2a §7.2)",
         tests=TESTS_WEB)
 
+# W11: the F-1 rule at the QUOTE path. `_record_use` left the token to the database's own check on
+# the write, which was sound for as long as its block lookup joined `main_files`: an unverified
+# workstream id bought nothing. The moment that lookup began binding `ws` (row W4's target), the
+# same id bought another workstream's unapproved proposals — and the refusals BUILT FROM THE BLOCK
+# describe them (`quote-not-in-block` carries `work_key`). Measured before the guard existed: a
+# forged token got `quote-not-in-block` carrying the block id, not `bad-token`.
+site("W11", "litkb/mcp/server.py::_record_use::_require_token", "None", tests=TESTS_WEB,
+     what="the quote path stops presenting the token before it widens: a .litkb-workstream naming "
+          "a real workstream with a forged token resolves that workstream's unapproved proposal "
+          "block and is told the work it belongs to — the P8 referee's F-1 attack, at the site "
+          "this decision gave a reason to check and that had never needed one before")
+# W12-W13: the same state rule at the two other tools that answer ABOUT one workstream from its own
+# ws_heads/candidates. Both already presented the token; neither looked at the state.
+# `litkb_ws_status` is deliberately NOT gated — reporting the state is its job.
+block("W12", f"{PKG}/mcp/server.py", "guard: my_uses reads an OPEN workstream",
+      "litkb_my_uses keeps reading a MERGED workstream's proposed versions back as though the "
+      "branch were still in flight — the same read-after-merge the audit found at search and brief",
+      tests=TESTS_WEB)
+block("W13", f"{PKG}/mcp/server.py", "guard: candidates reads an OPEN workstream",
+      "litkb_candidates keeps listing a merged workstream's discovery log, so a finished worktree "
+      "reads as a live one at the tool a loop uses to decide what is left to acquire",
+      tests=TESTS_WEB)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

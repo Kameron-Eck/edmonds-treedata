@@ -920,7 +920,7 @@ def test_the_driver_records_a_no_spend_stop_as_held_no_spend(driver, tmp_path):
 
 def test_retry_rehunts_only_the_named_states_and_keeps_the_replaced_rows(driver, tmp_path):
     """`--retry admission-refused` re-hunts exactly those rows, replaces them in place, and
-    writes the replaced rows to <csv>.retried; every other row is resumed untouched."""
+    writes the replaced rows to <stem>_retried.csv; every other row is resumed untouched."""
     import csv
 
     calls = []
@@ -945,7 +945,7 @@ def test_retry_rehunts_only_the_named_states_and_keeps_the_replaced_rows(driver,
     assert calls[3:] == ["10.1/1"] and (n_new, n_done) == (1, 2)
     by = {r["hr_id"]: r["hunt_state_or_refusal"] for r in rows}
     assert by == {"hr-0": "extracted", "hr-1": "held-no-spend", "hr-2": "extracted"}
-    kept = list(csv.DictReader(open(str(out) + ".retried", encoding="utf-8")))
+    kept = list(csv.DictReader(open(driver.retried_path(out), encoding="utf-8")))
     assert [(r["hr_id"], r["hunt_state_or_refusal"]) for r in kept] == [("hr-1", "admission-refused")]
 
 

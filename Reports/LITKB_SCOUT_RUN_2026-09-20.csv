@@ -1,0 +1,10 @@
+hr_id,ref,ref_scheme,claimed_title,claimed_year,fields_missing,hunt_ok,hunt_state_or_refusal,message,seconds
+01a0c100-dc61-701d-ae08-92bcaf263fc1,10.1007/s11252-007-0040-9,doi,"Difficulties with estimating city-wide urban forest cover change from national, remotely-sensed tree canopy maps",2008,,true,extracted,,0.34
+01a0c100-dca8-7671-a72b-e70a6539ce2a,10.1117/1.jrs.6.063567,doi,High-resolution tree canopy mapping for New York City using LIDAR and object-based image analysis,2012,,true,extracted,,0.25
+01a0c100-db26-7143-9572-42074f871340,2412.05728,arxiv,Integrating YOLO11 and Convolution Block Attention Module for Multi-Season Segmentation of Tree Trunks and Branches in Commercial Apple Orchards,2024,,true,held-no-spend,,0.27
+01a0c100-da45-79ef-8433-06f2c04c9ffb,10.1117/1.jrs.14.034501,doi,Individual tree crown detection and delineation across a woodland using leaf-on and leaf-off imagery from a UAV consumer-grade camera,2020,,true,held-no-spend,,0.28
+01a0c100-da92-7a0d-96a2-edd5016db426,10.3390/rs15184366,doi,Tree Stem Detection and Crown Delineation in a Structurally Diverse Deciduous Forest Combining Leaf-On and Leaf-Off UAV-SfM Data,2023,,true,held-no-spend,,0.28
+01a0c100-dada-7ee8-b0fc-43875702c522,10.5194/egusphere-egu26-14442,doi,"UAV-LiDAR based tree species identification under leaf-on, leaf-off, and combined canopy conditions in a mixed temperate forest",2026,,true,held-no-spend,,0.33
+01a0c100-db70-798b-bb68-6d24aafabdf8,10.3390/rs15030765,doi,Urban Tree Canopy Mapping Based on Double-Branch Convolutional Neural Network and Multi-Temporal High Spatial Resolution Satellite Imagery,2023,,true,held-no-spend,,0.34
+01a0c100-dbbb-7de7-a50a-8858b02f2b93,10.1371/journal.pone.0054776,doi,Influence of Vegetation Structure on Lidar-derived Canopy Height and Fractional Cover in Forested Riparian Buffers During Leaf-Off and Leaf-On Conditions,2013,,true,held-no-spend,,0.45
+01a0c100-dc04-7952-bbd3-54ddab5d8de2,10.3390/rs12091505,doi,Mapping Seasonal Tree Canopy Cover and Leaf Area Using Worldview-2/3 Satellite Imagery: A Megacity-Scale Case Study in Tokyo Urban Area,2020,,true,held-no-spend,,0.33

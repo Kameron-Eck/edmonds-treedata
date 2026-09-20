@@ -117,7 +117,8 @@ def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=No
     verdict. The first scout run (2026-09-20) had an arXiv drop-off answer `admission-refused`
     because arXiv returned a 406 for two minutes; the same hunt admitted the work an hour later.
     A ledger that could only be appended to would carry that 406 forever as the drop-off's
-    outcome. The replaced row is not lost: it is written to ``<csv>.retried`` first."""
+    outcome. The replaced row is not lost: it is written to ``<stem>_retried.csv`` first (a
+    .csv so Reports/ tracks it — a ``.retried`` suffix was gitignored)."""
     acc = _acceptance()
     db = manifest["db"]
     role = manifest.get("reader_role") or "litkb_reader"
@@ -143,7 +144,7 @@ def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=No
     retry = set(retry or ())
     retried = [r for r in done if r.get("hunt_state_or_refusal") in retry]
     if retried:
-        _append(Path(str(out) + ".retried"), retried, acc.RUN_CSV_COLUMNS)
+        _append(retried_path(out), retried, acc.RUN_CSV_COLUMNS)
         done = [r for r in done if r.get("hunt_state_or_refusal") not in retry]
     seen = {str(r.get("hr_id", "")).strip() for r in done}
     written = list(done)
@@ -172,6 +173,12 @@ def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=No
     if not written:
         _write(out, written, acc.RUN_CSV_COLUMNS)      # the header alone, so the file always exists
     return n_new, len(done), written
+
+
+def retried_path(out):
+    """The audit trail of rows a `--retry` replaced, beside the ledger, as a tracked .csv."""
+    out = Path(out)
+    return out.with_name(out.stem + "_retried.csv")
 
 
 def _append(path, rows, columns):
@@ -216,7 +223,7 @@ def main(argv=None):
                     help="stop after this many NEW hunts (a bounded first pass)")
     ap.add_argument("--retry", default="",
                     help="comma-separated states whose rows are hunted again and replaced "
-                         "(the replaced rows go to <csv>.retried); for transient conditions "
+                         "(the replaced rows go to <stem>_retried.csv); for transient conditions "
                          "such as admission-refused after a registry 406, never for verdicts")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
     manifest = json.loads(Path(a.manifest).read_text(encoding="utf-8"))

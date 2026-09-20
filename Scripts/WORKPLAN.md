@@ -204,7 +204,25 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 ### RUNNING (external)
 (none — the literature hunt completed 2026-09-06; angle-10 relaunch is QUEUED)
 
-### LITERATURE KNOWLEDGE BASE (litkb) — pick-up point for a new session (2026-09-19)
+### LITERATURE KNOWLEDGE BASE (litkb) — pick-up point for a new session (2026-09-20)
+
+**OPERATIONAL — the definition was MET on 2026-09-20 (run 2).** Verdict, numbers and what is
+still not proven: `decisions.yaml` → `litkb-operational-verdict` and
+`Reports/LITKB_OPERATIONAL_PROVING_RUN_2026-09-20.md`. Built and audited that day, all on
+`work/20260920-operational` (pushed, NOT merged — Kam merges): the web-source gate
+(`litkb-web-source-gate`, searchable only inside the OPEN workstream that proposed it,
+token-checked at every widening site), the index-only ligature normaliser (migration `0025`,
+`litkb-ligature-repair`; live: `misclassification` 612 → 906 hits, block bytes unchanged),
+STAGE 8 (`.claude/agents/review-writer.md`, `docs/LITKB_REVIEW_GRAMMAR.md`, the deterministic
+K1/K2 grader `py -3.12 -m litkb review-check <review.md> --workstream current`), and migration
+`0026` (quotes verify on canonical newlines — the defect run 1 exposed). Live DB tip is 26.
+The two proving-run reviews are `Reports/reviews/` on `work/20260920-proving-run`. Audit trail:
+`D:\tools\claude-config\jobs\litkb-operational\` (17 reports; STATE.md is the run's memory).
+Operating facts learned: after a merge in `treedata`, an open session's MCP server is stale
+until `/mcp` reconnect (editable install → treedata); a headless `claude -p` in a worktree with
+`--mcp-config .mcp.json --strict-mcp-config` gets fresh litkb tools scoped to that worktree.
+Next: Kam merges; promote the proving-run workstreams (promotion has never run on live);
+the ~209 held works with no extracted text are the next recall lever.
 
 **KAM DECIDED SIX THINGS 2026-09-19. All six are in [`decisions.yaml`](decisions.yaml) with the
 reasoning; they are NOT restated here beyond the one line each a reader needs to act.**

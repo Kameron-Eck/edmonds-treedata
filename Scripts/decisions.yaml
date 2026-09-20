@@ -489,6 +489,38 @@ decisions:
     evidence:
       - Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md
 
+  - id: litkb-operational-verdict
+    question: >-
+      Did the agentic literature review meet `litkb-operational-definition` on a real,
+      unattended run — and what does the run say the loop still lacks?
+    owner: kam
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      MET, on run 2 (commit a9d6fc2, branch work/20260920-proving-run). Full loop, unattended,
+      headless Opus in its own worktree; 13 citations over 8 blocks; K1 mechanical PASS by
+      `litkb review-check --workstream current` (shown to bite: one changed character FAILs);
+      K1 in full 0/13 overreach by Codex reading each quote against the FULL block text; K2
+      FIRED — the seeded false expectation (OSM labels outperform hand labels, Kaiser 2017)
+      came back CONTRADICTED with the contradicting quote recorded, Benedek 2015 UNCONFIRMED,
+      both disclosed by hunt_request id and confirmed in the live DB. Run 1 (00bf81c) FAILED
+      K1 in full (about half its sentences overreached single-line fragments); the cause was
+      mechanical and is fixed by migration 0026 (quotes verify on canonical newlines). The loop
+      KEEPS a different-model review of the OUTPUT as its last stage: paraphrase is the one K1
+      escape no deterministic grader closes, and it is what caught run 1. Three editorial
+      residuals from run 2 (an 8-word claim-section title implying unconfirmed status; a false
+      Scope sentence about the review's own sourcing; an incomplete CONTRADICTED disclosure)
+      are grammar/grader tightenings on fix/20260920-grammar-residuals, outside the definition.
+      Kam ratifies by merging; the proving-run workstreams are the first candidates for
+      promotion, which has never been exercised on live.
+    why: >-
+      The definition was fixed before the run so it could pass or fail rather than be graded
+      after the fact; grading it against Codex's stricter editorial bar instead would be
+      renegotiating it downward in the other direction. Every number above is read from a
+      tracked file or the live DB, none from the run's own report (CLAUDE.md §3.4c).
+    evidence:
+      - Reports/LITKB_OPERATIONAL_PROVING_RUN_2026-09-20.md
+
   - id: litkb-web-source-gate
     question: >-
       Web sources found by a review agent land as manual proposals and stay out of search

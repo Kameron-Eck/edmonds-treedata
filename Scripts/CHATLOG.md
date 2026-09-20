@@ -46,6 +46,15 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-20  litkb OPERATIONAL — definition MET on run 2 (Fable 5.1 orchestrating ~20 Opus workers + Codex)
+goal:    agentic lit review operational per `litkb-operational-definition` (full loop, unattended, K1 + K2 fire)
+did:     3 builds + 8 fix cycles + 8 audits, all merged on `work/20260920-operational` @ 18edc73: web-source gate (2a), index-only ligature normaliser 0025 (2b), stage 8 = review-writer agent + `docs/LITKB_REVIEW_GRAMMAR.md` + grader `litkb review-check` (25 code mutations fire), 0026 quotes verify on canonical newlines. Proving run 1 @ 00bf81c: loop + K2 fired, K1-in-full FAILED (half sentences overreach single-line fragments — record_use rejected quotes crossing `
+`, 48.9% of blocks). Fixed, Kam applied 0025+0026 to live (tip 26), run 2 @ a9d6fc2: review-check PASS, Codex 0/13 overreach with block context, K2 fired (1 CONTRADICTED, 1 UNCONFIRMED). Verdict recorded `litkb-operational-verdict`.
+decided: grade against the FIXED definition, not Codex's editorial bar (no renegotiation either way). Keep different-model output review as last loop stage (paraphrase is the K1 escape no grader closes). 0024 RETIRED not renumbered (0025 woven through instruments). Merge order 2a→2b (0025 showcase block is a web proposal).
+killed:  R1 "append beside token" normaliser rule — lexemes here CONTAIN spaces (collation), any insertion loses lexemes; PREPEND instead (old text = byte suffix, 0/372,192 lost). Per-line quote grammar — 7/8 real verified spans cross CRLF. Fixed byte→ligature table (one C0 byte = two ligatures in one file).
+files:   Reports/LITKB_OPERATIONAL_PROVING_RUN_2026-09-20.md; decisions.yaml; WORKPLAN.md litkb section; pipeline/litkb/{visibility,review_check,use,brief,textnorm}.py; db/migrations/0025,0026; qc/test_litkb_{web_gate,review_check,textnorm_index}.py; audit trail `D:\tools\claude-config\jobs\litkb-operational\` (17 reports)
+next:    fix/20260920-grammar-residuals (3 Codex editorial items, in flight) → audit → merge. Kam merges to main. Promote proving-run workstreams (never run on live). 209 held works unextracted. Machine: PROJ_LIB/GDAL_DATA deleted by Kam (25 rasterio reds gone).
+
 ## 2026-09-12  LIT ROUND 5 — inventory (know / derived / need-by-reading / need-by-measuring / don't know) then 3 searches to move items into "know"
 goal:    Kam: "establish what we know, what we don't know, what we need more information on; then find the studies." Inventory given in chat; searches targeted the "closable by reading" bin.
 did:     3 Sonnet searchers (stats; urban forestry D_k(τ); misalignment priors) + Fable Sci-Hub pass by DOI (one bare curl per call) + Efron's Stanford page.

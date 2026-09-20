@@ -501,7 +501,17 @@ def test_ref_shapes_each_end_in_a_named_result(env, row):
     kw = dict(row.get("inputs") or {})
     if row.get("seed"):
         s = row["seed"]
-        seed_extracted(env["conn"], env["ws_id"], s["scheme"], s["value"], state=s["state"])
+        # SEED ONLY IF ABSENT. `title` and `title-by-request-id` resolve to the SAME DOI —
+        # deliberately, because they are two routes to one work — and admission is one work per
+        # identifier across the whole knowledge base, so seeding it twice hits
+        # `identifiers_active_scheme_value`. The check also keeps either row runnable ALONE: it
+        # seeds when nothing is there and reuses when the other row already ran.
+        exists = env["conn"].execute(
+            "SELECT 1 FROM litkb.ws_identifiers WHERE view_workstream_id = %s AND scheme = %s "
+            "  AND status = 'active' AND value_norm = litkb.norm_identifier(%s, %s)",
+            (env["ws_id"], s["scheme"], s["scheme"], s["value"])).fetchone()
+        if not exists:
+            seed_extracted(env["conn"], env["ws_id"], s["scheme"], s["value"], state=s["state"])
     if row["fetch"] == "explode":
         kw["fetch"] = _explode
     elif row["fetch"] == "html":
@@ -517,12 +527,25 @@ def test_ref_shapes_each_end_in_a_named_result(env, row):
         kw["pacer"] = _no_wait_pacer()
     else:
         kw["registry_client"] = _NoNet()
+    if row.get("hunt_request"):
+        from litkb import hunt_request as HR
+        hr = row["hunt_request"]
+        kw["hunt_request_id"] = str(HR.record(
+            env["conn"], env["ws_id"], _token(env), ref=row["ref"],
+            ref_scheme=hr["ref_scheme"], expected_claim="a drop-off hunted by its id",
+            why_relevant=row["id"], claimed_title=hr.get("claimed_title"),
+            claimed_authors=hr.get("claimed_authors"), claimed_year=hr.get("claimed_year"),
+            agent="hunt-test", session="hunt-test-session"))
 
     res = _hunt(env, row["ref"], ref_scheme=row["ref_scheme"], **kw)
 
     want = row["expect"]
     assert res["ok"] is want["ok"], res
     assert res["ref_kind"] == want["ref_kind"], res
+    if want.get("filled"):
+        assert res["from_hunt_request"]["filled"] == want["filled"], res
+    if want.get("first_author"):
+        assert res["from_hunt_request"]["first_author"] == want["first_author"], res
     if want["ok"]:
         assert res["state"] == want["state"], res
         assert res["outcome"] == want["outcome"], res
@@ -590,9 +613,13 @@ def test_a_wrong_work_scoring_just_under_the_ratio_is_refused():
     CANDIDATE'S OWN record (Plackett / 1975): both of those checks PASS and the ratio is the only
     check that can refuse. Without that, lowering the ratio would change nothing and this would
     be a test of the year rule wearing the ratio's name.
-    `qc/fixtures/litkb_title_gate_wrong_work.json` carries the capture, its provenance and the one
-    deviation from the S1 brief it was frozen under. No network: the frozen body is served for
-    Crossref and 404 for Semantic Scholar and arXiv."""
+
+    THE SENT STRING AND THE RESOLVED STRING ARE THE SAME STRING, which is what makes the capture
+    usable as evidence at all: `qc/fixtures/litkb_title_gate_wrong_work.json` freezes the exact
+    request URL, the verbatim response, its sha256 and the fetch time, and its `resolved_title`
+    IS its `_provenance.query_sent`. A fixture whose query differed from the title under test
+    would record an interaction that never happened. No network here: the frozen body is served
+    for Crossref and 404 for Semantic Scholar and arXiv."""
     from litkb.admit import resolver as R
 
     fx = _title_gate()
@@ -642,6 +669,40 @@ def test_the_drop_offs_own_scheme_wins_and_a_disagreeing_one_is_refused(env):
     assert ok["ok"] is True and ok["ref_kind"] == "doi", ok
     assert ok["work_key"] == seeded["key"], ok
     assert ok["hunt_request"]["ok"] is True, ok
+
+
+@pg_only
+def test_ref_shapes_an_explicit_argument_beats_the_drop_offs_claimed_fields(env):
+    """Row HS5c, the other side of the fill rule. The ROW fills what the caller left EMPTY; it
+    never overrides what the caller said. A scout mis-types a surname and a year, a session
+    corrects them on the command line — and the correction has to be reachable.
+
+    The proof is not "the result mentions the right surname": it is that the hunt RESOLVES at all.
+    Gate 0 refuses on the first-author family name, so with the precedence inverted the row's
+    `Nobodyson` / 1902 reach `judge_candidate`, every candidate is refused on author and year, and
+    the hunt comes back `ambiguous-title` instead of reaching the seeded work."""
+    from litkb import hunt_request as HR
+
+    fx = _title_gate()
+    title = fx["expected"]["top_candidate_title"]
+    hr = HR.record(env["conn"], env["ws_id"], _token(env), ref=title, ref_scheme="title",
+                   expected_claim="an explicit argument beats the row",
+                   why_relevant="row HS5c", claimed_authors="Nobodyson, Q.",
+                   claimed_year=1902, agent="hunt-test", session="hunt-test-session")
+    exists = env["conn"].execute(
+        "SELECT 1 FROM litkb.ws_identifiers WHERE view_workstream_id = %s AND scheme = 'doi' "
+        "  AND status = 'active' AND value_norm = litkb.norm_identifier('doi', %s)",
+        (env["ws_id"], fx["expected"]["top_candidate_doi"])).fetchone()
+    if not exists:
+        seed_extracted(env["conn"], env["ws_id"], "doi", fx["expected"]["top_candidate_doi"])
+    res = _hunt(env, title, hunt_request_id=str(hr), author=fx["surname"], year=fx["year"],
+                fetch=_explode, pacer=_no_wait_pacer(),
+                registry_client=_CrossrefSearchStub(
+                    json.dumps(fx["crossref_search_body"]).encode("utf-8")))
+    assert res["ok"] is True, res
+    assert res["resolved"]["doi"] == fx["expected"]["top_candidate_doi"], res
+    # the row filled NOTHING: both fields the caller gave explicitly
+    assert "from_hunt_request" not in res or res["from_hunt_request"]["filled"] == [], res
 
 
 @pg_only

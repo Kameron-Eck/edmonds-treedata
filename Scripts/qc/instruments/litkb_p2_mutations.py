@@ -1745,6 +1745,26 @@ hu(block, "HS5", f"{PKG}/hunt.py",
    "an explicit --ref-scheme silently overrides the scheme the hunt_request recorded: the work "
    "is linked to an expectation written about a different reference, and hunt_request_status "
    "then reads confirmed/contradicted for the wrong one")
+# HS5b/HS5c, 2026-09-20: the drop-off does not only carry a SCHEME. A lit-scout records
+# claimed_title / claimed_authors / claimed_year, and a driver hunts the request by its id alone —
+# so the row has to fill what the caller left empty (HS5b) and must never override what the caller
+# said (HS5c). Two rows because they are two different failures of the same call site: not reading
+# the row at all, and reading it too eagerly.
+hu(block, "HS5b", f"{PKG}/hunt.py",
+   "call site: the drop-off's claimed fields fill what the caller left empty",
+   "a hunt following up a drop-off stops reading the row's claimed_title / claimed_authors / "
+   "claimed_year: a `title` request hunted by its id ALONE is refused `malformed-ref` for fields "
+   "the database was holding two columns away — which is every title the lit-scout drops off")
+hu(replace, "HS5c", f"{PKG}/hunt.py",
+   "    return (title or claimed[\"title\"] or None,\n"
+   "            author or claimed[\"authors\"] or None,\n"
+   "            year or claimed[\"year\"] or None)",
+   "    return (claimed[\"title\"] or title or None,\n"
+   "            claimed[\"authors\"] or author or None,\n"
+   "            claimed[\"year\"] or year or None)",
+   "the precedence is INVERTED: the row overrides an explicit --title/--author/--year instead of "
+   "filling around them, so a caller correcting a scout's mis-typed surname is handed the "
+   "mis-typed one back and the correction is unreachable")
 hu(block, "HS6", f"{PKG}/hunt.py",
    "guard: a title reference carries an author surname and a year, or it is refused",
    "a title is resolved with no surname and no year: judge_candidate refuses every candidate for "

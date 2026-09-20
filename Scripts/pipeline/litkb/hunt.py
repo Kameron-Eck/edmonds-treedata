@@ -597,6 +597,12 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
     idempotent). Naming a request requires ``agent``/``session`` even for an otherwise label-less
     cached lookup, because linking is a write.
 
+    Naming a request also DEFAULTS this hunt's ``title``, ``author`` and ``year`` from that row's
+    ``claimed_title`` / ``claimed_authors`` / ``claimed_year`` (:func:`fill_from_request`), so a
+    driver can hunt a `title` drop-off by its id alone. An explicit argument always wins; a row
+    that is itself silent on a field still reaches the missing-field refusal, which then names the
+    blank COLUMN rather than a flag the caller never had.
+
     ``ref_scheme`` (S1, 2026-09-20): the scheme the caller DECLARES this reference is, one of
     ``hunt_request.REF_SCHEMES``. Given, it is what the reference is validated against; absent,
     the scheme is inferred from the shape and a shape nothing matches is `malformed-ref` rather
@@ -678,7 +684,8 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     # ── the reference itself: validated, never classified (S1, 2026-09-20) ──────────────────
     declared = ref_scheme
     if hunt_request_id:
-        row_scheme = _request_scheme(db, hunt_request_id, reader_role)
+        request = _request_row(db, hunt_request_id, reader_role)
+        row_scheme = (request or {}).get("ref_scheme")
         # BEGIN guard: the drop-off's own scheme outranks an explicit one that disagrees with it
         # A hunt_request is the RECORD of what the scout meant by this reference. Overriding it
         # silently would link a work to an expectation written about something else, and
@@ -697,6 +704,18 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         # a request id this workstream cannot see leaves `declared` alone: the LINK below is where
         # that is reported, and it reports it without failing a hunt that reached a real state
         declared = row_scheme or declared
+        # BEGIN call site: the drop-off's claimed fields fill what the caller left empty
+        was = (title, author, year)
+        title, author, year = fill_from_request(request, title, author, year)
+        if (title, author, year) != was:
+            from litkb.admit.front import first_author_of
+            out["from_hunt_request"] = {
+                "id": hunt_request_id,
+                "filled": [n for n, a, b in zip(("title", "author", "year"), was,
+                                                (title, author, year)) if a != b],
+                "author_string": author,
+                "first_author": first_author_of(author) if author else None}
+        # END call site: the drop-off's claimed fields fill what the caller left empty
     kind, ref = validate_ref(ref, declared)
     out["ref_kind"] = kind
     lookup_kind, lookup_ref = kind, ref
@@ -707,16 +726,25 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         # "year unknown" / "first author '' != ''" and the hunt reports `ambiguous-title` for a
         # reference that was never resolvable. Guessing them is worse: the resolver would then
         # accept on the title ratio alone, which is exactly the check a wrong sibling edition
-        # passes. Name the missing field and stop.
-        missing = [n for n, v in (("--author (an author surname)", author), ("--year", year))
+        # passes. Name what is missing and stop.
+        #
+        # WHAT IT NAMES depends on where the hunt was told to look. `fill_from_request` has
+        # already run, so when a drop-off was named and the field is STILL empty, the gap is in
+        # the ROW and the refusal says which COLUMN is blank — a driver hunting by id has no
+        # `--author` to reach for, and being told to pass one it cannot pass is the kind of
+        # message an unattended loop stalls on.
+        cols = {"--author (an author surname)": "claimed_authors", "--year": "claimed_year"}
+        missing = [(f"{cols[n]} (the drop-off's own column)" if hunt_request_id else n)
+                   for n, v in (("--author (an author surname)", author), ("--year", year))
                    if not v]
         if missing:
             raise HuntRefused(
                 "malformed-ref",
                 f"a title reference is resolved by title AND first-author surname AND year, and "
-                f"this hunt was given neither of: {', '.join(missing)}. litkb does not guess "
-                f"either — a title alone matches a sibling edition as well as the work.",
-                ref_scheme="title", missing=[m.split()[0] for m in missing])
+                f"this hunt has neither of: {', '.join(missing)}. litkb does not guess either — "
+                f"a title alone matches a sibling edition as well as the work.",
+                ref_scheme="title", missing=[m.split()[0] for m in missing],
+                hunt_request=hunt_request_id)
         # END guard: a title reference carries an author surname and a year, or it is refused
         t0 = time.monotonic()
         doi, source, evidence = resolve_title(ref, author, year, client=registry_client,
@@ -1006,24 +1034,55 @@ def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, d
                   "refusals": refusals, "seconds": timing} | _report(db, ws_id, held, reader_role)
 
 
-def _request_scheme(db, hunt_request_id, reader_role=None):
-    """The `ref_scheme` the drop-off records, or None when no such request can be read.
+def _request_row(db, hunt_request_id, reader_role=None):
+    """The drop-off's own row, or None when no such request can be read by this reader.
 
     Read through `hunt_request.status` (the `hunt_request_status` view), so there is no second
     copy of that row's shape here. None is NOT an error: a request id that names nothing this
-    reader can see leaves the scheme to the caller's own declaration or to the shape, and the LINK
+    reader can see leaves the scheme and the fields to the caller's own arguments, and the LINK
     call site downstream is where that id's real problem is reported — without failing a hunt that
     otherwise reached a real state (`_link_hunt_request`'s own rule)."""
     from litkb import hunt_request
 
     conn = _reader(db, reader_role)
     try:
-        row = hunt_request.status(conn, hunt_request_id)
-    except Exception:                            # noqa: BLE001 — a malformed id is not a scheme
+        return hunt_request.status(conn, hunt_request_id)
+    except Exception:                          # noqa: BLE001 — a malformed id is not a drop-off
         return None
     finally:
         conn.close()
-    return (row or {}).get("ref_scheme")
+
+
+def fill_from_request(row, title, author, year):
+    """The drop-off's claimed fields fill ONLY what the caller left empty. -> (title, author, year)
+
+    WHY THIS EXISTS. A lit-scout records what it found — `claimed_title`, `claimed_authors`,
+    `claimed_year` — and then a driver hunts the drop-off by its id. Without this, a `title`
+    request hunted by id alone reaches the missing-field guard and is refused `malformed-ref` for
+    fields the database is already holding two columns away. Reading the record is not guessing;
+    the guard below still fires when the record itself is silent, which is the case it is for.
+
+    AN EXPLICIT ARGUMENT ALWAYS WINS. A caller who passes `--author` is correcting the drop-off,
+    and a row that overrode it would make the correction unreachable.
+
+    THE SURNAME RULE, AND WHERE IT LIVES. `claimed_authors` is an author STRING and the resolver
+    needs a first-author family name: split on `;` / ` and ` / `&` / ` et al.`, take the first
+    entry, and the surname is the part before the first comma when there is one, else the last
+    whitespace token ('Averkov, G. & Bianchi, G.' -> 'Averkov'; 'Bradley Efron' -> 'Efron'). That
+    rule is NOT implemented here — it is `litkb.admit.front.first_author_of`, which already IS it
+    and is the one home for it (CLAUDE.md §3.3). This function fills `author` with the row's raw
+    string and lets the single existing parser extract the surname where the resolver asks for it,
+    rather than adding a second copy that could drift from the first."""
+    claimed = {
+        "title": (row or {}).get("claimed_title"),
+        "authors": (row or {}).get("claimed_authors"),
+        "year": (row or {}).get("claimed_year"),
+    }
+    # BEGIN guard: a drop-off's claimed fields fill only what the caller left empty
+    return (title or claimed["title"] or None,
+            author or claimed["authors"] or None,
+            year or claimed["year"] or None)
+    # END guard: a drop-off's claimed fields fill only what the caller left empty
 
 
 def _link_hunt_request(db, ws_id, token, hunt_request_id, work_id, agent, session, writer_role,

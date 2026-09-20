@@ -351,7 +351,23 @@ decisions:
       and shown to fix the one measured conflict file; (b) an in-place UPDATE of block text
       with a per-file byte table; or (c) leave the bytes and normalise only the search index?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-19"
+    decision: >-
+      Option (c): normalise the SEARCH INDEX only; stored block bytes are never rewritten.
+      Chosen because it closes the whole recall hole at once while every one of the 393
+      recorded verified quotes survives by construction — no byte a quote points at changes,
+      so the 54/54-spanning and 48/48-after breakage measured on the worker DB cannot occur
+      at all. It also sidesteps the finding that killed (b): one C0 byte means two different
+      ligatures inside a single file, so no fixed byte table is correct. It is reversible, needs
+      no re-extraction, and leaves (a) available later if stored text must ever be clean.
+      Accepted cost, stated plainly: full text and quotes keep their control bytes, so a
+      human reading a stored quote still sees the artifact — the search layer hides it, and
+      nothing pretends the bytes were fixed. DE-HYPHENATION IS FOLDED INTO THE SAME
+      NORMALISATION PASS (see litkb-crossref-raw-proposer): the measured Hampel case
+      ("Robust Statis- tics") is the identical class of defect and the same index pass
+      recovers it. The 0x05 glyph (111 occurrences) is handled by the same index pass if it
+      proves to be the same shape; it needs no separate decision under (c).
     why: >-
       Measured 2026-09-19 (branch work/20260919-ligature, commit da91101, refereed on
       work/20260919-referee-items123 commit 2734331): the same C0 byte maps to two different
@@ -376,7 +392,25 @@ decisions:
       build that derives a title and first author from the raw citation string so the gate
       has something to compare?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-19"
+    decision: >-
+      Ship as a DISCOVERY LEAD ONLY — proposals are recorded and surfaced for an agent to
+      verify against the document, never auto-confirmed. 50% proposal precision is useful to
+      a reader and far too low to trust silently: auto-accepting would inject ~25 wrong edges
+      into the citation graph, which is the failure the planted-book-review kill exists to
+      catch. The raw-string title/author parse is NOT funded, and the reason is the measured
+      shape of the gap rather than its size: inspection of the live rows shows only 26 of 643
+      references carry a blank parsed title, and they are not one problem. Some are two
+      references glued into one row by a segmentation failure, in an old journal style that
+      has NO article title to extract — no parser can produce one. Others (Hampel 1986) do
+      carry their title and lose it only to PDF hyphenation, which the index normalisation
+      above now recovers for free. So the leverage is: (1) de-hyphenation in the normalisation
+      pass, decided under litkb-ligature-repair; (2) give the confirm gate a SECOND comparison
+      path for title-less citation styles — author + year + journal + volume + page — rather
+      than a better title; (3) read whatever handful survives both. Each of (1) and (2) pays
+      off across the corpus instead of only these 26 rows. The Burnicki_2011 b10 false
+      positive (GROBID dropped the first author) is a separate small fix and stands.
     why: >-
       Measured 2026-09-19 (work/20260919-crossref-proposer 8829558; referee 2734331): the
       proposer answers all 50 and is right or an edition variant on 25 (referee blind
@@ -396,7 +430,22 @@ decisions:
       drop the second-decoder idea, or evaluate an architecturally different decoder
       (PP-FormulaNet via TurboOCR, L4-sized) instead?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-19"
+    decision: >-
+      DROP the second-decoder idea for now; `latex_status` remains the guard. pix2tex is out
+      on the referee's finding, not on coverage: two fresh runs disagree on 8 of 20 crops, and
+      a STABILITY criterion cannot be built on a nondeterministic source — it would inherit the
+      instability it is supposed to detect. Coverage of 6/20 gold and 24/199 bulk could not
+      carry the classification even from a deterministic decoder. No architecturally different
+      decoder (PP-FormulaNet / TurboOCR) is funded either: the damage today is bounded because
+      LaTeX at ~55% gold correctness is already FLAGGED by `latex_status` and never trusted
+      silently, so the honest-labelling machinery is doing the job a second decoder would do
+      more expensively. Citation anchoring (all 643 references unanchored) and the
+      managing-agent step are worth more per hour. RE-OPEN CONDITION, so this is not a
+      permanent no: if a literature review's conclusion comes to depend on a mathematical
+      claim read out of an equation, a second decoder becomes load-bearing and this is
+      revisited with a seeded, deterministic protocol as the entry bar.
     why: >-
       Measured 2026-09-19 (work/20260919-pix2tex 0b2cae0; referee 2734331): the two decoders
       agree on 6/20 gold equations and 24/199 of a bulk sample of ingest-accepted crops, and
@@ -407,3 +456,80 @@ decisions:
     evidence:
       - Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md
       - Reports/gold/p5_gold_2026-09-16.json
+
+  - id: litkb-operational-definition
+    question: >-
+      What does "operational" mean for the agentic literature review, stated before the
+      proving run so the run can be passed or failed rather than graded after the fact?
+    owner: kam
+    status: decided
+    decided: "2026-09-19"
+    decision: >-
+      THE FULL LOOP, UNATTENDED, WITH A REQUIRED NEGATIVE. A topic goes in; a cited literature
+      review comes out; every claim in the output traces to a verified quote carrying work key,
+      page and block_id; no human acts in the middle. Two pre-committed kill criteria, and both
+      must be evaluated on the run's real output:
+      (1) any claim in the review that does not trace to a verified quote = FAIL;
+      (2) at least one dropped-off expectation must return CONTRADICTED or UNCONFIRMED = the
+      honesty machinery is required to FIRE, not merely to be present.
+      Criterion (2) is the load-bearing half. A run in which every expectation is confirmed
+      proves only that the happy path works, and the whole reason `hunt_request` records an
+      agent's prior BEFORE the full text arrives is to catch a review agent that misread an
+      abstract. A pipeline that cannot demonstrate catching itself is not operational.
+      This definition deliberately tests stage 8 — brief to written review — which is the one
+      stage with no evidence behind it: every upstream stage exists and has run, but no agent
+      has ever consumed a brief and produced the review document from it.
+    why: >-
+      The system was already declared "operational with caveats" on 2026-09-16, so the word
+      carries no discriminating power until it is redefined against this target. This project's
+      own method demands the criteria be fixed first: the P7 bake-off froze its gold set by
+      sha256 BEFORE running precisely so the result could not be graded against itself
+      (CLAUDE.md §3.4c — a design may not be accepted on numbers it produced about itself, and
+      a kill criterion must be shown to fire before it counts as a gate).
+    evidence:
+      - Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md
+
+  - id: litkb-web-source-gate
+    question: >-
+      Web sources found by a review agent land as manual proposals and stay out of search
+      until a second session approves them, which stalls any unattended loop. Keep the gate,
+      drop it, or move the boundary?
+    owner: kam
+    status: decided
+    decided: "2026-09-19"
+    decision: >-
+      MOVE THE BOUNDARY: a web source becomes SEARCHABLE INSIDE ITS OWN WORKSTREAM
+      immediately, so the loop keeps moving, and still cannot reach the PROMOTED record
+      without a human approval. The gate's purpose is protecting the authoritative record, and
+      promotion is that boundary — search visibility inside an open workstream is not. The
+      protection is therefore kept in full while the stall is removed. Unreviewed material can
+      be reasoned over and quoted within the workstream that found it; it becomes part of what
+      the project authoritatively knows only when a person promotes it.
+    why: >-
+      Required by litkb-operational-definition: an unattended run cannot include a human round
+      trip per web find. Without this change "unattended" would have to exclude web sources
+      altogether, which contradicts the pipeline's first stage (open-web discovery).
+    evidence:
+      - Reports/LITKB_P8_ACCESS_2026-09-15.md
+
+  - id: litkb-librarian-tier-and-roster-home
+    question: >-
+      Should the librarian agent move off `model: opus` to Sonnet for a lookup-and-quote role,
+      and should the three-layer agent roster move from user scope into the repository?
+    owner: kam
+    status: decided
+    decided: "2026-09-19"
+    decision: >-
+      LEAVE BOTH AS THEY ARE. The librarian stays on Opus and the roster
+      (`fable-orchestrator`, `sonnet-builder`, `sonnet-auditor`) stays in user scope at
+      `C:\Users\Kameron\.claude\agents\`. Recorded rather than left implicit because both carry
+      a known cost that a later session will otherwise rediscover and "fix" without the
+      context: the roster is not a reviewable diff, which cuts against the reason the agent
+      base brief was deliberately moved INTO the repository; and the librarian's tier is
+      higher than its task needs.
+    why: >-
+      Both are reversible and neither blocks the operational target, so neither is worth
+      spending a decision cycle on now. User scope also works from all 19 worktrees today,
+      including branches that predate the litkb merge — which a repo-tracked roster would not.
+    evidence:
+      - docs/LITKB_AGENT_BASE_BRIEF.md

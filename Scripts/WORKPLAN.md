@@ -204,7 +204,22 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 ### RUNNING (external)
 (none — the literature hunt completed 2026-09-06; angle-10 relaunch is QUEUED)
 
-### LITERATURE KNOWLEDGE BASE (litkb) — pick-up point for a new session (2026-09-16)
+### LITERATURE KNOWLEDGE BASE (litkb) — pick-up point for a new session (2026-09-19)
+
+**KAM DECIDED SIX THINGS 2026-09-19. All six are in [`decisions.yaml`](decisions.yaml) with the
+reasoning; they are NOT restated here beyond the one line each a reader needs to act.**
+
+| decision | outcome |
+|---|---|
+| `litkb-operational-definition` | **"Operational" = the FULL LOOP, UNATTENDED, WITH A REQUIRED NEGATIVE.** Topic in, cited review out, every claim traced to a verified quote (work key + page + block_id), no human in the middle. Two pre-committed kills: an untraceable claim = FAIL, and at least one expectation MUST come back CONTRADICTED or UNCONFIRMED. The second is load-bearing — a run where everything confirms proves only the happy path. This grades stage 8 (brief → written review), the one stage never exercised |
+| `litkb-web-source-gate` | Web sources are **searchable inside their own workstream immediately, still unpromotable without a human**. The gate protects the authoritative record; promotion is that boundary, not search visibility. Required by the unattended definition |
+| `litkb-ligature-repair` | **Index-only normalisation** — stored block bytes are never rewritten, so all 393 verified quotes survive by construction. Kills the per-file-byte-table option outright (one C0 byte = two different ligatures inside one file). **De-hyphenation folds into the same pass** |
+| `litkb-crossref-raw-proposer` | **Discovery lead only, never auto-confirmed.** The raw-string parser is NOT funded: only 26 of 643 refs have a blank parsed title, they are three different failures, and some have no title to extract at all. Leverage is de-hyphenation (above) + a **second gate comparison path** (author + year + journal + volume + page) for title-less styles |
+| `litkb-second-formula-decoder` | **Dropped**; `latex_status` stays the guard. pix2tex is out for NONDETERMINISM (8/20 crops differ between runs) — a stability criterion cannot rest on an unstable source. Re-opens only if a review's conclusion comes to depend on a maths claim read from an equation |
+| `litkb-librarian-tier-and-roster-home` | Leave both as they are (librarian on Opus, roster in user scope). Recorded so a later session does not "fix" either without the context |
+
+**Next: the operational proving run.** Its bar is the definition above, fixed before the run.
+
 | What | Where |
 |---|---|
 | **State in one screen** | Claude memory `literature-knowledge-base-design` (auto-loaded); repo mirror: `Scripts/LITERATURE_KB_DESIGN_2026-09-13.md` §14 status rows |

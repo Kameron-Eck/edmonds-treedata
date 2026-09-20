@@ -93,7 +93,14 @@ def _hunt_once(hunt, row, *, db, worktree, agent, session, spend):
         return False, "error", f"hunt returned {type(res).__name__}, not a dict", secs
     ok = bool(res.get("ok"))
     state = res.get("state") or res.get("refused") or ""
-    return ok, str(state), str(res.get("message") or "")[:500], secs
+    message = str(res.get("message") or "")
+    # a title refusal carries the resolver's own verdict (`best=<src>:<ratio>:<doi>`) in
+    # `resolver_detail`, outside `message`; without it the ledger says only "refused" and a
+    # live run's `ambiguous-title` rows cannot be diagnosed from the CSV (S1 audit, 2026-09-20)
+    detail = res.get("resolver_detail")
+    if detail:
+        message = f"{message} [resolver: {detail}]"
+    return ok, str(state), message[:500], secs
 
 
 def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=None, limit=None):

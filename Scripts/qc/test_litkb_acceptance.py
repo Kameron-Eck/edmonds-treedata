@@ -892,6 +892,20 @@ def test_the_driver_passes_the_scheme_and_the_request_id_through(driver, tmp_pat
     assert all(not ({"title", "author", "year"} & kw.keys()) for _, kw in seen)
 
 
+def test_the_driver_keeps_the_resolvers_detail_in_the_message(driver, tmp_path):
+    """A title refusal's `resolver_detail` (`best=<src>:<ratio>:<doi>`) must survive the CSV
+    seam, or a live run's `ambiguous-title` rows are undiagnosable from the ledger (S1 audit)."""
+    def hunt(ref, **kw):
+        return {"ok": False, "refused": "ambiguous-title", "message": "gate 0 refused it",
+                "resolver_detail": "best=crossref:0.74:10.1/wrong"}
+
+    _w, _s, rows = driver.run(fake_manifest(tmp_path), tmp_path / "run.csv", hunt=hunt,
+                              rows=fake_rows(1))
+    assert rows[0]["hunt_state_or_refusal"] == "ambiguous-title"
+    assert "best=crossref:0.74:10.1/wrong" in rows[0]["message"]
+    assert rows[0]["message"].startswith("gate 0 refused it")
+
+
 def test_the_driver_never_spends_even_when_the_manifest_omits_the_key(driver, tmp_path):
     """`spend` defaults to False when the key is absent: a manifest missing the field must not
     fall through to hunt's own default, which is True and acquires."""

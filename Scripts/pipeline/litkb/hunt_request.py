@@ -51,7 +51,14 @@ def record(conn, ws, token, *, ref, ref_scheme, expected_claim, why_relevant, ag
     first (commands.py's `--ref-scheme`, mcp/server.py's `_hunt_request_add`) so that a caller
     reads a named refusal rather than a raw PL/pgSQL sentence; the CHECK is what enforces it, and
     this function deliberately holds no third copy.
+
+    The two NOT-EMPTY CHECKs (`expected_claim`, `why_relevant`) compare against `''`, so a
+    whitespace-only value would pass them and record a drop-off with no prior. The values are
+    STRIPPED here — normalised, not validated — so that `'   '` reaches the database as `''` and
+    the table's own CHECK is what refuses it (S1 audit, 2026-09-20; mutation row HQ10).
     """
+    expected_claim = (expected_claim or "").strip()
+    why_relevant = (why_relevant or "").strip()
     row = conn.execute(
         "SELECT litkb.record_hunt_request(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (ws, token, ref, ref_scheme, expected_claim, why_relevant, abstract_passage, claimed_title,

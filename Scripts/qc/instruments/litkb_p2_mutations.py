@@ -1146,6 +1146,18 @@ replace("HQ9", MIG23, "  expected_claim     text NOT NULL CHECK (expected_claim 
         "a hunt_request is recorded with an EMPTY expected_claim (and with none at all): the "
         "drop-off carries no prior, and nothing downstream can tell that from one that does",
         tests=TESTS_HR)
+# HQ10, S1 audit 2026-09-20: the CHECK above compares against '' and so ACCEPTED '   ' at write
+# time (caught only later by the scout instrument's missing_required_fields). hunt_request.record
+# strips the two values first so that the same CHECK refuses whitespace; this row stops the strip.
+replace("HQ10", f"{PKG}/hunt_request.py",
+        '    expected_claim = (expected_claim or "").strip()\n'
+        '    why_relevant = (why_relevant or "").strip()',
+        '    expected_claim = expected_claim\n'
+        '    why_relevant = why_relevant',
+        "a whitespace-only expected_claim / why_relevant is recorded: the drop-off carries no "
+        "prior, the CHECK is satisfied by the spaces, and the row walks open -> unconfirmed -> "
+        "confirmed like one that said something",
+        tests=TESTS_HR)
 replace("HQ8", MIG23, "WHERE u.hunt_request_id = hr.id\n    ) agg ON true;",
         "WHERE true\n    ) agg ON true;",
         "hunt_request_status: a use linked to ANOTHER hunt_request confirms/contradicts this one "

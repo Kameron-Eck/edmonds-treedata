@@ -390,6 +390,23 @@ def test_a_drop_off_with_an_empty_expectation_is_refused(pg, field):
 
 
 @pg_only
+@pytest.mark.parametrize("field", ["expected_claim", "why_relevant"])
+def test_a_whitespace_only_expectation_is_refused_too(pg, field):
+    """The CHECK compares against `''`, so `'   '` would pass it; `record` strips the value first
+    so the same CHECK refuses it (S1 audit 2026-09-20: found accepted at write time and caught
+    only later by the scout instrument's `missing_required_fields`). Mutation row HQ10 removes the
+    strip and shows this test go red."""
+    from litkb import hunt_request
+
+    ws = pg.ws()
+    kw = dict(ref="10.1/x", ref_scheme="doi", expected_claim="claim", why_relevant="why",
+              agent="agentA", session="sessA")
+    kw[field] = "   \t "
+    with pytest.raises(pg.errors.CheckViolation, match=field):
+        hunt_request.record(pg.conn, ws, pg.tokens[ws], **kw)
+
+
+@pg_only
 def test_the_ref_scheme_check_survived_its_rebuild_and_now_admits_title(pg):
     """Migration 0027 DROPs and re-ADDs `hunt_requests_ref_scheme_check` under the same name. Both
     halves are asserted: `title` is accepted (it was not before 0027), and a scheme outside the

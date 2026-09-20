@@ -631,6 +631,22 @@ def test_a_wrong_work_scoring_just_under_the_ratio_is_refused():
     assert evidence == fx["expected"]["at_ratio_0_85"]["reason"], evidence
 
 
+def test_the_frozen_body_matches_its_recorded_hash():
+    """The fixture's provenance is ENFORCED, not narrated. The S1 audit (2026-09-20) found the
+    original `response_sha256` was of the raw wire bytes, which the file does not store, so no
+    test could ever check it; `stored_body_sha256` hashes what the file holds, by the rule the
+    fixture states, and the identity the docstring above relies on (sent == resolved) is asserted
+    here rather than read off by an auditor."""
+    import hashlib
+
+    fx = _title_gate()
+    pv = fx["_provenance"]
+    assert fx["resolved_title"] == pv["query_sent"]
+    canon = json.dumps(fx["crossref_search_body"], sort_keys=True, separators=(",", ":"),
+                       ensure_ascii=False).encode("utf-8")
+    assert hashlib.sha256(canon).hexdigest() == pv["stored_body_sha256"]
+
+
 def test_the_same_wrong_work_is_admitted_once_the_ratio_is_lowered(monkeypatch):
     """The kill for the test above. If this ever stops holding, that assertion is passing for a
     reason that is not the ratio gate and its RED proof is void."""

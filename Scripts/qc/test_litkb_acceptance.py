@@ -323,8 +323,18 @@ def test_disposition_never_reads_a_token(mod, tmp_path, monkeypatch):
     BOTH names are patched. `builtins.open` alone is not enough and looks like it is: pathlib's
     `read_bytes`/`read_text`/`open` go through `io.open`, a separate binding of the same
     function, so a watcher on builtins sees nothing pathlib does and reports a clean run no
-    matter what the instrument reads. Mutation-tested (an added `path.read_bytes()` in
-    `check_disposition`): RED with both patched, GREEN with builtins only.
+    matter what the instrument reads. Both variants were RUN against one mutation — a
+    `path.read_bytes()` added inside `check_disposition`, which makes the instrument genuinely
+    read the vault file:
+
+        builtins only, no `assert opened`  (the shape this test first had)  ->  1 passed
+        both names patched, `assert opened`                                 ->  1 failed,
+                                                                                naming the
+                                                                                .token file
+
+    The instrument was restored after each and re-verified against its committed blob. The first
+    row is why `assert opened` is here: a watcher that sees no file at all now fails loudly
+    instead of certifying a clean run.
     """
     import io
 

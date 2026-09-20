@@ -34,6 +34,7 @@ Run:
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -241,9 +242,16 @@ def test_a_checkout_the_manifest_omits_is_unexpected(mod, capsys, tmp_path, monk
 
 def test_path_shape_alone_does_not_make_a_checkout_unexpected(mod, capsys, tmp_path, monkeypatch):
     """git's porcelain prints forward slashes; a Windows manifest holds backslashes. Comparing
-    the raw strings would report every surviving checkout as unexpected."""
+    the raw strings would report every surviving checkout as unexpected.
+
+    The separator swap is checked everywhere; the CASE fold only on Windows, because
+    `os.path.normcase` is the identity on POSIX and CI runs ubuntu-latest — where `C:/X` and
+    `C:/x` really are two different checkouts and folding them would be the bug.
+    """
     m, path = manifest_for(tmp_path)
-    odd = str(tmp_path / "wt-kept").replace(os.sep, "/").upper()
+    odd = str(tmp_path / "wt-kept").replace(os.sep, "/")
+    if os.name == "nt":
+        odd = odd.upper()
     patch_git(mod, monkeypatch, [m["repo"], odd], ONE_HASH)
     code, out, _ = run(mod, capsys, ["disposition", "--manifest", str(path)])
     assert "unexpected_worktrees=0" in out, out
@@ -310,18 +318,31 @@ def test_a_vault_file_escaping_the_vault_is_a_mismatch(mod, capsys, tmp_path, mo
 
 def test_disposition_never_reads_a_token(mod, tmp_path, monkeypatch):
     """Existence, size and containment only. The instrument holds no code path that opens a
-    vault file, so a secret cannot reach stdout, a log or a traceback through it."""
+    vault file, so a secret cannot reach stdout, a log or a traceback through it.
+
+    BOTH names are patched. `builtins.open` alone is not enough and looks like it is: pathlib's
+    `read_bytes`/`read_text`/`open` go through `io.open`, a separate binding of the same
+    function, so a watcher on builtins sees nothing pathlib does and reports a clean run no
+    matter what the instrument reads. Mutation-tested (an added `path.read_bytes()` in
+    `check_disposition`): RED with both patched, GREEN with builtins only.
+    """
+    import io
+
     m, path = manifest_for(tmp_path)
     opened = []
-    real_open = open
+    real_builtin, real_io = open, io.open
 
-    def watched(file, *a, **k):
-        opened.append(str(file))
-        return real_open(file, *a, **k)
+    def watch(real):
+        def watched(file, *a, **k):
+            opened.append(str(file))
+            return real(file, *a, **k)
+        return watched
 
-    monkeypatch.setattr("builtins.open", watched)
+    monkeypatch.setattr("builtins.open", watch(real_builtin))
+    monkeypatch.setattr("io.open", watch(real_io))
     patch_git(mod, monkeypatch, [m["repo"], str(tmp_path / "wt-kept")], ONE_HASH)
     mod.main(["disposition", "--manifest", str(path)])
+    assert opened, "the watcher saw no file at all — it is not watching the read path"
     assert not [f for f in opened if f.endswith(".token")], opened
 
 
@@ -337,6 +358,8 @@ def test_the_guard_refuses_an_unvaulted_token_and_prints_no_content(mod, capsys,
     assert code == 2
     assert err == "refused: .litkb-workstream not vaulted", err
     assert TOKEN_BYTES.decode().strip() not in (out + err)
+    # not the hash either: a sha256 of a secret is still derived from the secret
+    assert not re.search(r"[0-9a-f]{64}", out + err), (out, err)
 
 
 def test_the_guard_passes_when_the_same_bytes_are_in_the_vault(mod, capsys, tmp_path):

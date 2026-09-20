@@ -12,6 +12,11 @@
         "LITKB_AGENT": "claude",
         "LITKB_SESSION": "default"
       }
+    },
+    "paper-search-mcp": {
+      "type": "stdio",
+      "command": "paper-search-mcp",
+      "args": []
     }
   }
 }

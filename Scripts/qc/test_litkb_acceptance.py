@@ -1007,7 +1007,30 @@ def test_a_soak_csv_outside_the_repo_is_refused(soak, tmp_path):
     assert not outside.exists()
 
 
-def test_a_failing_search_still_writes_a_row_and_exits_non_zero(soak, tmp_path, monkeypatch):
+@pytest.fixture
+def soak_env(tmp_path, monkeypatch):
+    """Contain `run()`'s environment writes.
+
+    `nightly_soak.run()` sets LITKB_DB and LITKB_WORKTREE in `os.environ` on purpose — it is a
+    scheduled entry point, and `_search` and `hunt` read both — but a TEST that let those writes
+    escape would hand them to every later test in the session, INCLUDING the ones that spawn a
+    real MCP server as a subprocess and inherit the environment. That is not hypothetical: it was
+    measured here on 2026-09-20. These two tests leaked `LITKB_DB=litkb_test`, and
+    `qc/test_litkb_p8.py::test_a_tool_result_is_json_over_a_real_session` — green on its own —
+    failed inside the full `check.py` suite with `fe_sendauth: no password supplied`, because the
+    server it spawned tried to connect as `litkb_reader` to a database pgpass has no line for.
+    The refusal looked like a defect in litkb_work and was a defect in this file.
+
+    monkeypatch.setenv records each key's pre-test value, so the teardown undoes `run()`'s later
+    overwrite as well as this one. It is the same rule `qc/conftest.py` enforces for the lake.
+    """
+    monkeypatch.setenv("LITKB_DB", "litkb_test")
+    monkeypatch.setenv("LITKB_WORKTREE", str(tmp_path))
+    return tmp_path
+
+
+def test_a_failing_search_still_writes_a_row_and_exits_non_zero(soak, soak_env, tmp_path,
+                                                                monkeypatch):
     p = tmp_path / "Reports" / "soak.csv"
     monkeypatch.setattr(soak, "smoke_search", lambda *a, **k: (False, 41, 0, "no block"))
     monkeypatch.setattr(soak, "smoke_hunt", lambda *a, **k: (True, 12, "extracted", ""))
@@ -1021,7 +1044,7 @@ def test_a_failing_search_still_writes_a_row_and_exits_non_zero(soak, tmp_path, 
     assert rows[0]["search_ok"] == "false" and rows[0]["error"] == "search: no block"
 
 
-def test_a_known_extracted_key_coming_back_held_is_not_ok(soak, tmp_path, monkeypatch):
+def test_a_known_extracted_key_coming_back_held_is_not_ok(soak, soak_env, tmp_path, monkeypatch):
     """The regression the soak exists for. `hunt` returns `ok: true` when it correctly reports a
     database that has lost the work, so `hunt_ok` may not simply be `res["ok"]`."""
     import litkb.hunt as H

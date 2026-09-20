@@ -46,6 +46,31 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-20  litkb S1 — the front door: lit-scout, `title` refs, hunt VALIDATES; first headless scout run (9 drop-offs); soak clock started
+goal:    `LITKB_WORKPLAN.md` S1: topic → drop-offs unattended; every ref shape hunt sees ends in named state.
+did:     paper-search MCP in `.mcp.json` (strict-config probe lists 13 litkb + 58 paper-search tools). Two Opus
+         builders in own worktrees, one auditor, all merged (75df9d3): migration 0027 (`ref_scheme` gains
+         `title`; `litkb.hunt_request.REF_SCHEMES` one home, SQL CHECK read by test); `hunt(ref_scheme=)` validates
+         (six codes `REF_REFUSALS`), fills title/author/year from hunt_request row; `cmd_discover` retired;
+         fixture `qc/fixtures/litkb_ref_shapes.json` + real 1-query Crossref capture for ratio gate (HS10 RED at
+         0.80); HS1-12, HQ9-10 fire. `.claude/agents/lit-scout.md` (30 tools, zero download/read/Bash — frontmatter
+         enforced per name), SKILL "Stage 1 — discover", `litkb_acceptance.py scout --freeze/--manifest`,
+         `qc/instruments/litkb_scout_run.py` (driver, no spend, resumable, `--retry`), `litkb.ops.nightly_soak`
+         (03:17 nightly, `Reports/LITKB_SOAK.csv`, standing workstream `soak`). Kam applied 0027 + registered task.
+         Scout run scout-1 (leaf-off/leaf-on label transfer): 9 drop-offs, all machinery counters 0, no human
+         input, `SCOUT-STOP` reason; nonsense topic → n=0 + reason (the (c), fired). Run found ten pre-S1 hunt codes
+         missing from instrument vocabulary → `HUNT_REFUSALS` + AST-scan test (f791331).
+decided: `litkb-s1-dropoff-shortfall` — 9 < 10 accepted (honest stop rule; no quota rerun). S1 hunts spend=False
+         (S2/S5 own acquisition). Scout attribution via `qc/fixtures/mcp_scout.json`, not `.mcp.json` edit.
+killed:  attempt 1 of scout run — PowerShell 5.1 split `claude -p $prompt` at first embedded quote; scout got no
+         topic, improvised, opened `scout-2026-09-20` in main tree root, 9 stray drop-offs (workstream left open,
+         token vaulted). Launch from bash with prompt FILE. Offline half-synthetic ratio fixture (replaced by live).
+files:   Reports/LITKB_SCOUT_RUN_2026-09-20.{md,csv,_retried.csv}, Reports/LITKB_SCOUT_LAUNCH.md,
+         docs/LITKB_SCOUT_PROMPT.md, docs/SCHEMAS.md (three litkb sections), jobs/litkb-s1/ (briefs, reports,
+         auditor, STATE, fix_permissions.py).
+next:    S2 (first unknown work, bounded). Carry-ins: arXiv transient 406 → terminal `admission-refused` (S3
+         api-error); launch doc → prompt file + bash; BOM in log reader; scout with no topic → n=0.
+
 ## 2026-09-20  litkb S0 — one plan (`LITKB_WORKPLAN.md`), one tree (ten checkouts removed, nothing deleted), acceptance instrument
 goal:    Kam: lit-review work plan "fragmented, confusing as human PM". New plan to finish line, multi-session, each session ends in STATE. Ingest all worktrees.
 did:     3 explorers (code map, ten worktrees, authored docs) + Codex adversarial review of draft → plan approved. Finding: "operational" run 2 pre-named 3 extracted works + expected_claim strings; open-web discovery + PDF acquisition never exercised. `hunt.ref_kind` classifies (all non-URL → `doi`). Plan = S0–S7 ladder, loop-stage vocabulary, done-state = (a) artifacts (b) command+counters (c) known-bad fires. S0 landed on `work/20260920-litkb-workplan`: `LITKB_WORKPLAN.md` (gated, `NOT_A_CAMPAIGN_PLAN`), WORKPLAN.md litkb section → 8-line pointer, jobs STATE.md/design §14/memory → pointers, decisions `litkb-finish-line`/`plan-home`/`worktree-disposition`/`autonomy-grant` + `k2-no-seeding` (open), `qc/instruments/litkb_acceptance.py` (plan · disposition · guard-checkout; 30 tests; Opus builder), 22 reports archived byte-exact from 8 branches, crossref-proposer merged (gated by unchanged `confirm_s2_candidate`), ligature `da91101` cherry-picked, 3 workstream tokens vaulted (hash-verified), splink dirty re-run committed `68ba778`, ten checkouts removed after guard/parity/clean; counters `0 0 0 0`; known-bads fired (plan ×2, disposition ×3, guard ×1). 12 POSSIBLY-STALE items adjudicated: 7 closed, 5 open with owners.

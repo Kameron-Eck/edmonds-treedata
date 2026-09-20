@@ -22,10 +22,15 @@ Conventions this file obeys, so it does not become a fifth "living state":
 Update this block only. Everything else in the file changes when a session lands.
 
 - **Finish line:** `litkb-finish-line` — topic → graded review → synthesis, unattended.
-- **Current session:** S0 (one tree, one plan). Started 2026-09-20 on
-  `work/20260920-litkb-workplan`.
-- **Next:** S1 (the front door). Entry condition: S0 landed; paper-search MCP registered in
-  `.mcp.json` (see S1).
+- **Current session:** S1 landed 2026-09-20 (`work/20260920-litkb-s1` + `-s1-run`). The scout run
+  met every machinery counter and stopped honestly at `dropoffs=9` against the bound of 10; Kam
+  accepted the shortfall (`litkb-s1-dropoff-shortfall`). Report: `Reports/LITKB_SCOUT_RUN_2026-09-20.md`.
+  The soak clock started: Windows task litkb-nightly-soak registered, first scheduled night 2026-09-21.
+- **Next:** S2 (the first unknown work). Entry condition: S1 landed. Carry-ins for S2/S3 from the
+  run: arXiv answered a transient 406 that check 1 recorded as terminal `admission-refused`
+  (S3's `api-error` item, now with a live instance); the launch recipe must prescribe a prompt
+  FILE and a bash launch (PowerShell splits the argument at its first embedded quote); the
+  instrument's log reader must strip a BOM; a scout handed no topic must stop at `n=0`.
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided (no seeding); S7 soak = seven nights
   started in S1. Kam re-registers the nightly-dump scheduled task (Windows task name
   litkb-nightly-dump) against the merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
@@ -397,7 +402,6 @@ lands, delete its rows.
 
 | item | owner |
 |---|---|
-| no autonomous topic → drop-off workflow; `hunt` classifies rather than validates refs; no `title` ref scheme | S1 |
 | unknown-work handoff never exercised end to end; two acquisition provenance shapes | S2 |
 | terminal-state vocabulary not closed; HTML-only, two-DOI works, staging orphans, `absent` ambiguity, `litkb_acquire` strips `detail` (the MCP wrapper drops the whole dict), the approve path never run, Kam's held-row rulings; files still bound at `_litkb_staging/incoming/*.download` paths (the 2026-09-16 CSVs list sixteen; refile/rebind path needed — a retry returns `duplicate-held`) | S3 |
 | no extraction queue, no fail-closed page cap, zero-content/multi-file works, cross-page `page_no`, metrics in JSONL, superseded run sets, the book; the L4 formula re-crop of Reynolds_2000 and Montgomery_1991 never ran | S4 |

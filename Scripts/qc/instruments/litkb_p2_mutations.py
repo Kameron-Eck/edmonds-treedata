@@ -1495,7 +1495,12 @@ block("RC27", f"{PKG}/review_check.py",
       "and the proving run's sentence -- `nothing was read from an abstract, from memory, or from "
       "outside the knowledge base`, written over two citations quoting an ingested block that "
       "begins `Abstract-` -- passes green again (m16). A grader cannot check whether a "
-      "self-description is true, which is why the rule is one permitted sentence and not accuracy",
+      "self-description is true, which is why the rule is one permitted sentence and not accuracy. "
+      "Its vocabulary was narrowed on 2026-09-20 to the three terms that name a SOURCE (auditor-6 "
+      "measured `outside` and `measured` refusing honest limits). NOTE what this row does NOT "
+      "kill, so nobody reads more into it: the two rendered-copy tests and the copied-from-the-doc "
+      "round trip all assert an ABSENCE of findings, so they stay green under this mutation by "
+      "construction. They bind the docs to SCOPE_TEMPLATE; only the three m16 rows kill the guard",
       tests=TESTS_REVIEW)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.

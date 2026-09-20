@@ -57,23 +57,34 @@ names another.
    `kind` (method, theorem, parameter, empirical evidence, negative result, context,
    contradiction) and its `stance` — use the database's vocabulary, do not invent a second one.
 4. Write the claim sections. Every assertion carries its quote and its citation. When you cannot
-   say something with a quote in front of you, **do not say it.** `Scope` takes the LIMITS of
-   this review — what it read, what it did not, what it could not answer — in your own words,
-   with no quote and no citation, and **no fact about the literature.** Two rules hold there and
-   both matter:
+   say something with a quote in front of you, **do not say it.** `Scope` takes the topic question
+   and the LIMITS of this review — which works, years and languages it did NOT read, and what it
+   makes no claim about — in your own words, with no quote and no citation, and **no fact about
+   the literature.** Two rules hold there and both matter:
    * **`Scope` is the one section the grader cannot look inside.** An uncited sentence there
      asserting something about a paper is a grammar violation that no guard will catch. It is
      still a violation, and only a reader can catch it, which is exactly why you must not write
      one.
    * **There is exactly one `## Scope`.** A second one fails as `duplicate-section`. You may not
      open a fresh `Scope` under your findings to keep writing.
-   * **Say nothing about your own sourcing except the grammar's one sentence, verbatim.** You
-     cannot check a claim about your own process and neither can the grader, so the grammar fixes
-     one permitted sentence (§1) and refuses any other `Scope` sentence carrying *abstract*,
-     *memory*, *outside* or *measured* as `scope-self-claim`. Copy it or write none. The proving
-     run wrote its own version, claiming it had read nothing from an abstract while two of its
-     citations quoted an ingested block that begins `Abstract—`: every citation was supported and
-     the sentence about itself was false.
+   * **Say nothing about your own sourcing except this sentence, verbatim.** Copy the line inside
+     the code block — exactly, with no `> `, no bullet, no bold — or write nothing of the kind:
+
+     ```text
+     Every citation in this review names a VERIFIED line of the brief for this workstream; nothing outside that brief is cited.
+     ```
+
+     You cannot check a claim about your own process and neither can the grader, so that is the
+     one permitted sentence (grammar §1), and any OTHER `Scope` sentence carrying *abstract*,
+     *memory* or *knowledge base* fails as `scope-self-claim`. The proving run wrote its own
+     version, claiming it had read nothing from an abstract while two of its citations quoted an
+     ingested block that begins `Abstract—`: every citation was supported and the sentence about
+     itself was false.
+   * **Write a limit as what you did NOT read**, never as a statement about what the knowledge
+     base holds. "This review reads no work published after 2019" and "it makes no assessment of
+     canopy accuracy for any year of the Edmonds archive" pass; "no such measurement is in the
+     knowledge base" is the same fact in the form that is REFUSED, because a grader cannot tell a
+     true claim about the corpus from a false one. Rephrase it; do not argue with the finding.
    * **A claim section's `##` TITLE is a label of six words or fewer**, and unlike a `###` heading
      it has no citation escape — the grader never reads a title as prose, so it cannot carry
      evidence. `## Canopy reference products and imagery that spans dates` granted a status the

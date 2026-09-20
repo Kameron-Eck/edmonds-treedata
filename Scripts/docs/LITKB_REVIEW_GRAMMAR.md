@@ -24,8 +24,10 @@ The grammar exists to make `decisions.yaml::litkb-operational-definition` machin
 # <title>
 
 ## Scope
-…what question this review answers, what it read, what it did not. No citations, no quotes,
-and nothing about the review's OWN sourcing except the one template sentence below.
+…the topic question; the template sentence below, verbatim or not at all; and this review's
+limits written as what it did NOT read — which works, which years, which languages, which
+operation it makes no claim about. NEVER a characterisation of the review's own process or of
+its sources. No citations, no quotes.
 
 ## <any claim section>       ← its title is a LABEL: six words or fewer
 …every SENTENCE carries at least one citation.
@@ -42,23 +44,39 @@ before the first `##`), **`Scope`**, **`Expectations not supported`** and **`Sou
 other `##` heading is a claim section, whatever it is called — and **its title must be a label of
 six words or fewer**, because a title can carry no citation (§4).
 
-**`Scope` may say exactly one thing about the review's own sourcing, and these are its words:**
+**`Scope` may say exactly one thing about the review's own sourcing, and these are its words.
+Copy the line inside this code block, exactly, or write nothing of the kind:**
 
-> Every citation in this review names a VERIFIED line of the brief for this workstream; nothing
-> outside that brief is cited.
+```text
+Every citation in this review names a VERIFIED line of the brief for this workstream; nothing outside that brief is cited.
+```
 
-Copy that sentence verbatim or write none at all. Any other `Scope` sentence containing
-`abstract`, `memory`, `outside` or `measured` fails as `scope-self-claim`. The reason is that
-`Scope` is the one section the grader cannot look inside, and the proving run of 2026-09-20 walked
-into that hole from a direction nobody had guarded: it wrote *"nothing was read from an abstract,
-from memory, or from outside the knowledge base"* while two of its thirteen citations quoted an
-ingested block that its adversarial reader records as beginning `Abstract—`
-(`jobs/litkb-operational/codex-review-proving-run2.md` §2). All thirteen citations were
-supported; the false
-statement was about the review's own process, which no grader can verify. So there is one
-permitted sentence, and it is one the grader itself enforces (`not-in-brief`,
-`quote-not-verified-span`). The four words are matched whole, so `abstracts` and `measurement`
-still pass — §7 says what that leaves open.
+It is shown in a code block and not as a block quote, a bullet or bold text because **what you can
+see is what the grader compares.** The rendered copy was a wrapped block quote until 2026-09-20,
+and an auditor measured that copying it as displayed — `> ` and all — was refused, while the test
+binding the two copies stripped the `>` that the grader does not. The block above is byte-for-byte
+the constant `review_check.SCOPE_TEMPLATE`, and a test compares them with no stripping at all, so
+this line and `.claude/agents/review-writer.md`'s copy of it cannot drift from the code.
+
+**Any other `Scope` sentence containing `abstract`, `memory` or `knowledge base` fails as
+`scope-self-claim`.** The reason is that `Scope` is the one section the grader cannot look inside,
+and the proving run of 2026-09-20 walked into that hole from a direction nobody had guarded: it
+wrote *"nothing was read from an abstract, from memory, or from outside the knowledge base"* while
+two of its thirteen citations quoted an ingested block that its adversarial reader records as
+beginning `Abstract—` (`jobs/litkb-operational/codex-review-proving-run2.md` §2). All thirteen
+citations were supported; the false statement was about the review's own process, which no grader
+can verify. So there is one permitted sentence, and it is one the grader itself enforces
+(`not-in-brief`, `quote-not-verified-span`).
+
+The three terms are the ones that name a **source**. `outside` and `measured` were in this list
+for one day and were removed: they refused *"Sites outside the Pacific Northwest are not
+represented"* and *"No measured canopy value for Edmonds is in the knowledge base"* — the first is
+not about sourcing at all and both are LIMITS, which is what this section is for. The skeleton
+above was rewritten in the same change, because *"what it read, what it did not"* was inviting the
+sentences the guard then refused. Write a limit as **what was not read** — "This review reads no
+work published after 2019", "no German-language work was hunted", "it makes no assessment of
+canopy accuracy for any year of the Edmonds archive" — and not as a statement about what the
+knowledge base contains. §7 has what this leaves open in both directions.
 
 **Each of those names may open ONCE.** A second `## Scope` (or `## Sources`) anywhere in the
 document fails as `duplicate-section`. They are the sections K1 cannot look inside, so a second
@@ -284,13 +302,25 @@ Stated here so a PASS is never read as more than it is:
   its quote with it, and a citation token in a non-claim section fails. A writer who strips the
   citation to hide a claim in `Scope` has broken this grammar and produced an unsourced claim,
   and only a reader can catch it.
-* **A false claim about the review's own PROCESS, beyond the four words `scope-self-claim`
-  watches.** §1 fixes one permitted sourcing sentence and refuses any other `Scope` sentence
-  carrying `abstract`, `memory`, `outside` or `measured`. The words are matched whole and are not
-  stemmed, so `abstracts`, `measurement` or a sentence that avoids all four ("this review read
-  only what the hunt returned") still passes. Widening the list would refuse honest limits, which
-  are what `Scope` is for. The rule closes the sentence the proving run actually wrote and the
-  shapes nearest it; it does not make self-description safe.
+* **A false claim about the review's own PROCESS, beyond the three terms `scope-self-claim`
+  watches — and, in the other direction, honest sentences those three terms refuse.** §1 fixes one
+  permitted sourcing sentence and refuses any other `Scope` sentence carrying `abstract`, `memory`
+  or `knowledge base`. Both sides of that are real and neither is a bug to be fixed by tuning:
+  * **What escapes.** The terms are matched on letter/digit boundaries and are not stemmed, so
+    `abstracts` passes where `abstract_passage` is caught, and any sentence avoiding all three
+    makes whatever process claim it likes — *"this review read only what the hunt returned"* is
+    unverifiable and passes. The rule closes the sentence the proving run actually wrote and the
+    shapes nearest it; it does not make self-description safe.
+  * **What it refuses although it is honest.** A limit phrased as a statement about the knowledge
+    base's contents — *"no such measurement is in the knowledge base"* — fails, even though it is
+    true and is exactly the kind of limit `Scope` exists for. That is deliberate: the grader
+    cannot tell a true statement about the corpus from a false one, so the grammar asks for the
+    limit in the form it CAN leave alone (what this review did not read). Rephrase, do not argue
+    with the finding. The previous list also refused *"Sites outside the Pacific Northwest are
+    not represented"*, which is not about sourcing at all; that was a defect and `outside` and
+    `measured` were dropped for it. One residue of the same kind survives in `memory`, which has
+    a non-sourcing sense — *"held in the memory of the device"* would be refused — and it is kept
+    because a literature review's `Scope` has no other use for the word.
 * **Whether a disclosure is COMPLETE.** The grader proves every contradicted or unconfirmed
   expectation is NAMED (§5). It cannot ask whether the entry tells the whole of what its cited
   blocks hold — the partial-support rule in §5 is a reader's to enforce, and the proving run

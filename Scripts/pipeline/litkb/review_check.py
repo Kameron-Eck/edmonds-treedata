@@ -126,17 +126,37 @@ MIN_QUOTE_CHARS = 25
 #: a `###`-or-deeper heading (`_deep_heading_findings`) and a claim section's own `##` title
 #: (`_title_findings`).
 HEADING_LABEL_WORDS = 6
-#: The ONE sentence a review may write in `Scope` about its OWN sourcing, verbatim. See
-#: `_scope_findings` for why there is exactly one, and LITKB_REVIEW_GRAMMAR.md §1 for the writer's
-#: copy of it -- which `test_the_scope_template_is_the_grammars_own_words` binds to this constant,
-#: because a template that drifts between the two files fails every review with nobody at fault.
-#: It carries no apostrophe and no quotation mark on purpose: a writer that renders `'` as `’`
-#: would produce a sentence the grader cannot match, and the failure would name the wrong defect.
+#: The ONE sentence a review may write in `Scope` about its OWN sourcing, verbatim.
+#:
+#: It is RENDERED for the writer in exactly two places, both as a FENCED CODE BLOCK and never as
+#: a block quote, a list item or bold text: LITKB_REVIEW_GRAMMAR.md §1 and
+#: `.claude/agents/review-writer.md`. `test_the_scope_template_is_rendered_copy_exact` compares
+#: both fences to this constant BYTE FOR BYTE, with no stripping of any kind, because that is the
+#: only comparison that proves what a writer copying the displayed text actually gets.
+#:
+#: The fence is not cosmetic. Until 2026-09-20 the one rendered copy was a wrapped markdown block
+#: quote, so the sentence a writer could see began `> ` -- and auditor-6 measured that copying it
+#: as displayed FAILED `scope-self-claim` naming `outside`, while the binding test stripped the
+#: `>` that `_scope_findings` does not. The test passed over the exact mismatch it existed to
+#: prevent. Narrowing the vocabulary below happens to remove that sentence's refused word, so the
+#: `> ` copy no longer fails; the fence is what stops the next widening from re-opening it.
+#:
+#: It carries no apostrophe and no quotation mark for the same class of reason: a writer that
+#: renders `'` as `’` would produce a sentence the grader cannot match, and the failure would
+#: name the wrong defect.
 SCOPE_TEMPLATE = ("Every citation in this review names a VERIFIED line of the brief for this "
                   "workstream; nothing outside that brief is cited.")
-#: The words that turn a `Scope` sentence into a claim about the review's own PROCESS. Exactly
-#: four, at word boundaries: see `_scope_findings`, and grammar §7 for what still escapes.
-_SELF_CLAIM_RE = re.compile(r"\b(abstract|memory|outside|measured)\b", re.IGNORECASE)
+#: The terms that make a `Scope` sentence a claim about the review's own SOURCING. Three, and
+#: each one names a SOURCE the review might claim to have used or avoided -- not a quantity, a
+#: place or a measurement. See `_scope_findings` for what that boundary cost to find, and grammar
+#: §7 for what escapes it in both directions.
+#:
+#: The boundary is `[A-Za-z0-9]` and NOT `\b`, so `_` reads as a boundary: `abstract_passage` --
+#: the field name both docs tell writers to use -- matches, where `\babstract\b` did not, because
+#: `_` is a word character (auditor-6 §2, measured). `abstracts` still escapes, by the same rule
+#: in the other direction, and §7 says so.
+_SELF_CLAIM_RE = re.compile(r"(?<![A-Za-z0-9])(abstract|memory|knowledge\s+base)(?![A-Za-z0-9])",
+                            re.IGNORECASE)
 
 
 class ReviewGrammarError(SystemExit):
@@ -549,13 +569,28 @@ def _scope_findings(text):
     about a document. So the rule is not "be accurate", it is **there is one permitted sentence**,
     and it is one the grader itself enforces: every citation names a VERIFIED brief line, which is
     exactly what `_in_brief_findings` and `_verified_span_findings` refuse to let through. Anything
-    else about sourcing is refused by its words: a `Scope` sentence carrying `abstract`, `memory`,
-    `outside` or `measured` that is not the template is `scope-self-claim`.
+    else about sourcing is refused by its words: a `Scope` sentence carrying `abstract`, `memory`
+    or `knowledge base` that is not the template is `scope-self-claim`.
 
-    The four words are matched at WORD boundaries and are not stemmed, so `abstracts` and
-    `measurement` pass. That is a hole, it is small, and widening it would refuse honest sentences
-    ("no such measurement is in the knowledge base" is a limit, not a self-claim); grammar §7
-    discloses it rather than pretending the list is exhaustive.
+    WHY THOSE THREE, AND NOT THE FOUR THIS SHIPPED WITH. `outside` and `measured` were in the list
+    until auditor-6 measured what they refused: "Sites outside the Pacific Northwest are not
+    represented" and "No measured canopy value for Edmonds is in the knowledge base" are LIMITS,
+    which is what `Scope` is for, and the first is not about sourcing at all. A vocabulary that
+    refuses the section's own purpose teaches a writer to avoid the section, so the list is now
+    the terms that name a SOURCE -- where evidence came from -- and nothing that names a quantity
+    or a place. Grammar §1 was rewritten in the same change, because it had been inviting exactly
+    the sentences this refused ("what it read, what it did not").
+
+    THE TEMPLATE'S EXEMPTION IS NOW A FORWARD GUARD, NOT A LIVE BRANCH, and that is worth saying
+    rather than leaving for someone to discover: `SCOPE_TEMPLATE` contains none of the three
+    terms, so it passes on its words and the `s == template` test below never decides anything
+    today. It stays because the list may widen, and a widening that swallowed the one permitted
+    sentence would fail every conforming review at once.
+
+    The terms are matched on `[A-Za-z0-9]` boundaries and are not stemmed, so `abstract_passage`
+    matches (deliberately -- it is the field name the docs name) while `abstracts` escapes, and a
+    sentence avoiding all three makes any process claim it likes. Both directions are disclosed in
+    grammar §7 rather than pretending the list is exhaustive.
     """
     out = []
     # BEGIN guard: Scope describes the review's own sourcing only in the template's exact words

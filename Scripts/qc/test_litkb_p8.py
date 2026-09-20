@@ -1023,6 +1023,45 @@ def test_a_quote_that_drops_a_blank_line_is_refused_at_record_use(hunt_env):
     assert kept["ok"] and kept["quote_verified"] is True, kept
 
 
+@pg_only
+def test_a_database_without_migration_0026_refuses_rather_than_storing_an_unverified_row(
+        hunt_env, monkeypatch):
+    """THE PRE-0026 TRAP, shown to fire. A client can be newer than the schema it is pointed at --
+    and between this branch's merge and the migration being applied, the live database IS that
+    database. With the new locator and the OLD trigger, a quote that differs from the stored span
+    only in its line endings would be LOCATED and then written with `quote_verified = false`: an
+    unverified evidence row where the old code refused at the command and the problem surfaced at
+    `promote prepare` a session later. That is worse than the defect being repaired, so the tool
+    asks the database first, the way `_bad_feeds` asks about `litkb._feeds_token_ok`.
+
+    The absence is simulated at `use.newline_canon_available` rather than by dropping the function,
+    because the suite shares one migrated database with every other module. BOTH halves are
+    asserted: the LF quote is refused AND the caller's own raw bytes still record, since a quote
+    that is byte-identical to its span needs no canonicalisation to verify. A guard that refused
+    everything would pass the first half alone."""
+    conn = hunt_env["conn"]
+    monkeypatch.setattr("litkb.use.newline_canon_available", lambda conn: False)
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf6-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "a database without 0026"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    gap = f"p8-crlf6-{uuid.uuid4().hex[:6]}"
+    res = one("litkb_record_use", {
+        "statement": "must not record: the trigger would mark it unverified", "kind": "context",
+        "quote": CRLF_SPAN.replace("\r\n", "\n"), "block_id": seeded["block_id"], "gap": gap,
+        "gap_question": "is an LF quote refused when 0026 is missing?"})
+    assert res["refused"] == "no-newline-canon", res
+    assert conn.execute("SELECT count(*) FROM litkb.gaps WHERE slug = %s", (gap,)).fetchone()[0] == 0
+    assert conn.execute("SELECT count(*) FROM litkb.use_evidence e JOIN litkb.blocks b "
+                        "ON b.id = e.block_id WHERE b.id = %s",
+                        (seeded["block_id"],)).fetchone()[0] == 0
+    raw = one("litkb_record_use", {
+        "statement": "supplies the block's own bytes, which need no canonicalisation",
+        "kind": "context", "quote": CRLF_SPAN, "block_id": seeded["block_id"],
+        "gap": f"p8-crlf7-{uuid.uuid4().hex[:6]}",
+        "gap_question": "and the raw quote still records without 0026?"})
+    assert raw["ok"] and raw["quote_verified"] is True, raw
+
+
 def _seed_work_file_block(conn, ws_id, text, block_type="paragraph", extra=()):
     """A work, an active file and one block of its current run, written as FACTS.
 

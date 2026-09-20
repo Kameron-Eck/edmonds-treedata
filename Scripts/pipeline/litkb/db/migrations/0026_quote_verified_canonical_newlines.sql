@@ -55,6 +55,18 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   -- END guard: one line ending is one "\n", and nothing else is normalised (SQL)
 $$;
 
+-- 0001:25 is `ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`, so a new function
+-- is executable by NOBODY but its owner until it is granted — and this one is called from queries
+-- the agent roles run: `review_check._BLOCK_SQL` as litkb_reader, `use.locate_quote` as
+-- litkb_writer. MEASURED on litkb_test_w3 before this block existed: has_function_privilege was
+-- false for reader, writer AND ingest, and no test could see it because the suite logs in as
+-- litkb_test, which OWNS the function it just migrated. Same three roles as 0018/0025 grant
+-- litkb.norm_search_text, for the same reason. (The verify trigger does not need this: it runs
+-- inside litkb.add_evidence, which is SECURITY DEFINER.)
+-- BEGIN guard: the agent roles may execute the newline rule
+GRANT EXECUTE ON FUNCTION litkb.canonical_newlines(text) TO litkb_reader, litkb_writer, litkb_ingest;
+-- END guard: the agent roles may execute the newline rule
+
 COMMENT ON FUNCTION litkb.canonical_newlines(text) IS
   'One line ENDING -> one chr(10). The SQL half of litkb.textnorm.canonical_newlines; bound to it '
   'by qc/test_litkb_review_check.py::test_the_sql_and_python_newline_canonicalisations_agree. Not '

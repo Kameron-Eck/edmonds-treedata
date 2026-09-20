@@ -1438,6 +1438,22 @@ replace("RC20", f"{PKG}/use.py",
         "canonicalised: the two sides are normalised differently, which is worse than neither -- "
         "`locate_quote` returns nothing for a CRLF-crossing quote and `litkb use add` reports it "
         "as in no extracted block, while the MCP path records it happily", tests=TESTS_RU)
+# RC21/RC22: the two guards that only a role or a schema OLDER than this code can trip, and that
+# no ordinary row reaches -- the suite logs in as litkb_test, which owns everything it migrated.
+block("RC21", f"{PKG}/mcp/server.py",
+      "guard: a quote located by canonical newlines needs the trigger that verifies them",
+      "record_use stops asking whether this database HAS migration 0026. Against a schema older "
+      "than the code -- which live is, between this branch's merge and the migration being "
+      "applied -- the locator finds the CRLF-crossing span and the OLD trigger then stores the "
+      "row with quote_verified false: an unverified evidence row where the old code refused at "
+      "the command, discovered at promote prepare a session later", tests=TESTS_P8)
+block("RC22", f"{MIG}/0026_quote_verified_canonical_newlines.sql",
+      "guard: the agent roles may execute the newline rule",
+      "0026's function keeps 0001:25's default (EXECUTE revoked from PUBLIC), so only its owner "
+      "may call it: on live, `review_check._BLOCK_SQL` as litkb_reader and `use.locate_quote` as "
+      "litkb_writer both fail with permission denied. MEASURED, not hypothetical -- the function "
+      "shipped this way and no test could see it, because the suite's own login owns it",
+      tests=TESTS_RU)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

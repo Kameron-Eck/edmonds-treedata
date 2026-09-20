@@ -524,6 +524,22 @@ def test_a_quote_that_joins_two_paragraphs_by_dropping_a_blank_line_is_refused(k
 
 
 @pg_only
+def test_the_newline_rule_is_executable_by_the_roles_that_call_it(kb):
+    """MEASURED DEFECT, caught before this branch merged. `0001_core.sql:25` is `ALTER DEFAULT
+    PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`, so migration 0026's function was
+    executable by nobody but its owner -- and `review_check._BLOCK_SQL` runs as `litkb_reader`
+    while `use.locate_quote` runs as `litkb_writer`. On the live database both would have failed
+    with `permission denied for function canonical_newlines`.
+
+    NO OTHER TEST HERE CAN SEE THAT: the suite logs in as `litkb_test`, which runs the migration
+    and therefore OWNS the function. This row asks the database about the roles that are not this
+    one, which is the only way the question gets asked at all."""
+    for role in ("litkb_reader", "litkb_writer", "litkb_ingest"):
+        assert kb.one("SELECT has_function_privilege(%s, 'litkb.canonical_newlines(text)', 'EXECUTE')",
+                      (role,))[0] is True, f"{role} cannot execute litkb.canonical_newlines"
+
+
+@pg_only
 def test_an_exact_raw_crlf_quote_still_locates_at_its_own_bytes(kb, tmp_path):
     """ROW 4, the existing behaviour. 7 of the project's 8 verified `use_evidence` rows store a
     CR, so a caller that sends the block's own bytes -- every row written before 2026-09-20 --

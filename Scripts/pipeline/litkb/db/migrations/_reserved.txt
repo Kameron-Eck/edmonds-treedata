@@ -7,7 +7,8 @@
 #
 # NNNN  why
 
-# (nothing reserved)
+0024  web-source gate: search visibility inside the proposing workstream (work/20260920-web-source-gate)
+0025  index-only ligature/C0 normalisation in litkb.norm_search_text (work/20260920-index-normaliser)
 #
 # 0018 and 0019 landed 2026-09-16 with the merge of work/20260915-access-layer, so their lines are
 # gone: a number on disk must not also be reserved

@@ -996,8 +996,9 @@ replace("X13b", MIG25,
         tests=TESTS_NORM)
 # The ADDITIVITY clause — the rows the 2026-09-20 audit bought. X13a/X13b break the expansion and
 # cost recall the migration is FOR. X13c/X13d break the thing that makes it SAFE: 0025 prepends the
-# spellings and never writes into the text, and each of these puts the d6a0a29 substitution back,
-# one clause at a time. That is a worse failure than the missing recall and it is the one nothing
+# spellings and never writes into the text, and each of these puts ONE clause's d6a0a29 substitution
+# back (and, see below, deletes the other clause's expansion with it). That is a worse failure than
+# the missing recall and it is the one nothing
 # was measuring — a lexeme the PRE-0025 index already had disappears. Both leave a valid migration
 # that still expands ligatures; what goes red is the token BESIDE the damage. They mutate the same
 # line because 0025 has ONE additivity call site (the concatenation) carrying both clauses; the

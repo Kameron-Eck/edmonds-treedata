@@ -277,9 +277,10 @@ def test_the_expression_indexes_agree_with_the_function(loaded, leg, index, sql,
           bitmap heap scan rechecks the qual with the current body.
 
     So: assertion (1) has been shown to fire on shipped code, assertion (2) only on an injected
-    state. Both trgm rows stayed GREEN under (b) — the trigram entries built from 0018's output are
-    still similar enough to match — so the trigram half of this check has never been shown to fire
-    and is not known to work. The live cutover's index is still the operator's job, with
+    state. Both trgm rows stayed GREEN under (b), so the trigram half of this check has never been
+    shown to fire and is not known to work. (INFERRED, not measured: trigram entries built from
+    0018's output are probably still similar enough to the query to match. Nobody scored that.)
+    The live cutover's index is still the operator's job, with
     qc/instruments/litkb_norm_index_proof.py on a restore of the dump.
 
     THESE ROWS ARE NOT INDEPENDENT OF THE RECALL ROWS ABOVE, which matters when reading a red. The

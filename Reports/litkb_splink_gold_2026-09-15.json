@@ -1,0 +1,3991 @@
+{
+ "admitted_work_keys": [
+  "Abellera_2005_impervious-surface-detection-satellite",
+  "Abercrombie_2016_improving-consistency-multitemporal-land",
+  "Allard_2007_total-variation-regularization-image",
+  "Allred_2025_canopy-height-model-naip",
+  "Angelopoulos_2023_conformal-prediction-gentle-introduction",
+  "Arazo_2020_pseudo-labeling-confirmation-bias",
+  "Averkov_2009_confirmation-matheron-s-conjecture",
+  "Baddeley_2005_spatstat-r-package-analyzing",
+  "Baek_2022_agreement-line-predicting-performance",
+  "Ball_2023_accurate-delineation-individual-tree",
+  "Barber_2023_conformal-prediction-beyond-exchangeability",
+  "Barker_2022_effects-crown-scorch-post",
+  "Batson_2019_noise2self-blind-denoising-self",
+  "Bellettini_2002_total-variation-flow-rn",
+  "Benedek_2009_change-detection-optical-aerial",
+  "Benedek_2015_multilayer-markov-random-field",
+  "Benjamini_1995_controlling-false-discovery-rate",
+  "Blackman_2020_detecting-long-term-urban",
+  "Bloch_2012_mathematical-morphology-bipolar-fuzzy",
+  "Bo_2026_saru-shadow-aware-removal",
+  "Bogaert_2022_hidden-markov-models-annual",
+  "Boykov_2002_interactive-graph-cuts-optimal",
+  "Boykov_2003_computing-geodesics-minimal-surfaces",
+  "Branch_2022_biasing-influence-mental-shortcuts",
+  "Brandt_2020_unexpectedly-large-count-trees",
+  "Brigato_2021_tune-it-don-t",
+  "Broaddus_2020_removing-structured-noise-self",
+  "Brown_2022_automated-aerial-animal-detection",
+  "Browning_2021_simple-discrete-time-self",
+  "Bureau_2003_applications-continuous-time-hidden",
+  "Burgert_2025_imagenet-trained-cnns-not",
+  "Burmeister_2025_fine-tuning-deepforest-forest",
+  "Burnicki_2007_simulating-error-propagation-land",
+  "Burnicki_2010_propagating-error-land-cover",
+  "Burnicki_2011_spatio-temporal-errors-land",
+  "Cabo_1995_line-transects-covariance-functions",
+  "Cai_2014_enhancing-modis-land-cover",
+  "Camara_2024_bayesian-inference-post-processing",
+  "Canty_2008_automatic-radiometric-normalization",
+  "Capliez_2023_temporal-domain-adaptation-satellite",
+  "Caragea_2009_autologistic-models-interpretable-parameters",
+  "Cardille_2016_bayesian-updating-land-cover",
+  "Chakraborty_2017_effect-misclassification-due-measurement",
+  "Chan_2005_aspects-total-variation-regularized",
+  "Chang_2019_domain-specific-batch-normalization",
+  "Charitos_2007_computing-short-interval-transition",
+  "Chaux_2008_nonlinear-stein-based-estimator",
+  "Chen_2014_true-orthophoto-generation-multi",
+  "Chen_2018_semantic-segmentation-aerial-imagery",
+  "Chen_2020_deep-siamese-domain-adaptation",
+  "Chen_2023_radiometric-normalization-pseudo-invariant",
+  "Chen_2024_coarse-fine-semantic-segmentation",
+  "Cheng_2020_novel-post-processing-method",
+  "Clark_2023_pre-processing-training-data",
+  "Cohen_2018_landtrendr-multispectral-ensemble-forest",
+  "Conley_1999_gmm-estimation-cross-sectional",
+  "Conley_2007_spatial-correlation-robust-inference",
+  "Conway_2022_private-tree-law-s",
+  "Cosarinsky_2026_confic-rca-statistically-grounded",
+  "Costa_2018_supervised-methods-image-segmentation",
+  "Coupland_2022_combining-aerial-photos-lidar",
+  "Couprie_2011_power-watershed-unifying-graph",
+  "DAngelo_2004_inferred-causes-tree-mortality",
+  "Dai_1998_hierarchical-methodology-framework-multisource",
+  "Deng_2026_semiparametric-analysis-interval-censored",
+  "Dihkan_2026_investigating-class-granularity-historical",
+  "Ding_2021_local-temperature-scaling-probability",
+  "Duval_2009_tvl1-model-geometric-point",
+  "Efron_2004_estimation-prediction-error",
+  "Efron_2021_resampling-plans-estimation-prediction",
+  "Eldar_2009_generalized-sure-exponential-families",
+  "Ferraz_2016_lidar-detection-individual-tree",
+  "Foody_2010_assessing-accuracy-land-cover",
+  "Foody_2013_ground-reference-data-error",
+  "Foody_2022_global-local-assessment-image",
+  "Frayer_1967_area-change-estimates-sampling",
+  "Freudenberg_2022_individual-tree-crown-delineation",
+  "Galerne_2011_computation-perimeter-measurable-sets",
+  "Gan_2023_tree-crown-detection-delineation",
+  "Gao_2017_novel-unsupervised-segmentation-quality",
+  "Gasparrini_2010_distributed-lag-non-linear",
+  "Gasparrini_2011_distributed-lag-linear-non",
+  "Gasparrini_2013_modeling-exposure-lag-response",
+  "Gasparrini_2017_penalized-framework-distributed-lag",
+  "Geyer_1992_constrained-monte-carlo-maximum",
+  "Gharibi_2018_true-orthophoto-generation-aerial",
+  "Girard_2019_aligning-updating-cadaster-maps",
+  "Gong_2017_hidden-markov-model-improving",
+  "Gong_2026_crossearth-geospatial-vision-foundation",
+  "Goodchild_1997_simple-positional-accuracy-measure",
+  "Goodchild_2004_general-framework-error-analysis",
+  "Graler_2016_spatio-temporal-interpolation-gstat",
+  "Gros_2021_softseg-advantages-soft-versus",
+  "Guo_2018_redeveloping-urban-forest-effect",
+  "Guo_2019_city-wide-canopy-cover",
+  "Guo_2023_nationwide-urban-tree-canopy",
+  "Guo_2024_monitoring-tree-canopy-dynamics",
+  "GutierrezVelez_2024_mapping-forest-cover-change",
+  "Hall_1985_resampling-coverage-pattern",
+  "Hamraz_2017_forest-understory-trees-can",
+  "Hasegawa_2019_probability-deriving-yearly-transition",
+  "Hauer_1994_street-tree-decline-construction",
+  "He_2024_time-series-land-cover",
+  "Healy_2022_historical-urban-tree-canopy",
+  "Hecht_2015_automatic-identification-building-types",
+  "Hessel_2020_relative-radiometric-normalization-several",
+  "Higham_2011_pth-roots-stochastic-matrices",
+  "Hilbert_2019_urban-tree-mortality-literature",
+  "Hoberg_2012_context-models-crf-based",
+  "Hoberg_2015_conditional-random-fields-multitemporal",
+  "Hood_2018_fire-tree-death-understanding",
+  "Howard_2018_universal-language-model-fine",
+  "Huang_2026_ladder-side-tuning-visual",
+  "Hughes_1999_non-homogeneous-hidden-markov",
+  "Hughes_2011_autologistic-models-binary-data",
+  "Hughes_2014_ngspatial-package-fitting-centered",
+  "Hwang_2020_geospatial-methods-tree-canopy",
+  "Iizuka_2024_frequency-based-optimal-style",
+  "Islam_2026_high-resolution-multi-temporal",
+  "Israel_2001_finding-generators-markov-chains",
+  "Jackson_2001_hidden-markov-models-onset",
+  "Jackson_2011_multi-state-models-panel",
+  "Ji_2025_reliable-land-cover-mapping",
+  "Kaiser_2012_goodness-fit-tests-class",
+  "Kaiser_2017_learning-aerial-image-segmentation",
+  "Kalinicheva_2025_super-resolved-canopy-height",
+  "Kats_2019_soft-labeling-distilling-anatomical",
+  "Ke_2011_review-methods-automatic-individual",
+  "Keddie_2023_estimating-sensitivity-specificity-diagnostic",
+  "Kelejian_2007_hac-estimation-spatial-framework",
+  "Khoee_2024_domain-generalization-through-meta",
+  "King_2013_comparison-three-methods-measuring",
+  "Kokubu_2020_mapping-seasonal-tree-canopy",
+  "Kolmogorov_2004_what-energy-functions-can",
+  "Kolmogorov_2005_what-metrics-can-approximated",
+  "Kostrzewa_2025_convolutional-neural-networks-land",
+  "Kou_2020_progressive-domain-adaptation-change",
+  "Krahenbuhl_2011_efficient-inference-fully-connected",
+  "Krahenbuhl_2013_parameter-learning-convergent-inference",
+  "Kwong_2020_tree-height-mapping-crown",
+  "Lahiri_2003_resampling-methods-spatial-data",
+  "Lahiri_2006_resampling-methods-spatial-regression",
+  "Lang_2023_high-resolution-canopy-height",
+  "Lasko_2026_winter-tree-terrain-shadow",
+  "Laurance_1998_rain-forest-fragmentation-dynamics",
+  "Laurance_2011_fate-amazonian-forest-fragments",
+  "LeFolgoc_2017_quantifying-registration-uncertainty-sparse",
+  "Lee_2014_deeply-supervised-nets",
+  "Leung_1997_point-polygon-analysis-certainty",
+  "Leung_1998_locational-error-model-spatial",
+  "Leung_2004_general-framework-error-analysis",
+  "Leung_2004a_general-framework-error-analysis",
+  "Li_2018_adaptive-batch-normalization-practical",
+  "Li_2019_improving-lidar-classification-accuracy",
+  "Li_2025_adapting-cross-sensor-high",
+  "Li_2025_post-processing-optimization-global",
+  "Li_2026_alcc-temporally-consistent-annual",
+  "Liang_2024_single-domain-generalization-method",
+  "Likowski_2022_misconv-convolutional-neural-networks",
+  "Liu_2008_local-transition-probability-models",
+  "Liu_2009_effects-different-classification-models",
+  "Liu_2012_spatial-temporal-modeling-approach",
+  "Liu_2018_image-inpainting-irregular-holes",
+  "Liu_2021_spatial-temporal-hidden-markov",
+  "Liu_2023_very-high-resolution-images",
+  "Liu_2026_geoai-machine-learning-tools",
+  "Locke_2025_sub-parcel-scale-analysis",
+  "LopezPaz_2016_unifying-distillation-privileged-information",
+  "Lu_1999_control-charts-monitoring-mean",
+  "Lu_2001_cusum-charts-monitoring-autocorrelated",
+  "Lu_2026_conformal-prediction-sets-instance",
+  "Luo_2025_domain-generalization-semantic-segmentation",
+  "Ma_2021_multi-task-deep-supervision",
+  "MacFaden_2012_high-resolution-tree-canopy",
+  "Maclaurin_2016_temporal-replication-national-land",
+  "MaiaPolo_2022_effective-sample-size-dimensionality",
+  "Majasalmi_2021_representation-tree-cover-global",
+  "Martinis_2010_hierarchical-spatio-temporal-markov",
+  "Mas_2017_land-use-land-cover",
+  "Mboga_2020_fully-convolutional-networks-land",
+  "McCombs_2016_accuracy-assessment-noaa-coastal",
+  "Melgani_2003_markov-random-field-approach",
+  "Merry_2014_urban-tree-cover-change",
+  "Mesquita_1999_effect-surrounding-vegetation-edge",
+  "Meyer_2008_verification-color-vegetation-indices",
+  "Miller_2013_determining-occurrence-dynamics-when",
+  "Mishra_2022_effect-inspection-error-cusum",
+  "Mobsite_2026_enhancing-land-cover-semantic",
+  "Moghimi_2022_automatic-relative-radiometric-normalization",
+  "Montgomery_1991_some-statistical-process-control",
+  "Moraes_2024_training-data-satellite-image",
+  "Morgenroth_2017_redevelopment-urban-forest-study",
+  "Mossina_2025_conformal-prediction-image-segmentation",
+  "Motohka_2010_applicability-green-red-vegetation",
+  "Moudry_2024_comparison-three-global-canopy",
+  "Mousavi_2009_cusum-chart-monitoring-proportion",
+  "Murakami_2025_comparative-global-assessment-optimization",
+  "Nordman_2004_optimal-spatial-subsample-size",
+  "Nowak_2012_tree-impervious-cover-change",
+  "ONeilDunne_2014_versatile-production-oriented-approach",
+  "Ock_2024_drivers-tree-canopy-loss",
+  "Okkaoglu_2024_detecting-departures-conditional-independence",
+  "Olofsson_2013_making-better-use-accuracy",
+  "Olofsson_2014_good-practices-estimating-area",
+  "Ossola_2018_measuring-urban-tree-loss",
+  "Papadopoulos_2024_decision-fusion-pixel-level",
+  "Parisot_2013_uncertainty-driven-efficiently-sampled",
+  "Parmehr_2016_estimation-urban-tree-canopy",
+  "Pasquarella_2022_demystifying-landtrendr-ccdc-temporal",
+  "Pauls_2025_capturing-temporal-dynamics-large",
+  "Pearse_2021_deep-learning-phenology-enhance",
+  "Pedley_2025_detecting-measuring-fine-scale",
+  "Pedley_2025_green-vs-growth-effect",
+  "Peng_2025_human-annotated-label-noise",
+  "Peng_2025_label-efficient-deep-learning",
+  "Perantoni_2024_bayesian-modelling-multi-year",
+  "Persson_2022_quantify-account-field-reference",
+  "Pesonen_2026_learning-image-based-tree",
+  "Pillow_2008_spatio-temporal-correlations-visual",
+  "Pires_2020_interval-censored-data-misclassification",
+  "Platanios_2014_estimating-accuracy-unlabeled-data",
+  "Platanios_2016_estimating-accuracy-unlabeled-data",
+  "Polunchenko_2011_state-art-sequential-change",
+  "Pontius_2011_death-kappa-birth-quantity",
+  "Pontius_2017_methods-summarize-change-among",
+  "Psarakis_2007_spc-procedures-monitoring-autocorrelated",
+  "Qin_2025_spatiotemporal-masked-pre-training",
+  "Radke_2003_demonstration-interval-censored-survival",
+  "Radoux_2020_about-pitfall-erroneous-validation",
+  "Radoux_2020_how-response-designs-class",
+  "Rafi_2024_domain-generalization-semantic-segmentation",
+  "Ramani_2008_monte-carlo-sure-black",
+  "Ranabhat_2026_promoting-shape-bias-cnns",
+  "Raykar_2010_learning-crowds",
+  "Reiche_2015_bayesian-approach-combine-landsat",
+  "Reiche_2021_forest-disturbance-alerts-congo",
+  "Reilly_2023_characterizing-post-fire-delayed",
+  "Reinhart_2018_review-self-exciting-spatio",
+  "Reis_2020_avoiding-invalid-transitions-land",
+  "Reis_2024_assessing-interpreter-s-disagreements",
+  "Reynolds_1999_cusum-chart-monitoring-proportion",
+  "Reynolds_2000_general-approach-modeling-cusum",
+  "Richardson_2014_uncertainty-urban-forest-canopy",
+  "Risholm_2011_probabilistic-non-rigid-registration",
+  "Ro_2020_autolr-layer-wise-pruning",
+  "Roberts_2017_cross-validation-strategies-data",
+  "Rodman_2021_disturbance-detection-landsat-time",
+  "Roman_2017_growing-canopy-college-campus",
+  "Roman_2022_construction-proactive-management-led",
+  "Rosa_2013_predictive-modelling-contagious-deforestation",
+  "Ross_2012_sequential-monitoring-bernoulli-sequence",
+  "Rosychuk_2003_bias-correction-two-state",
+  "Ryadi_2023_relaxation-based-radiometric-normalization",
+  "Salas_2003_perimeter-area-ratio-index",
+  "SalisDerisArtikanur_2026_evaluating-accuracy-temporal",
+  "Satten_1996_markov-chains-measurement-error",
+  "Schwartz_2000_distributed-lag-air-pollution",
+  "Serov_2026_kernel-mean-matching-enhances",
+  "Shen_2026_d-2-ft-net",
+  "Shi_1998_generic-statistical-approach-modelling",
+  "Sierra_2026_assessing-impact-lidar-density",
+  "Simou_2026_reconstructing-century-urban-growth",
+  "Singh_2024_uncertainty-quantification-probabilistic-machine",
+  "Sinop_2007_seeded-image-segmentation-framework",
+  "Sinopoli_2004_kalman-filtering-intermittent-observations",
+  "Solberg_1996_markov-random-field-model",
+  "Song_2026_enhancing-monocular-height-estimation",
+  "Sonnentag_2012_digital-repeat-photography-phenological",
+  "Steenberg_2017_influence-building-renovation-rental",
+  "Steenberg_2018_spatio-temporal-analysis-relationship",
+  "Stehman_2012_impact-sample-size-allocation",
+  "Stehman_2014_estimating-area-map-accuracy",
+  "Stehman_2019_key-issues-rigorous-accuracy",
+  "Stehman_2024_choosing-sample-size-allocation",
+  "Steiner_2000_monitoring-surgical-performance-risk",
+  "Stow_1999_reducing-effects-misregistration-pixel",
+  "SullaMenashe_2019_hierarchical-mapping-annual-global",
+  "Sun_2022_cg-net-conditional-gis",
+  "Takada_2009_derivation-yearly-transition-probability",
+  "Tang_2025_weakly-supervised-land-cover",
+  "Tarko_2020_producing-consistent-visually-interpreted",
+  "Tartakovsky_2008_asymptotically-optimal-quickest-change",
+  "Techapinyawat_2024_integrated-urban-land-cover",
+  "Tian_2025_deep-learning-based-individual",
+  "Tolan_2024_very-high-resolution-canopy",
+  "Torres_2021_deforestation-detection-fully-convolutional",
+  "Touvron_2019_fixing-train-test-resolution",
+  "Townshend_1992_impact-misregistration-change-detection",
+  "Truccolo_2005_point-process-framework-relating",
+  "Tuia_2011_survey-active-learning-algorithms",
+  "Turubanova_2023_tree-canopy-extent-height",
+  "Ucar_2016_comparison-two-sampling-approaches",
+  "Valavi_2018_block-cv-r-package",
+  "Valavi_2018_blockcv-r-package-generating",
+  "Valindria_2017_reverse-classification-accuracy-predicting",
+  "VanDenBroeck_2022_multiclass-land-cover-mapping",
+  "VanDenHout_2016_multi-state-survival-models",
+  "Vapnik_2009_new-learning-paradigm-learning",
+  "Verbesselt_2010_detecting-trend-seasonal-changes",
+  "Verburg_2004_method-analyse-neighbourhood-characteristics",
+  "Verbyla_2000_bias-land-cover-change",
+  "Vicente_2008_graph-cut-based-image",
+  "Vincent_1993_grayscale-area-openings-closings",
+  "Vogeler_2018_extracting-full-value-landsat",
+  "Vovk_2013_conditional-validity-inductive-conformal",
+  "Wagner_2015_optimizing-sample-size-allocation",
+  "Wagner_2024_sub-meter-tree-height",
+  "Walton_2008_difficulties-estimating-city-wide",
+  "Wang_2005_image-misregistration-error-change",
+  "Wang_2021_application-evaluation-deep-learning",
+  "Wang_2022_continual-test-time-domain",
+  "Wang_2025_boosting-domain-generalization-remote",
+  "Wang_2025_test-time-adaptation-geospatial",
+  "Warfield_2004_simultaneous-truth-performance-level",
+  "Wehmann_2015_spatial-temporal-contextual-markovian",
+  "Weinstein_2019_individual-tree-crown-detection",
+  "Weinstein_2020_cross-site-learning-deep",
+  "Weinstein_2020_deepforest-python-package-rgb",
+  "Wendelberger_2026_detecting-deforestation-robust-online",
+  "Wickham_2023_thematic-accuracy-assessment-nlcd",
+  "Wolters_2016_classification-large-scale-remote",
+  "Wolters_2017_better-autologistic-regression",
+  "Wortsman_2022_model-soups-averaging-weights",
+  "Wortsman_2022_robust-fine-tuning-zero",
+  "Wu_2017_post-classification-change-detection",
+  "XiaolongDai_1998_effects-image-misregistration-accuracy",
+  "Xie_2013_sequential-multi-sensor-change",
+  "Xing_2024_interpenetrating-subsampling-incorporate",
+  "Yang_2020_evaluating-reliability-time-series",
+  "Yang_2020_fda-fourier-domain-adaptation",
+  "Yang_2021_30-m-annual-land",
+  "Yaras_2024_randomized-histogram-matching-simple",
+  "Yi_2025_sub-meter-resolution-urban",
+  "Yoo_2026_open-transferable-deep-learning",
+  "Yuan_2015_continuous-change-detection-classification",
+  "Zampieri_2018_multimodal-image-alignment-through",
+  "Zhang_2021_feature-matching-multi-epoch",
+  "Zhang_2025_mtcdnet-multimodal-feature-fusion",
+  "Zhao_2017_pyramid-scene-parsing-network",
+  "Zhao_2023_systematic-review-individual-tree",
+  "Zheng_2008_markov-chain-monte-carlo",
+  "Zheng_2024_single-temporal-supervised-learning",
+  "Zhou_2020_training-data-selection-annual",
+  "Zhu_2005_modeling-spatial-temporal-binary",
+  "Zhu_2008_autologistic-regression-analysis-spatial",
+  "Zhu_2014_continuous-change-detection-classification",
+  "Zhu_2017_change-detection-landsat-time",
+  "Zhuang_2002_stochastic-declustering-space-time"
+ ],
+ "built": "2026-09-15",
+ "counts": {
+  "admitted_works": 348,
+  "duplicate_pairs": 4,
+  "lost_genuine": 5,
+  "must_not_link": 77,
+  "near_positive_mutations": 20,
+  "positives": 365,
+  "references_total": 658
+ },
+ "duplicate_pairs": [
+  {
+   "left_id": "50",
+   "left_key": "",
+   "left_state": "new",
+   "left_title": "DeepForest: fine-tuning with ~1000 annotations",
+   "note": "",
+   "right_id": "3",
+   "right_key": "Weinstein_2020_deepforest-python-package-rgb",
+   "right_state": "admitted",
+   "right_title": "DeepForest: A Python package for RGB deep learning tree crown delineation",
+   "verdict": "duplicate"
+  },
+  {
+   "left_id": "199",
+   "left_key": "Wagner_2024_sub-meter-tree-height",
+   "left_state": "duplicate",
+   "left_title": "Sub-meter tree height mapping of California using aerial images and LiDAR-informed U-Net model",
+   "note": "",
+   "right_id": "94",
+   "right_key": "Wagner_2024_sub-meter-tree-height",
+   "right_state": "admitted",
+   "right_title": "Sub-meter tree height mapping of California using aerial images and LiDAR-informed U-Net model",
+   "verdict": "duplicate"
+  },
+  {
+   "left_id": "264",
+   "left_key": "Pedley_2025_detecting-measuring-fine-scale",
+   "left_state": "duplicate",
+   "left_title": "Detecting and measuring fine-scale urban tree canopy loss with deep learning and remote sensing",
+   "note": "",
+   "right_id": "13",
+   "right_key": "Pedley_2025_detecting-measuring-fine-scale",
+   "right_state": "admitted",
+   "right_title": "Detecting and measuring fine-scale urban tree canopy loss with deep learning and remote sensing",
+   "verdict": "duplicate"
+  },
+  {
+   "left_id": "303",
+   "left_key": "Valavi_2018_blockcv-r-package-generating",
+   "left_state": "admitted",
+   "left_title": "blockCV: an R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models",
+   "note": "preprint and its journal version; two works, one paper",
+   "right_id": "60",
+   "right_key": "Valavi_2018_block-cv-r-package",
+   "right_state": "admitted",
+   "right_title": "block CV : An r package for generating spatially or environmentally separated folds for k ‐fold cross‐validation of species distribution models",
+   "verdict": "related_not_duplicate"
+  }
+ ],
+ "lost_genuine": [
+  {
+   "gold_doi": "10.1109/tsmc.1978.4309889",
+   "ref_id": "Abercrombie_2016_improving-consistency::b16",
+   "refusal_reason": "crossref_no_author",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8; REFEREE2 §3"
+  },
+  {
+   "gold_doi": "10.1201/b12612-12",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b12",
+   "refusal_reason": "crossref_no_author",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8; REFEREE2 §3"
+  },
+  {
+   "gold_doi": "10.1093/oxfordjournals.aje.a120609",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b14",
+   "refusal_reason": "crossref_title_ratio",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8; REFEREE2 §3"
+  },
+  {
+   "gold_doi": "10.1093/oxfordjournals.aje.a120610",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b38",
+   "refusal_reason": "crossref_title_ratio",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8; REFEREE2 §3"
+  },
+  {
+   "gold_doi": "10.14358/pers.69.3.289",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b43",
+   "refusal_reason": "crossref_title_ratio",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8; REFEREE2 §3"
+  }
+ ],
+ "must_not_link": [
+  {
+   "bad_doi": "10.2307/1269348",
+   "kind": "book_review",
+   "ref_id": "Alwan_1988_time-series-modeling-statistical-process::b13",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8 refusal table",
+   "why": "journal-article review of the cited book"
+  },
+  {
+   "bad_doi": "10.2307/214811",
+   "kind": "book_review",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b23",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8 refusal table",
+   "why": "Geographical Review review; authors Semple, Getis, Boots"
+  },
+  {
+   "bad_doi": "10.2307/2531038",
+   "kind": "book_review",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b10",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8 refusal table",
+   "why": "journal-article review of the cited book"
+  },
+  {
+   "bad_doi": "10.1016/b978-0-08-044894-7.01340-3",
+   "kind": "edition",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b58",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8 refusal table",
+   "why": "2010 record vs 2004 reference"
+  },
+  {
+   "bad_doi": "10.1007/978-1-4612-0919-5_38",
+   "kind": "edition",
+   "ref_id": "Efron_2004_estimation-prediction-error-covariance::b0",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8 refusal table",
+   "why": "1992 record vs 1973 reference"
+  },
+  {
+   "bad_doi": "10.1142/9789814329804_0014",
+   "kind": "edition",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b76",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8 refusal table",
+   "why": "2011 record vs 2002 reference"
+  },
+  {
+   "bad_doi": "10.4324/9780203303245_chapter_one",
+   "kind": "edition",
+   "ref_id": "Goodchild_2004_general-framework-error-analysis::b1",
+   "source": "Reports/LITKB_S2_BATCHING_2026-09-15.md §8 refusal table",
+   "why": "2010 record vs 2002 reference"
+  },
+  {
+   "bad_doi": "10.1126/science.1155121",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b0",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Forests and climate change: Forcings, feedbacks, and the climate benefits of forests",
+   "mutant_year": "2011",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b0#mut0",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1126/science.1155121",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b0",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Forests and climate change: Forcings, feedbacks, and the climate benefits of forests",
+   "mutant_year": "2005",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b0#mut1",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1126/science.1155121",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b0",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2008",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b0#mut3",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1175/1520-0442(2002)015<3123:tlscot>2.0.co;2",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b2",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "The land surface climatology of the community land model coupled to the NCAR community climate model",
+   "mutant_year": "2005",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b2#mut4",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1175/1520-0442(2002)015<3123:tlscot>2.0.co;2",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b2",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "The land surface climatology of the community land model coupled to the NCAR community climate model",
+   "mutant_year": "1999",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b2#mut5",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1175/1520-0442(2002)015<3123:tlscot>2.0.co;2",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b2",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2002",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b2#mut7",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1029/2002jd003296",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b3",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Implementation of Noah land surface model advances in the national centers for environmental prediction operational mesoscale Eta model",
+   "mutant_year": "2006",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b3#mut8",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1029/2002jd003296",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b3",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Implementation of Noah land surface model advances in the national centers for environmental prediction operational mesoscale Eta model",
+   "mutant_year": "2000",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b3#mut9",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1029/2002jd003296",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b3",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2003",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b3#mut11",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1029/2007gb002959",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b4",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Comprehensive data set of global land cover change for land surface model applications",
+   "mutant_year": "2011",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b4#mut12",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1029/2007gb002959",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b4",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Comprehensive data set of global land cover change for land surface model applications",
+   "mutant_year": "2005",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b4#mut13",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1029/2007gb002959",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b4",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2008",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b4#mut15",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.rse.2009.08.016",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b5",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "MODIS collection 5 global land cover: Algorithm refinements and characterization of new datasets",
+   "mutant_year": "2013",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b5#mut16",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.rse.2009.08.016",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b5",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "MODIS collection 5 global land cover: Algorithm refinements and characterization of new datasets",
+   "mutant_year": "2007",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b5#mut17",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.rse.2009.08.016",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b5",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2010",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b5#mut19",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/014311600210209",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b6",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Global land cover classification at 1 km spatial resolution using a classification tree approach",
+   "mutant_year": "2003",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b6#mut20",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/014311600210209",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b6",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Global land cover classification at 1 km spatial resolution using a classification tree approach",
+   "mutant_year": "1997",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b6#mut21",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/014311600210209",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b6",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2000",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b6#mut23",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.3390/rs6053965",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b8",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Automated training sample extraction for global land cover mapping",
+   "mutant_year": "2017",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b8#mut24",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.3390/rs6053965",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b8",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Automated training sample extraction for global land cover mapping",
+   "mutant_year": "2011",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b8#mut25",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.3390/rs6053965",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b8",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2014",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b8#mut27",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.isprsjprs.2014.09.002",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b9",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Global land cover mapping at 30 m resolution: A POK-based operational approach",
+   "mutant_year": "2018",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b9#mut28",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.isprsjprs.2014.09.002",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b9",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Global land cover mapping at 30 m resolution: A POK-based operational approach",
+   "mutant_year": "2012",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b9#mut29",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.isprsjprs.2014.09.002",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b9",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2015",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b9#mut31",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/014311600210218",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b10",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "A comparison of the IGBP discover and university of Maryland 1 km global land cover products",
+   "mutant_year": "2003",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b10#mut32",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/014311600210218",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b10",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "A comparison of the IGBP discover and university of Maryland 1 km global land cover products",
+   "mutant_year": "1997",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b10#mut33",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/014311600210218",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b10",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2000",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b10#mut35",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.rse.2004.09.005",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b11",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "A comparative analysis of the global land cover 2000 and MODIS land cover data sets",
+   "mutant_year": "2008",
+   "mutation": "year+3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b11#mut36",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.rse.2004.09.005",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b11",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "A comparative analysis of the global land cover 2000 and MODIS land cover data sets",
+   "mutant_year": "2002",
+   "mutation": "year-3",
+   "ref_id": "Abercrombie_2016_improving-consistency::b11#mut37",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.rse.2004.09.005",
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b11",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2005",
+   "mutation": "title-wrong",
+   "ref_id": "Abercrombie_2016_improving-consistency::b11#mut39",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1111/j.1365-2664.2006.01214.x",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Assessing the Accuracy of Species Distribution Models: Prevalence, Kappa and the True Skill Statistic (TSS)",
+   "mutant_year": "2009",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0#mut40",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1111/j.1365-2664.2006.01214.x",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Assessing the Accuracy of Species Distribution Models: Prevalence, Kappa and the True Skill Statistic (TSS)",
+   "mutant_year": "2003",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0#mut41",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1111/j.1365-2664.2006.01214.x",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2006",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0#mut43",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1111/j.1365-2664.2006.01214.x",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1111/j.1365-2664.2006.01215.x",
+   "mutant_title": "Assessing the Accuracy of Species Distribution Models: Prevalence, Kappa and the True Skill Statistic (TSS)",
+   "mutant_year": "2006",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0#mut44",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/02697459.2012.733525",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Where Have All the Trees Gone?' Urban Consolidation and the Demise of Urban Vegetation: A Case Study from Western Australia",
+   "mutant_year": "2016",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3#mut45",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/02697459.2012.733525",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Where Have All the Trees Gone?' Urban Consolidation and the Demise of Urban Vegetation: A Case Study from Western Australia",
+   "mutant_year": "2010",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3#mut46",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/02697459.2012.733525",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2013",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3#mut48",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1080/02697459.2012.733525",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1080/02697459.2012.733526",
+   "mutant_title": "Where Have All the Trees Gone?' Urban Consolidation and the Demise of Urban Vegetation: A Case Study from Western Australia",
+   "mutant_year": "2013",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3#mut49",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2017.03.030",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Tree canopy change and neighborhood stability: A comparative analysis of Washington, DC and Baltimore",
+   "mutant_year": "2018",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4#mut50",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2017.03.030",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Tree canopy change and neighborhood stability: A comparative analysis of Washington, DC and Baltimore",
+   "mutant_year": "2012",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4#mut51",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2017.03.030",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2015",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4#mut53",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2017.03.030",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1016/j.ufug.2017.03.031",
+   "mutant_title": "Tree canopy change and neighborhood stability: A comparative analysis of Washington, DC and Baltimore",
+   "mutant_year": "2015",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4#mut54",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2007.07.003",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Variations in municipal urban forestry policies: A case study of Toronto",
+   "mutant_year": "2010",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6#mut55",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2007.07.003",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Variations in municipal urban forestry policies: A case study of Toronto",
+   "mutant_year": "2004",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6#mut56",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2007.07.003",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2007",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6#mut58",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.ufug.2007.07.003",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1016/j.ufug.2007.07.004",
+   "mutant_title": "Variations in municipal urban forestry policies: A case study of Toronto",
+   "mutant_year": "2007",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6#mut59",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.landurbplan.2016.04.016",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Assessing residents' reactions to urban forest disservices: A case study of a major storm event",
+   "mutant_year": "2019",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7#mut60",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.landurbplan.2016.04.016",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Assessing residents' reactions to urban forest disservices: A case study of a major storm event",
+   "mutant_year": "2013",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7#mut61",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.landurbplan.2016.04.016",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2016",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7#mut63",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1016/j.landurbplan.2016.04.016",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1016/j.landurbplan.2016.04.017",
+   "mutant_title": "Assessing residents' reactions to urban forest disservices: A case study of a major storm event",
+   "mutant_year": "2016",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7#mut64",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1890/07-0539.1",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Random Forests for Classification in Ecology",
+   "mutant_year": "2010",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10#mut65",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1890/07-0539.1",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Random Forests for Classification in Ecology",
+   "mutant_year": "2004",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10#mut66",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1890/07-0539.1",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2007",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10#mut68",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1890/07-0539.1",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1890/07-0539.2",
+   "mutant_title": "Random Forests for Classification in Ecology",
+   "mutant_year": "2007",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10#mut69",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.2307/177409",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Classification and Regression Trees: A Powerful Yet Simple Technique for Ecological Data Analysis",
+   "mutant_year": "2003",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11#mut70",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.2307/177409",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Classification and Regression Trees: A Powerful Yet Simple Technique for Ecological Data Analysis",
+   "mutant_year": "1997",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11#mut71",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.2307/177409",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2000",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11#mut73",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.2307/177409",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.2307/177400",
+   "mutant_title": "Classification and Regression Trees: A Powerful Yet Simple Technique for Ecological Data Analysis",
+   "mutant_year": "2000",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11#mut74",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s00267-014-0310-2",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "An Ecology of Prestige in New York City: Examining the Relationships Among Population Density, Socio-economic Status, Group Identity, and Residential Canopy Cover",
+   "mutant_year": "2017",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15#mut75",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s00267-014-0310-2",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "An Ecology of Prestige in New York City: Examining the Relationships Among Population Density, Socio-economic Status, Group Identity, and Residential Canopy Cover",
+   "mutant_year": "2011",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15#mut76",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s00267-014-0310-2",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2014",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15#mut78",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s00267-014-0310-2",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1007/s00267-014-0310-3",
+   "mutant_title": "An Ecology of Prestige in New York City: Examining the Relationships Among Population Density, Socio-economic Status, Group Identity, and Residential Canopy Cover",
+   "mutant_year": "2014",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15#mut79",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10021-006-0116-z",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Characterization of Households and Its Implications for the Vegetation of Urban Ecosystems",
+   "mutant_year": "2009",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16#mut80",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10021-006-0116-z",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Characterization of Households and Its Implications for the Vegetation of Urban Ecosystems",
+   "mutant_year": "2003",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16#mut81",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10021-006-0116-z",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2006",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16#mut83",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10021-006-0116-z",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1007/s10021-006-0117-z",
+   "mutant_title": "Characterization of Households and Its Implications for the Vegetation of Urban Ecosystems",
+   "mutant_year": "2006",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16#mut84",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10342-017-1042-7",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17",
+   "kind": "mutation_year+3",
+   "mutant_doi": "",
+   "mutant_title": "Predicting tree preferences from visible tree characteristics",
+   "mutant_year": "2020",
+   "mutation": "year+3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17#mut85",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10342-017-1042-7",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17",
+   "kind": "mutation_year-3",
+   "mutant_doi": "",
+   "mutant_title": "Predicting tree preferences from visible tree characteristics",
+   "mutant_year": "2014",
+   "mutation": "year-3",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17#mut86",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10342-017-1042-7",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17",
+   "kind": "mutation_title-wrong",
+   "mutant_doi": "",
+   "mutant_title": "Rain forest fragmentation and the dynamics of Amazonian tree communities",
+   "mutant_year": "2017",
+   "mutation": "title-wrong",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17#mut88",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  },
+  {
+   "bad_doi": "10.1007/s10342-017-1042-7",
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17",
+   "kind": "mutation_doi-digit",
+   "mutant_doi": "10.1007/s10342-017-1042-8",
+   "mutant_title": "Predicting tree preferences from visible tree characteristics",
+   "mutant_year": "2017",
+   "mutation": "doi-digit",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17#mut89",
+   "source": "litkb_derived/p6/kills.json near_miss"
+  }
+ ],
+ "near_positive_mutations": [
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b0",
+   "gold_doi": "10.1126/science.1155121",
+   "mutant_title": "Forests and climate change: Forcings, bicycles and the climate benefits of forests",
+   "mutant_year": "2008",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b0#mut2"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b2",
+   "gold_doi": "10.1175/1520-0442(2002)015<3123:tlscot>2.0.co;2",
+   "mutant_title": "The land surface bicycles of the community land model coupled to the NCAR community climate model",
+   "mutant_year": "2002",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b2#mut6"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b3",
+   "gold_doi": "10.1029/2002jd003296",
+   "mutant_title": "bicycles of Noah land surface model advances in the national centers for environmental prediction operational mesoscale Eta model",
+   "mutant_year": "2003",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b3#mut10"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b4",
+   "gold_doi": "10.1029/2007gb002959",
+   "mutant_title": "bicycles data set of global land cover change for land surface model applications",
+   "mutant_year": "2008",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b4#mut14"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b5",
+   "gold_doi": "10.1016/j.rse.2009.08.016",
+   "mutant_title": "MODIS collection 5 global land cover: Algorithm refinements and bicycles of new datasets",
+   "mutant_year": "2010",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b5#mut18"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b6",
+   "gold_doi": "10.1080/014311600210209",
+   "mutant_title": "Global land cover bicycles at 1 km spatial resolution using a classification tree approach",
+   "mutant_year": "2000",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b6#mut22"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b8",
+   "gold_doi": "10.3390/rs6053965",
+   "mutant_title": "Automated training sample bicycles for global land cover mapping",
+   "mutant_year": "2014",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b8#mut26"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b9",
+   "gold_doi": "10.1016/j.isprsjprs.2014.09.002",
+   "mutant_title": "Global land cover mapping at 30 m bicycles A POK-based operational approach",
+   "mutant_year": "2015",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b9#mut30"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b10",
+   "gold_doi": "10.1080/014311600210218",
+   "mutant_title": "A bicycles of the IGBP discover and university of Maryland 1 km global land cover products",
+   "mutant_year": "2000",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b10#mut34"
+  },
+  {
+   "base_ref_id": "Abercrombie_2016_improving-consistency::b11",
+   "gold_doi": "10.1016/j.rse.2004.09.005",
+   "mutant_title": "A bicycles analysis of the global land cover 2000 and MODIS land cover data sets",
+   "mutant_year": "2005",
+   "mutation": "title-word",
+   "ref_id": "Abercrombie_2016_improving-consistency::b11#mut38"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0",
+   "gold_doi": "10.1111/j.1365-2664.2006.01214.x",
+   "mutant_title": "Assessing the Accuracy of Species bicycles Models: Prevalence, Kappa and the True Skill Statistic (TSS)",
+   "mutant_year": "2006",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0#mut42"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3",
+   "gold_doi": "10.1080/02697459.2012.733525",
+   "mutant_title": "Where Have All the Trees Gone?' Urban bicycles and the Demise of Urban Vegetation: A Case Study from Western Australia",
+   "mutant_year": "2013",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3#mut47"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4",
+   "gold_doi": "10.1016/j.ufug.2017.03.030",
+   "mutant_title": "Tree canopy change and bicycles stability: A comparative analysis of Washington, DC and Baltimore",
+   "mutant_year": "2015",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4#mut52"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6",
+   "gold_doi": "10.1016/j.ufug.2007.07.003",
+   "mutant_title": "bicycles in municipal urban forestry policies: A case study of Toronto",
+   "mutant_year": "2007",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6#mut57"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7",
+   "gold_doi": "10.1016/j.landurbplan.2016.04.016",
+   "mutant_title": "Assessing residents' reactions to urban forest bicycles A case study of a major storm event",
+   "mutant_year": "2016",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7#mut62"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10",
+   "gold_doi": "10.1890/07-0539.1",
+   "mutant_title": "Random Forests for bicycles in Ecology",
+   "mutant_year": "2007",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10#mut67"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11",
+   "gold_doi": "10.2307/177409",
+   "mutant_title": "bicycles and Regression Trees: A Powerful Yet Simple Technique for Ecological Data Analysis",
+   "mutant_year": "2000",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11#mut72"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15",
+   "gold_doi": "10.1007/s00267-014-0310-2",
+   "mutant_title": "An Ecology of Prestige in New York City: Examining the Relationships Among Population Density, bicycles Status, Group Identity, and Residential Canopy Cover",
+   "mutant_year": "2014",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15#mut77"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16",
+   "gold_doi": "10.1007/s10021-006-0116-z",
+   "mutant_title": "bicycles of Households and Its Implications for the Vegetation of Urban Ecosystems",
+   "mutant_year": "2006",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16#mut82"
+  },
+  {
+   "base_ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17",
+   "gold_doi": "10.1007/s10342-017-1042-7",
+   "mutant_title": "Predicting tree preferences from visible tree bicycles",
+   "mutant_year": "2017",
+   "mutation": "title-word",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17#mut87"
+  }
+ ],
+ "positives": [
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.3390/rs1030122",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/lgrs.2013.2284297",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b1",
+   "ref_key": "b1",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2004.842441",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2004.842441",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2009.2022633",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tip.2009.2025808",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2009"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tpami.2011.94",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2012"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1111/j.2517-6161.1986.tb01412.x",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b8",
+   "ref_key": "b8",
+   "resolver_reason": "via=crossref; ratio=0.91; year=1986"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2008.916643",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/36.843009",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tip.2002.999678",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b12",
+   "ref_key": "b12",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2002"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2005.861007",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b13",
+   "ref_key": "b13",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1016/j.patrec.2006.08.010",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b14",
+   "ref_key": "b14",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tip.2008.916047",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b15",
+   "ref_key": "b15",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1016/j.sigpro.2012.07.013",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b16",
+   "ref_key": "b16",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2013"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tip.2005.849319",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b18",
+   "ref_key": "b18",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2011.2154336",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b20",
+   "ref_key": "b20",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2011"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2006.879498",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b23",
+   "ref_key": "b23",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2006.888861",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b25",
+   "ref_key": "b25",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tip.2013.2259833",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b26",
+   "ref_key": "b26",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2013"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.5194/isprsannals-i-7-129-2012",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b27",
+   "ref_key": "b27",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2012"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2014.2326886",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b28",
+   "ref_key": "b28",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2015"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1023/b:aire.0000045502.10941.a9",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b29",
+   "ref_key": "b29",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2004.835294",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tip.2007.903841",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b31",
+   "ref_key": "b31",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.1986.289628",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b32",
+   "ref_key": "b32",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1986"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1016/j.imavis.2006.03.005",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b33",
+   "ref_key": "b33",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1561/9781601985897",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b34",
+   "ref_key": "b34",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2011"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tpami.2004.1262177",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b37",
+   "ref_key": "b37",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/lgrs.2004.828917",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b38",
+   "ref_key": "b38",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/icrcc.2012.6450547",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b39",
+   "ref_key": "b39",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2012"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1007/11612032_84",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b40",
+   "ref_key": "b40",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1016/j.rse.2007.10.002",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b41",
+   "ref_key": "b41",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1023/a:1008129103384",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b42",
+   "ref_key": "b42",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2010.2052816",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b43",
+   "ref_key": "b43",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2011"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/lgrs.2006.875773",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b44",
+   "ref_key": "b44",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2003.817269",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b45",
+   "ref_key": "b45",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/lgrs.2010.2102333",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b46",
+   "ref_key": "b46",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2011"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/icemi.2007.4350825",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b49",
+   "ref_key": "b49",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tip.2006.873448",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b50",
+   "ref_key": "b50",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2006.881118",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b51",
+   "ref_key": "b51",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2006"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/icares.2014.7024381",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b52",
+   "ref_key": "b52",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/icpr.2014.169",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b54",
+   "ref_key": "b54",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/36.481897",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b55",
+   "ref_key": "b55",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1016/j.optlastec.2013.10.003",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b56",
+   "ref_key": "b56",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/lgrs.2014.2300873",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b58",
+   "ref_key": "b58",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/lgrs.2012.2219494",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b59",
+   "ref_key": "b59",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2013"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1007/3-540-63460-6_126",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b60",
+   "ref_key": "b60",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/agro-geoinformatics.2012.6311725",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b62",
+   "ref_key": "b62",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2012"
+  },
+  {
+   "citing_work_key": "Benedek_2015_multilayer-markov-random-field-models",
+   "gold_doi": "10.1109/tgrs.2007.907109",
+   "ref_id": "Benedek_2015_multilayer-markov-random-field-models::b63",
+   "ref_key": "b63",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Alwan_1988_time-series-modeling-statistical-process",
+   "gold_doi": "10.1080/00224065.1978.11980842",
+   "ref_id": "Alwan_1988_time-series-modeling-statistical-process::b1",
+   "ref_key": "b1",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1978"
+  },
+  {
+   "citing_work_key": "Alwan_1988_time-series-modeling-statistical-process",
+   "gold_doi": "10.6028/jres.067c.015",
+   "ref_id": "Alwan_1988_time-series-modeling-statistical-process::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1963"
+  },
+  {
+   "citing_work_key": "Alwan_1988_time-series-modeling-statistical-process",
+   "gold_doi": "10.2307/2684609",
+   "ref_id": "Alwan_1988_time-series-modeling-statistical-process::b12",
+   "ref_key": "b12",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1986"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1007/pl00011302",
+   "ref_id": "Bellettini_2002_total-variation-flow::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2001"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1007/s002080100270",
+   "ref_id": "Bellettini_2002_total-variation-flow::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2002"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1090/s0002-9947-99-01981-9",
+   "ref_id": "Bellettini_2002_total-variation-flow::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=0.99; year=1999"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1007/bf01781073",
+   "ref_id": "Bellettini_2002_total-variation-flow::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1983"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1007/s002050010127",
+   "ref_id": "Bellettini_2002_total-variation-flow::b8",
+   "ref_key": "b8",
+   "resolver_reason": "via=crossref; ratio=0.98; year=2001"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1007/s002050100126",
+   "ref_id": "Bellettini_2002_total-variation-flow::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2001"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.4171/ifb/47",
+   "ref_id": "Bellettini_2002_total-variation-flow::b10",
+   "ref_key": "b10",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2001"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.14492/hokmj/1351516749",
+   "ref_id": "Bellettini_2002_total-variation-flow::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1016/0362-546x(94)90084-1",
+   "ref_id": "Bellettini_2002_total-variation-flow::b16",
+   "ref_key": "b16",
+   "resolver_reason": "via=crossref; ratio=0.86; year=1994"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1007/s002110050258",
+   "ref_id": "Bellettini_2002_total-variation-flow::b17",
+   "ref_key": "b17",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1006/acha.1995.1008",
+   "ref_id": "Bellettini_2002_total-variation-flow::b22",
+   "ref_key": "b22",
+   "resolver_reason": "via=crossref; ratio=0.99; year=1995"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1111/j.2517-6161.1995.tb02032.x",
+   "ref_id": "Bellettini_2002_total-variation-flow::b23",
+   "ref_key": "b23",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1995"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1051/cocv:2000117",
+   "ref_id": "Bellettini_2002_total-variation-flow::b24",
+   "ref_key": "b24",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2000"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1007/bf01393250",
+   "ref_id": "Bellettini_2002_total-variation-flow::b26",
+   "ref_key": "b26",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1978"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1090/ulect/022",
+   "ref_id": "Bellettini_2002_total-variation-flow::b29",
+   "ref_key": "b29",
+   "resolver_reason": "via=crossref; ratio=0.95; year=2001"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1137/s0036139997327794",
+   "ref_id": "Bellettini_2002_total-variation-flow::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Bellettini_2002_total-variation-flow",
+   "gold_doi": "10.1016/0167-2789(92)90242-f",
+   "ref_id": "Bellettini_2002_total-variation-flow::b32",
+   "ref_key": "b32",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1992"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1126/science.1155121",
+   "ref_id": "Abercrombie_2016_improving-consistency::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1175/1520-0442(2002)015<3123:tlscot>2.0.co;2",
+   "ref_id": "Abercrombie_2016_improving-consistency::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2002"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1029/2002jd003296",
+   "ref_id": "Abercrombie_2016_improving-consistency::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1029/2007gb002959",
+   "ref_id": "Abercrombie_2016_improving-consistency::b4",
+   "ref_key": "b4",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.rse.2009.08.016",
+   "ref_id": "Abercrombie_2016_improving-consistency::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2010"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1080/014311600210209",
+   "ref_id": "Abercrombie_2016_improving-consistency::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.3390/rs6053965",
+   "ref_id": "Abercrombie_2016_improving-consistency::b8",
+   "ref_key": "b8",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.isprsjprs.2014.09.002",
+   "ref_id": "Abercrombie_2016_improving-consistency::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2015"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1080/014311600210218",
+   "ref_id": "Abercrombie_2016_improving-consistency::b10",
+   "ref_key": "b10",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.rse.2004.09.005",
+   "ref_id": "Abercrombie_2016_improving-consistency::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.jag.2005.12.002",
+   "ref_id": "Abercrombie_2016_improving-consistency::b12",
+   "ref_key": "b12",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.rse.2007.11.013",
+   "ref_id": "Abercrombie_2016_improving-consistency::b13",
+   "ref_key": "b13",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1080/0143116031000101675",
+   "ref_id": "Abercrombie_2016_improving-consistency::b14",
+   "ref_key": "b14",
+   "resolver_reason": "via=crossref; ratio=0.90; year=2004"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1080/01431168908903939",
+   "ref_id": "Abercrombie_2016_improving-consistency::b17",
+   "ref_key": "b17",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1989"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.patrec.2010.02.008",
+   "ref_id": "Abercrombie_2016_improving-consistency::b18",
+   "ref_key": "b18",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2011"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1109/igarss.2011.6049674",
+   "ref_id": "Abercrombie_2016_improving-consistency::b19",
+   "ref_key": "b19",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2011"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1109/36.158859",
+   "ref_id": "Abercrombie_2016_improving-consistency::b20",
+   "ref_key": "b20",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1992"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1109/36.481897",
+   "ref_id": "Abercrombie_2016_improving-consistency::b21",
+   "ref_key": "b21",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1109/36.843009",
+   "ref_id": "Abercrombie_2016_improving-consistency::b22",
+   "ref_key": "b22",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1109/tgrs.2003.817269",
+   "ref_id": "Abercrombie_2016_improving-consistency::b23",
+   "ref_key": "b23",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2003"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.rse.2014.03.012",
+   "ref_id": "Abercrombie_2016_improving-consistency::b24",
+   "ref_key": "b24",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2014"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/s0034-4257(02)00078-0",
+   "ref_id": "Abercrombie_2016_improving-consistency::b25",
+   "ref_key": "b25",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2002"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.rse.2013.01.012",
+   "ref_id": "Abercrombie_2016_improving-consistency::b35",
+   "ref_key": "b35",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2013"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.rse.2013.07.042",
+   "ref_id": "Abercrombie_2016_improving-consistency::b36",
+   "ref_key": "b36",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.jag.2014.01.004",
+   "ref_id": "Abercrombie_2016_improving-consistency::b37",
+   "ref_key": "b37",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Abercrombie_2016_improving-consistency",
+   "gold_doi": "10.1016/j.rse.2014.06.012",
+   "ref_id": "Abercrombie_2016_improving-consistency::b39",
+   "ref_key": "b39",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Efron_2004_estimation-prediction-error-covariance",
+   "gold_doi": "10.1080/01621459.1992.10475276",
+   "ref_id": "Efron_2004_estimation-prediction-error-covariance::b1",
+   "ref_key": "b1",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1992"
+  },
+  {
+   "citing_work_key": "Efron_2004_estimation-prediction-error-covariance",
+   "gold_doi": "10.1214/aos/1176343282",
+   "ref_id": "Efron_2004_estimation-prediction-error-covariance::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1975"
+  },
+  {
+   "citing_work_key": "Efron_2004_estimation-prediction-error-covariance",
+   "gold_doi": "10.1198/004017004000000338",
+   "ref_id": "Efron_2004_estimation-prediction-error-covariance::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=0.90; year=2004"
+  },
+  {
+   "citing_work_key": "Efron_2004_estimation-prediction-error-covariance",
+   "gold_doi": "10.1214/aos/1176345632",
+   "ref_id": "Efron_2004_estimation-prediction-error-covariance::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1981"
+  },
+  {
+   "citing_work_key": "Efron_2004_estimation-prediction-error-covariance",
+   "gold_doi": "10.1111/1467-9868.00191",
+   "ref_id": "Efron_2004_estimation-prediction-error-covariance::b12",
+   "ref_key": "b12",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1999"
+  },
+  {
+   "citing_work_key": "Efron_2004_estimation-prediction-error-covariance",
+   "gold_doi": "10.1080/01621459.1998.10474094",
+   "ref_id": "Efron_2004_estimation-prediction-error-covariance::b13",
+   "ref_key": "b13",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1998"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/2938229",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1991"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.1111/j.1435-5597.1988.tb01155.x",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=crossref; ratio=0.95; year=1988"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.1214/aop/1176993726",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=0.94; year=1982"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/2938168",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1991"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/1913889",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=crossref; ratio=0.99; year=1973"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.1525/9780520313880-010",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b14",
+   "ref_key": "b14",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1956"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.1007/bf01199899",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b17",
+   "ref_key": "b17",
+   "resolver_reason": "via=crossref; ratio=0.95; year=1994"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/1912775",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b18",
+   "ref_key": "b18",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1982"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/2109724",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b25",
+   "ref_key": "b25",
+   "resolver_reason": "via=crossref; ratio=0.98; year=1990"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.1016/0165-1765(90)90158-w",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=crossref; ratio=0.99; year=1990"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/2951659",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b32",
+   "ref_key": "b32",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/1911465",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b33",
+   "ref_key": "b33",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1984"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.2307/1912934",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b35",
+   "ref_key": "b35",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1980"
+  },
+  {
+   "citing_work_key": "Conley_1999_gmm-estimation-cross-sectional",
+   "gold_doi": "10.1007/978-1-4612-4620-6",
+   "ref_id": "Conley_1999_gmm-estimation-cross-sectional::b36",
+   "ref_key": "b36",
+   "resolver_reason": "via=crossref; ratio=0.88; year=1987"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1111/j.1365-2664.2006.01214.x",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1080/02697459.2012.733525",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.99"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2017.03.030",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b4",
+   "ref_key": "b4",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.98"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2007.07.003",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.95"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.landurbplan.2016.04.016",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.99"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.48044/jauf.1996.041",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b8",
+   "ref_key": "b8",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1890/07-0539.1",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b10",
+   "ref_key": "b10",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.2307/177409",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.48044/jauf.2003.031",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b12",
+   "ref_key": "b12",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1007/s00267-014-0310-2",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b15",
+   "ref_key": "b15",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1007/s10021-006-0116-z",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b16",
+   "ref_key": "b16",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1007/s10342-017-1042-7",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b17",
+   "ref_key": "b17",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2013.06.002",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b18",
+   "ref_key": "b18",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.99"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2005.11.002",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b19",
+   "ref_key": "b19",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1080/2150704x.2013.852704",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b20",
+   "ref_key": "b20",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.98"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1017/s0376892998000198",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b22",
+   "ref_key": "b22",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.landurbplan.2012.05.015",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b24",
+   "ref_key": "b24",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.geoforum.2013.04.018",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b25",
+   "ref_key": "b25",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1890/15-1176",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b29",
+   "ref_key": "b29",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1007/s11252-011-0185-4",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1046/j.1365-2664.2001.00647.x",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b31",
+   "ref_key": "b31",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.99"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1139/er-6-3-4-151",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b32",
+   "ref_key": "b32",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2012.06.003",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b35",
+   "ref_key": "b35",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.apgeog.2017.02.011",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b36",
+   "ref_key": "b36",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.48044/jauf.2008.048",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b38",
+   "ref_key": "b38",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2008"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2018.03.006",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b40",
+   "ref_key": "b40",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1093/jof/103.8.383",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b41",
+   "ref_key": "b41",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2005"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.scitotenv.2017.08.103",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b42",
+   "ref_key": "b42",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.landurbplan.2004.03.009",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b43",
+   "ref_key": "b43",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.86"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.cities.2004.04.002",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b44",
+   "ref_key": "b44",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2012.09.002",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b45",
+   "ref_key": "b45",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.96"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.tecto.2016.01.044",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b46",
+   "ref_key": "b46",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2016"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2012.06.006",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b48",
+   "ref_key": "b48",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.ufug.2013.11.004",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b49",
+   "ref_key": "b49",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.jenvman.2015.08.008",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b50",
+   "ref_key": "b50",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1177/2399808317752927",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b51",
+   "ref_key": "b51",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2018"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.48044/jauf.1998.012",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b53",
+   "ref_key": "b53",
+   "resolver_reason": "via=crossref; ratio=0.94; year=1998"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1016/j.landurbplan.2011.02.034",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b55",
+   "ref_key": "b55",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.95"
+  },
+  {
+   "citing_work_key": "Guo_2018_redeveloping-urban-forest-effect",
+   "gold_doi": "10.1093/forestry/cpq027",
+   "ref_id": "Guo_2018_redeveloping-urban-forest-effect::b56",
+   "ref_key": "b56",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Chrisman_1982_theory-cartographic-error-measurement",
+   "gold_doi": "10.3133/pp964",
+   "ref_id": "Chrisman_1982_theory-cartographic-error-measurement::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=0.87; year=1976"
+  },
+  {
+   "citing_work_key": "Chrisman_1982_theory-cartographic-error-measurement",
+   "gold_doi": "10.3138/fm57-6770-u75u-7727",
+   "ref_id": "Chrisman_1982_theory-cartographic-error-measurement::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1973"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1126/science.1070656",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2002"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/j.0006-341x.2004.00187.x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b1",
+   "ref_key": "b1",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/j.0006-341x.2001.00610.x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2001"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1002/sim.1058",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2002"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1109/tgrs.2004.843074",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b4",
+   "ref_key": "b4",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/0081-1750.00050",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=0.98; year=1998"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160802562263",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/10106040701596767",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.landusepol.2007.11.008",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b8",
+   "ref_key": "b8",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.prevetmed.2004.12.005",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2009.07.011",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b10",
+   "ref_key": "b10",
+   "resolver_reason": "via=crossref; ratio=0.98; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.patrec.2004.06.002",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1109/tgrs.2008.2007741",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b12",
+   "ref_key": "b12",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1109/tgrs.2008.2011983",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b13",
+   "ref_key": "b13",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160802672864",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b15",
+   "ref_key": "b15",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.14358/pers.69.4.369",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b16",
+   "ref_key": "b16",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/0034-4257(91)90048-b",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b20",
+   "ref_key": "b20",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1991"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1890/1051-0761(1997)007[0753:trbluc]2.0.co;2",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b22",
+   "ref_key": "b22",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1177/0309133307079054",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b24",
+   "ref_key": "b24",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/s0167-5877(01)00226-4",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b26",
+   "ref_key": "b26",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2001"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/s0167-5877(00)00117-3",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b27",
+   "ref_key": "b27",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1029/153gm03",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b28",
+   "ref_key": "b28",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.2307/2531499",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b29",
+   "ref_key": "b29",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1989"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1017/s0376892997000088",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160701442120",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b32",
+   "ref_key": "b32",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160902755346",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b33",
+   "ref_key": "b33",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1177/0309133306071143",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b34",
+   "ref_key": "b34",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160310001619607",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b35",
+   "ref_key": "b35",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/s0167-5877(00)00119-7",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b36",
+   "ref_key": "b36",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/j.0006-341x.2000.01055.x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b37",
+   "ref_key": "b37",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/1467-9876.00389",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b39",
+   "ref_key": "b39",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1177/0309133308093606",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b40",
+   "ref_key": "b40",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/13658810210157822",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b42",
+   "ref_key": "b42",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2007.11.013",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b44",
+   "ref_key": "b44",
+   "resolver_reason": "via=crossref; ratio=0.88; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1109/tgrs.2006.871219",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b45",
+   "ref_key": "b45",
+   "resolver_reason": "via=crossref; ratio=0.88; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/j.1475-4959.2005.00153.x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b47",
+   "ref_key": "b47",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/00049158.2008.10675038",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b48",
+   "ref_key": "b48",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2008.08.018",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b49",
+   "ref_key": "b49",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/014311600750020000",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b50",
+   "ref_key": "b50",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2008.07.018",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b51",
+   "ref_key": "b51",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1126/science.316.5824.536",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b53",
+   "ref_key": "b53",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/0143116031000150004",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b55",
+   "ref_key": "b55",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.14358/pers.74.3.311",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b56",
+   "ref_key": "b56",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2006.06.018",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b57",
+   "ref_key": "b57",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160600784291",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b59",
+   "ref_key": "b59",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160500106975",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b60",
+   "ref_key": "b60",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/j.1365-2486.2009.01939.x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b61",
+   "ref_key": "b61",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1017/s1466252307001314",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b62",
+   "ref_key": "b62",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1086/514996",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b63",
+   "ref_key": "b63",
+   "resolver_reason": "via=crossref; ratio=0.89; year=1998"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160500117865",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b64",
+   "ref_key": "b64",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1023/a:1025163108959",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b65",
+   "ref_key": "b65",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1093/biostatistics/kxl038",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b66",
+   "ref_key": "b66",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/17474230903222473",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b67",
+   "ref_key": "b67",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2010"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1559/152304006777681706",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b68",
+   "ref_key": "b68",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.envsoft.2009.09.005",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b69",
+   "ref_key": "b69",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2010"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160903121134",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b70",
+   "ref_key": "b70",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2003.12.007",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b71",
+   "ref_key": "b71",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.2307/2533043",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b73",
+   "ref_key": "b73",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1111/1467-9884.00120",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b74",
+   "ref_key": "b74",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1998"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1073/pnas.0401545101",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b75",
+   "ref_key": "b75",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1002/sim.4780050105",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b77",
+   "ref_key": "b77",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1986"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1093/oxfordjournals.aje.a112510",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b78",
+   "ref_key": "b78",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1978"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.14358/pers.69.7.793",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b79",
+   "ref_key": "b79",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1109/tgrs.2006.874750",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b80",
+   "ref_key": "b80",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1007/s10980-008-9215-x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b81",
+   "ref_key": "b81",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1126/science.260.5116.1905",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b83",
+   "ref_key": "b83",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1993"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/0021-9681(81)90059-x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b84",
+   "ref_key": "b84",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1981"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2005.04.002",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b85",
+   "ref_key": "b85",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160903131000",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b86",
+   "ref_key": "b86",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.foreco.2007.06.033",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b88",
+   "ref_key": "b88",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1002/(sici)1097-0258(19971015)16:19<2157::aid-sim653>3.0.co;2-x",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b89",
+   "ref_key": "b89",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1126/science.227.4685.369",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b92",
+   "ref_key": "b92",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1985"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1073/pnas.0704119104",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b93",
+   "ref_key": "b93",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1002/sim.4780090509",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b94",
+   "ref_key": "b94",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1990"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.2307/2530967",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b95",
+   "ref_key": "b95",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1985"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1093/ajcp/93.2.252",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b96",
+   "ref_key": "b96",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1990"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160500057848",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b97",
+   "ref_key": "b97",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/j.rse.2006.10.012",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b98",
+   "ref_key": "b98",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/014311600750037570",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b99",
+   "ref_key": "b99",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2000"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.2307/1941591",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b101",
+   "ref_key": "b101",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1006/jema.2001.0509",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b102",
+   "ref_key": "b102",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2002"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1109/tgrs.2004.837325",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b104",
+   "ref_key": "b104",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1016/s0034-4257(01)00259-0",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b105",
+   "ref_key": "b105",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2001"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.14358/pers.75.3.313",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b106",
+   "ref_key": "b106",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2009"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.2307/2533555",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b107",
+   "ref_key": "b107",
+   "resolver_reason": "via=crossref; ratio=0.99; year=1997"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160500219224",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b108",
+   "ref_key": "b108",
+   "resolver_reason": "via=crossref; ratio=0.98; year=2005"
+  },
+  {
+   "citing_work_key": "Foody_2010_assessing-accuracy-land-cover-change",
+   "gold_doi": "10.1080/01431160110075802",
+   "ref_id": "Foody_2010_assessing-accuracy-land-cover-change::b109",
+   "ref_key": "b109",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2002"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.1111/j.2517-6161.1972.tb00889.x",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1972"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.2307/2983677",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b15",
+   "ref_key": "b15",
+   "resolver_reason": "via=crossref; ratio=0.86; year=1936"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.1112/blms/5.1.81",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b22",
+   "ref_key": "b22",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1973"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.1093/oxfordjournals.aob.a084076",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b29",
+   "ref_key": "b29",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1966"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.1214/aoms/1177729700",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b36",
+   "ref_key": "b36",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1951"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.1137/1112050",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b42",
+   "ref_key": "b42",
+   "resolver_reason": "via=crossref; ratio=0.87; year=1967"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.1007/bf02761538",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b44",
+   "ref_key": "b44",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1973"
+  },
+  {
+   "citing_work_key": "Besag_1974_spatial-interaction-statistical-analysis",
+   "gold_doi": "10.1080/00029890.1971.11992710",
+   "ref_id": "Besag_1974_spatial-interaction-statistical-analysis::b45",
+   "ref_key": "b45",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1971"
+  },
+  {
+   "citing_work_key": "Walton_2008_difficulties-estimating-city-wide-urban",
+   "gold_doi": "10.2737/pnw-gtr-490",
+   "ref_id": "Walton_2008_difficulties-estimating-city-wide-urban::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2000"
+  },
+  {
+   "citing_work_key": "Walton_2008_difficulties-estimating-city-wide-urban",
+   "gold_doi": "10.14358/pers.72.7.823",
+   "ref_id": "Walton_2008_difficulties-estimating-city-wide-urban::b4",
+   "ref_key": "b4",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Walton_2008_difficulties-estimating-city-wide-urban",
+   "gold_doi": "10.2737/nrs-rb-7",
+   "ref_id": "Walton_2008_difficulties-estimating-city-wide-urban::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2007"
+  },
+  {
+   "citing_work_key": "Walton_2008_difficulties-estimating-city-wide-urban",
+   "gold_doi": "10.1007/978-94-017-3048-8_23",
+   "ref_id": "Walton_2008_difficulties-estimating-city-wide-urban::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1984"
+  },
+  {
+   "citing_work_key": "Walton_2008_difficulties-estimating-city-wide-urban",
+   "gold_doi": "10.5589/m02-098",
+   "ref_id": "Walton_2008_difficulties-estimating-city-wide-urban::b10",
+   "ref_key": "b10",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Walton_2008_difficulties-estimating-city-wide-urban",
+   "gold_doi": "10.2737/so-rp-280",
+   "ref_id": "Walton_2008_difficulties-estimating-city-wide-urban::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1941941",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=0.92; year=1994"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1312085",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1992"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2937142",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1940529",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b4",
+   "ref_key": "b4",
+   "resolver_reason": "via=crossref; ratio=0.98; year=1985"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2845404",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1991"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1941873",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=crossref; ratio=0.97; year=1992"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1941173",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1988"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2269347",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b10",
+   "ref_key": "b10",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1995"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1016/0169-5347(96)20047-3",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b12",
+   "ref_key": "b12",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1111/j.1442-9993.1994.tb00493.x",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b13",
+   "ref_key": "b13",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1046/j.1523-1739.1997.96167.x",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b14",
+   "ref_key": "b14",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1017/s0266467400003448",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b15",
+   "ref_key": "b15",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1989"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1938106",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b17",
+   "ref_key": "b17",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1989"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1016/0006-3207(91)90139-z",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b18",
+   "ref_key": "b18",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1991"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1017/s0376892900038315",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b19",
+   "ref_key": "b19",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1016/s0378-1127(98)00291-6",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b20",
+   "ref_key": "b20",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1998"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1126/science.278.5340.1117",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b21",
+   "ref_key": "b21",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1016/0006-3207(91)90006-u",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b22",
+   "ref_key": "b22",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1991"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1941263",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b23",
+   "ref_key": "b23",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1988"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1940897",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b26",
+   "ref_key": "b26",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2261391",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b27",
+   "ref_key": "b27",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/1941742",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b28",
+   "ref_key": "b28",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2388742",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1987"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2261571",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b35",
+   "ref_key": "b35",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1995"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2261703",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b36",
+   "ref_key": "b36",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1046/j.1523-1739.1996.10041229.x",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b40",
+   "ref_key": "b40",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.1016/0169-5347(96)10046-x",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b41",
+   "ref_key": "b41",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Laurance_1998_rain-forest-fragmentation-dynamics",
+   "gold_doi": "10.2307/2261117",
+   "ref_id": "Laurance_1998_rain-forest-fragmentation-dynamics::b46",
+   "ref_key": "b46",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1990"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1007/978-3-662-03499-6_3",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1016/j.compenvurbsys.2006.07.005",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1109/lgrs.2003.821696",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b9",
+   "ref_key": "b9",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2004"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.2307/2533962",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=0.98; year=1997"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.2307/2532039",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b13",
+   "ref_key": "b13",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1989"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1201/9780203497586.ch1",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b16",
+   "ref_key": "b16",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1007/s10980-006-9056-4",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b20",
+   "ref_key": "b20",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1126/science.1118160",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b21",
+   "ref_key": "b21",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1016/b978-0-08-042432-3.50011-2",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b24",
+   "ref_key": "b24",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1995"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1093/oso/9780195115383.001.0001",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b25",
+   "ref_key": "b25",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1111/j.1467-8306.2005.00484.x",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b26",
+   "ref_key": "b26",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/00401706.1993.10485325",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1993"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/01431169608949085",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b31",
+   "ref_key": "b31",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1996"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1890/05-5221",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b32",
+   "ref_key": "b32",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/02693799308901954",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b33",
+   "ref_key": "b33",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1993"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1046/j.1365-2699.2000.00166.x",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b34",
+   "ref_key": "b34",
+   "resolver_reason": "via=crossref; ratio=0.98; year=2000"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/0143116031000150004",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b38",
+   "ref_key": "b38",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1023/a:1025107023980",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b41",
+   "ref_key": "b41",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1559/152304006777681706",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b44",
+   "ref_key": "b44",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1073/pnas.0401545101",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b46",
+   "ref_key": "b46",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1016/s0034-4257(02)00126-8",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b48",
+   "ref_key": "b48",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.14358/pers.70.4.439",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b49",
+   "ref_key": "b49",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2004"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1016/s0034-4257(98)00061-3",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b50",
+   "ref_key": "b50",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1998"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.14358/pers.72.2.175",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b52",
+   "ref_key": "b52",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2006"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1016/s0034-4257(03)00128-7",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b53",
+   "ref_key": "b53",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2003"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/01431160500057848",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b57",
+   "ref_key": "b57",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1016/j.rse.2006.10.012",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b58",
+   "ref_key": "b58",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/02693799508902059",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b59",
+   "ref_key": "b59",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1995"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/014311698214983",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b60",
+   "ref_key": "b60",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1998"
+  },
+  {
+   "citing_work_key": "Burnicki_2011_spatio-temporal-errors-land-cover",
+   "gold_doi": "10.1080/01431160110104728",
+   "ref_id": "Burnicki_2011_spatio-temporal-errors-land-cover::b61",
+   "ref_key": "b61",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2002"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1080/0964056032000096901",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b0",
+   "ref_key": "b0",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.apgeog.2013.09.012",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b1",
+   "ref_key": "b1",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1080/09640568.2010.530513",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.98"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1080/0042098975925",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.29379/jedem.v6i1.329",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b4",
+   "ref_key": "b4",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2014"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.48044/jauf.1997.003",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b6",
+   "ref_key": "b6",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1997"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.ufug.2016.03.008",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.99"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.landurbplan.2013.01.005",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b8",
+   "ref_key": "b8",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.5751/es-02197-120211",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b10",
+   "ref_key": "b10",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.3390/su7067379",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.98"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.compenvurbsys.2014.08.001",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b13",
+   "ref_key": "b13",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.97"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.ufug.2015.06.003",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b14",
+   "ref_key": "b14",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.ufug.2010.11.004",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b15",
+   "ref_key": "b15",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1007/s00267-014-0310-2",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b16",
+   "ref_key": "b16",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1007/s10021-006-0116-z",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b17",
+   "ref_key": "b17",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.jue.2003.09.004",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b18",
+   "ref_key": "b18",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.48044/jauf.1994.017",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b19",
+   "ref_key": "b19",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1994"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/s0094-1190(03)00081-0",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b20",
+   "ref_key": "b20",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.regsciurbeco.2011.07.005",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b21",
+   "ref_key": "b21",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1080/10580530.2012.716740",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b23",
+   "ref_key": "b23",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.48044/jauf.2010.001",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b25",
+   "ref_key": "b25",
+   "resolver_reason": "via=crossref; ratio=0.99; year=2010"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.ufug.2015.05.002",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b26",
+   "ref_key": "b26",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.ufug.2013.05.006",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b27",
+   "ref_key": "b27",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1177/0885412205286160",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b29",
+   "ref_key": "b29",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.48044/jauf.2005.039",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b30",
+   "ref_key": "b30",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2005"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1080/00420980500185462",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b31",
+   "ref_key": "b31",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.48044/jauf.2008.048",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b32",
+   "ref_key": "b32",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2008"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1007/978-1-4020-4289-8_2",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b33",
+   "ref_key": "b33",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2007"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.landurbplan.2013.04.007",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b34",
+   "ref_key": "b34",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.ufug.2012.09.002",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b35",
+   "ref_key": "b35",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1080/09640568.2012.724666",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b36",
+   "ref_key": "b36",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.48044/jauf.2013.038",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b37",
+   "ref_key": "b37",
+   "resolver_reason": "via=crossref; ratio=1.00; year=2013"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.landurbplan.2013.01.006",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b38",
+   "ref_key": "b38",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1371/journal.pone.0122051",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b39",
+   "ref_key": "b39",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.ufug.2013.11.004",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b40",
+   "ref_key": "b40",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.landurbplan.2013.04.003",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b42",
+   "ref_key": "b42",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.jenvman.2015.08.008",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b43",
+   "ref_key": "b43",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1139/er-2016-0022",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b44",
+   "ref_key": "b44",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.landurbplan.2012.03.010",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b46",
+   "ref_key": "b46",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.99"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1007/s00267-006-0112-2",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b47",
+   "ref_key": "b47",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/s0272-4944(05)80184-7",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b48",
+   "ref_key": "b48",
+   "resolver_reason": "via=doi; registry=crossref; ratio=1.00"
+  },
+  {
+   "citing_work_key": "Steenberg_2017_influence-building-renovation-rental",
+   "gold_doi": "10.1016/j.landurbplan.2014.11.021",
+   "ref_id": "Steenberg_2017_influence-building-renovation-rental::b49",
+   "ref_key": "b49",
+   "resolver_reason": "via=doi; registry=crossref; ratio=0.99"
+  },
+  {
+   "citing_work_key": "Hall_1985_resampling-coverage-pattern",
+   "gold_doi": "10.2307/2530566",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b1",
+   "ref_key": "b1",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1981"
+  },
+  {
+   "citing_work_key": "Hall_1985_resampling-coverage-pattern",
+   "gold_doi": "10.1214/aos/1176344552",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b2",
+   "ref_key": "b2",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1979"
+  },
+  {
+   "citing_work_key": "Hall_1985_resampling-coverage-pattern",
+   "gold_doi": "10.1137/1021092",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b3",
+   "ref_key": "b3",
+   "resolver_reason": "via=crossref; ratio=0.88; year=1979"
+  },
+  {
+   "citing_work_key": "Hall_1985_resampling-coverage-pattern",
+   "gold_doi": "10.1093/biomet/68.3.589",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b4",
+   "ref_key": "b4",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1981"
+  },
+  {
+   "citing_work_key": "Hall_1985_resampling-coverage-pattern",
+   "gold_doi": "10.1080/00031305.1983.10483087",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b5",
+   "ref_key": "b5",
+   "resolver_reason": "via=crossref; ratio=0.88; year=1983"
+  },
+  {
+   "citing_work_key": "Hall_1985_resampling-coverage-pattern",
+   "gold_doi": "10.1017/s0305004100029704",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b7",
+   "ref_key": "b7",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1954"
+  },
+  {
+   "citing_work_key": "Hall_1985_resampling-coverage-pattern",
+   "gold_doi": "10.1111/j.2517-6161.1983.tb01240.x",
+   "ref_id": "Hall_1985_resampling-coverage-pattern::b11",
+   "ref_key": "b11",
+   "resolver_reason": "via=crossref; ratio=1.00; year=1983"
+  }
+ ],
+ "purpose": "frozen gold for the Splink candidate-scoring evaluation",
+ "sources": {
+  "kills_json": "D:\\edmonds-pipeline\\litkb_derived\\p6\\kills.json",
+  "manifest_csv": "D:\\edmonds-pipeline\\treedata-litkb\\Reports\\litkb_export\\manifest.csv",
+  "references_jsonl": "D:\\edmonds-pipeline\\litkb_derived\\p6\\references.jsonl",
+  "tracker_csv": "D:\\edmonds-pipeline\\treedata-litkb\\Reports\\litkb_export\\literature_tracker.csv"
+ }
+}

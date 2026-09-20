@@ -301,7 +301,8 @@ decisions:
       literature work runs LOCALLY on this laptop, CPU first, optimised as needed; no Colab
       pass, so §15.4 and §15.10 are moot for this workstream and §15.11 is answered (no PDFs go
       to Drive). §15.9: GROBID runs locally, which needs WSL2 or Docker (setup pending). The
-      nightly pg_dump is to be built, and so is the ladder check that refuses staged secrets.
+      nightly pg_dump (`litkb/ops/nightly_dump.py`) and the ladder check that refuses staged
+      secrets (`qc/check.py` rung 0) were both built 2026-09-15/16 (corrected 2026-09-20).
       Standing intent: any literature used by the project flows through this knowledge base.
       Design rev 3 follow-ups (Kam, 2026-09-14): §15.9 GROBID runs locally under WSL2 Ubuntu
       (Kam installing the distro); §15.16 local workers keep 20% of RAM and CPU free for Kam's
@@ -335,7 +336,8 @@ decisions:
       caveats recorded in Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md; a one-shot entry point
       (litkb hunt / litkb_hunt) proven the same day. SPEND RULE (Kam, 2026-09-16 night): "default
       should always allow hunt" — a DOI hunt proceeds to acquisition (open access, then the archive
-      by DOI) by default; refusing to spend is the explicit exception (--no-spend). Not yet built.
+      by DOI) by default; refusing to spend is the explicit exception (--no-spend). BUILT
+      2026-09-18 (31bc220: `held-no-spend`, `held-spend-exhausted`; corrected here 2026-09-20).
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether
@@ -565,3 +567,117 @@ decisions:
       including branches that predate the litkb merge — which a repo-tracked roster would not.
     evidence:
       - docs/LITKB_AGENT_BASE_BRIEF.md
+
+  - id: litkb-finish-line
+    question: >-
+      `litkb-operational-definition` graded brief → review on works handed to the agent by key
+      (proving run 2 pre-named three extracted works and their expected claims). What is the
+      FINISH LINE for the tool — the state at which the literature-review work is done?
+    owner: kam
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      TOPIC → GRADED REVIEW → SYNTHESIS, unattended. A cold session given only a topic string
+      discovers studies on the open web, drops off metadata + expected claims BEFORE reading full
+      text, hunts every drop-off to a named terminal state, acquires and OCRs the PDFs during the
+      run, records verified quotes, writes a review that passes K1 with K2 fired, has it checked
+      by a different model family, and then produces a SYNTHESIS — what the literature implies
+      for this pipeline — where every inference cites a verified brief line or is labelled as the
+      model's own reasoning (a new K3 gate). Promotion to the authoritative record is NOT on the
+      line; it stays Kam's track. The plan that reaches this state is `LITKB_WORKPLAN.md`.
+    why: >-
+      The operational definition proved stages 2–8 on pre-loaded works; the goal starts one
+      stage earlier (open-web discovery) and ends one stage later (reasoning with the text).
+      Naming the line as a state, not an activity, is what lets each session be graded.
+    evidence:
+      - LITKB_WORKPLAN.md
+      - Reports/LITKB_OPERATIONAL_PROVING_RUN_2026-09-20.md
+
+  - id: litkb-plan-home
+    question: >-
+      Four documents claimed to be litkb's living state on 2026-09-20 (WORKPLAN.md's litkb
+      section, the jobs STATE.md, the design doc's §14 status rows, a Claude memory) and
+      disagreed on merge status, held-work counts, worktree counts and MCP scope. Where does
+      the plan live?
+    owner: kam
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      ONE document, `Scripts/LITKB_WORKPLAN.md`, pointed to from WORKPLAN.md's "Where we are".
+      It is gated by `qc/test_docs_match_code.py`. It obeys §3.3: every count in it is a
+      command, every ruling is an id in this file — never a restated number. The other three
+      homes become pointers. The session vocabulary is the loop's stages (discover · drop-off ·
+      resolve+admit · acquire+bind · extract+ingest · search+record · brief+review · synthesis ·
+      promote · ops); sessions are S0–S7; historical labels (P0–P9, extraction stages, "stage
+      8", items 1–3, builder ids) are crosswalked once in that doc and never renamed.
+    why: >-
+      The fragmentation Kam reported was restatement drift, not missing work: the same state
+      written in four places rots at four different rates. A plan that restates would reproduce
+      it within a week.
+    evidence:
+      - LITKB_WORKPLAN.md
+
+  - id: litkb-worktree-disposition
+    question: >-
+      Ten side worktrees (access, crossref, embed, heldq, ligature, linkrev, pix2tex, referee,
+      refmatch, splink) held reports and experiments never reconciled with main; three carried
+      OPEN workstream tokens. What happens to each?
+    owner: kam
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      The table in LITKB_WORKPLAN.md, with ONE amendment from Kam: WE DON'T DELETE. Dispose
+      means vault the token, archive the branch's reports onto main, merge what is owed
+      (crossref-proposer, as discovery lead only), then remove the worktree CHECKOUT — branches
+      and remote refs are kept; nothing is `branch -d`'d or `push --delete`d. Where the table
+      needed a ruling, the recommended option stands: embed's reports archived and its code left
+      on its branch (its own verdict is FAIL vs floors); splink's uncommitted re-run committed on
+      its branch, then its report archived. The eight fully-merged remote refs are left alone.
+    why: >-
+      All ten branches are at parity with github (verified by rev-parse), so a checkout holds
+      nothing its branch does not; the reports are what main lacks, and three rulings in this
+      file cite the referee report that was only on a side branch.
+    evidence:
+      - Reports/LITKB_WORKTREE_DISPOSITION_2026-09-20.md
+
+  - id: litkb-autonomy-grant
+    question: >-
+      Every merge and push that waited on Kam stalled a multi-session programme, and the
+      auto-mode classifier refused pushes even after verbal grants. What may Claude do in git
+      without asking?
+    owner: kam
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      "Complete autonomy to merge, commit, push, archive files in the git. We don't delete."
+      Claude commits on work/… and fix/…, merges them into main, pushes main, and archives.
+      The boundary is deletion: no branch or tag deletion, no `push --delete`, no force-push, no
+      forced worktree removal, no reset of main — archive instead. The grant is git only:
+      science decisions, GPU spend and live migrations are unchanged. The classifier refuses
+      Claude editing `settings.json` (self-modification) and the CLAUDE.md §3.1 rule text
+      (instruction poisoning) to encode this, so Kam ran `jobs/litkb-s0/grant_git_autonomy.py`.
+    why: >-
+      The plan reaching `litkb-finish-line` spans eight sessions; a human gate on every merge is
+      the stall it was written to remove, and "archive, never delete" keeps every result
+      recoverable.
+    evidence:
+      - LITKB_WORKPLAN.md
+
+  - id: litkb-k2-no-seeding
+    question: >-
+      Proving run 2 SEEDED the false expectation that let K2 fire. For proving run 3, where the
+      scout discovers the works itself, should K2 be allowed to fire on a seeded expectation, or
+      must it fire naturally — with an UNDETERMINED outcome and a bounded rerun if it does not?
+    owner: kam
+    status: open
+    why: >-
+      A seeded negative proves the honesty machinery can fire; only an unseeded one proves the
+      scout's priors are being tested. This EXTENDS how `litkb-operational-definition` is
+      exercised, which is why it is a question and not folded into the plan. PROPOSED answer
+      (Claude, on Codex's review of the plan, 2026-09-20 — not a ruling): no seeding; the scout
+      states its confidence per expectation; K2 fires or the run is UNDETERMINED on K2 and
+      reruns once on another topic under an attempt limit fixed before launch. An expectation
+      can go UNCONFIRMED without its paper being acquired, so the acceptance counters must
+      separate "unconfirmed" from "not acquired". Cost of not deciding: S5 cannot be launched.
+    evidence:
+      - LITKB_WORKPLAN.md

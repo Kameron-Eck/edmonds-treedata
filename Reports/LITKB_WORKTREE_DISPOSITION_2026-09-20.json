@@ -1,0 +1,58 @@
+{
+  "frozen": "2026-09-20",
+  "decision": "litkb-worktree-disposition",
+  "repo": "D:/edmonds-pipeline/treedata",
+  "expected_worktrees": [
+    "D:/edmonds-pipeline/treedata"
+  ],
+  "disposed_branches": [
+    "work/20260915-access-layer",
+    "work/20260919-crossref-proposer",
+    "work/20260915-embeddings",
+    "work/20260915-held-queue",
+    "work/20260919-ligature",
+    "work/20260915-linkage-review",
+    "work/20260919-pix2tex",
+    "work/20260919-referee-items123",
+    "work/20260915-refmatcher",
+    "work/20260915-splink"
+  ],
+  "evidence": [
+    "Reports/LITKB_OPERATIONAL_REFEREE_2026-09-16.md",
+    "Reports/LITKB_OPERATIONAL_TEST_2026-09-16.md",
+    "Reports/LITKB_EMBEDDINGS_2026-09-15.md",
+    "Reports/litkb_p7_chunks_2026-09-15.csv",
+    "Reports/litkb_p7_corpus_2026-09-15.csv",
+    "Reports/litkb_p7_gold_2026-09-15.json",
+    "Reports/litkb_p7_harness_2026-09-15.csv",
+    "Reports/litkb_p7_miss_anatomy_2026-09-15.csv",
+    "Reports/litkb_p7_perquery_2026-09-15.csv",
+    "Reports/litkb_p7_results_2026-09-15.csv",
+    "Reports/litkb_p7_thresholds_2026-09-15.json",
+    "Reports/LITKB_HELD_QUEUE_2026-09-15.md",
+    "Reports/held_queue_results.csv",
+    "Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md",
+    "Reports/LITKB_ITEM3_PIX2TEX_EVAL_2026-09-19.md",
+    "Reports/LITKB_ITEMS123_REFEREE_2026-09-19.md",
+    "Reports/LITKB_REFMATCHER_2026-09-15.md",
+    "Reports/LITKB_SPLINK_2026-09-15.md",
+    "Reports/litkb_splink_2026-09-15.json",
+    "Reports/litkb_splink_gold_2026-09-15.json",
+    "Reports/litkb_splink_model_2026-09-15.json",
+    "Reports/litkb_splink_vs_resolver_2026-09-15.csv",
+    "Reports/LITKB_LIGATURE_PLAN_2026-09-19.md",
+    "Reports/litkb_ligature_c0_2026-09-19.csv",
+    "Reports/litkb_ligature_quote_hazard_2026-09-19.csv",
+    "Scripts/qc/instruments/litkb_ligature_c0.py",
+    "Scripts/qc/instruments/litkb_ligature_quote_hazard.py",
+    "Scripts/qc/test_litkb_crossref_raw_search.py",
+    "Scripts/qc/instruments/litkb_crossref_raw_search_eval.py",
+    "Scripts/qc/fixtures/litkb_crossref_raw_search_item2.json"
+  ],
+  "vault": "D:/edmonds-pipeline/secrets/litkb-tokens",
+  "tokens": [
+    {"slug": "op-test-1", "vault_file": ".litkb-workstream.op-test-1.access-tree"},
+    {"slug": "held-queue", "vault_file": ".litkb-workstream.held-queue.heldq-tree"},
+    {"slug": "linkage-review", "vault_file": ".litkb-workstream.linkage-review.linkrev-tree"}
+  ]
+}

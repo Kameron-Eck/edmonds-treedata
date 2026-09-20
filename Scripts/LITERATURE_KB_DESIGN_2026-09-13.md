@@ -1025,6 +1025,11 @@ P3's kill needs the gate.
 | **P8 Access** | MCP server and CLI; the hunt protocol written into the convention; the access layer of §9.1: skill, librarian subagent, and the final CLAUDE.md rule on this branch (it reaches `main` only by Kam's merge). The hooks come last, after the gate | The librarian subagent, following the skill in a scratch worktree, runs a full mini-hunt: open workstream → admit → acquire → extract → record use with verified quote → promote prepare. Commit is exercised against a scratch git repository whose `main` it merges itself, never the real one | A use with an unverifiable quote is refused at prepare (fires before the mini-hunt gate is accepted). The hook's own kill fires after that gate and before the hook is relied on: with the hook installed, a paper-search call made in a worktree with no `.litkb-workstream` is flagged; with the hook entry removed, it is not |
 | **P9 Incremental mode + retire old paths** | The sweep (§12.3) picks up newly admitted files with no manual step; the reproducibility test (§12.11); the hand-edited tracker retired | A sample re-extracted at the same pipeline version gives identical canonical blocks; a file admitted after P5 reaches a current run with no manual step; old paths are removed from the convention | A nondeterminism introduced on purpose (reading order permuted in one re-run) is caught |
 
+**Status is no longer maintained in this document (2026-09-20).** The P0–P9 phases above are
+the design's build order and stay as written; where each phase stands, and what comes next, is
+`LITKB_WORKPLAN.md` (`decisions.yaml` → `litkb-plan-home`), whose crosswalk maps P0–P9 onto the
+loop-stage vocabulary. The subsection below is a dated record from 2026-09-15.
+
 ### P4 status at the adapter merge (2026-09-15)
 
 Three refereed branches landed on `work/20260913-literature-kb` —

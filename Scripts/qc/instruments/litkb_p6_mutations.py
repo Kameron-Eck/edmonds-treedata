@@ -31,6 +31,14 @@ WHAT EACH ROW IS FOR, in the §14 P6 terms:
     AND author match), and this row removes them, accepting the DOI on nothing.
   * **P6-G7** collapses `doi_title_contained` back into `doi_title_mismatch`, so a truncated parse
     and a genuinely wrong DOI become indistinguishable to P5's triage again.
+  * **P6-G8/P6-G9 are Item 2's rows** (Crossref SEARCH as a second proposer, 2026-09-19,
+    `resolve_by_raw_search`, `Reports/LITKB_REFMATCHER_2026-09-15.md` §9). G8 deletes the
+    confirmation call and accepts the raw-string search's top hit directly — a real book review
+    (the fixture cases in `qc/test_litkb_crossref_raw_search.py`) then resolves instead of being
+    refused, which is exactly the class the registry-confirmation gate exists to catch. G9 removes
+    the gate that reaches this leg only for the title/author-blind class, so it reverts to the old
+    immediate `no_title_or_author` bail — the routing test in the same file, which expects the raw
+    string to reach Crossref at all, then fails.
   * **P6-M1** counts a mention per bounding BOX instead of per `<ref>` element — the F1 defect:
     a line-wrapped marker then counts twice, inflating `mention_count` and the most-cited table.
   * **P6-R1/R2/R3** weaken the three shared text rules in `admit/resolver.py` — the ratio, the
@@ -61,6 +69,10 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 TESTS_P6 = ["qc/test_litkb_references.py"]
+#: Item 2's rows (G8/G9) also need the routing/fixture pins in their own file, so their `tests=`
+#: EXTENDS TESTS_P6 rather than replacing it (the same hazard the P7-C7/P7-C8 rows in
+#: `litkb_s2_mutations.py` name for their own dedicated file).
+TESTS_P6_RAWSEARCH = [*TESTS_P6, "qc/test_litkb_crossref_raw_search.py"]
 #: The ingest rows need a database; their set is the one that has one.
 TESTS_P6I = ["qc/test_litkb_references_ingest.py"]
 REFS = "pipeline/litkb/extract/references.py"
@@ -70,9 +82,9 @@ RESOLVER = "pipeline/litkb/admit/resolver.py"
 #: `normalize_doi(x)` -> `(x)`: the canonicalisation simply does not happen at that call.
 PASSTHROUGH = "({a0})"
 
-IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-G6", "P6-G7", "P6-M1",
+IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-G6", "P6-G7", "P6-G8", "P6-G9", "P6-M1",
        "P6-R1", "P6-R2", "P6-R3",
-       "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6",
+       "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6", "P6-S7",
        "P6-I1", "P6-I2", "P6-I3", "P6-I4"]
 
 
@@ -95,6 +107,18 @@ def register(block, replace, site):
     replace("P6-G7", REFS, 'kind = "doi_title_contained" if cont else "doi_title_mismatch"',
             'kind = "doi_title_mismatch"',
             "a truncated parse and a wrong DOI carry the same terminal reason again", tests=TESTS_P6)
+    replace("P6-G8", REFS, "verdict, why, rec = confirm_s2_candidate(cand, ref, client, pacer)",
+            'verdict, why, rec = "confirmed", "accepted_without_confirmation (mutated)", None',
+            "the raw-string search's top hit is accepted directly, without the registry-"
+            "confirmation gate -- a real book review then resolves instead of being refused",
+            tests=TESTS_P6_RAWSEARCH)
+    replace("P6-G9", REFS,
+            "    if not title or not surname:\n"
+            "        return resolve_by_raw_search(ref, client, pacer, breaker)\n",
+            '    if not title or not surname:\n'
+            '        return Resolution("unresolved", reason="no_title_or_author (nothing to search on)")\n',
+            "the title/author-blind class no longer reaches the Crossref raw-string proposer at "
+            "all -- back to the old immediate bail", tests=TESTS_P6_RAWSEARCH)
     replace("P6-M1", REFS, '+ (1 if m["box_index"] == 0 else 0)', "+ 1",
             "a mention is counted per bounding box again, so a line-wrapped marker counts twice",
             tests=TESTS_P6)
@@ -111,6 +135,10 @@ def register(block, replace, site):
             ("P6-S6", "crossref_reference_list")], 1):
         site(mid, f"litkb/extract/references.py::{fn}::normalize_doi", PASSTHROUGH,
              f"{fn}: the DOI is not normalised at this call site", tests=TESTS_P6)
+    # Item 2's own call site (2026-09-19): a separate row, not folded into the loop above, because
+    # its test needs TESTS_P6_RAWSEARCH -- test_litkb_references.py never reaches this function.
+    site("P6-S7", "litkb/extract/references.py::resolve_by_raw_search::normalize_doi", PASSTHROUGH,
+         "resolve_by_raw_search: the DOI is not normalised at this call site", tests=TESTS_P6_RAWSEARCH)
     # ── the stage-6 ingest (migration 0020). Appended last: see the docstring. ────────────
     replace("P6-I1", REFING,
             '    if hit is None or hit.get("file_id") is None:\n'

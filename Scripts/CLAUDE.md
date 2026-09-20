@@ -177,8 +177,13 @@ git commit
 swallowed another session's in-flight work under the wrong message (`0020f2a`). If a file
 you did not touch shows up dirty, leave it.
 
-**`main` is Kam's.** Pushing, merging, tagging or resetting `main` is a hard DENY for
-Claude — blocked outright, never prompted. Claude may push `work/…` and `fix/…` branches.
+**Git autonomy grant (Kam, 2026-09-20): Claude may commit, merge `work/…`/`fix/…` into
+`main`, push `main`, and archive.** The one boundary is **WE DON'T DELETE**: no branch or tag
+deletion, no `push --delete`, no force-push, no `--force` worktree removal — archive instead
+(a checkout may be removed once its branch is at parity with `github` and any
+`.litkb-workstream*` token is vaulted). Resetting `main` is still off the table. The grant
+covers git only: science decisions, GPU spend and live migrations are unchanged
+(`decisions.yaml` → `litkb-autonomy-grant`).
 
 **`py -3.12 qc/check.py` is the definition of done** — the whole ladder (ruff
 F-rules, compile sweep, full suite, preflight, smoke) in one command, ~80 s.
@@ -295,7 +300,7 @@ The one rung worth knowing by heart: registry rows are DERIVED from manifests, n
 hand-typed — two invented run_ids proved why (2026-09-01).
 
 Then: append the LOG entry (caveman style, per the file's spec), stage the paths you
-touched and commit — never `-A`. Kam pushes `main`.
+touched and commit — never `-A`. Merge and push under the git autonomy grant (§3.1).
 **Do not create `HANDOFF_*.md`** (retired) or a duplicate plan.
 
 ---

@@ -1,0 +1,12 @@
+# The registry half of the `plan` fixture pair. Shaped like the real decisions.yaml — ids live on
+# `  - id: <id>` lines two spaces in, under a `decisions:` key — and holds nothing else, so a test
+# that changes what `plan` resolves changes THIS file and not the project's authored registry.
+#
+# `litkb-dated-only` is deliberately NOT here: good_plan.md cites it inside the dated region.
+decisions:
+  - id: litkb-fixture-one
+    status: closed
+    question: does the plan's id scan resolve a real id
+  - id: litkb-fixture-two
+    status: open
+    question: and a second one, cited from a different session block

@@ -67,6 +67,10 @@ GATED_DOCS = [
     "IMAGERY_FACTS.md",
     "pipeline_buildtracker.md",
     "litreview_phase4_prompt.md",
+    # The one litkb plan (decisions.yaml -> litkb-plan-home, 2026-09-20). Its conventions:
+    # counts are commands, rulings are ids, files that do not exist yet are named WITHOUT
+    # backticks -- so the missing-file check below is the enforcement of that third rule.
+    "LITKB_WORKPLAN.md",
 ]
 
 # Figures that were true once and are not now. A gated doc may still MENTION one while
@@ -195,7 +199,10 @@ def test_exactly_one_document_claims_to_be_the_active_plan():
     # filename filter, and it currently escapes only by accident: it happens to use the
     # word "superseded" about CHATLOG's STATE block within the first 2000 characters.
     # Rewording that sentence would break this test for no real reason.
-    NOT_A_CAMPAIGN_PLAN = {"WORKPLAN.md"}
+    # LITKB_WORKPLAN.md is the same kind of document for the literature tool: living, not a
+    # dated campaign plan (decisions.yaml -> litkb-plan-home). Its "Where we are" block is
+    # the litkb state; the filename filter would otherwise demand a supersession banner.
+    NOT_A_CAMPAIGN_PLAN = {"WORKPLAN.md", "LITKB_WORKPLAN.md"}
 
     claims = set()
     for p in SCRIPTS.glob("*.md"):

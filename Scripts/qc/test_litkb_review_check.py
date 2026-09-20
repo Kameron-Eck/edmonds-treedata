@@ -45,6 +45,38 @@ made a rule untenable (§5):
        un-polices everything after it
   m14  a 12-word assertion written as a `###` heading, which     uncited-heading       test_m14_*
        was dropped before a unit was formed
+
+The OPERATIONAL PROVING RUN (run 2, 2026-09-20) then passed this grader with 0/13 overreaching
+citations and was still refused by its adversarial reader for two defects nothing here could see
+(codex-review-proving-run2.md §2). Both were claims made where K1 does not look, and the KNOWN-BAD
+INPUT for both is that review itself, copied byte-for-byte into
+`qc/testdata/litkb_review/label-noise-robustness-2026-09-20-run2.md`:
+
+  m15  `## Canopy reference products and imagery that spans    uncited-heading       test_m15_*
+       dates` -- a section TITLE granting a status the
+       section's own body says was never confirmed. `###`
+       and deeper were graded; the `##` title was not
+  m16  `Scope` asserting that "nothing was read from an        scope-self-claim      test_m16_*
+       abstract, from memory, or from outside the knowledge
+       base", while two of the review's citations quote an
+       ingested block beginning "Abstract-". A claim about
+       the review's own PROCESS, in the one section K1
+       cannot look inside
+
+AUDITOR-6 then read the fix and found the writer-facing half of m16 undone by its own
+documentation, which is the third time on this branch that a rule and its rendered copy have
+disagreed:
+
+  * the ONE place a writer could see the permitted sentence was a wrapped markdown BLOCK QUOTE, so
+    copying it as displayed was refused (`scope-self-claim`, naming `outside`) -- and the test that
+    bound the two copies deleted the `>` that `_scope_findings` does not, so it passed over exactly
+    the mismatch it existed to prevent. Both docs now render the sentence in a FENCED block and
+    `test_the_scope_template_is_rendered_copy_exact` compares them byte for byte, with only what a
+    renderer removes taken off (`_fenced_after`);
+  * the four-word vocabulary refused honest LIMITS -- "Sites outside the Pacific Northwest are not
+    represented" is not about sourcing at all -- while grammar §1 was telling the writer to state
+    "what it read, what it did not". The list is now the three terms that name a SOURCE, §1 asks
+    for limits as what was NOT read, and §7 discloses both what escapes and what is refused anyway.
   CR   a quote crossing a block's stored `\r\n`, quoted from an  (none -- it PASSES,   test_crlf_*
        LF-only file. 48.9 % of current-run blocks carry `\r\n`    and one changed
        and 7 of 8 verified spans cross one, so "quote within      character still
@@ -59,14 +91,15 @@ worker database holds no ingested PDF -- `litkb_pg_base` resets and re-migrates 
 -- so "real blocks" here means real rows through the real write path, not a real paper.
 
 The CODE-mutation campaign (break each -- BEGIN guard -- block in review_check.py, show this file
-fails, restore, sha256-verify) is qc/instruments/litkb_p2_mutations.py rows RC1-RC15. m1-m14 are
-INPUT mutations: they prove the guards fire on bad documents. RC1-RC15 prove the tests fail when
-the guards are removed. Neither substitutes for the other. RC14 and RC15 are the two halves of
+fails, restore, sha256-verify) is qc/instruments/litkb_p2_mutations.py rows RC1-RC15 and RC26-RC27.
+m1-m16 are INPUT mutations: they prove the guards fire on bad documents. The RC rows prove the
+tests fail when the guards are removed. Neither substitutes for the other. RC14 and RC15 are the two halves of
 the newline canonicalisation, in two languages with no migration binding them: either half alone,
 made the identity, silently restores the defect the pair was written to remove.
 """
 import argparse
 import uuid
+from pathlib import Path
 
 import pytest
 
@@ -81,6 +114,67 @@ _pg_session = _p1mod._pg_session
 pg = _p1mod.pg
 
 pg_only = pytest.mark.requires_litkb_pg
+
+SCRIPTS = Path(__file__).resolve().parents[1]
+#: THE PROVING RUN'S OWN REVIEW -- the known-bad input for m15 and m16, copied out of
+#: `Reports/reviews/` on the proving worktree with no edit of any kind.
+#:
+#: It is graded here by the TEXT-ONLY guards. Its header names the live workstream it was written
+#: from, which this worker database has never held, so `check()` would refuse it as `no
+#: workstream` before reaching a guard -- the right refusal, and not what these rows are about.
+#:
+#: Its fidelity is pinned by `RUN2_SHA` below, over the CANONICALISED text rather than the file's
+#: bytes, and that is not a weaker pin -- it is the only one that survives a checkout. `*.md text`
+#: in the repo's `.gitattributes` gives this Windows working copy CRLF while the repository holds
+#: LF, deliberately and with a "do not fix this" note, so a byte digest would be red on one
+#: platform and green on the other. Canonicalising the line ENDING and nothing else is exactly the
+#: distinction migration 0026 drew for a quote, applied here to a file.
+RUN2 = SCRIPTS / "qc" / "testdata" / "litkb_review" / "label-noise-robustness-2026-09-20-run2.md"
+RUN2_SHA = "aa9b452fa78c63914fa56e7bd9cf4e2c189f4ba84f77cd549482549dcd526d9f"
+GRAMMAR = SCRIPTS / "docs" / "LITKB_REVIEW_GRAMMAR.md"
+
+
+WRITER = SCRIPTS.parent / ".claude" / "agents" / "review-writer.md"
+#: Where each doc RENDERS the one permitted Scope sentence, for `_fenced_after`.
+TEMPLATE_ANCHORS = ((GRAMMAR, "**`Scope` may say exactly one thing about the review's own sourcing"),
+                    (WRITER, "Say nothing about your own sourcing except this sentence"))
+
+
+def _run2():
+    with RUN2.open(encoding="utf-8", newline="") as fh:       # the grader's own reader (`_read`)
+        return fh.read()
+
+
+def _fenced_after(path, anchor):
+    """The fenced code block that follows `anchor` in a markdown file, as a reader's renderer
+    shows it -- and NOTHING else is removed.
+
+    The only transformations are the two a CommonMark renderer performs on a fence: the closing
+    and opening fence lines go, and each content line loses the OPENING FENCE'S OWN indentation
+    (review-writer.md's copy sits inside a numbered list item, so its fence is indented five
+    spaces and its content renders at column zero). Line endings are canonicalised because the
+    repository stores LF and hands this Windows working copy CRLF -- `.gitattributes` says so
+    deliberately -- and a digest or a comparison that ignored that would be red on one platform
+    and green on the other.
+
+    What is NOT removed is any prefix a writer would have to strip by hand: a `> `, a `- `, a
+    `**`. That is the whole point of this helper. The block quote that lived in grammar §1 until
+    2026-09-20 was compared by a test that dropped its `>` while `_scope_findings` did not, so the
+    test passed over the exact mismatch it existed to prevent (auditor-6 §4).
+    """
+    from litkb.textnorm import canonical_newlines
+
+    with path.open(encoding="utf-8", newline="") as fh:
+        lines = canonical_newlines(fh.read()).split("\n")
+    start = next(i for i, ln in enumerate(lines) if anchor in ln)
+    fence = next(i for i in range(start, len(lines)) if lines[i].lstrip().startswith("```"))
+    indent = len(lines[fence]) - len(lines[fence].lstrip())
+    body = []
+    for ln in lines[fence + 1:]:
+        if ln.lstrip().startswith("```"):
+            break
+        body.append(ln[indent:] if ln[:indent].strip() == "" else ln)
+    return "\n".join(body)
 
 
 # ── the grammar, with no database in sight ─────────────────────────────────────────────────
@@ -288,6 +382,164 @@ def test_m14_an_assertion_written_as_a_heading_is_graded():
         "<!-- litkb-review workstream=w -->\n\n## Scope\n" + long_heading) == []
 
 
+def test_the_run2_fixture_is_the_proving_runs_review_unedited():
+    """m15 and m16 are only worth anything if the document they grade is the one that passed.
+    An edited fixture would turn two kills into two tautologies, so the copy is pinned -- over
+    the canonicalised text, which is what both guards read and what survives a CRLF checkout."""
+    import hashlib
+
+    from litkb.textnorm import canonical_newlines
+
+    canon = canonical_newlines(_run2())
+    assert hashlib.sha256(canon.encode("utf-8")).hexdigest() == RUN2_SHA
+    assert len(canon) == 9545
+    # and it is the document the adversarial reader judged: the two sentences it named
+    assert "## Canopy reference products and imagery that spans dates" in canon
+    assert "nothing was read from an abstract, from memory, or from outside the knowledge base" in canon
+
+
+def test_m15_a_claim_sections_own_title_is_graded_too():
+    """THE PROVING RUN'S FIRST RESIDUAL. `_deep_heading_findings` grades `###` and deeper; the one
+    heading every review is certain to have -- the `##` section title -- was graded by nothing, so
+    `## Canopy reference products and imagery that spans dates` asserted a status ("reference
+    product") that the section's own body and its own ledger entry both say was never confirmed,
+    over thirteen individually SUPPORTED citations."""
+    from litkb import review_check as rc
+
+    base = "<!-- litkb-review workstream=w -->\n\n"
+    found = rc._title_findings(base + "## Canopy reference products and imagery that spans dates\n"
+                                      '"q" [K p.1 #ab]\n')
+    assert [f["code"] for f in found] == ["uncited-heading"], found
+    assert found[0]["line"] == 3 and "Canopy reference products" in found[0]["detail"], found
+    # a SIX-word title is a label and passes, a seventh word does not
+    assert rc._title_findings(base + "## Canopy products and imagery spanning dates\n") == []
+    assert [f["code"] for f in rc._title_findings(
+        base + "## Canopy reference products and imagery spanning several dates\n")] == [
+        "uncited-heading"]
+    # a title has NO citation escape: `sections()` never hands it to K1, so it cannot carry
+    # evidence at all (this is the one difference from the `###` rule)
+    assert [f["code"] for f in rc._title_findings(
+        base + '## Canopy reference products and imagery that spans dates "q" [K p.1 #ab]\n')] == [
+        "uncited-heading"]
+    # and the four non-claim titles are fixed by the grammar, so they are not graded
+    for name in ("Scope", "Expectations not supported", "Sources"):
+        assert rc._title_findings(base + f"## {name}\n") == []
+
+
+def test_m15_the_run2_review_fails_on_its_section_titles():
+    """The known-bad input, ungraded by this rule until now. MEASURED, and the premise to report:
+    the rule fires on ALL FOUR of run 2's claim titles, not only the one the adversarial reader
+    named -- 6 words is a tight budget for a prose section title, and every finding is the same
+    code. Line 59 is the one that matters."""
+    from litkb import review_check as rc
+
+    found = rc._title_findings(_run2())
+    assert {f["code"] for f in found} == {"uncited-heading"}, found
+    assert [f["line"] for f in found] == [13, 36, 50, 59], found
+    assert "Canopy reference products" in found[-1]["detail"], found[-1]
+
+
+def test_m16_scope_may_not_characterise_the_reviews_own_sourcing():
+    """THE PROVING RUN'S SECOND RESIDUAL, and a direction into the `Scope` hole nobody had
+    guarded: not a claim about the LITERATURE moved there, but a claim about the review's own
+    PROCESS -- which was false. Two of its thirteen citations quote an ingested block whose first
+    word is `Abstract-`; an ingested, DB-verified block is evidence wherever in the paper it sits,
+    and the only barred abstract text is an EXPECTED line's unverified `abstract_passage`."""
+    from litkb import review_check as rc
+
+    base = "<!-- litkb-review workstream=w -->\n\n## Scope\n"
+    bad = ("Everything cited comes from this workstream's brief; nothing was read from an "
+           "abstract, from memory, or from outside the knowledge base.\n")
+    found = rc._scope_findings(base + bad)
+    assert [f["code"] for f in found] == ["scope-self-claim"], found
+    assert "'abstract'" in found[0]["detail"], found[0]
+    # each of the three terms fires on its own, and `abstract_passage` -- the field name both docs
+    # tell writers to use -- is caught, which `\babstract\b` did NOT do because `_` is a word
+    # character (auditor-6 §2). That is why the boundary is [A-Za-z0-9] and not \b.
+    for term in ("an abstract was quoted here at length",
+                 "this was written partly from memory of the paper",
+                 "the knowledge base holds nothing else on this",
+                 "no abstract_passage was quoted in this review"):
+        assert [f["code"] for f in rc._scope_findings(f"{base}This review says {term}.\n")] == [
+            "scope-self-claim"], term
+    # the ONE permitted sentence passes. It passes on its WORDS -- it carries none of the three --
+    # so the `s == template` exemption decides nothing today and is a forward guard against a
+    # widening that would otherwise swallow the one sentence the grammar requires.
+    assert not rc._SELF_CLAIM_RE.search(rc.SCOPE_TEMPLATE)
+    assert rc._scope_findings(base + rc.SCOPE_TEMPLATE + "\n") == []
+    # a Scope sentence that says nothing about sourcing is the writer's own, and is left alone
+    assert rc._scope_findings(base + "This review reads one study and generalises nothing.\n") == []
+    # …and the rule is Scope's alone: the same sentence in a claim section is K1's business
+    assert rc._scope_findings(base.replace("## Scope", "## Findings") + bad) == []
+
+
+def test_m16_the_run2_reviews_scope_names_its_own_sourcing_falsely():
+    """The known-bad input, and the MEASURED cost of the 2026-09-20 vocabulary change: run 2's
+    three-paragraph Scope now fires THREE times, not once.
+
+    Line 9 is the false sentence the adversarial reader named. Lines 7 and 11 are the two that
+    say what the knowledge base was asked and what it contains -- true, and refused anyway,
+    because a grader cannot tell a true claim about the corpus from a false one. Both have a
+    passing form that says the same thing (grammar §1): the topic question as the review's own
+    question, and the limit as what the review does not assess. This is the rule's cost and it is
+    disclosed in §7 rather than tuned away."""
+    from litkb import review_check as rc
+
+    found = rc._scope_findings(_run2())
+    assert [(f["code"], f["line"]) for f in found] == [
+        ("scope-self-claim", 7), ("scope-self-claim", 9), ("scope-self-claim", 11)], found
+    assert "nothing was read from an abstract" in found[1]["detail"], found[1]
+    assert [f["detail"].split("'")[1] for f in found] == [
+        "knowledge base", "abstract", "knowledge base"], found
+    # WHAT `outside` AND `measured` USED TO REFUSE, and no longer do: the first of these is not
+    # about sourcing at all, and both are limits, which is what Scope is for (auditor-6 §2)
+    for ok in ("Sites outside the Pacific Northwest are not represented.",
+               "No measured canopy value for Edmonds is reported here.",
+               "This review reads no work published after 2019.",
+               "No abstracts were read."):                       # `abstracts` escapes: §7
+        assert rc._scope_findings(
+            f"<!-- litkb-review workstream=w -->\n\n## Scope\n{ok}\n") == [], ok
+
+
+@pytest.mark.parametrize("path,anchor", TEMPLATE_ANCHORS, ids=["grammar", "review-writer"])
+def test_the_scope_template_is_rendered_copy_exact(path, anchor):
+    """THE ONLY THING BINDING THE THREE COPIES, and it compares them BYTE FOR BYTE.
+
+    The constant is what the grader accepts; the two fences are what a writer can see. Drift of
+    one character between them fails every conforming review, with nobody at fault and the finding
+    naming the writer.
+
+    The predecessor of this test did not prove that. It searched the doc for the sentence after
+    deleting `\\n>` from the whole file, because the only rendered copy was a wrapped block quote
+    -- so it passed while the displayed sentence, copied as displayed, was REFUSED (auditor-6 §4:
+    `scope-self-claim` naming `outside`). A test that normalises away the difference it is
+    checking for is worse than no test: it reports the binding as proved. Hence the fence, and
+    hence `_fenced_after`, which removes only what a renderer removes.
+    """
+    from litkb import review_check as rc
+
+    assert _fenced_after(path, anchor) == rc.SCOPE_TEMPLATE
+    # and the shape that keeps it copyable: no apostrophe and no quotation mark, because a model
+    # that renders `'` as `’` would emit a sentence the grader cannot match
+    assert not set(rc.SCOPE_TEMPLATE) & set("'’\"“”")
+
+
+def test_a_scope_copied_out_of_the_grammar_at_test_time_passes():
+    """The round trip the docs promise: take what the grammar DISPLAYS, put it in a Scope, grade
+    it. This is the assertion auditor-6's finding needed -- the old binding test compared strings
+    and never once graded the displayed text.
+
+    It asserts an ABSENCE of findings, so it is a control and not a kill: deleting the guard
+    leaves it green. RC27's row says so, so that nobody counts it as coverage of the guard."""
+    from litkb import review_check as rc
+
+    shown = _fenced_after(*TEMPLATE_ANCHORS[0])
+    assert rc._scope_findings(f"<!-- litkb-review workstream=w -->\n\n## Scope\n{shown}\n") == []
+    assert rc._scope_findings(
+        f"<!-- litkb-review workstream=w -->\n\n## Scope\n{_fenced_after(*TEMPLATE_ANCHORS[1])}\n"
+    ) == []
+
+
 def test_a_mangled_citation_is_named_not_ignored():
     from litkb import review_check as rc
 
@@ -376,7 +628,8 @@ def _confirmed_world(pg):
     return w
 
 
-def _review(w, *, block_id=None, quote=None, extra_claim="", disclose=True):
+def _review(w, *, block_id=None, quote=None, extra_claim="", disclose=True,
+            heading="Findings", scope="One workstream, one question, written from its brief alone."):
     """m5 by default; each keyword makes exactly one of the known-bad reviews."""
     expectations = (f"- hunt_request `{w['hr']}` (10.1/contradicted) expected that the identity "
                     "fails under model mismatch; a verified quote from the same work refutes it.\n"
@@ -384,8 +637,8 @@ def _review(w, *, block_id=None, quote=None, extra_claim="", disclose=True):
     return (f"<!-- litkb-review workstream={w['ws']} -->\n"
             "\n# Canopy review\n"
             "\n## Scope\n"
-            "One workstream, one question, written from its brief alone.\n"
-            "\n## Findings\n"
+            f"{scope}\n"
+            f"\n## {heading}\n"
             f'The work states it directly: "{quote or w["quote"]}" '
             f'[{w["key"]} p.1 #{block_id or w["block"]}].\n'
             f"{extra_claim}"
@@ -563,6 +816,34 @@ def test_m14_a_heading_that_asserts_fails_end_to_end(pg):
     text = _review(w, extra_claim="\n### Edmonds lost four fifths of its canopy and every "
                                   "conifer species died\n")
     assert _codes(pg, text) == ["uncited-heading"]
+
+
+@pg_only
+def test_m15_a_title_that_asserts_fails_end_to_end(pg):
+    """The same review, otherwise perfect, with the proving run's own heading over its findings."""
+    w = _world(pg)
+    assert _codes(pg, _review(w)) == []
+    codes = _codes(pg, _review(w, heading="Canopy reference products and imagery that spans dates"))
+    assert codes == ["uncited-heading"], codes
+    # six words is a label and still passes end to end
+    assert _codes(pg, _review(w, heading="Canopy products and imagery spanning dates")) == []
+
+
+@pg_only
+def test_m16_a_scope_self_claim_fails_end_to_end(pg):
+    """The proving run's Scope sentence, in a review that is otherwise green -- which is exactly
+    how it reached a reader: `review-check` passed it."""
+    w = _world(pg)
+    codes = _codes(pg, _review(w, scope="Everything cited comes from this workstream's brief; "
+                                        "nothing was read from an abstract, from memory, or from "
+                                        "outside the knowledge base."))
+    assert codes == ["scope-self-claim"], codes
+    from litkb import review_check as rc
+    assert _codes(pg, _review(w, scope=rc.SCOPE_TEMPLATE)) == []
+    # and the round trip end to end: the sentence as the GRAMMAR DISPLAYS it, in a whole review,
+    # graded against the database. This is the path a writer walks, and the path the old binding
+    # test only pretended to check (auditor-6 §4).
+    assert _codes(pg, _review(w, scope=_fenced_after(*TEMPLATE_ANCHORS[0]))) == []
 
 
 @pg_only

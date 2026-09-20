@@ -1476,6 +1476,32 @@ replace("RC25", f"{PKG}/review_check.py",
         "the grader goes back to raising psycopg's bare UndefinedFunction against a database "
         "without migration 0026 -- a symbol, not a thing to do -- where `use.locate_quote` refuses "
         "the same absence with a sentence naming the migration", tests=TESTS_REVIEW)
+# RC26/RC27: the two EDITORIAL residuals the operational proving run left after it passed this
+# grader with 0/13 overreaching citations (codex-review-proving-run2.md §2). Neither was a
+# citation defect; both were claims made in the two places K1 does not read -- a section TITLE and
+# `Scope`. The known-bad input for both rows is that review itself, kept byte for byte at
+# qc/testdata/litkb_review/label-noise-robustness-2026-09-20-run2.md.
+block("RC26", f"{PKG}/review_check.py",
+      "guard: a claim section's title is a label, not an assertion",
+      "a `##` claim-section title goes back to being graded by nothing: `_deep_heading_findings` "
+      "covers `###` and deeper, so the one heading every review is certain to have is the one "
+      "heading no guard reads, and `## Canopy reference products and imagery that spans dates` "
+      "asserts a status the section's own body and its own ledger entry both say was never "
+      "confirmed (m15). RC13 does not cover it -- a title has no citation escape and is refused "
+      "by word count alone", tests=TESTS_REVIEW)
+block("RC27", f"{PKG}/review_check.py",
+      "guard: Scope describes the review's own sourcing only in the template's exact words",
+      "a review may again characterise its OWN process in the one section K1 cannot look inside, "
+      "and the proving run's sentence -- `nothing was read from an abstract, from memory, or from "
+      "outside the knowledge base`, written over two citations quoting an ingested block that "
+      "begins `Abstract-` -- passes green again (m16). A grader cannot check whether a "
+      "self-description is true, which is why the rule is one permitted sentence and not accuracy. "
+      "Its vocabulary was narrowed on 2026-09-20 to the three terms that name a SOURCE (auditor-6 "
+      "measured `outside` and `measured` refusing honest limits). NOTE what this row does NOT "
+      "kill, so nobody reads more into it: the two rendered-copy tests and the copied-from-the-doc "
+      "round trip all assert an ABSENCE of findings, so they stay green under this mutation by "
+      "construction. They bind the docs to SCOPE_TEMPLATE; only the three m16 rows kill the guard",
+      tests=TESTS_REVIEW)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

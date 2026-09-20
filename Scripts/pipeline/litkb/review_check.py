@@ -68,10 +68,18 @@ WHAT IS ASKED OF THE DATABASE, AND WHY IT IS NOT RE-IMPLEMENTED HERE
     (decisions.yaml::litkb-web-source-gate), and a grader reading main's view only would refuse
     exactly the citations an unattended run is supposed to be able to make.
 
-WHAT IT CANNOT CHECK, stated here so nobody reads a pass as more than it is: whether the claim a
-sentence makes is the claim its quote supports. The grader checks that a verbatim quote from a
-verified block sits under every assertion; a sentence can still say something the quote does not.
-That judgement is a reader's, and the grammar doc says so in those words.
+WHAT IT CANNOT CHECK, stated here so nobody reads a pass as more than it is:
+
+  * **Whether the claim a sentence makes is the claim its quote supports.** The grader checks that
+    a verbatim quote from a verified block sits under every assertion; a sentence can still say
+    something the quote does not. That judgement is a reader's, and the grammar doc says so in
+    those words.
+  * **Whether a disclosure is COMPLETE.** `_expectation_findings` proves that every contradicted
+    or unconfirmed expectation is NAMED; nothing here can ask whether the entry tells the whole of
+    what its cited blocks hold. The proving run's Kaiser entry named two losses and omitted, from
+    the very block it cited for them, that the OSM-only model still beat the smaller baseline by
+    1.5 percent points -- honest, and not the full picture (codex-review-proving-run2.md §2).
+    Grammar §5 requires the partial support to be named; only a reader can check that it was.
 """
 import re
 import uuid
@@ -114,9 +122,41 @@ NOTICE_DISCLOSE = ("open",)
 #: longest newline-free run inside a paragraph block has median 68 -- so 25 refuses the degenerate
 #: end without reaching anything a writer would legitimately quote.
 MIN_QUOTE_CHARS = 25
-#: The longest deep heading that is still a LABEL rather than an assertion, in words. See
-#: `_deep_heading_findings`.
+#: The longest heading that is still a LABEL rather than an assertion, in words. It governs BOTH
+#: a `###`-or-deeper heading (`_deep_heading_findings`) and a claim section's own `##` title
+#: (`_title_findings`).
 HEADING_LABEL_WORDS = 6
+#: The ONE sentence a review may write in `Scope` about its OWN sourcing, verbatim.
+#:
+#: It is RENDERED for the writer in exactly two places, both as a FENCED CODE BLOCK and never as
+#: a block quote, a list item or bold text: LITKB_REVIEW_GRAMMAR.md §1 and
+#: `.claude/agents/review-writer.md`. `test_the_scope_template_is_rendered_copy_exact` compares
+#: both fences to this constant BYTE FOR BYTE, with no stripping of any kind, because that is the
+#: only comparison that proves what a writer copying the displayed text actually gets.
+#:
+#: The fence is not cosmetic. Until 2026-09-20 the one rendered copy was a wrapped markdown block
+#: quote, so the sentence a writer could see began `> ` -- and auditor-6 measured that copying it
+#: as displayed FAILED `scope-self-claim` naming `outside`, while the binding test stripped the
+#: `>` that `_scope_findings` does not. The test passed over the exact mismatch it existed to
+#: prevent. Narrowing the vocabulary below happens to remove that sentence's refused word, so the
+#: `> ` copy no longer fails; the fence is what stops the next widening from re-opening it.
+#:
+#: It carries no apostrophe and no quotation mark for the same class of reason: a writer that
+#: renders `'` as `’` would produce a sentence the grader cannot match, and the failure would
+#: name the wrong defect.
+SCOPE_TEMPLATE = ("Every citation in this review names a VERIFIED line of the brief for this "
+                  "workstream; nothing outside that brief is cited.")
+#: The terms that make a `Scope` sentence a claim about the review's own SOURCING. Three, and
+#: each one names a SOURCE the review might claim to have used or avoided -- not a quantity, a
+#: place or a measurement. See `_scope_findings` for what that boundary cost to find, and grammar
+#: §7 for what escapes it in both directions.
+#:
+#: The boundary is `[A-Za-z0-9]` and NOT `\b`, so `_` reads as a boundary: `abstract_passage` --
+#: the field name both docs tell writers to use -- matches, where `\babstract\b` did not, because
+#: `_` is a word character (auditor-6 §2, measured). `abstracts` still escapes, by the same rule
+#: in the other direction, and §7 says so.
+_SELF_CLAIM_RE = re.compile(r"(?<![A-Za-z0-9])(abstract|memory|knowledge\s+base)(?![A-Za-z0-9])",
+                            re.IGNORECASE)
 
 
 class ReviewGrammarError(SystemExit):
@@ -475,6 +515,105 @@ def _deep_heading_findings(text):
     return out
 
 
+def _title_findings(text):
+    """RC26. A CLAIM SECTION'S OWN `##` TITLE is a label too, and it has no citation escape.
+
+    `_deep_heading_findings` graded `###` and deeper and stopped there, so the one heading a
+    review is certain to have -- the section title itself -- was the one heading nothing looked
+    at. The proving run wrote `## Canopy reference products and imagery that spans dates` over a
+    section whose own body, and whose own ledger entry, say the "reference product" half of that
+    expectation was never confirmed (codex-review-proving-run2.md §2). Every citation in it was
+    SUPPORTED; the status was asserted by the title, where no guard was.
+
+    Two differences from the deep-heading rule, both because a `##` line is a section boundary and
+    not prose:
+
+    * **No citation exempts it.** `sections()` opens a new section on a `## ` line and never hands
+      that text to `units()`, so a citation written into a title is half-graded -- `citations()`
+      finds it, so RC1/RC2/RC3/RC8/RC11 all run on it, while K1 never sees the sentence it is
+      supposed to support. A title therefore cannot carry evidence at all, and the only honest
+      title is a LABEL: `HEADING_LABEL_WORDS` words or fewer.
+    * **Non-claim titles are not graded**, and cannot be: their four names are fixed by grammar
+      §1, they are the same on every review, and each is already at most four words.
+    """
+    out = []
+    # BEGIN guard: a claim section's title is a label, not an assertion
+    raw = text.splitlines()
+    for heading, hl, _lines, _fences, _deep in sections(text):
+        if heading in NON_CLAIM or len(heading.split()) <= HEADING_LABEL_WORDS:
+            continue
+        shown = raw[hl - 1].strip() if 0 < hl <= len(raw) else heading
+        out.append(_f(hl, "uncited-heading",
+                      f"a claim section's title asserts: {shown[:90]!r}. A title of more than "
+                      f"{HEADING_LABEL_WORDS} words is a finding, not a label -- and a title "
+                      "cannot carry a citation, because K1 never reads it. Shorten it to a label "
+                      "and make the claim a cited sentence in the section"))
+    # END guard: a claim section's title is a label, not an assertion
+    return out
+
+
+def _scope_findings(text):
+    """RC27. `Scope` may characterise the review's OWN SOURCING in exactly one sentence: the
+    grammar's, verbatim (`SCOPE_TEMPLATE`).
+
+    `Scope` is the section K1 cannot look inside (grammar §7), which is the hole the grammar
+    creates on purpose -- and the proving run walked into it from a direction nobody had guarded:
+    not by moving a claim about the LITERATURE there, but by writing a claim about the review's
+    own PROCESS. "nothing was read from an abstract, from memory, or from outside the knowledge
+    base" was simply false: two of the review's thirteen citations quote an ingested Kaiser block
+    whose first word is "Abstract-" (codex-review-proving-run2.md §2). An ingested, DB-verified
+    block is legitimate evidence wherever in the paper it sits; the only barred abstract text is
+    the `abstract_passage` of an EXPECTED hunt_request line, which nothing ever verified.
+
+    A grader cannot check whether a self-description is true -- it is a claim about a process, not
+    about a document. So the rule is not "be accurate", it is **there is one permitted sentence**,
+    and it is one the grader itself enforces: every citation names a VERIFIED brief line, which is
+    exactly what `_in_brief_findings` and `_verified_span_findings` refuse to let through. Anything
+    else about sourcing is refused by its words: a `Scope` sentence carrying `abstract`, `memory`
+    or `knowledge base` that is not the template is `scope-self-claim`.
+
+    WHY THOSE THREE, AND NOT THE FOUR THIS SHIPPED WITH. `outside` and `measured` were in the list
+    until auditor-6 measured what they refused: "Sites outside the Pacific Northwest are not
+    represented" and "No measured canopy value for Edmonds is in the knowledge base" are LIMITS,
+    which is what `Scope` is for, and the first is not about sourcing at all. A vocabulary that
+    refuses the section's own purpose teaches a writer to avoid the section, so the list is now
+    the terms that name a SOURCE -- where evidence came from -- and nothing that names a quantity
+    or a place. Grammar §1 was rewritten in the same change, because it had been inviting exactly
+    the sentences this refused ("what it read, what it did not").
+
+    THE TEMPLATE'S EXEMPTION IS NOW A FORWARD GUARD, NOT A LIVE BRANCH, and that is worth saying
+    rather than leaving for someone to discover: `SCOPE_TEMPLATE` contains none of the three
+    terms, so it passes on its words and the `s == template` test below never decides anything
+    today. It stays because the list may widen, and a widening that swallowed the one permitted
+    sentence would fail every conforming review at once.
+
+    The terms are matched on `[A-Za-z0-9]` boundaries and are not stemmed, so `abstract_passage`
+    matches (deliberately -- it is the field name the docs name) while `abstracts` escapes, and a
+    sentence avoiding all three makes any process claim it likes. Both directions are disclosed in
+    grammar §7 rather than pretending the list is exhaustive.
+    """
+    out = []
+    # BEGIN guard: Scope describes the review's own sourcing only in the template's exact words
+    template = " ".join(SCOPE_TEMPLATE.split())
+    for heading, _hl, lines, _fences, _deep in sections(text):
+        if heading != "scope":
+            continue
+        for no, txt in units(lines):
+            for sent in sentences(txt):
+                s = " ".join(sent.split())
+                if not s or s == template:
+                    continue
+                m = _SELF_CLAIM_RE.search(s)
+                if m:
+                    out.append(_f(no, "scope-self-claim",
+                                  f"a Scope sentence says {m.group(0)!r} and is not the one "
+                                  f"permitted sentence: {s[:90]!r}. Scope is the section K1 "
+                                  "cannot look inside, so a review may not characterise its own "
+                                  f"sourcing there except verbatim: {SCOPE_TEMPLATE!r}"))
+    # END guard: Scope describes the review's own sourcing only in the template's exact words
+    return out
+
+
 def _claim_findings(text):
     """RC4 = K1. Every SENTENCE of every unit of a claim section carries at least one citation,
     and no citation appears in a section K1 does not police.
@@ -736,6 +875,8 @@ def check(conn, path_or_text, *, is_text=False, k2_workstream=None):
     out += _fenced_findings(text)
     out += _duplicate_section_findings(text)
     out += _deep_heading_findings(text)
+    out += _title_findings(text)
+    out += _scope_findings(text)
     out += _expectation_findings(text, expected)
     out += _never_fired_findings(expected)
     out += _sources_findings(text, {c["work_key"] for c in cits})

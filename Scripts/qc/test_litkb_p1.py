@@ -171,7 +171,12 @@ def test_an_undeclared_gap_in_the_migration_numbering_is_still_refused(tmp_path)
     assert hole_v < found[-1][0], "the hole must be in the middle, not the tail"
     (tmp_path / hole_name).unlink()
     declared = tmp_path / "_reserved.txt"
-    with pytest.raises(migrate.MigrationError, match="without gaps"):
+    # The match names the MANUFACTURED hole, and that is load-bearing (audit 2026-09-20 §5). Against
+    # an EMPTY _reserved.txt this copy also has a gap at the tree's own reserved 0024, so a bare
+    # `match="without gaps"` is satisfied by repository state whether or not a hole was dug here —
+    # measured: with no hole at all and an empty reservation file, discover still raises, at 0024.
+    # Matching the expected NUMBER is what keeps the manufactured hole the thing being refused.
+    with pytest.raises(migrate.MigrationError, match=f"expected {hole_v:04d}"):
         migrate.discover(tmp_path, reserved_path=declared)                       # undeclared: refused
     # The TREE's own reservations travel with the copy, exactly as they do in
     # test_gate_runner_refuses_an_edited_applied_migration above — for a reason that only showed up

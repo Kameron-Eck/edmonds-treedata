@@ -1,0 +1,10 @@
+metric,bucket,occurrences,spells_word_len4plus,spells_word_anylen,note
+current_run_blocks,,104647,,,
+vocabulary,4-25 letters,38595,,,"distinct clean words, C0-free current-run blocks"
+vocabulary,any length,42543,,,the short words the one-letter bucket would inject
+occurrences,all,2960,,,a C0 byte followed by >=1 letter
+floor_bucket,"1 letter (no prefix, one-letter tail)",1418,0,1244,"excluded by the floor: recovers nothing long, injects short words"
+floor_bucket,>=2 letters,1542,343,343,"included. Its two columns are ONE event: every candidate here is already 4+ letters, so len4plus == anylen by construction"
+alternative_collision_keys,delete the ligature both sides,101,,,keys shared by 2+ distinct words
+alternative_words_collided,delete the ligature both sides,210,,,
+alternative_words_to_2_chars,delete the ligature both sides,80,,,

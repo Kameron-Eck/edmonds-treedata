@@ -2,7 +2,7 @@ r"""litkb 0025 — the index-only ligature repair, driven on REAL corpus text.
 
     PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_w2 py -3.12 -m pytest qc/test_litkb_textnorm_index.py
 
-WHAT THESE TESTS RUN ON. `qc/testdata/litkb_textnorm/real_blocks.json` holds four blocks copied
+WHAT THESE TESTS RUN ON. `qc/testdata/litkb_textnorm/real_blocks.json` holds six blocks copied
 VERBATIM out of the corpus — block id, file id, run id, page, type, sha256 and the text exactly as
 the extractor wrote it, control bytes and all (they appear in the JSON as \u0001 / \u001d escapes,
 so no control byte is typed into a tracked file). They are not invented strings, and the rule they
@@ -12,6 +12,18 @@ exercise was derived from the whole corpus, not from them (CLAUDE.md 3.4c):
   conflict-fi  01a0abc7-42ad-7050-b607-63aacd8a50c8  'in<0x01>nitely long'              -> fi
   floating     01a0ad5b-1765-7e08-89cc-5342a879f416  '<0x1d>oating point'               -> fl
   hyphenated   01a0abc8-4a18-7ca5-88e5-6dac9bf744f0  'abund- ant', and `di<0x81> culties`
+  numword-tail 01a0aba2-3d3b-750c-8abb-90b1d39e8f95  'u<0x05>L1(BR(0))'   — the token `L1`
+  initial-tail 01a0abc6-d87b-7dc6-b50e-8d1f421020ee  '; <0x05>DwR2\n=OÞ'  — the token `DwR2`
+
+The last two are the ADDITIVITY casualties. The first version of migration 0025 (d6a0a29) wrote the
+alternative spellings INTO the text beside the damaged word; the match ended at the last LETTER and
+the space it inserted there cut `L1` and `DwR2` in half — a lexeme the PRE-0025 index had is gone,
+and a manufactured one (`uffll1`) is in. 570 of 372,192 blocks lost 809 lexemes that way and `L1`
+fell from 297 to 280 visible leg-1 hits (audit 2026-09-20, item 6). 0025 now prepends the spellings
+and never writes into the text at all, so the pre-0025 string is a literal suffix of the new one.
+These two blocks put that property in the LADDER; the corpus-wide count (0 of 372,192) and the
+rejected rules it is measured against are qc/instruments/litkb_norm_additivity.py, which cannot run
+here because it needs a restore of the dump.
 
 The first two are the SAME FILE and the SAME BYTE resolving to two different ligatures, which is why
 migration 0025 carries no byte->ligature table: `test_a_fixed_byte_table_cannot_repair_both` is that
@@ -22,9 +34,10 @@ resets and migrates (qc/conftest.py `litkb_pg_base`), so leg 1 of litkb_search r
 row through the real expression index, not against a string literal in a SELECT.
 
 The full-corpus half of the proof — 372,192 blocks, the md5 of every block's text and the
-quote_verified set identical across the migration, and the REINDEX timings — is
+quote_verified set identical across the migration, the index-vs-function agreement check and the
+index rebuild timings — is
 `qc/instruments/litkb_norm_index_proof.py`, which cannot run inside the ladder because it needs a
-restore of the nightly dump. Its numbers are in Reports/litkb_norm_index_proof_2026-09-19.csv.
+restore of the nightly dump. Its numbers are in Reports/litkb_norm_index_proof_2026-09-20.csv.
 """
 import hashlib
 import json
@@ -43,11 +56,17 @@ pg_only = pytest.mark.requires_litkb_pg
 LEG1 = ("SELECT to_tsvector('english', litkb.norm_search_text(b.text)) "
         "       @@ plainto_tsquery('english', litkb.norm_search_text(%s)) "
         "  FROM litkb.blocks b WHERE b.id = %s")
+#: leg 2 of litkb_search (`_SEARCH_BLOCKS_ANY`): the any-term leg, same normaliser, 0018's
+#: any_term_query instead of plainto_tsquery. A lexeme destroyed by the normaliser is lost to BOTH,
+#: which is why the additivity rows below check both rather than leg 1 alone.
+LEG2 = ("SELECT to_tsvector('english', litkb.norm_search_text(b.text)) "
+        "       @@ litkb.any_term_query(%s) "
+        "  FROM litkb.blocks b WHERE b.id = %s")
 
 
 @pytest.fixture(scope="module")
 def recorded():
-    """The four recorded blocks, each re-hashed against the sha256 the capture wrote."""
+    """Every recorded block, each re-hashed against the sha256 the capture wrote."""
     blocks = json.loads(FIX.read_text(encoding="utf-8"))
     for name, b in blocks.items():
         got = hashlib.sha256(b["text"].encode("utf-8")).hexdigest()
@@ -93,6 +112,10 @@ def loaded(litkb_pg_base, recorded):
 
 def leg1(conn, query, block_id):
     return conn.execute(LEG1, (query, block_id)).fetchone()[0]
+
+
+def leg2(conn, query, block_id):
+    return conn.execute(LEG2, (query, block_id)).fetchone()[0]
 
 
 # ── (i) the recall the repair exists for ──────────────────────────────────────────────────
@@ -144,10 +167,29 @@ def test_the_stored_text_is_the_recorded_text_byte_for_byte(loaded, recorded):
 
 
 @pg_only
+@pytest.mark.parametrize("name, token", [
+    ("numword-tail", "L1"),        # `u<0x05>L1(BR(0))` — a C0 byte with a NUMWORD after it
+    ("initial-tail", "DwR2"),      # `; <0x05>DwR2` — a word-initial byte, same numword tail
+])
+def test_a_token_beside_the_damage_is_not_destroyed(loaded, name, token):
+    """The audit's defect, executed. `L1` is a norm, not noise: it was reachable through the
+    pre-0025 index and the first version of this rule made it unreachable, because it substituted
+    the spellings into the text and the space it inserted cut the token at the letter `L`. Both
+    lexical legs lose the token when that happens, so both are asserted. What makes it impossible
+    now is that nothing is substituted: the spellings are prepended as their own run and 0018's
+    output follows unchanged, so the old string is a literal suffix of the new one."""
+    conn, ids = loaded
+    assert leg1(conn, token, ids[name]), f"{token!r} no longer reaches {name} on leg 1"
+    assert leg2(conn, token, ids[name]), f"{token!r} no longer reaches {name} on leg 2"
+
+
+@pg_only
 def test_the_new_normalisation_only_adds(loaded, recorded):
-    """Additive by construction: the match is re-emitted unchanged before the expansions, so every
-    lexeme the pre-0025 normalisation produced is still produced. Checked here against 0018's body
-    spelled out, so the property is tested rather than trusted."""
+    """Additive by construction: 0018's output is carried through byte for byte and the spellings
+    are prepended, so every lexeme the pre-0025 normalisation produced is still produced. Checked
+    here against 0018's body spelled out, so the property is tested rather than trusted — over
+    every recorded block, including the two the first version of the rule broke. The corpus-wide
+    count (0 of 372,192 blocks) is qc/instruments/litkb_norm_additivity.py."""
     conn, _ids = loaded
     old = ("regexp_replace(regexp_replace(translate(coalesce(%s, ''), chr(65533) || chr(173), ''), "
            "'-[ \t\r\n]+', '', 'g'), '[ \t\r\n]+', ' ', 'g')")

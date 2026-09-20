@@ -33,7 +33,7 @@ What it establishes, in the order the launch delta asks for them:
         neighbouring-word trap `fix` (a one-letter neighbourhood like `<0x05>x` — a minus sign, not
         a ligature — would spell it if the rule had no two-letter floor).
 
-Output: Reports/litkb_norm_index_proof_2026-09-19.csv plus the stdout below. Nothing is written to
+Output: Reports/litkb_norm_index_proof_2026-09-20.csv plus the stdout below. Nothing is written to
 live litkb, and nothing at all is written to litkb.blocks.
 """
 import csv
@@ -42,7 +42,7 @@ import time
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[2]
-OUT = SCRIPTS.parent / "Reports" / "litkb_norm_index_proof_2026-09-19.csv"
+OUT = SCRIPTS.parent / "Reports" / "litkb_norm_index_proof_2026-09-20.csv"
 
 #: Real current-run blocks, named by id. The first two are the measured same-file, same-byte
 #: conflict (file 01a0a4d6-6db4-7343-965a-aca7b3c090d4, byte 0x01); the third is the delta's own
@@ -55,6 +55,10 @@ CASES = [
     ("overmatch-word", "01a0ad5b-1765-7e08-89cc-5342a879f416", "parachute deployment", False),
     ("overmatch-word", "01a0abc7-429d-7a0d-b7fb-252dab0c32ec", "photosynthesis", False),
     ("overmatch-short", "01a0abc7-42ad-7050-b607-63aacd8a50c8", "fix", False),
+    # one letter from the word the expansion repairs. It was in the job report's table and NOT in
+    # this script, which is the difference between a measurement and a claim about one (audit
+    # 2026-09-20 §2): expansion adds five spellings of ONE word, not a neighbourhood.
+    ("overmatch-near", "01a0ad5b-1765-7e08-89cc-5342a879f416", "gloating", False),
 ]
 
 #: leg 1 of litkb_search, verbatim from pipeline/litkb/mcp/server.py `_SEARCH_BLOCKS_ALL` (the
@@ -67,6 +71,12 @@ LEG1 = ("SELECT to_tsvector('english', litkb.{f}(b.text)) "
 LEG1_TABLE = ("SELECT to_tsvector('english', litkb.norm_search_text(replace(b.text, chr(1), 'fi'))) "
               "       @@ plainto_tsquery('english', litkb.norm_search_text(%s)) "
               "  FROM litkb.blocks b WHERE b.id = %s")
+
+#: the same leg-1 predicate as a COUNT over the whole table, so it can be served from the
+#: expression index — which is the only way to see whether that index agrees with the function
+COUNT_Q = ("SELECT count(*) FROM litkb.blocks b "
+           " WHERE to_tsvector('english', litkb.norm_search_text(b.text)) "
+           "       @@ plainto_tsquery('english', litkb.norm_search_text(%s))")
 
 STATE = ("SELECT (SELECT count(*) FROM litkb.blocks),"
          "       (SELECT md5(string_agg(text, '' ORDER BY id)) FROM litkb.blocks),"
@@ -114,16 +124,41 @@ def main():
     t0 = time.time()
     ran = migrate.apply(conn)
     secs = time.time() - t0
-    print(f"migration applied: {ran} in {secs:.1f}s (includes both REINDEXes)")
+    print(f"migration applied: {ran} in {secs:.1f}s (includes both index rebuilds)")
+
+    # BEGIN guard: the search index agrees with the function it is built from
+    # The migration replaces the function and rebuilds both expression indexes. If the rebuild does
+    # not see the new body, every leg silently reads pre-0025 entries and NOTHING else here would
+    # notice: the leg-1 probes below fetch one block by primary key and never touch this index.
+    # Measured 2026-09-20: CREATE OR REPLACE + REINDEX through migrate.apply() left the fts index
+    # answering `misclassification` on 722 blocks while the function answered 906. The migration
+    # drops and recreates instead; this is the check that says so on every run.
+    agree = {}
+    for q in ("misclassification", "covariate effects", "floating point"):
+        served = conn.execute(COUNT_Q, (q,)).fetchone()[0]
+        conn.execute("SET enable_indexscan = off; SET enable_bitmapscan = off")
+        scanned = conn.execute(COUNT_Q, (q,)).fetchone()[0]
+        conn.execute("RESET enable_indexscan; RESET enable_bitmapscan")
+        agree[q] = (served, scanned)
+        print(f"  index vs function {q!r:22} index={served} seqscan={scanned} "
+              f"{'ok' if served == scanned else 'STALE INDEX'}")
+    index_agrees = all(a == b for a, b in agree.values())
+    # END guard: the search index agrees with the function it is built from
 
     # the rebuild, timed on its own: the same two statements the migration ran
     times = {}
-    for idx in ("blocks_norm_text_fts", "blocks_norm_text_trgm"):
+    for idx, ddl in (("blocks_norm_text_fts",
+                      "CREATE INDEX blocks_norm_text_fts ON litkb.blocks "
+                      "USING gin (to_tsvector('english', litkb.norm_search_text(text)))"),
+                     ("blocks_norm_text_trgm",
+                      "CREATE INDEX blocks_norm_text_trgm ON litkb.blocks "
+                      "USING gin (litkb.norm_search_text(text) gin_trgm_ops)")):
         t1 = time.time()
-        conn.execute(f"REINDEX INDEX litkb.{idx}")
+        conn.execute(f"DROP INDEX litkb.{idx}")
+        conn.execute(ddl)
         times[idx] = time.time() - t1
         size = conn.execute("SELECT pg_size_pretty(pg_relation_size(%s))", (f"litkb.{idx}",)).fetchone()[0]
-        print(f"  REINDEX {idx}: {times[idx]:.1f}s, {size}")
+        print(f"  DROP+CREATE {idx}: {times[idx]:.1f}s, {size}")
 
     after = conn.execute(STATE).fetchone()
     print(f"AFTER   blocks={after[0]}  md5(text)={after[1]}  use_evidence={after[2]}  "
@@ -146,6 +181,8 @@ def main():
         "litkb.norm_search_text(b.text)) @@ plainto_tsquery('english', "
         "litkb.norm_search_text('floating point'))").fetchall())
     print("plan uses blocks_norm_text_fts:", "blocks_norm_text_fts" in plan)
+    print(f"index agrees with the function on every probe: {index_agrees}")
+    ok = ok and index_agrees
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT, "w", newline="", encoding="utf-8") as fh:

@@ -38,5 +38,25 @@
     "text": "The positional accuracy of a spatial object, or a digital representation of a feature, can be de\u00aened through measures of the di\u0080 erence between the apparent location of\r\nthe feature as recorded in the database, and the true location. Unfortunately, abund- ant di\u0081 culties exist in identifying the true location of a feature because of problems\r\nwith measuring instruments, frames of geodetic reference, and feature de\u00aenitions.\r\nInstead, positional accuracy of a feature\u2019s digital representation in a database may\r\nneed to be de\u00aened in practice through measures of the di\u0080 erence between the location\r\nrecorded in the database, and a location determined with higher accuracy. We term\r\nthe \u00aerst representation the tested source and the second representation the reference\r\nsource. If the accuracy of the reference source is su\u0081 ciently high, one can ignore the\r\n(unmeasured) di\u0080 erence between it and the truth, and treat the measure of accuracy\r\nas a property of the tested source only",
     "sha256": "dfd4c2e5b2574876aed7e8ef6384c1da7343be762df2679e3f266fac57d34978",
     "chars": 984
+  },
+  "numword-tail": {
+    "block_id": "01a0aba2-3d3b-750c-8abb-90b1d39e8f95",
+    "file_id": "01a0a4c5-1bb8-7698-ad8d-2d839ec0f4f7",
+    "run_id": "01a0aba2-3c8d-76b3-89e7-6d686bc89a91",
+    "page_no": 13,
+    "type": "equation",
+    "text": "C(N)\r\nR\u03c9 1\r\nN\r\nN\r\n\u0005u\u0005L1(BR(0)) + \u03bb\u0005u \u2212 f\u0005L1(BR(0)) + C(N)\u0005u\u0005\r\nL N\r\nN\u22121 (Bc\r\nR(0)) \u2264 \u03bb\u0005f\u0005L1(BR(0)),\r\nwhich shows that if \u03bb<C(N)/R\u03c9 1\r\nN\r\nN = \u03bb\u2217, then\r\n\u0005u\u0005L1(BR(0)) = \u0005u\u0005\r\nL N\r\nN\u22121 (Bc\r\nR(0))\r\n=0.",
+    "sha256": "6c10d026b9b32a4571584dad9869351b987b3088ff7c9800782177e14f090f1a",
+    "chars": 194
+  },
+  "initial-tail": {
+    "block_id": "01a0abc6-d87b-7dc6-b50e-8d1f421020ee",
+    "file_id": "01a0a4d1-d717-7c62-a5cd-0148da298f94",
+    "run_id": "01a0abc6-d6ca-7df6-8c1a-d61ab967f83d",
+    "page_no": 29,
+    "type": "equation",
+    "text": "Z\r\n@nO\r\ny\u00f0x\u0005\r\nO; DwO\u00de dH1 \u00bc P\u00f0O\u00de\u00bc Z\r\n@nO\r\ny\u00f0x\u00fe\r\nR2\r\n=O; \u0005DwR2\r\n=O\u00de dH1\r\n;",
+    "sha256": "3973daefff18b9d6b4872d9151b2dcf111b34cc9cacd5cbf7e9070006f7a69ec",
+    "chars": 73
   }
 }

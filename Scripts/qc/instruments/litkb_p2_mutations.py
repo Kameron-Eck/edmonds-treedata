@@ -978,18 +978,45 @@ M.append(dict(id="X13", kind="multi", tests=TESTS_NORM,
 # one of them would leave the other looking tested. Each mutation leaves a VALID migration whose
 # function still normalises — it just stops expanding — which is exactly the pre-0025 recall hole.
 replace("X13a", MIG25,
-        "               '\\& \\1\\2 \\1ff\\2 \\1fi\\2 \\1fl\\2 \\1ffi\\2 \\1ffl\\2', 'g'),\n",
-        "               '\\&', 'g'),\n",
+        "      SELECT m[1] || m[2] || ' ' || m[1] || 'ff' || m[2] || ' ' || m[1] || 'fi' || m[2] || ' '\n"
+        "             || m[1] || 'fl' || m[2] || ' ' || m[1] || 'ffi' || m[2] || ' ' || m[1] || 'ffl' || m[2]\n"
+        "             AS x\n",
+        "      SELECT '' AS x\n",
         "the mid-word ligature expansion is gone: a C0 byte with letters on both sides is left as the "
         "extractor wrote it, so `covariate effects` and `infinitely long` cannot reach the blocks that "
         "hold `e<0x01>ects` and `in<0x01>nitely` — the same file, the same byte, both unreachable",
         tests=TESTS_NORM)
 replace("X13b", MIG25,
-        "             '\\& \\2 ff\\2 fi\\2 fl\\2 ffi\\2 ffl\\2', 'g'),\n",
-        "             '\\&', 'g'),\n",
+        "      SELECT m[2] || ' ff' || m[2] || ' fi' || m[2] || ' fl' || m[2] || ' ffi' || m[2]\n"
+        "             || ' ffl' || m[2]\n",
+        "      SELECT ''\n",
         "the WORD-INITIAL ligature expansion is gone, which the mid-word clause cannot cover (it "
         "requires a letter before the byte): `floating point` no longer reaches the block that holds "
         "`<0x1d>oating point`",
+        tests=TESTS_NORM)
+# The ADDITIVITY clause — the rows the 2026-09-20 audit bought. X13a/X13b break the expansion and
+# cost recall the migration is FOR. X13c/X13d break the thing that makes it SAFE: 0025 prepends the
+# spellings and never writes into the text, and each of these puts the d6a0a29 substitution back,
+# one clause at a time. That is a worse failure than the missing recall and it is the one nothing
+# was measuring — a lexeme the PRE-0025 index already had disappears. Both leave a valid migration
+# that still expands ligatures; what goes red is the token BESIDE the damage. They mutate the same
+# line because 0025 has ONE additivity call site (the concatenation) carrying both clauses; the
+# corpus-wide counts for each are qc/instruments/litkb_norm_additivity.py --mutate.
+replace("X13c", MIG25,
+        "  SELECT coalesce(s.extra || ' ', '') || base.t FROM base, spellings s\n",
+        "  SELECT regexp_replace(base.t, '([A-Za-z]+)[' || k.c0 || ']([A-Za-z]+)', "
+        "'\\& \\1\\2 \\1ff\\2 \\1fi\\2 \\1fl\\2 \\1ffi\\2 \\1ffl\\2', 'g') FROM base, k\n",
+        "the mid-word spellings are substituted INTO the text again, as d6a0a29 had them: the match "
+        "ends at the last letter and the space the replacement inserts cuts the token there, so "
+        "`u<0x05>L1(BR(0))` loses the lexeme `l1` and gains `uffll1` — 570 of 372,192 blocks lost "
+        "809 lexemes that way and the query `L1` fell from 297 to 280 visible leg-1 hits",
+        tests=TESTS_NORM)
+replace("X13d", MIG25,
+        "  SELECT coalesce(s.extra || ' ', '') || base.t FROM base, spellings s\n",
+        "  SELECT regexp_replace(base.t, '(^|[^A-Za-z])[' || k.c0 || ']([A-Za-z]{2,})', "
+        "'\\& \\2 ff\\2 fi\\2 fl\\2 ffi\\2 ffl\\2', 'g') FROM base, k\n",
+        "the same substitution for the WORD-INITIAL clause, which the mid-word row cannot reach (it "
+        "needs a letter before the byte): `; <0x05>DwR2` loses the lexeme `dwr2`",
         tests=TESTS_NORM)
 replace("X14", f"{MIG}/0018_access_layer.sql",
         "    t := plainto_tsquery('simple', w);\n",

@@ -227,8 +227,11 @@ def _require_open(conn, ws_id):
     an InvalidParameterValue that `_guarded` turns into an opaque `error`; this makes the refusal
     the read path's own, before a row is read or a gap is proposed.
 
-    Called only after the caller's token has been presented, so the workstream's state is told to
-    nobody who has not proved it owns it."""
+    AT `_brief` this runs only after `_require_token`, so the state is told to nobody who has not
+    proved the workstream is theirs. AT `_record_use` it does NOT: that function presents its token
+    to the DATABASE on the write and checks none itself, so it already binds an unverified
+    workstream id into `visibility.FILE_JOIN` one statement later. The call-site comment there says
+    what that costs. Do not read the `_brief` property as this function's."""
     if not visibility.is_open(conn, ws_id):
         row = conn.execute("SELECT state FROM litkb.workstreams WHERE id = %s", (ws_id,)).fetchone()
         raise Refusal("workstream-not-open",

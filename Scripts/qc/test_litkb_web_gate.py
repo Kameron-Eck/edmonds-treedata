@@ -383,6 +383,11 @@ def test_e_a_forged_token_buys_no_proposal(kb):
     assert r["ok"] is False and r["refused"] == "bad-token", r
     assert block not in json.dumps(r), "a forged token read the workstream's proposal"
     assert kb["ws"]["A"] not in json.dumps(r), "the refusal named the workstream"
+    # the two halves of the same refusal: row (h) is a token file naming a workstream that does not
+    # exist, this one is a REAL workstream with the wrong token, and both must say what to do about
+    # the file rather than leaving a tool dark with no reason (audit §7.1).
+    assert str(forged / workstream.TOKEN_FILE) in r["message"], r["message"]
+    assert "REFUSED" in r["message"], r["message"]
 
 
 @pg_only

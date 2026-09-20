@@ -55,8 +55,10 @@ that has been merged or abandoned — the write functions refuse on `workstreams
 `ws_heads` load-bearing for SEARCH. A merged workstream's `.litkb-workstream` survives the merge
 (nothing deletes it), so without `is_open` below a finished worktree would go on searching, briefing
 and quoting material that never entered main. `is_open` is that check, in Python rather than in a
-new migration, and it is asked AFTER the token is presented: the state of a workstream is something
-a caller learns only once it has proved it owns it.
+new migration. Where the caller's token is checked in Python — `server._caller_workstream` (search)
+and `server._brief` — the state is asked AFTER that check, so a workstream's state is told to
+nobody who has not proved it owns it. `server._record_use` checks no token itself (the DATABASE
+refuses its write), so that one property does not hold there; its call-site comment says so.
 """
 
 

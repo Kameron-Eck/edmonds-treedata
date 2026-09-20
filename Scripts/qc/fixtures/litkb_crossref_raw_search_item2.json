@@ -1,0 +1,1267 @@
+{
+ "_provenance": {
+  "fetched": "2026-09-19",
+  "fetched_by": "live curl to api.crossref.org, this session, independent of the design report",
+  "source_ref_list": "D:/edmonds-pipeline/litkb_derived/p6/references.jsonl",
+  "source_ref_list_sha256": "e5481ab392f5bd6377cf5f1ac9ac25bea7872d946a3d3725b354507b8b4cfd6",
+  "source_ref_list_mtime": "2026-09-15T08:32:40.275195",
+  "note": "Two of the 50 title/author-blind references (no doi_norm and (no title or no first_author)), both real book reviews named in Reports/LITKB_REFMATCHER_2026-09-15.md section 7. Bodies are the verbatim Crossref responses this session fetched, not copied from that report or from litkb_derived/refmatch/cache_crossref_search.jsonl."
+ },
+ "besag_b11": {
+  "label": "Besag_1974::b11 (nearest-neighbour systems, Budapest 1972)",
+  "reference_input": {
+   "title": "",
+   "first_author": "",
+   "year": "1972",
+   "journal": "",
+   "publisher": "",
+   "authors": [],
+   "raw": "--(1972c). On the statistical analysis ofnearest-neighbour systems. Proceedings of the European Meeting of Statisticians, Budapest, August 1972 (to appear)."
+  },
+  "crossref_search_body": {
+   "status": "ok",
+   "message-type": "work-list",
+   "message-version": "1.0.0",
+   "message": {
+    "facets": {},
+    "total-results": 674230,
+    "items": [
+     {
+      "indexed": {
+       "date-parts": [
+        [
+         2022,
+         4,
+         5
+        ]
+       ],
+       "date-time": "2022-04-05T01:16:32Z",
+       "timestamp": 1649121392670
+      },
+      "reference-count": 0,
+      "publisher": "JSTOR",
+      "issue": "4",
+      "content-domain": {
+       "domain": [],
+       "crossmark-restriction": false
+      },
+      "short-container-title": [
+       "Journal of the Royal Statistical Society. Series A (General)"
+      ],
+      "published-print": {
+       "date-parts": [
+        [
+         1975
+        ]
+       ]
+      },
+      "DOI": "10.2307/2345225",
+      "type": "journal-article",
+      "created": {
+       "date-parts": [
+        [
+         2006,
+         6,
+         18
+        ]
+       ],
+       "date-time": "2006-06-18T11:48:10Z",
+       "timestamp": 1150631290000
+      },
+      "page": "573",
+      "source": "Crossref",
+      "is-referenced-by-count": 0,
+      "title": [
+       "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II."
+      ],
+      "prefix": "10.2307",
+      "volume": "138",
+      "author": [
+       {
+        "given": "R. L.",
+        "family": "Plackett",
+        "sequence": "first",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "author",
+          "vocabulary": "crossref"
+         }
+        ]
+       },
+       {
+        "given": "J.",
+        "family": "Gani",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "author",
+          "vocabulary": "crossref"
+         }
+        ]
+       },
+       {
+        "given": "K.",
+        "family": "Sarkadi",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "author",
+          "vocabulary": "crossref"
+         }
+        ]
+       },
+       {
+        "given": "I.",
+        "family": "Vincze",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "author",
+          "vocabulary": "crossref"
+         }
+        ]
+       }
+      ],
+      "member": "1121",
+      "container-title": [
+       "Journal of the Royal Statistical Society. Series A (General)"
+      ],
+      "deposited": {
+       "date-parts": [
+        [
+         2021,
+         7,
+         20
+        ]
+       ],
+       "date-time": "2021-07-20T12:20:59Z",
+       "timestamp": 1626783659000
+      },
+      "score": 38.448536,
+      "resource": {
+       "primary": {
+        "URL": "https://www.jstor.org/stable/10.2307/2345225?origin=crossref"
+       }
+      },
+      "issued": {
+       "date-parts": [
+        [
+         1975
+        ]
+       ]
+      },
+      "references-count": 0,
+      "journal-issue": {
+       "issue": "4",
+       "published-print": {
+        "date-parts": [
+         [
+          1975
+         ]
+        ]
+       }
+      },
+      "URL": "https://doi.org/10.2307/2345225",
+      "ISSN": [
+       "0035-9238"
+      ],
+      "issn-type": [
+       {
+        "value": "0035-9238",
+        "type": "print"
+       }
+      ],
+      "published": {
+       "date-parts": [
+        [
+         1975
+        ]
+       ]
+      }
+     },
+     {
+      "indexed": {
+       "date-parts": [
+        [
+         2024,
+         9,
+         7
+        ]
+       ],
+       "date-time": "2024-09-07T06:36:25Z",
+       "timestamp": 1725690985537
+      },
+      "publisher-location": "Dordrecht",
+      "reference-count": 0,
+      "publisher": "Springer Netherlands",
+      "isbn-type": [
+       {
+        "type": "print",
+        "value": "9789401099127"
+       },
+       {
+        "type": "electronic",
+        "value": "9789401099103"
+       }
+      ],
+      "license": [
+       {
+        "start": {
+         "date-parts": [
+          [
+           1977,
+           1,
+           1
+          ]
+         ],
+         "date-time": "1977-01-01T00:00:00Z",
+         "timestamp": 220924800000
+        },
+        "content-version": "tdm",
+        "delay-in-days": 0,
+        "URL": "http://www.springer.com/tdm"
+       }
+      ],
+      "content-domain": {
+       "domain": [],
+       "crossmark-restriction": false
+      },
+      "published-print": {
+       "date-parts": [
+        [
+         1977
+        ]
+       ]
+      },
+      "DOI": "10.1007/978-94-010-9910-3",
+      "type": "book",
+      "created": {
+       "date-parts": [
+        [
+         2012,
+         7,
+         10
+        ]
+       ],
+       "date-time": "2012-07-10T09:39:13Z",
+       "timestamp": 1341913153000
+      },
+      "source": "Crossref",
+      "is-referenced-by-count": 0,
+      "title": [
+       "Transactions of the Seventh Prague Conference on Information Theory, Statistical Decision Functions, Random Processes and of the 1974 European Meeting of Statisticians"
+      ],
+      "prefix": "10.1007",
+      "member": "297",
+      "language": "en",
+      "link": [
+       {
+        "URL": "http://link.springer.com/content/pdf/10.1007/978-94-010-9910-3.pdf",
+        "content-type": "application/pdf",
+        "content-version": "vor",
+        "intended-application": "text-mining"
+       },
+       {
+        "URL": "http://link.springer.com/content/pdf/10.1007/978-94-010-9910-3",
+        "content-type": "unspecified",
+        "content-version": "vor",
+        "intended-application": "similarity-checking"
+       }
+      ],
+      "deposited": {
+       "date-parts": [
+        [
+         2019,
+         5,
+         15
+        ]
+       ],
+       "date-time": "2019-05-15T21:50:24Z",
+       "timestamp": 1557957024000
+      },
+      "score": 32.801544,
+      "resource": {
+       "primary": {
+        "URL": "http://link.springer.com/10.1007/978-94-010-9910-3"
+       }
+      },
+      "subtitle": [
+       "held at Prague, from August 18 to 23, 1974"
+      ],
+      "editor": [
+       {
+        "given": "J.",
+        "family": "Kožešnik",
+        "sequence": "first",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "editor",
+          "vocabulary": "crossref"
+         }
+        ]
+       }
+      ],
+      "issued": {
+       "date-parts": [
+        [
+         1977
+        ]
+       ]
+      },
+      "ISBN": [
+       "9789401099127",
+       "9789401099103"
+      ],
+      "references-count": 0,
+      "URL": "https://doi.org/10.1007/978-94-010-9910-3",
+      "published": {
+       "date-parts": [
+        [
+         1977
+        ]
+       ]
+      }
+     },
+     {
+      "indexed": {
+       "date-parts": [
+        [
+         2024,
+         8,
+         6
+        ]
+       ],
+       "date-time": "2024-08-06T10:32:03Z",
+       "timestamp": 1722940323142
+      },
+      "reference-count": 0,
+      "publisher": "S. Karger AG",
+      "isbn-type": [
+       {
+        "type": "print",
+        "value": "9783805549028"
+       },
+       {
+        "type": "electronic",
+        "value": "9783318017892"
+       }
+      ],
+      "content-domain": {
+       "domain": [],
+       "crossmark-restriction": false
+      },
+      "published-print": {
+       "date-parts": [
+        [
+         1988,
+         8,
+         26
+        ]
+       ]
+      },
+      "DOI": "10.1159/isbn.978-3-318-01789-2",
+      "type": "monograph",
+      "created": {
+       "date-parts": [
+        [
+         2014,
+         12,
+         2
+        ]
+       ],
+       "date-time": "2014-12-02T13:19:50Z",
+       "timestamp": 1417526390000
+      },
+      "source": "Crossref",
+      "is-referenced-by-count": 1,
+      "title": [
+       "European Pancreatic Club EPC"
+      ],
+      "prefix": "10.1159",
+      "member": "127",
+      "language": "en",
+      "deposited": {
+       "date-parts": [
+        [
+         2014,
+         12,
+         2
+        ]
+       ],
+       "date-time": "2014-12-02T13:24:15Z",
+       "timestamp": 1417526655000
+      },
+      "score": 32.41224,
+      "resource": {
+       "primary": {
+        "URL": "http://www.karger.com/Book/Home/221627"
+       }
+      },
+      "subtitle": [
+       "20th Meeting, Budapest, August 1988: Abstracts"
+      ],
+      "editor": [
+       {
+        "name": "European Pancreatic Club (EPC)",
+        "sequence": "first",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "editor",
+          "vocabulary": "crossref"
+         }
+        ]
+       },
+       {
+        "given": "M.",
+        "family": "Papp",
+        "sequence": "additional",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "editor",
+          "vocabulary": "crossref"
+         }
+        ]
+       }
+      ],
+      "issued": {
+       "date-parts": [
+        [
+         1988,
+         8,
+         26
+        ]
+       ]
+      },
+      "ISBN": [
+       "9783805549028",
+       "9783318017892"
+      ],
+      "references-count": 0,
+      "URL": "https://doi.org/10.1159/isbn.978-3-318-01789-2",
+      "published": {
+       "date-parts": [
+        [
+         1988,
+         8,
+         26
+        ]
+       ]
+      }
+     }
+    ],
+    "items-per-page": 3,
+    "query": {
+     "start-index": 0,
+     "search-terms": null
+    }
+   }
+  },
+  "crossref_work_body": {
+   "status": "ok",
+   "message-type": "work",
+   "message-version": "1.0.0",
+   "message": {
+    "indexed": {
+     "date-parts": [
+      [
+       2022,
+       4,
+       5
+      ]
+     ],
+     "date-time": "2022-04-05T01:16:32Z",
+     "timestamp": 1649121392670
+    },
+    "reference-count": 0,
+    "publisher": "JSTOR",
+    "issue": "4",
+    "content-domain": {
+     "domain": [],
+     "crossmark-restriction": false
+    },
+    "short-container-title": [
+     "Journal of the Royal Statistical Society. Series A (General)"
+    ],
+    "published-print": {
+     "date-parts": [
+      [
+       1975
+      ]
+     ]
+    },
+    "DOI": "10.2307/2345225",
+    "type": "journal-article",
+    "created": {
+     "date-parts": [
+      [
+       2006,
+       6,
+       18
+      ]
+     ],
+     "date-time": "2006-06-18T11:48:10Z",
+     "timestamp": 1150631290000
+    },
+    "page": "573",
+    "source": "Crossref",
+    "is-referenced-by-count": 0,
+    "title": [
+     "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II."
+    ],
+    "prefix": "10.2307",
+    "volume": "138",
+    "author": [
+     {
+      "given": "R. L.",
+      "family": "Plackett",
+      "sequence": "first",
+      "affiliation": [],
+      "role": [
+       {
+        "role": "author",
+        "vocabulary": "crossref"
+       }
+      ]
+     },
+     {
+      "given": "J.",
+      "family": "Gani",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+       {
+        "role": "author",
+        "vocabulary": "crossref"
+       }
+      ]
+     },
+     {
+      "given": "K.",
+      "family": "Sarkadi",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+       {
+        "role": "author",
+        "vocabulary": "crossref"
+       }
+      ]
+     },
+     {
+      "given": "I.",
+      "family": "Vincze",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+       {
+        "role": "author",
+        "vocabulary": "crossref"
+       }
+      ]
+     }
+    ],
+    "member": "1121",
+    "container-title": [
+     "Journal of the Royal Statistical Society. Series A (General)"
+    ],
+    "original-title": [],
+    "deposited": {
+     "date-parts": [
+      [
+       2021,
+       7,
+       20
+      ]
+     ],
+     "date-time": "2021-07-20T12:20:59Z",
+     "timestamp": 1626783659000
+    },
+    "score": 1,
+    "resource": {
+     "primary": {
+      "URL": "https://www.jstor.org/stable/10.2307/2345225?origin=crossref"
+     }
+    },
+    "subtitle": [],
+    "short-title": [],
+    "issued": {
+     "date-parts": [
+      [
+       1975
+      ]
+     ]
+    },
+    "references-count": 0,
+    "journal-issue": {
+     "issue": "4",
+     "published-print": {
+      "date-parts": [
+       [
+        1975
+       ]
+      ]
+     }
+    },
+    "URL": "https://doi.org/10.2307/2345225",
+    "relation": {},
+    "ISSN": [
+     "0035-9238"
+    ],
+    "issn-type": [
+     {
+      "value": "0035-9238",
+      "type": "print"
+     }
+    ],
+    "subject": [],
+    "published": {
+     "date-parts": [
+      [
+       1975
+      ]
+     ]
+    }
+   }
+  },
+  "expected_top_doi": "10.2307/2345225"
+ },
+ "besag_b32": {
+  "label": "Besag_1974::b32 (Statistical Ecology Vol. 2, Penn State UP)",
+  "reference_input": {
+   "title": "",
+   "first_author": "",
+   "year": "1971",
+   "journal": "",
+   "publisher": "",
+   "authors": [],
+   "raw": "_.-(1971). Models for interplant competition in irregularly distributed populations. Statistical Ecology, VOl. 2, pp, 13-32. Pennsylvania State University Press."
+  },
+  "crossref_search_body": {
+   "status": "ok",
+   "message-type": "work-list",
+   "message-version": "1.0.0",
+   "message": {
+    "facets": {},
+    "total-results": 100471,
+    "items": [
+     {
+      "indexed": {
+       "date-parts": [
+        [
+         2024,
+         1,
+         12
+        ]
+       ],
+       "date-time": "2024-01-12T00:12:09Z",
+       "timestamp": 1705018329092
+      },
+      "reference-count": 0,
+      "publisher": "American Association for the Advancement of Science (AAAS)",
+      "issue": "4031",
+      "content-domain": {
+       "domain": [],
+       "crossmark-restriction": false
+      },
+      "short-container-title": [
+       "Science"
+      ],
+      "published-print": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      },
+      "DOI": "10.1126/science.176.4031.156.a",
+      "type": "journal-article",
+      "created": {
+       "date-parts": [
+        [
+         2021,
+         10,
+         23
+        ]
+       ],
+       "date-time": "2021-10-23T06:07:57Z",
+       "timestamp": 1634969277000
+      },
+      "page": "156-156",
+      "source": "Crossref",
+      "is-referenced-by-count": 0,
+      "title": [
+       "Quantitative Approach:\n            <i>Statistical Ecology. Vol. 1, Spatial Patterns and Statistical Distributions</i>\n            . A symposium, New Haven, Conn., Aug. 1969. G. P. Patil, E. C. Pielou, and W. E. Waters, Eds. Pennsylvania State University Press, University Park, 1971. xxviii, 582 pp., illus. $14.50. Penn State Statistics Series."
+      ],
+      "prefix": "10.1126",
+      "volume": "176",
+      "author": [
+       {
+        "given": "Robert R.",
+        "family": "Sokal",
+        "sequence": "first",
+        "affiliation": [
+         {
+          "name": "Department of Ecology and Evolution, State University of New York, Stony Brook"
+         }
+        ],
+        "role": [
+         {
+          "role": "author",
+          "vocabulary": "crossref"
+         }
+        ]
+       }
+      ],
+      "member": "221",
+      "container-title": [
+       "Science"
+      ],
+      "language": "en",
+      "link": [
+       {
+        "URL": "https://www.science.org/doi/pdf/10.1126/science.176.4031.156.a",
+        "content-type": "unspecified",
+        "content-version": "vor",
+        "intended-application": "similarity-checking"
+       }
+      ],
+      "deposited": {
+       "date-parts": [
+        [
+         2024,
+         1,
+         11
+        ]
+       ],
+       "date-time": "2024-01-11T15:41:42Z",
+       "timestamp": 1704987702000
+      },
+      "score": 35.586662,
+      "resource": {
+       "primary": {
+        "URL": "https://www.science.org/doi/10.1126/science.176.4031.156.a"
+       }
+      },
+      "issued": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      },
+      "references-count": 0,
+      "journal-issue": {
+       "issue": "4031",
+       "published-print": {
+        "date-parts": [
+         [
+          1972,
+          4,
+          14
+         ]
+        ]
+       }
+      },
+      "alternative-id": [
+       "10.1126/science.176.4031.156.a"
+      ],
+      "URL": "https://doi.org/10.1126/science.176.4031.156.a",
+      "ISSN": [
+       "0036-8075",
+       "1095-9203"
+      ],
+      "issn-type": [
+       {
+        "value": "0036-8075",
+        "type": "print"
+       },
+       {
+        "value": "1095-9203",
+        "type": "electronic"
+       }
+      ],
+      "published": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      }
+     },
+     {
+      "indexed": {
+       "date-parts": [
+        [
+         2023,
+         9,
+         13
+        ]
+       ],
+       "date-time": "2023-09-13T18:40:05Z",
+       "timestamp": 1694630405007
+      },
+      "reference-count": 0,
+      "publisher": "American Association for the Advancement of Science (AAAS)",
+      "issue": "4031",
+      "content-domain": {
+       "domain": [],
+       "crossmark-restriction": false
+      },
+      "short-container-title": [
+       "Science"
+      ],
+      "published-print": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      },
+      "DOI": "10.1126/science.176.4031.156-a",
+      "type": "journal-article",
+      "created": {
+       "date-parts": [
+        [
+         2006,
+         10,
+         5
+        ]
+       ],
+       "date-time": "2006-10-05T10:03:38Z",
+       "timestamp": 1160042618000
+      },
+      "page": "156-156",
+      "source": "Crossref",
+      "is-referenced-by-count": 0,
+      "title": [
+       "Quantitative Approach:\n            <i>Statistical Ecology. Vol. 1, Spatial Patterns and Statistical Distributions</i>\n            . A symposium, New Haven, Conn., Aug. 1969. G. P. Patil, E. C. Pielou, and W. E. Waters, Eds. Pennsylvania State University Press, University Park, 1971. xxviii, 582 pp., illus. $14.50. Penn State Statistics Series."
+      ],
+      "prefix": "10.1126",
+      "volume": "176",
+      "author": [
+       {
+        "given": "Robert R.",
+        "family": "Sokal",
+        "sequence": "first",
+        "affiliation": [
+         {
+          "name": "Department of Ecology and Evolution, State University of New York, Stony Brook"
+         }
+        ],
+        "role": [
+         {
+          "role": "author",
+          "vocabulary": "crossref"
+         }
+        ]
+       }
+      ],
+      "member": "221",
+      "container-title": [
+       "Science"
+      ],
+      "language": "en",
+      "link": [
+       {
+        "URL": "https://syndication.highwire.org/content/doi/10.1126/science.176.4031.156-a",
+        "content-type": "unspecified",
+        "content-version": "vor",
+        "intended-application": "similarity-checking"
+       }
+      ],
+      "deposited": {
+       "date-parts": [
+        [
+         2021,
+         10,
+         23
+        ]
+       ],
+       "date-time": "2021-10-23T02:09:09Z",
+       "timestamp": 1634954949000
+      },
+      "score": 35.531635,
+      "resource": {
+       "primary": {
+        "URL": "https://www.science.org/doi/10.1126/science.176.4031.156-a"
+       }
+      },
+      "issued": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      },
+      "references-count": 0,
+      "journal-issue": {
+       "issue": "4031",
+       "published-print": {
+        "date-parts": [
+         [
+          1972,
+          4,
+          14
+         ]
+        ]
+       }
+      },
+      "alternative-id": [
+       "10.1126/science.176.4031.156-a"
+      ],
+      "URL": "https://doi.org/10.1126/science.176.4031.156-a",
+      "ISSN": [
+       "0036-8075",
+       "1095-9203"
+      ],
+      "issn-type": [
+       {
+        "value": "0036-8075",
+        "type": "print"
+       },
+       {
+        "value": "1095-9203",
+        "type": "electronic"
+       }
+      ],
+      "published": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      }
+     },
+     {
+      "indexed": {
+       "date-parts": [
+        [
+         2022,
+         3,
+         30
+        ]
+       ],
+       "date-time": "2022-03-30T01:43:40Z",
+       "timestamp": 1648604620021
+      },
+      "reference-count": 0,
+      "publisher": "American Association for the Advancement of Science (AAAS)",
+      "issue": "4031",
+      "content-domain": {
+       "domain": [],
+       "crossmark-restriction": false
+      },
+      "short-container-title": [
+       "Science"
+      ],
+      "published-print": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      },
+      "DOI": "10.1126/science.176.4031.156",
+      "type": "journal-article",
+      "created": {
+       "date-parts": [
+        [
+         2006,
+         10,
+         5
+        ]
+       ],
+       "date-time": "2006-10-05T14:03:38Z",
+       "timestamp": 1160057018000
+      },
+      "page": "156-156",
+      "source": "Crossref",
+      "is-referenced-by-count": 0,
+      "title": [
+       "Statfstical Ecology. Vol. 1, Spatial Patterns and Statistical Distributions. A symposium, New Haven, Conn., Aug. 1969. G. P. Patil, E. C. Pielou, and W. E. Waters, Eds. Pennsylvania State University Press, University Park, 1971. xxviii, 582 pp., illus. $14.50. Penn State Statistics Series"
+      ],
+      "prefix": "10.1126",
+      "volume": "176",
+      "author": [
+       {
+        "given": "R. R.",
+        "family": "Sokal",
+        "sequence": "first",
+        "affiliation": [],
+        "role": [
+         {
+          "role": "author",
+          "vocabulary": "crossref"
+         }
+        ]
+       }
+      ],
+      "member": "221",
+      "container-title": [
+       "Science"
+      ],
+      "language": "en",
+      "link": [
+       {
+        "URL": "https://syndication.highwire.org/content/doi/10.1126/science.176.4031.156",
+        "content-type": "unspecified",
+        "content-version": "vor",
+        "intended-application": "similarity-checking"
+       }
+      ],
+      "deposited": {
+       "date-parts": [
+        [
+         2020,
+         2,
+         5
+        ]
+       ],
+       "date-time": "2020-02-05T17:19:23Z",
+       "timestamp": 1580923163000
+      },
+      "score": 34.51383,
+      "resource": {
+       "primary": {
+        "URL": "https://www.sciencemag.org/lookup/doi/10.1126/science.176.4031.156"
+       }
+      },
+      "issued": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      },
+      "references-count": 0,
+      "journal-issue": {
+       "issue": "4031",
+       "published-print": {
+        "date-parts": [
+         [
+          1972,
+          4,
+          14
+         ]
+        ]
+       }
+      },
+      "URL": "https://doi.org/10.1126/science.176.4031.156",
+      "ISSN": [
+       "0036-8075",
+       "1095-9203"
+      ],
+      "issn-type": [
+       {
+        "value": "0036-8075",
+        "type": "print"
+       },
+       {
+        "value": "1095-9203",
+        "type": "electronic"
+       }
+      ],
+      "published": {
+       "date-parts": [
+        [
+         1972,
+         4,
+         14
+        ]
+       ]
+      }
+     }
+    ],
+    "items-per-page": 3,
+    "query": {
+     "start-index": 0,
+     "search-terms": null
+    }
+   }
+  },
+  "crossref_work_body": {
+   "status": "ok",
+   "message-type": "work",
+   "message-version": "1.0.0",
+   "message": {
+    "indexed": {
+     "date-parts": [
+      [
+       2024,
+       1,
+       12
+      ]
+     ],
+     "date-time": "2024-01-12T00:12:09Z",
+     "timestamp": 1705018329092
+    },
+    "reference-count": 0,
+    "publisher": "American Association for the Advancement of Science (AAAS)",
+    "issue": "4031",
+    "content-domain": {
+     "domain": [],
+     "crossmark-restriction": false
+    },
+    "short-container-title": [
+     "Science"
+    ],
+    "published-print": {
+     "date-parts": [
+      [
+       1972,
+       4,
+       14
+      ]
+     ]
+    },
+    "DOI": "10.1126/science.176.4031.156.a",
+    "type": "journal-article",
+    "created": {
+     "date-parts": [
+      [
+       2021,
+       10,
+       23
+      ]
+     ],
+     "date-time": "2021-10-23T06:07:57Z",
+     "timestamp": 1634969277000
+    },
+    "page": "156-156",
+    "source": "Crossref",
+    "is-referenced-by-count": 0,
+    "title": [
+     "Quantitative Approach:\n            <i>Statistical Ecology. Vol. 1, Spatial Patterns and Statistical Distributions</i>\n            . A symposium, New Haven, Conn., Aug. 1969. G. P. Patil, E. C. Pielou, and W. E. Waters, Eds. Pennsylvania State University Press, University Park, 1971. xxviii, 582 pp., illus. $14.50. Penn State Statistics Series."
+    ],
+    "prefix": "10.1126",
+    "volume": "176",
+    "author": [
+     {
+      "given": "Robert R.",
+      "family": "Sokal",
+      "sequence": "first",
+      "affiliation": [
+       {
+        "name": "Department of Ecology and Evolution, State University of New York, Stony Brook"
+       }
+      ],
+      "role": [
+       {
+        "role": "author",
+        "vocabulary": "crossref"
+       }
+      ]
+     }
+    ],
+    "member": "221",
+    "container-title": [
+     "Science"
+    ],
+    "original-title": [],
+    "language": "en",
+    "link": [
+     {
+      "URL": "https://www.science.org/doi/pdf/10.1126/science.176.4031.156.a",
+      "content-type": "unspecified",
+      "content-version": "vor",
+      "intended-application": "similarity-checking"
+     }
+    ],
+    "deposited": {
+     "date-parts": [
+      [
+       2024,
+       1,
+       11
+      ]
+     ],
+     "date-time": "2024-01-11T15:41:42Z",
+     "timestamp": 1704987702000
+    },
+    "score": 1,
+    "resource": {
+     "primary": {
+      "URL": "https://www.science.org/doi/10.1126/science.176.4031.156.a"
+     }
+    },
+    "subtitle": [],
+    "short-title": [],
+    "issued": {
+     "date-parts": [
+      [
+       1972,
+       4,
+       14
+      ]
+     ]
+    },
+    "references-count": 0,
+    "journal-issue": {
+     "issue": "4031",
+     "published-print": {
+      "date-parts": [
+       [
+        1972,
+        4,
+        14
+       ]
+      ]
+     }
+    },
+    "alternative-id": [
+     "10.1126/science.176.4031.156.a"
+    ],
+    "URL": "https://doi.org/10.1126/science.176.4031.156.a",
+    "relation": {},
+    "ISSN": [
+     "0036-8075",
+     "1095-9203"
+    ],
+    "issn-type": [
+     {
+      "value": "0036-8075",
+      "type": "print"
+     },
+     {
+      "value": "1095-9203",
+      "type": "electronic"
+     }
+    ],
+    "subject": [],
+    "published": {
+     "date-parts": [
+      [
+       1972,
+       4,
+       14
+      ]
+     ]
+    }
+   }
+  },
+  "expected_top_doi": "10.1126/science.176.4031.156.a"
+ }
+}

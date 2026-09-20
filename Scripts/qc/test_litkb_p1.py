@@ -143,6 +143,15 @@ def test_migration_files_are_named_and_numbered():
     one: 0020 was written here while 0018 and 0019 were being written on
     `work/20260915-access-layer`. A reserved number is a DECLARED gap; every other gap still fails,
     which the next test is for.
+
+    A declaration may also be PERMANENT. 0024 was reserved for `work/20260920-web-source-gate`,
+    which merged without a migration, so that number will never be written and its gap will never
+    close; renumbering around it would rewrite migrations that instruments and reports already name.
+    Nothing below distinguishes the two cases — the assertions are "1..N once the held numbers are
+    taken out", "a number on disk is not also reserved", and "every held number says why" — so a
+    retired reservation is accepted by the same rule as an in-flight one. That is checked here
+    rather than assumed: this test passes against a `_reserved.txt` whose only line is 0024's,
+    marked RETIRED.
     """
     from litkb.db import migrate
     found = migrate.discover()

@@ -34,10 +34,14 @@ resets and migrates (qc/conftest.py `litkb_pg_base`), so leg 1 of litkb_search r
 row through the real expression index, not against a string literal in a SELECT.
 
 The full-corpus half of the proof — 372,192 blocks, the md5 of every block's text and the
-quote_verified set identical across the migration, the index-vs-function agreement check and the
-index rebuild timings — is
+quote_verified set identical across the migration, and the index rebuild timings — is
 `qc/instruments/litkb_norm_index_proof.py`, which cannot run inside the ladder because it needs a
 restore of the nightly dump. Its numbers are in Reports/litkb_norm_index_proof_2026-09-20.csv.
+
+The INDEX-VS-FUNCTION agreement check runs in both places and they see different things. The
+instrument compares COUNTS on the real corpus; `test_the_expression_indexes_agree_with_the_function`
+below compares ID SETS on these six blocks, and its docstring says plainly what a from-scratch test
+database makes invisible to it.
 """
 import hashlib
 import json
@@ -62,6 +66,28 @@ LEG1 = ("SELECT to_tsvector('english', litkb.norm_search_text(b.text)) "
 LEG2 = ("SELECT to_tsvector('english', litkb.norm_search_text(b.text)) "
         "       @@ litkb.any_term_query(%s) "
         "  FROM litkb.blocks b WHERE b.id = %s")
+
+#: The same two predicates written WITHOUT a block id, so the planner can serve them from the
+#: expression indexes 0025 rebuilds — which is the only way to see what those indexes hold. The
+#: first reads blocks_norm_text_fts, the second leg 3's blocks_norm_text_trgm.
+IDS_FTS = ("SELECT b.id FROM litkb.blocks b "
+           " WHERE to_tsvector('english', litkb.norm_search_text(b.text)) "
+           "       @@ plainto_tsquery('english', litkb.norm_search_text(%s))")
+IDS_TRGM = ("SELECT b.id FROM litkb.blocks b "
+            " WHERE litkb.norm_search_text(b.text) %% litkb.norm_search_text(%s)")
+
+#: The five probes qc/instruments/litkb_norm_index_proof.py runs at corpus scale as a COUNT
+#: comparison, run here as an ID-SET comparison. `matches_here` is measured, not assumed
+#: (2026-09-20, litkb_test_w2, the six recorded blocks): four of the five return exactly one block
+#: and trgm `misclassification` returns none — that row compares two EMPTY sets and can therefore
+#: only check that the plan reached the index, which is why it is flagged rather than dropped.
+INDEX_PROBES = [
+    ("fts", "blocks_norm_text_fts", IDS_FTS, "misclassification", True),
+    ("fts", "blocks_norm_text_fts", IDS_FTS, "covariate effects", True),
+    ("fts", "blocks_norm_text_fts", IDS_FTS, "floating point", True),
+    ("trgm", "blocks_norm_text_trgm", IDS_TRGM, "misclassification", False),
+    ("trgm", "blocks_norm_text_trgm", IDS_TRGM, "covariate effects", True),
+]
 
 
 @pytest.fixture(scope="module")
@@ -185,11 +211,16 @@ def test_a_token_beside_the_damage_is_not_destroyed(loaded, name, token):
 
 @pg_only
 def test_the_new_normalisation_only_adds(loaded, recorded):
-    """Additive by construction: 0018's output is carried through byte for byte and the spellings
-    are prepended, so every lexeme the pre-0025 normalisation produced is still produced. Checked
-    here against 0018's body spelled out, so the property is tested rather than trusted — over
-    every recorded block, including the two the first version of the rule broke. The corpus-wide
-    count (0 of 372,192 blocks) is qc/instruments/litkb_norm_additivity.py."""
+    """0018's output is carried through byte for byte and the spellings are prepended, so every
+    lexeme the pre-0025 normalisation produced is still produced. Checked here against 0018's body
+    spelled out, so the property is tested rather than trusted — over every recorded block,
+    including the two the first version of the rule broke.
+
+    NOT "by construction", which this docstring said until 2026-09-20. The argument — nothing is
+    inserted into the old string, so no token of it can be disturbed — does not hold on its own,
+    because this parser's tokens can absorb the whitespace in FRONT of them and the prepended run
+    ends in a space. What carries the claim is measurement: six blocks here, and 0 of 372,192 plus
+    a byte-suffix check on 372,192/372,192 in qc/instruments/litkb_norm_additivity.py."""
     conn, _ids = loaded
     old = ("regexp_replace(regexp_replace(translate(coalesce(%s, ''), chr(65533) || chr(173), ''), "
            "'-[ \t\r\n]+', '', 'g'), '[ \t\r\n]+', ' ', 'g')")
@@ -199,6 +230,75 @@ def test_the_new_normalisation_only_adds(loaded, recorded):
             f"       <@ tsvector_to_array(to_tsvector('english', litkb.norm_search_text(%s)))",
             (b["text"], b["text"])).fetchone()[0]
         assert missing, f"{name}: 0025 dropped a lexeme 0018 produced"
+
+
+@pg_only
+@pytest.mark.parametrize("leg, index, sql, query, matches_here", INDEX_PROBES,
+                         ids=[f"{leg}-{q}" for leg, _i, _s, q, _m in INDEX_PROBES])
+def test_the_expression_indexes_agree_with_the_function(loaded, leg, index, sql, query,
+                                                        matches_here):
+    """What the expression index HOLDS must equal what the function COMPUTES, as a row set.
+
+    0025 replaces litkb.norm_search_text and rebuilds both of 0018's expression indexes. If a
+    rebuild did not see the new body, every leg of litkb_search would silently read pre-0025
+    entries, the repair would look like it had not worked, and nothing else in this file would
+    notice: every other test here fetches one block by primary key, which never touches these
+    indexes. On 2026-09-20 an fts index in that state answered `misclassification` on 722 blocks
+    while the function answered 906 — seen once, on the builder's database, and never reproduced.
+
+    Two separate assertions, so a red says which half broke:
+      (1) under `enable_seqscan = off` the plan really reaches `index` — this is what goes red if
+          the migration drops an index and does not recreate it, or builds it on an expression the
+          planner cannot match to the query;
+      (2) the ids that plan returns equal the ids returned with index and bitmap scans disabled.
+    Ids, not counts: two different sets of 906 pass a count comparison, and the corpus-scale
+    instrument only compares counts.
+
+    WHAT THIS ROW CANNOT SEE, and it is most of what the migration's DDL argument is about. The
+    suite resets and re-migrates from 0001, so litkb.blocks is EMPTY while 0025 runs and every block
+    below is inserted AFTERWARDS — an index entry is computed from whatever body norm_search_text
+    has at INSERT time, which here is always the current one. A stale index therefore cannot arise
+    in this database at all, and whether 0025 rebuilds the indexes is invisible to the ladder.
+    Measured in a scratch clone on 2026-09-20, all three against a baseline of 20 passed, 1 xfailed:
+
+      (c) 0025's whole DROP+CREATE block deleted     20 passed, 1 xfailed — DID NOT FIRE.
+          The brief that asked for this row expected this mutation to be the demonstration; it is
+          not one, and that is the finding: only qc/instruments/litkb_norm_index_proof.py, on a
+          restore with 372,192 pre-existing rows, can see the rebuild happen or not happen.
+      (a) `CREATE INDEX blocks_norm_text_fts` deleted from 0025, the DROP kept
+          3 failed (the three fts rows), 17 passed — assertion (1), "the plan never reached
+          blocks_norm_text_fts". A shipped-code mutation, and nothing else in this file noticed:
+          every other test here fetches by primary key.
+      (b) the injected defect state, in a clone of the `loaded` fixture — insert the rows, re-point
+          norm_search_text at 0018's body, REINDEX both indexes under it, restore 0025's body with
+          no rebuild. That is the 722 event's shape exactly.
+          3 failed (the three fts rows), 17 passed — assertion (2), e.g. `floating point`: index
+          [], sequential scan [01a0be82-…]. A stale index gives FALSE NEGATIVES only, because the
+          bitmap heap scan rechecks the qual with the current body.
+
+    So: assertion (1) has been shown to fire on shipped code, assertion (2) only on an injected
+    state. Both trgm rows stayed GREEN under (b) — the trigram entries built from 0018's output are
+    still similar enough to match — so the trigram half of this check has never been shown to fire
+    and is not known to work. The live cutover's index is still the operator's job, with
+    qc/instruments/litkb_norm_index_proof.py on a restore of the dump.
+    """
+    conn, _ids = loaded
+    with conn.transaction():
+        conn.execute("SET LOCAL enable_seqscan = off")
+        plan = "\n".join(r[0] for r in conn.execute("EXPLAIN (COSTS OFF) " + sql, (query,)))
+        assert index in plan, f"{leg} {query!r}: the plan never reached {index}:\n{plan}"
+        served = sorted(str(r[0]) for r in conn.execute(sql, (query,)))
+    with conn.transaction():
+        conn.execute("SET LOCAL enable_indexscan = off")
+        conn.execute("SET LOCAL enable_bitmapscan = off")
+        plan = "\n".join(r[0] for r in conn.execute("EXPLAIN (COSTS OFF) " + sql, (query,)))
+        assert "Seq Scan" in plan, f"{leg} {query!r}: this branch must NOT use an index:\n{plan}"
+        scanned = sorted(str(r[0]) for r in conn.execute(sql, (query,)))
+    assert served == scanned, (f"{index} disagrees with litkb.norm_search_text on {query!r}: "
+                               f"index {served}, sequential scan {scanned}")
+    if matches_here:
+        assert served, (f"{leg} {query!r} matched no recorded block, so this row compared two "
+                        "empty sets — it is no longer checking anything")
 
 
 # ── (iii) the over-matching kill ──────────────────────────────────────────────────────────

@@ -1002,6 +1002,15 @@ replace("X13b", MIG25,
 # that still expands ligatures; what goes red is the token BESIDE the damage. They mutate the same
 # line because 0025 has ONE additivity call site (the concatenation) carrying both clauses; the
 # corpus-wide counts for each are qc/instruments/litkb_norm_additivity.py --mutate.
+#
+# THEY ARE NOT CLAUSE-ISOLATING, and the builder's report said they were (2026-09-20 audit, §6).
+# Each of these replaces the WHOLE final SELECT, so each one simultaneously puts one clause's
+# substitution back AND deletes the other clause's expansion entirely — which is visible in their
+# own red sets: X13c, the MID-WORD row, is red on `[floating-floating point]`, a WORD-INITIAL
+# recall test, and X13d, the word-initial row, is red on all three mid-word `conflict-*` recall
+# tests. They are genuine gates and both fire; what they do not do is attribute a failure to one
+# clause. The per-clause attribution lives in litkb_norm_additivity.py --mutate, which installs each
+# rejected rule on its own and counts the corpus under it.
 replace("X13c", MIG25,
         "  SELECT coalesce(s.extra || ' ', '') || base.t FROM base, spellings s\n",
         "  SELECT regexp_replace(base.t, '([A-Za-z]+)[' || k.c0 || ']([A-Za-z]+)', "

@@ -135,12 +135,19 @@ def main():
     # The migration replaces the function and rebuilds both expression indexes. If the rebuild does
     # not see the new body, every leg silently reads pre-0025 entries and NOTHING else here would
     # notice: the leg-1 probes below fetch one block by primary key and never touch this index.
-    # Measured 2026-09-20: CREATE OR REPLACE + REINDEX through migrate.apply() left the fts index
+    # Seen once, 2026-09-20: CREATE OR REPLACE + REINDEX through migrate.apply() left the fts index
     # answering `misclassification` on 722 blocks, while the function answered 906 and the PRE-0025
-    # function answered 612 — it agreed with neither, and the mechanism was never identified. The
-    # migration drops and recreates instead; this is the check that says so on every run. BOTH
-    # expression indexes are checked: the trigram one was rebuilt the same way and a guard that
-    # looked only at the tsvector one would have said "ok" about half the search layer.
+    # function answered 612 — it agreed with neither. NOT REPRODUCED since: the audit ran the same
+    # apply on three fresh restores (this rule + REINDEX, d6a0a29 + REINDEX, and the committed
+    # DROP+CREATE) and got index == seqscan every time, and no candidate function body answers 722.
+    # So the migration's DROP+CREATE is insurance against an unexplained one-off, not a demonstrated
+    # fix, and THIS CHECK is what would catch a recurrence. BOTH expression indexes are checked: the
+    # trigram one was rebuilt the same way and a guard that looked only at the tsvector one would
+    # have said "ok" about half the search layer.
+    # It compares COUNTS. Equal counts are not equal row sets — two different sets of 906 pass here.
+    # The id-set comparison is the ladder row
+    # qc/test_litkb_textnorm_index.py::test_the_expression_indexes_agree_with_the_function, on six
+    # recorded blocks; nobody has run an id-set comparison at corpus scale.
     agree = {}
     for label, sql, qs in (("fts ", COUNT_Q, ("misclassification", "covariate effects",
                                               "floating point")),

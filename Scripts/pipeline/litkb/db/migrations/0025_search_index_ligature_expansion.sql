@@ -40,13 +40,22 @@
 --   * CORRECT UNDER THE AMBIGUITY. The true word is always among the five, so no choice between them
 --     has to be made and no file-dependent table has to be right. `e<0x01>ects` and `in<0x01>nitely`
 --     both match under one rule.
---   * ADDITIVE FOR THE LEXICAL LEGS, BY CONSTRUCTION AND BY COUNT. 0018's output is carried
---     through unchanged and the spellings are PREPENDED, so the pre-0025 string is a literal
---     SUFFIX of the new one, starting immediately after a space. Nothing is inserted into it and
---     nothing is deleted from it, so no token of it can be disturbed. Measured on all
---     372,192 blocks of the 2026-09-19 dump — full scan, every row counted, no LIMIT and no
---     sampling: 0 blocks lose a lexeme the pre-0025 function produced, 0
---     lexemes. Instrument: qc/instruments/litkb_norm_additivity.py.
+--   * ADDITIVE FOR THE LEXICAL LEGS, BY THE BYTE-SUFFIX PROPERTY AND BY COUNT. Two measurements,
+--     both on all 372,192 blocks of the 2026-09-19 dump — full scan, every row counted, no LIMIT
+--     and no sampling:
+--        BYTE SUFFIX  `right(new, length(old)) = old` on 372,192 / 372,192 blocks. 0018's output is
+--                     carried through unchanged and the spellings are PREPENDED, so the pre-0025
+--                     string really is a literal SUFFIX of the new one, as bytes and not only as a
+--                     lexeme set. (2026-09-20 audit, §1.)
+--        COUNT        0 blocks lose a lexeme the pre-0025 function produced, 0 lexemes.
+--                     Instrument: qc/instruments/litkb_norm_additivity.py.
+--
+--     THIS IS NOT A "BY CONSTRUCTION" CLAIM, and this file said it was until 2026-09-20. The
+--     argument would be "nothing is inserted into the old string and nothing is deleted from it, so
+--     no token of it can be disturbed" — and it does not follow, for the reason the rejected rules
+--     below are rejected for: this parser's tokens can absorb the whitespace in FRONT of them, so
+--     `base`'s own first token is not protected by an argument. What protects it is the count, on
+--     THIS dump. A future ingest is covered by re-running the instrument, not by the reasoning.
 --
 --     WHY NOT BESIDE THE WORD, which is the obvious design and was the first two versions of this
 --     migration. Both were measured on the same 372,192 blocks by the same instrument:
@@ -223,9 +232,12 @@ COMMENT ON FUNCTION litkb.norm_search_text(text) IS
   'hyphenation, collapse whitespace. 0025: a C0 control byte inside a word is an extracted ligature '
   'of unknown identity (the same byte is ff and fi in one file), so the byte-dropped form and all '
   'five ff/fi/fl/ffi/ffl spellings of that word are PREPENDED to the text as their own run, and '
-  '0018''s output follows them unchanged. The old string is a literal suffix of the new one, so no '
-  'lexeme the pre-0025 function produced can be lost: measured on all 372,192 blocks of the '
-  '2026-09-19 dump, 0 blocks lose one (qc/instruments/litkb_norm_additivity.py). Writing the '
+  '0018''s output follows them unchanged. ADDITIVE BY MEASUREMENT, NOT BY CONSTRUCTION: on all '
+  '372,192 blocks of the 2026-09-19 dump the old string is a literal byte suffix of the new one '
+  '(372,192/372,192) and 0 blocks lose a lexeme the pre-0025 function produced '
+  '(qc/instruments/litkb_norm_additivity.py). The reasoning alone does not carry it — this '
+  'parser''s tokens can absorb the whitespace in front of them — so a future corpus is covered by '
+  're-running that instrument. Writing the '
   'spellings BESIDE the damaged word instead loses them — 570 blocks the first way, 78 the second; '
   'the instrument re-runs both. Not claimed for the trigram leg, which scores the whole string and '
   'whose similarity on an affected block shifts with the added text: not measured. Applied to the '
@@ -239,24 +251,49 @@ COMMENT ON FUNCTION litkb.norm_search_text(text) IS
 GRANT EXECUTE ON FUNCTION litkb.norm_search_text(text) TO litkb_reader, litkb_writer, litkb_ingest;
 
 -- The two expression indexes of 0018, rebuilt against the new function. DROPPED AND RECREATED, not
--- REINDEXed, and that is a measured choice rather than a style one (2026-09-20, litkb_test_w2, the
--- 2026-09-19 dump):
+-- REINDEXed. THAT IS INSURANCE, NOT A DEMONSTRATED FIX, and this comment claimed more than that
+-- until 2026-09-20 (litkb_test_w2 and litkb_test_w5, the 2026-09-19 dump):
 --
---   CREATE OR REPLACE + REINDEX, run the way migrate.apply() runs it — the whole file in ONE
---   psycopg execute inside one transaction — left the fts index answering `misclassification` on
---   722 blocks. The function answered 906. The PRE-0025 function answered 612. Same database, same
---   instant: the index agreed with NEITHER definition, and what it was actually built from was not
---   identified. Through psql (`-1`, the same single transaction) the identical file REINDEXed
---   correctly, so the trigger is the execution path and not the SQL — which makes it worse, not
---   better, because it cannot be reproduced from this file alone. It was observed once and not
---   explained; what stands in for the explanation is the guard below.
+--   WHAT WAS SEEN ONCE. CREATE OR REPLACE + REINDEX, run the way migrate.apply() runs it — the
+--   whole file in ONE psycopg execute inside one transaction — left the fts index answering
+--   `misclassification` on 722 blocks on the builder's database. The function answered 906. The
+--   PRE-0025 function answered 612. The index agreed with NEITHER.
 --
---   DROP + CREATE measured 906 on both paths. A new index has no prior expression state to
---   inherit. A stale search index is the worst thing this migration could ship — every leg reads
---   through it, the repair would look like it had not worked, and NOTHING in the proof would have
---   caught it: those probes fetch one block by primary key, which never touches this index.
---   qc/instruments/litkb_norm_index_proof.py now compares the index-served count against the same
---   query forced to a sequential scan and fails if they differ.
+--   WHAT WAS THEN TRIED AND FAILED TO REPRODUCE IT. The 2026-09-20 audit ran migrate.apply() on
+--   THREE fresh restores — the committed rule with REINDEX, d6a0a29's exact file with REINDEX, and
+--   this file as it stands — and every one gave index == seqscan on all five probes, with equal id
+--   sets and not merely equal counts. It also installed nine candidate function bodies and counted
+--   `misclassification` under each: every one answers 612 or 906, NONE answers 722, and the two
+--   sets nest (612 ⊂ 906, 294 new), so 722 = 612 + 110 has the arithmetic shape of a PARTIALLY
+--   POPULATED index rather than an index built from some other definition. The database that
+--   showed it was not preserved. Stated plainly: an unexplained one-off that nobody has reproduced.
+--
+--   SO WHY KEEP DROP + CREATE. Because a new index has no prior expression state to inherit, and a
+--   stale search index is the worst thing this migration could ship — every leg reads through it,
+--   the repair would look like it had not worked, and NOTHING in the proof would have caught it:
+--   those probes fetch one block by primary key, which never touches this index. It is a cheap
+--   hedge against a failure mode nobody can currently trigger on demand, kept on those terms.
+--
+--   IT IS NOT BOUGHT WITH TIME, and this comment used to say it was. Measured with the FUNCTION
+--   held fixed and only the DDL varied: REINDEX 87.5 s (n=1) against DROP+CREATE 84.7-91.6 s —
+--   no difference. The jump the builder attributed to DROP+CREATE (34.6 s -> 82.5 s) is the NEW
+--   CTE-shaped norm_search_text being more expensive to evaluate: d6a0a29's rule with REINDEX is
+--   55.6 s, the committed rule with REINDEX is 87.5 s, same DDL both times. There is no 45 s to
+--   save by going back to REINDEX.
+--
+--   IT IS NOT BOUGHT WITH LOCKS EITHER, in the only sense that matters to a reader. The lock MODES
+--   differ (REINDEX takes ShareLock on litkb.blocks; DROP+CREATE takes AccessExclusiveLock), which
+--   reads as if REINDEX let readers through. Measured, it does not: with either statement held open
+--   in one transaction, a second session at statement_timeout=5s was CANCELLED on both a
+--   primary-key fetch of one block and a leg-1 search, and both succeeded the moment that
+--   transaction rolled back — the planner opens every index on the table when it plans any query
+--   against it. PLAN THE LIVE CUTOVER AS A ~90 s OUTAGE OF litkb.blocks under either form.
+--
+--   qc/instruments/litkb_norm_index_proof.py compares the index-served count against the same
+--   query forced to a sequential scan and fails if they differ. It needs a dump restore, so it is
+--   an operator step, not a ladder rung; the ladder's version of the same check is
+--   qc/test_litkb_textnorm_index.py::test_the_expression_indexes_agree_with_the_function, and what
+--   THAT one can and cannot see is written out in its own docstring.
 --
 -- Not CONCURRENTLY: a migration runs inside one transaction, and a half-applied search layer is
 -- worse than a lock. The two definitions are 0018:166-169 verbatim.

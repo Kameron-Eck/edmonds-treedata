@@ -124,7 +124,44 @@ def chain_rows(conn, workstream_id):
                       "versions", "evidence"), r)) for r in rows]
 
 
-def render_report(workstream_id, promotion_id, branch_head, chains, prepared_at=None):
+def hold_reasons(conn, promotion_id):
+    """`chain -> the reasons prepare recorded for holding it`, from `promotions.conflicts`.
+
+    WHY THIS EXISTS. `_ws_chains` gives a chain its OWN problems, and the reason a use quoting an
+    unapproved admission is held is not one of them: the use is held by the dependency FIXPOINT
+    (migration 0005:156-174), which appends "dependency held: work:<id>" to a status object that
+    lives only inside `promote_prepare` and is written out to `promotions.conflicts`. So the chain
+    row comes back with `problems = {}` and the report rendered `—` in the why column — on exactly
+    the chain the web-source decision exists to hold (audit §7.2). The reason was never missing;
+    it was in the other table.
+
+    Only entries carrying `reasons` are holds. `promote_prepare` also writes `note` entries for
+    near-duplicate uses (0005:195-198) — a flag on a chain that may still be prepared — and
+    `promote_commit` appends `{'at_commit': …}` (0005:307); neither is a reason a chain was held."""
+    row = conn.execute("SELECT conflicts FROM litkb.promotions WHERE id = %s",
+                       (promotion_id,)).fetchone()
+    out = {}
+    for c in (row[0] if row else None) or []:
+        if isinstance(c, dict) and c.get("reasons") and c.get("chain"):
+            out.setdefault(c["chain"], []).extend(c["reasons"])
+    return out
+
+
+def chain_why(chain, reasons=None):
+    """Why this chain is where it is — one list, for the report and for the tool's JSON alike.
+
+    The chain's own problems first, then anything `promotions.conflicts` recorded for it that the
+    problems do not already say (the fixpoint's dependency holds), then the base-moved conflict."""
+    why = list(chain["problems"] or [])
+    for r in (reasons or {}).get(f"{chain['entity']}:{chain['entity_id']}", []):
+        if r not in why:
+            why.append(r)
+    if not why and chain["conflict"]:
+        why = ["conflict: the base moved under this chain"]
+    return why
+
+
+def render_report(workstream_id, promotion_id, branch_head, chains, prepared_at=None, reasons=None):
     """The report Kam reads inside the merge. Markdown, and deliberately plain: what was offered,
     what is prepared, what is held and the database's own sentence for why."""
     held = [c for c in chains if "prepared" not in (c["states"] or [])]
@@ -144,8 +181,7 @@ def render_report(workstream_id, promotion_id, branch_head, chains, prepared_at=
             continue
         out += ["| entity | id | versions | evidence | state | why |", "|---|---|---|---|---|---|"]
         for c in rows:
-            why = "; ".join(c["problems"] or []) or ("conflict: the base moved under this chain"
-                                                     if c["conflict"] else "—")
+            why = "; ".join(chain_why(c, reasons)) or "—"
             out.append(f"| {c['entity']} | `{c['entity_id']}` | {c['versions']} | {c['evidence']} | "
                        f"{', '.join(c['states'] or [])} | {why.replace('|', '/')} |")
         out.append("")

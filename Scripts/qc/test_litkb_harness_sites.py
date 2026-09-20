@@ -103,6 +103,64 @@ def test_a_redactor_name_defined_elsewhere_does_not_pass_the_sink_scan(harness):
         f"{SYNTH_OPS}::f::print"]["ok"]
 
 
+#: a new query that widens visibility, written the way the three real ones are
+_WIDENS = ("from litkb import visibility\n"
+           "def f(conn, ws_id, token):\n"
+           "{guards}"
+           "    return conn.execute('SELECT 1 FROM litkb.files f ' + visibility.FILE_JOIN,\n"
+           "                        {{'ws': ws_id}}).fetchone()\n")
+
+
+def test_every_visibility_widening_sits_behind_the_token_and_state_checks(harness, capsys):
+    """Auditor-2a2's finding: `test_every_guarded_call_site_has_a_mutation_row` censuses calls of
+    `_require_token`, so it asks whether every guard is mutation-covered — and answers yes while a
+    NEW query binding `ws` into `visibility.FILE_JOIN` with no token check at all passes in silence.
+    That is the shape of the defect this branch shipped for one day at `_record_use`, and the
+    census could not have caught it. This scan enumerates the thing guarded instead of the guard."""
+    ok, rows = harness.vis_check(verbose=True)
+    out = capsys.readouterr().out
+    assert ok, "a visibility widening is unguarded:\n" + "\n".join(
+        ln for ln in out.splitlines() if "PROBLEM" in ln)
+    assert rows, "the widening scan found no sites at all — it has stopped looking"
+    # every real site is either proven in-function or carries a written reason
+    assert all(ok_ or mode for _sid, _binds, ok_, mode in rows), rows
+
+
+def test_the_visibility_scan_fires_on_a_new_unguarded_binding(harness):
+    """The kill criterion (CLAUDE.md 3.4c), shown on text: the same function fails without the two
+    guards above the bind and passes with them. A guard BELOW the query it protects is not one, so
+    the scan compares line numbers rather than mere presence."""
+    sid = "litkb/<synthetic module>::f"
+    bad = harness.vis_sites_of_text(_WIDENS.format(guards=""), "litkb/<synthetic module>")
+    assert bad[sid]["ok"] is False, bad
+    good = harness.vis_sites_of_text(
+        _WIDENS.format(guards="    _require_token(conn, ws_id, token)\n"
+                              "    _require_open(conn, ws_id)\n"), "litkb/<synthetic module>")
+    assert good[sid]["ok"] is True, good
+    half = harness.vis_sites_of_text(
+        _WIDENS.format(guards="    _require_token(conn, ws_id, token)\n"),
+        "litkb/<synthetic module>")
+    assert half[sid]["ok"] is False, ("the state check is not optional", half)
+
+
+def test_a_new_widening_added_to_a_copy_of_the_package_fails_the_census(harness, tmp_path):
+    """The kill at the level the finding is about: the whole check, over a COPY of the real
+    package with one unguarded widening appended to the module that holds the other three. The
+    copy is what makes this runnable — `Scripts/pipeline/litkb` is never written by a test."""
+    import shutil
+
+    pkg = tmp_path / "pipeline" / "litkb"
+    shutil.copytree(SCRIPTS / "pipeline" / "litkb", pkg)
+    assert harness.vis_check(verbose=False, root=pkg)[0], "the untouched copy already fails"
+    with (pkg / "mcp" / "server.py").open("a", encoding="utf-8") as fh:
+        fh.write("\n\ndef _a_new_search(conn, ws_id):\n"
+                 "    return conn.execute('SELECT 1 FROM litkb.files f ' + visibility.FILE_JOIN,\n"
+                 "                        {'ws': ws_id}).fetchall()\n")
+    ok, rows = harness.vis_check(verbose=False, root=pkg)
+    assert not ok, "an unguarded widening was accepted by the census"
+    assert any(sid.endswith("::_a_new_search") for sid, *_ in rows), rows
+
+
 def test_a_row_cannot_claim_a_call_site_it_does_not_touch(harness):
     """The self-check's own kill: a row that mutates only a helper's BODY must not count as covering a call of
     that helper elsewhere. E3 (textnorm's guard block) is exactly such a row."""

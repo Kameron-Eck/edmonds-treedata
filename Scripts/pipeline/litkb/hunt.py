@@ -831,12 +831,18 @@ def _report(db, ws_id, held, reader_role=None):
         "run_id": run, "pages": npages, "blocks": sum(kinds.values()) if kinds else 0,
         "blocks_by_kind": kinds, "headings": heads,
         "in_main": in_main,
-        "visible_to_search": in_main,
+        # Both of these said `in_main`, and told the hunter of a proposal that its blocks could not
+        # be reached. That stopped being true on 2026-09-20 (decisions.yaml
+        # litkb-web-source-gate): search is widened to the proposals of the workstream that made
+        # them, and a hunt runs IN that workstream. The sentence is what an unattended loop acts
+        # on, so it had to move with the predicate — litkb/visibility.py is the one home for why.
+        "visible_to_search": True,
         "what_next": (
             "the work is in main's view: litkb_search reaches its blocks."
             if in_main else
-            "this is a manual PROPOSAL. Its blocks are real and ingested, and litkb_search — "
-            "which joins litkb.main_files — returns none of them until a SECOND session approves "
-            "the admission (`litkb approve <admission-id>`) and Kam merges the branch. Quote it "
-            "through its block_id, which litkb_record_use accepts."),
+            "this is a manual PROPOSAL. Its blocks are real and ingested, and litkb_search reaches "
+            "them FROM THIS WORKSTREAM — no other workstream sees them, and neither does a tree "
+            "with no open workstream. Quote them as usual: the use is recorded and its quote "
+            "verified, and `promote prepare` HOLDS that chain until a SECOND session approves the "
+            "admission (`litkb approve <admission-id>`) and Kam merges the branch."),
     }

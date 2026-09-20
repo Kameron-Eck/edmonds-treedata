@@ -441,7 +441,7 @@ def test_locate_in_text_maps_canonical_offsets_back_to_the_stored_bytes():
     for text, quote in [(CRLF_BLOCK, canonical_newlines(CRLF_SPAN)),        # LF quote, CRLF block
                         (CRLF_BLOCK, CRLF_SPAN),                            # the stored bytes
                         ("a\rb\r\nc\nd", "b\nc"),                           # a lone CR counts as one
-                        ("x\r\n\r\ny", "x\n\n"),                            # a blank line is two breaks
+                        ("x\r\n\r\ny", "x\n\ny"),                           # a blank line is two breaks
                         ("no breaks at all", "breaks at")]:
         span = locate_in_text(text, quote)
         assert span is not None, (text, quote)
@@ -451,6 +451,26 @@ def test_locate_in_text_maps_canonical_offsets_back_to_the_stored_bytes():
     assert CRLF_BLOCK[s:e] == CRLF_SPAN, (s, e, CRLF_BLOCK[s:e])
     assert (s, e) == (CRLF_BLOCK.index(CRLF_SPAN), CRLF_BLOCK.index(CRLF_SPAN) + len(CRLF_SPAN))
     assert locate_in_text(CRLF_BLOCK, "a quote that is not there") is None
+
+
+def test_a_quote_that_begins_or_ends_on_a_line_break_is_not_locatable():
+    """AUDITOR-5. A break at either END of the quote is ONE canonical character and TWO stored
+    ones, so the span may stop before the `\\n` or after it: measured on `abc\\r\\ndef`, the quote
+    `abc\\n` satisfies the database's comparison at raw [0,4) AND at raw [0,5). The offsets are
+    what says WHICH words anyone checked, so the shape is refused rather than anchored at
+    whichever range the arithmetic happened to pick. An INTERIOR break is unique and is the
+    ordinary case -- the rows above are all of that shape."""
+    from litkb.use import locate_in_text
+
+    line1 = "Canopy cover was measured on eleven plots in June."
+    for ambiguous in (line1 + "\n", line1 + "\r\n",
+                      "\nThe same plots were flown again", "\r\nA second paragraph begins",
+                      "\n", "abc\n\n"):
+        assert locate_in_text(CRLF_BLOCK, ambiguous) is None, ambiguous
+    assert locate_in_text("abc\r\ndef", "abc\n") is None
+    # the same words WITHOUT the break still locate, at the one range that holds them
+    assert locate_in_text(CRLF_BLOCK, line1) == (0, len(line1))
+    assert CRLF_BLOCK[len(line1)] == "\r"
 
 
 @pg_only

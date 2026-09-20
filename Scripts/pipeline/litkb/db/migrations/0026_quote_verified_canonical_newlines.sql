@@ -47,6 +47,35 @@
 -- 0003:276-294 and 0007:163-189 are the earlier bodies of this trigger; from here they are DEAD
 -- TEXT, the way 0007's ok-run rule became dead text when 0017 replaced it. The live definition is
 -- the only one worth mutating (litkb_p2_mutations.py, row RC17).
+--
+-- ── WHY A QUOTE MAY NOT BEGIN OR END WITH A LINE BREAK (auditor-5, found before this migration
+--    had been applied anywhere but a worker database, so it is EDITED IN PLACE rather than
+--    superseded — no database holds the version without this clause) ────────────────────────
+-- Canonicalising the equality pins the CONTENT of the span and, for a quote whose first and last
+-- characters are ordinary, its OFFSETS too: each of those characters has exactly one raw index.
+-- A break at either END breaks that, because `\r\n` is two raw characters and one canonical one,
+-- so the span may start after the `\r` or before it and end before the `\n` or after it.
+-- MEASURED on litkb_test_w3, block text `abc\r\ndef`, through this function:
+--     quote `abc\n`   verifies at raw [0,4) AND at raw [0,5)     <- two ranges, one quote
+--     quote `\ndef`   verifies at raw [3,8) AND at raw [4,8)
+--     quote `bc\nde`  verifies at raw [1,7) ONLY ([1,6) and [2,7) are false)
+-- The offsets are what `_verified_span_findings` and every later reader trust to say WHICH words
+-- somebody checked, and a caller may supply them directly (`litkb_record_use(char_start=…,
+-- char_end=…)`), so an ambiguous pair is a real hole and not a curiosity. The rule is therefore:
+-- a quote whose CANONICAL form begins or ends with `\n` is not verifiable — refused by
+-- `use.locate_in_text` before anything is written, and marked NOT verified here for the caller
+-- that named its own offsets. It costs nothing a quoter wants: a quote that opens or closes on a
+-- line break carries no word at that end.
+--
+-- ── A BARE `\r` IS A BREAK TOKEN, AND THAT IS ACCEPTED ────────────────────────────────────
+-- MEASURED by auditor-5 on the 2026-09-19 corpus: 1,417 real blocks hold a bare `\r`, and 164 of
+-- those have it BETWEEN WORD CHARACTERS — `Intel\rR CoreTM` is the shape, a superscript that the
+-- extraction flattened to a control byte rather than a line break. Under this rule `\r` is a line
+-- ending wherever it occurs, so a quote written `Intel\nR` verifies against `Intel\rR`. That is
+-- STATED, not overlooked: the alternative is a second rule about which `\r` is a break, which
+-- would need to know what the PDF meant, and the 0025 ligature work is the standing evidence that
+-- per-byte intent cannot be recovered after extraction. Content is still pinned character for
+-- character; what a reader loses is the distinction between two spellings of one control byte.
 
 CREATE OR REPLACE FUNCTION litkb.canonical_newlines(t text) RETURNS text
 LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
@@ -80,6 +109,7 @@ CREATE OR REPLACE FUNCTION litkb._use_evidence_verify() RETURNS trigger
 LANGUAGE plpgsql SET search_path = litkb, public, pg_temp AS $$
 DECLARE
   b record;
+  v_q text;
 BEGIN
   SELECT bl.text, bl.run_id INTO b FROM blocks bl WHERE bl.id = NEW.block_id;
   IF NOT FOUND THEN
@@ -94,11 +124,19 @@ BEGIN
       NEW.char_end, length(b.text), NEW.block_id USING ERRCODE = '23514';
   END IF;
   -- END guard: char_end within the block text (0026 copy; 0007's is dead text)
+  v_q := litkb.canonical_newlines(NEW.quote);
   -- BEGIN guard: the quote is the block's own span, up to the encoding of its line endings
   NEW.quote_verified := coalesce(
     litkb.canonical_newlines(substring(b.text FROM NEW.char_start + 1 FOR NEW.char_end - NEW.char_start))
-      = litkb.canonical_newlines(NEW.quote), false);
+      = v_q
   -- END guard: the quote is the block's own span, up to the encoding of its line endings
+  -- BEGIN guard: the quote does not begin or end with a line break, so its offsets are unique
+  -- The header says why: `\r\n` is two raw characters and one canonical one, so a break at either
+  -- END of the quote leaves TWO raw ranges satisfying the equality above and nothing decides
+  -- which words were checked. An interior break is unique and is the ordinary case.
+    AND left(v_q, 1) <> chr(10) AND right(v_q, 1) <> chr(10)
+  -- END guard: the quote does not begin or end with a line break, so its offsets are unique
+    , false);
   RETURN NEW;
 END
 $$;

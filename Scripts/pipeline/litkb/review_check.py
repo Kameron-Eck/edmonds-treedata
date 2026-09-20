@@ -657,8 +657,24 @@ def _block_row(conn, ws, block_id, quote):
         uuid.UUID(block_id)
     except ValueError:
         return None
-    row = conn.execute(_BLOCK_SQL,
-                       {"ws": ws, "bid": block_id, "q": canonical_newlines(quote) or ""}).fetchone()
+    # BEGIN guard: a database older than this grader is NAMED, not raised as a driver error
+    # `_BLOCK_SQL` calls `litkb.canonical_newlines`, which migration 0026 creates. Against a
+    # database that has not had it applied -- which live is between this branch's merge and the
+    # migration -- psycopg raised a bare `UndefinedFunction: function litkb.canonical_newlines(text)
+    # does not exist`, which names a symbol rather than a thing to do. This is the sentence
+    # `use.locate_quote` refuses with, so the two halves of the same change fail the same way.
+    try:
+        row = conn.execute(
+            _BLOCK_SQL, {"ws": ws, "bid": block_id, "q": canonical_newlines(quote) or ""}).fetchone()
+    except Exception as e:                                       # noqa: BLE001 - re-raised below
+        if type(e).__name__ != "UndefinedFunction":
+            raise
+        raise ReviewGrammarError(
+            "litkb review-check: this database has no litkb.canonical_newlines — migration 0026 "
+            "has not been applied, so a quote cannot be compared by the same rule the verify "
+            "trigger uses. Apply the migrations (py -3.12 -m litkb.db.migrate --db <db>) before "
+            "grading a review against it.") from e
+    # END guard: a database older than this grader is NAMED, not raised as a driver error
     return None if not row else {"page_no": row[0], "work_key": row[1], "quote_in_block": row[2]}
 
 

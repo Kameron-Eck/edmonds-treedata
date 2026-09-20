@@ -412,6 +412,24 @@ def test_m5_a_correct_review_passes(pg):
 
 
 @pg_only
+def test_a_database_without_migration_0026_is_named_not_raised_as_a_driver_error(pg, monkeypatch):
+    """AUDITOR-5. `_BLOCK_SQL` calls `litkb.canonical_newlines`, which migration 0026 creates, and
+    against a database that has not had it applied -- which live is, between this branch's merge
+    and the migration -- psycopg raised a bare `UndefinedFunction: function
+    litkb.canonical_newlines(text) does not exist`. That names a symbol, not a thing to do, while
+    `use.locate_quote` already refused the same absence with a sentence; the two halves of one
+    change must fail the same way. The absence is simulated by pointing the query at a function
+    that does not exist, which is exactly the error an older schema raises."""
+    from litkb import review_check as rc
+
+    w = _world(pg)
+    monkeypatch.setattr(rc, "_BLOCK_SQL",
+                        rc._BLOCK_SQL.replace("litkb.canonical_newlines(", "litkb.no_such_fn_0026("))
+    with pytest.raises(rc.ReviewGrammarError, match="migration 0026"):
+        rc.check(pg.conn, _review(w), is_text=True)
+
+
+@pg_only
 def test_a_review_quoting_a_use_recorded_across_a_stored_crlf_passes(pg):
     """THE END-TO-END ROW for the 2026-09-20 record-use fix: a use RECORDED through the ordinary
     path from an LF quote that crosses a stored `\\r\\n`, then cited in a review that (like every

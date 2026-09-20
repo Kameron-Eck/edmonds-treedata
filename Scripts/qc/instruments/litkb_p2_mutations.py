@@ -1406,12 +1406,10 @@ replace("RC16", f"{PKG}/brief.py",
 # an UNVERIFIED row where the old code refused cleanly.
 TESTS_RU = [*TESTS_P8, "qc/test_litkb_first_use.py"]
 replace("RC17", f"{MIG}/0026_quote_verified_canonical_newlines.sql",
-        "  NEW.quote_verified := coalesce(\n"
         "    litkb.canonical_newlines(substring(b.text FROM NEW.char_start + 1 FOR NEW.char_end - NEW.char_start))\n"
-        "      = litkb.canonical_newlines(NEW.quote), false);",
-        "  NEW.quote_verified := coalesce(\n"
+        "      = v_q",
         "    substring(b.text FROM NEW.char_start + 1 FOR NEW.char_end - NEW.char_start)\n"
-        "      = NEW.quote, false);",
+        "      = NEW.quote",
         "the DATABASE's half goes back to comparing raw bytes (0007's body). The locator still "
         "finds the span, so the row is WRITTEN -- and stored with quote_verified false, which is "
         "worse than the defect: an unverified evidence row where the old code refused at the "
@@ -1454,6 +1452,30 @@ block("RC22", f"{MIG}/0026_quote_verified_canonical_newlines.sql",
       "litkb_writer both fail with permission denied. MEASURED, not hypothetical -- the function "
       "shipped this way and no test could see it, because the suite's own login owns it",
       tests=TESTS_RU)
+# RC23-RC25: auditor-5's two findings. The first is the one that matters -- canonicalising the
+# equality pinned the quote's CONTENT and left its OFFSETS ambiguous whenever the quote began or
+# ended on a break, and a caller may name offsets itself (`litkb_record_use(char_start=...)`).
+block("RC23", f"{MIG}/0026_quote_verified_canonical_newlines.sql",
+      "guard: the quote does not begin or end with a line break, so its offsets are unique",
+      "the DATABASE stops pinning the offsets: a quote whose canonical form ends with `\\n` "
+      "verifies at BOTH raw ranges (measured on `abc\\r\\ndef`: `abc\\n` at [0,4) and at [0,5)), "
+      "so two different spans are equally 'the verified span' and nothing says which words "
+      "anybody checked -- while `_verified_span_findings` and every later reader trust exactly "
+      "that", tests=TESTS_P8)
+block("RC24", f"{PKG}/use.py",
+      "guard: the quote does not begin or end with a line break, so its offsets are unique",
+      "the LOCATOR stops refusing the ambiguous shape, so an honest caller that never names an "
+      "offset still gets one of the two ranges -- whichever the arithmetic happened to pick -- "
+      "recorded as the span somebody verified", tests=TESTS_RU)
+# RC25 is a `replace`, not a `block`: deleting between those markers takes the whole try/except
+# with them and leaves `row` unbound, which would "fire" as a NameError -- a reason that is not
+# the defect (the RC16 note). This makes the re-raise bare, which is exactly the old behaviour.
+replace("RC25", f"{PKG}/review_check.py",
+        '        if type(e).__name__ != "UndefinedFunction":\n            raise',
+        "        raise",
+        "the grader goes back to raising psycopg's bare UndefinedFunction against a database "
+        "without migration 0026 -- a symbol, not a thing to do -- where `use.locate_quote` refuses "
+        "the same absence with a sentence naming the migration", tests=TESTS_REVIEW)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

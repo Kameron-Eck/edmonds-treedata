@@ -103,12 +103,28 @@ def locate_in_text(text, quote):
     how a break is written. One changed character, one dropped word, one blank line dropped to
     join two paragraphs — each still returns None, and `qc/test_litkb_first_use.py` holds a row
     for each.
+
+    A quote whose canonical form BEGINS OR ENDS with a break is refused outright: see the guard
+    below for why its offsets would not be unique.
     """
     from litkb.textnorm import canonical_newlines
 
     if text is None or not quote:
         return None
     canon_text, canon_quote = canonical_newlines(text), canonical_newlines(quote)
+    # BEGIN guard: the quote does not begin or end with a line break, so its offsets are unique
+    # Canonicalising the equality pins a span's CONTENT and, for a quote whose first and last
+    # characters are ordinary, its OFFSETS too: each has exactly one raw index. A break at either
+    # END breaks that, because `\r\n` is two raw characters and one canonical one, so the span may
+    # start after the `\r` or before it. MEASURED on `abc\r\ndef` (migration 0026's header): the
+    # quote `abc\n` satisfies the database's comparison at raw [0,4) AND at raw [0,5), while the
+    # interior `bc\nde` satisfies it at [1,7) only. The offsets are what says WHICH words anyone
+    # checked, so an ambiguous pair is a hole; refusing costs a quoter nothing, since a quote that
+    # opens or closes on a line break carries no word at that end. The 0026 trigger refuses the
+    # same shape, for the caller that supplies char_start/char_end itself and never comes here.
+    if canon_quote.startswith("\n") or canon_quote.endswith("\n"):
+        return None
+    # END guard: the quote does not begin or end with a line break, so its offsets are unique
     # BEGIN guard: a quote is located on canonical line endings, at the stored text's own offsets
     i = canon_text.find(canon_quote)
     if i < 0:

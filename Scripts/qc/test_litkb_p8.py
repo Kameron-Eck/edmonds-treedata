@@ -1024,6 +1024,51 @@ def test_a_quote_that_drops_a_blank_line_is_refused_at_record_use(hunt_env):
 
 
 @pg_only
+def test_a_quote_that_ends_on_a_line_break_verifies_at_no_offsets_at_all(hunt_env):
+    """AUDITOR-5's HOLE, closed. Canonicalising the equality pins a span's CONTENT, and for an
+    ordinary quote its OFFSETS too -- but a break at either END of the quote is one canonical
+    character and TWO raw ones, so the span may stop before the `\\n` or after it and BOTH ranges
+    satisfy the comparison. Offsets are what `_verified_span_findings` and every later reader
+    trust to say WHICH words somebody checked, and `litkb_record_use` lets a caller name them, so
+    an ambiguous pair is a real hole and not a curiosity.
+
+    Measured before the fix, on `abc\\r\\ndef`: `abc\\n` verified at raw [0,4) AND at [0,5). Here
+    both candidate ranges for a line-final quote must come back NOT verified -- and, the half that
+    makes this a fix rather than a refusal of everything, the same words without the trailing
+    break must still verify, and the interior-break quote must verify at its own range and at no
+    neighbouring one."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf8-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "offsets are unique"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    line1 = "Canopy cover was measured on eleven plots in June."
+    cr = CRLF_TEXT.index("\r")
+    assert CRLF_TEXT[:cr] == line1 and CRLF_TEXT[cr:cr + 2] == "\r\n"
+
+    def record(quote, start, end, tag):
+        return one("litkb_record_use", {
+            "statement": "records a quote at offsets the caller named", "kind": "context",
+            "quote": quote, "block_id": seeded["block_id"], "char_start": start, "char_end": end,
+            "gap": f"p8-{tag}-{uuid.uuid4().hex[:6]}", "gap_question": "which offsets verify?"})
+
+    for end in (cr + 1, cr + 2):          # both raw ranges canonicalise to it; NEITHER may verify
+        r = record(line1 + "\n", 0, end, f"amb{end}")
+        assert r["quote_verified"] is False, (end, r)
+    good = record(line1, 0, cr, "ok")     # the same words without the break still verify
+    assert good["quote_verified"] is True, good
+    s = CRLF_TEXT.index(CRLF_SPAN)        # the interior break: its own range, and no other
+    lf = CRLF_SPAN.replace("\r\n", "\n")
+    exact = record(lf, s, s + len(CRLF_SPAN), "int")
+    off = record(lf, s, s + len(CRLF_SPAN) - 1, "off")
+    assert (exact["quote_verified"], off["quote_verified"]) == (True, False), (exact, off)
+    refused = one("litkb_record_use", {   # and the locator refuses it before anything is written
+        "statement": "must not record: the quote ends on a line break", "kind": "context",
+        "quote": line1 + "\n", "block_id": seeded["block_id"],
+        "gap": f"p8-amb0-{uuid.uuid4().hex[:6]}", "gap_question": "is it refused without offsets?"})
+    assert refused["refused"] == "quote-not-in-block", refused
+
+
+@pg_only
 def test_a_database_without_migration_0026_refuses_rather_than_storing_an_unverified_row(
         hunt_env, monkeypatch):
     """THE PRE-0026 TRAP, shown to fire. A client can be newer than the schema it is pointed at --

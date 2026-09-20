@@ -30,6 +30,14 @@ workstream, and it marks each line so you cannot confuse the two kinds of thing 
   evidence. Its `abstract_passage` is never quotable. Its `resolution_state` is the database's
   verdict on whether anything verified confirmed or refuted it.
 
+**An `abstract_passage` is the ONLY abstract text you may not use, and the difference is not a
+detail.** A VERIFIED line is evidence wherever in the paper its block sits: a block that begins
+`Abstract—` is exactly as citable as one on page 9, because the database checked those bytes
+against the ingested file. What is barred is the `abstract_passage` FIELD of an EXPECTED line —
+an agent's unverified prior that nothing ever checked. A review that treats the two as one thing
+will either refuse good evidence or, as the 2026-09-20 proving run did, tell its reader it read
+no abstract while quoting one.
+
 ## The form of what you write
 
 `Scripts/docs/LITKB_REVIEW_GRAMMAR.md` is the authority on the document's form: the header, the
@@ -59,6 +67,18 @@ names another.
      one.
    * **There is exactly one `## Scope`.** A second one fails as `duplicate-section`. You may not
      open a fresh `Scope` under your findings to keep writing.
+   * **Say nothing about your own sourcing except the grammar's one sentence, verbatim.** You
+     cannot check a claim about your own process and neither can the grader, so the grammar fixes
+     one permitted sentence (§1) and refuses any other `Scope` sentence carrying *abstract*,
+     *memory*, *outside* or *measured* as `scope-self-claim`. Copy it or write none. The proving
+     run wrote its own version, claiming it had read nothing from an abstract while two of its
+     citations quoted an ingested block that begins `Abstract—`: every citation was supported and
+     the sentence about itself was false.
+   * **A claim section's `##` TITLE is a label of six words or fewer**, and unlike a `###` heading
+     it has no citation escape — the grader never reads a title as prose, so it cannot carry
+     evidence. `## Canopy reference products and imagery that spans dates` granted a status the
+     section's own body said was never confirmed; it fails now as `uncited-heading`. Name the
+     section, then make the claim in a cited sentence inside it.
 5. Write **Expectations not supported**. Walk every EXPECTED line whose `resolution_state` is
    `contradicted`, `unconfirmed` or `open`, name it by its **hunt_request id** (and its ref), and
    give its `expected_claim`. A contradicted expectation is the most valuable thing in the whole
@@ -79,19 +99,30 @@ names another.
    So: *"hunt_request `01a0…` (10.1/xyz) expected that X; it came back CONTRADICTED — see
    *What the record shows*"* — and the sentence that says what the record shows lives there,
    carrying its quote.
+
+   **Name the PARTIAL support too.** A contradicted expectation is rarely a clean loss. If a block
+   you cite for the refutation also holds a result that goes the expectation's way, that result is
+   part of what the block says: write it as its own cited sentence in a claim section and name it
+   in this entry beside the refutation. The proving run gave two Kaiser losses from a block that,
+   in the same paragraph, records the OSM-trained model beating the smaller manual baseline by 1.5
+   percent points — nothing false, and half the picture. **No guard checks this**; the grader
+   proves only that the expectation is NAMED, so an incomplete entry passes green.
 6. Write the **Sources** table.
 
 ## What you never do
 
 - **Never cite anything that is not in the brief.** Not a paper you know, not a block you found
-  by searching, not an abstract. If a citation's work key, page and block id are not on a
-  VERIFIED line of the brief, it does not go in the document.
+  by searching, not an EXPECTED line's `abstract_passage`. If a citation's work key, page and
+  block id are not on a VERIFIED line of the brief, it does not go in the document. (This rule
+  used to end "not an abstract", and that over-generalised into a review telling its reader it had
+  read no abstract while citing an ingested one. An ingested, DB-verified block is evidence; only
+  the `abstract_passage` field is not.)
 - **Never paraphrase a quote into a claim it does not support.** The grader checks that a
   verbatim quote sits under every sentence; it cannot check that the sentence means what the
   quote means. That gap is yours to hold honestly, and it is the one failure mode nothing
   downstream will catch for you.
-- **Never quote an `abstract_passage`**, and never let an EXPECTED claim appear in the body as
-  though it were established.
+- **Never quote an `abstract_passage`** — the EXPECTED line's field, not every abstract — and
+  never let an EXPECTED claim appear in the body as though it were established.
 - **Never omit an unsupported expectation** to make the review read better. K2 of
   `decisions.yaml::litkb-operational-definition` exists because a review that reports only its
   confirmations proves only that the happy path works.

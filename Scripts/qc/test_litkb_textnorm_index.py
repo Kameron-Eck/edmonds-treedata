@@ -281,6 +281,13 @@ def test_the_expression_indexes_agree_with_the_function(loaded, leg, index, sql,
     still similar enough to match — so the trigram half of this check has never been shown to fire
     and is not known to work. The live cutover's index is still the operator's job, with
     qc/instruments/litkb_norm_index_proof.py on a restore of the dump.
+
+    THESE ROWS ARE NOT INDEPENDENT OF THE RECALL ROWS ABOVE, which matters when reading a red. The
+    `matches_here` assertion also goes red when a probe stops matching anything at all, so the
+    X13a-X13d mutation rows (qc/instruments/litkb_p2_mutations.py) now take 6/2/4/8 tests red
+    instead of 4/1/3/6. Measured on X13b, 2026-09-20: `[fts-floating point]` fails on
+    "matched no recorded block", NOT on a disagreement between the index and the function. A red
+    here means one of three different things and the message says which.
     """
     conn, _ids = loaded
     with conn.transaction():

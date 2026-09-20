@@ -204,54 +204,13 @@ pointer to its verdict/artifact, never a restated number (one fact, one home).
 ### RUNNING (external)
 (none — the literature hunt completed 2026-09-06; angle-10 relaunch is QUEUED)
 
-### LITERATURE KNOWLEDGE BASE (litkb) — pick-up point for a new session (2026-09-20)
+### LITERATURE KNOWLEDGE BASE (litkb)
 
-**OPERATIONAL — the definition was MET on 2026-09-20 (run 2).** Verdict, numbers and what is
-still not proven: `decisions.yaml` → `litkb-operational-verdict` and
-`Reports/LITKB_OPERATIONAL_PROVING_RUN_2026-09-20.md`. Built and audited that day, all on
-`work/20260920-operational` (pushed, NOT merged — Kam merges): the web-source gate
-(`litkb-web-source-gate`, searchable only inside the OPEN workstream that proposed it,
-token-checked at every widening site), the index-only ligature normaliser (migration `0025`,
-`litkb-ligature-repair`; live: `misclassification` 612 → 906 hits, block bytes unchanged),
-STAGE 8 (`.claude/agents/review-writer.md`, `docs/LITKB_REVIEW_GRAMMAR.md`, the deterministic
-K1/K2 grader `py -3.12 -m litkb review-check <review.md> --workstream current`), and migration
-`0026` (quotes verify on canonical newlines — the defect run 1 exposed). Live DB tip is 26.
-The two proving-run reviews are `Reports/reviews/` on `work/20260920-proving-run`. Audit trail:
-`D:\tools\claude-config\jobs\litkb-operational\` (17 reports; STATE.md is the run's memory).
-Operating facts learned: after a merge in `treedata`, an open session's MCP server is stale
-until `/mcp` reconnect (editable install → treedata); a headless `claude -p` in a worktree with
-`--mcp-config .mcp.json --strict-mcp-config` gets fresh litkb tools scoped to that worktree.
-Next: Kam merges; promote the proving-run workstreams (promotion has never run on live);
-the ~209 held works with no extracted text are the next recall lever.
-
-**KAM DECIDED SIX THINGS 2026-09-19. All six are in [`decisions.yaml`](decisions.yaml) with the
-reasoning; they are NOT restated here beyond the one line each a reader needs to act.**
-
-| decision | outcome |
-|---|---|
-| `litkb-operational-definition` | **"Operational" = the FULL LOOP, UNATTENDED, WITH A REQUIRED NEGATIVE.** Topic in, cited review out, every claim traced to a verified quote (work key + page + block_id), no human in the middle. Two pre-committed kills: an untraceable claim = FAIL, and at least one expectation MUST come back CONTRADICTED or UNCONFIRMED. The second is load-bearing — a run where everything confirms proves only the happy path. This grades stage 8 (brief → written review), the one stage never exercised |
-| `litkb-web-source-gate` | Web sources are **searchable inside their own workstream immediately, still unpromotable without a human**. The gate protects the authoritative record; promotion is that boundary, not search visibility. Required by the unattended definition |
-| `litkb-ligature-repair` | **Index-only normalisation** — stored block bytes are never rewritten, so all 393 verified quotes survive by construction. Kills the per-file-byte-table option outright (one C0 byte = two different ligatures inside one file). **De-hyphenation folds into the same pass** |
-| `litkb-crossref-raw-proposer` | **Discovery lead only, never auto-confirmed.** The raw-string parser is NOT funded: only 26 of 643 refs have a blank parsed title, they are three different failures, and some have no title to extract at all. Leverage is de-hyphenation (above) + a **second gate comparison path** (author + year + journal + volume + page) for title-less styles |
-| `litkb-second-formula-decoder` | **Dropped**; `latex_status` stays the guard. pix2tex is out for NONDETERMINISM (8/20 crops differ between runs) — a stability criterion cannot rest on an unstable source. Re-opens only if a review's conclusion comes to depend on a maths claim read from an equation |
-| `litkb-librarian-tier-and-roster-home` | Leave both as they are (librarian on Opus, roster in user scope). Recorded so a later session does not "fix" either without the context |
-
-**Next: the operational proving run.** Its bar is the definition above, fixed before the run.
-
-| What | Where |
-|---|---|
-| **State in one screen** | Claude memory `literature-knowledge-base-design` (auto-loaded); repo mirror: `Scripts/LITERATURE_KB_DESIGN_2026-09-13.md` §14 status rows |
-| **How agents work here** | `Scripts/docs/LITKB_AGENT_BASE_BRIEF.md` — read before launching any litkb agent |
-| **Latest results** | `Reports/LITKB_P5_BULK_2026-09-16.md` (bulk extraction + fix sets), `Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md` (verdict: OPERATIONAL WITH CAVEATS). 2026-09-19 improvement items, each on its own branch from `f30d28d`, refereed together in `Reports/LITKB_ITEMS123_REFEREE_2026-09-19.md` on `work/20260919-referee-items123` (all three ACCEPT WITH CAVEATS): ligature measurement `work/20260919-ligature`, Crossref raw-search proposer `work/20260919-crossref-proposer`, pix2tex evaluation `work/20260919-pix2tex`. The three decisions they raise are `litkb-ligature-repair`, `litkb-crossref-raw-proposer`, `litkb-second-formula-decoder` in `decisions.yaml` |
-| **Branch / worktree** | `work/20260913-literature-kb` in `D:\edmonds-pipeline\treedata-litkb`; NOT merged to `main` (Kam merges). Side branches all pushed to `github`: `work/20260915-{embeddings,splink,refmatcher,linkage-review,held-queue,access-layer,colab-l4-formula}` — access-layer, colab and references are already merged into litkb; embeddings/splink/refmatcher are reports only |
-| **Database** | PostgreSQL 18 `litkb` on localhost:5433 (21+ migrations; `py -3.12 -m litkb.db.migrate --db litkb` from `Scripts` with `PYTHONPATH=pipeline`); nightly dump task `litkb-nightly-dump` (points at the litkb worktree; re-register after merge); credentials in `%APPDATA%\postgresql\pgpass.conf` + `D:\edmonds-pipeline\secrets\` (never print) |
-| **Use it** | `.claude/skills/literature/SKILL.md`; MCP server `py -3.12 -m litkb.mcp.server` (registration line in `Reports/LITKB_P8_ACCESS_2026-09-15.md` §5, Kam runs it, user scope) |
-| **Kam's open decisions** | promote or abandon open workstreams (`p3-migration`, `edge-pre1990`, `linkage-review`, `held-queue`, `op-test-1`, `fix-op-1`); 22 check-1 refusals + 15 low-confidence held rows; 12 manual proposals (second session); the 688-page book; swap live tracker/manifest for exports; CLAUDE.md rule text (P3 report §5); merge to `main` |
-| **One-shot entry point** | `py -3.12 -m litkb hunt <doi-or-url>` / MCP `litkb_hunt` (resolve → admit → bind → extract → ingest → state); proven on a 62-page web PDF in 371 s, idempotent. Web sources land as manual proposals: out of search until a second session approves. SPEND RULE BUILT `31bc220`: a hunt reaching `held` acquires by default; `--no-spend` / `spend=False` stops with `held-no-spend`, a spend that finds nothing returns `held-spend-exhausted` |
-| **The closed loop — BUILT 2026-09-18, not merged** | Sonnet review → per-study drop-off → `litkb_hunt` → circle-back verified use → per-workstream BRIEF for the orchestrating model. `hunt_request` (migration `0023`, `23d7031`/`e57933c`) is the drop-off record: ref, expected claim, why relevant, abstract passage, `agent`/`session_id` (both NOT NULL), linked to its work and to the use that resolves it (`uses.hunt_request_id`). `brief.py` (`873320c`) exports per workstream to `_derived/briefs/` (untracked). **The boundary that governs it:** an expectation is an agent's unverified prior and can never be read, promoted or exported as evidence — every brief line is EXPECTED / VERIFIED (work key + page + block_id) / UNCONFIRMED, and an expectation the text refutes renders CONTRADICTED rather than being dropped. 14 mutation rows (HQ1–HQ8, HR1–HR2, HB1–HB4), fired by builder and referee independently. Caveat: HB3 (VERIFIED SQL never touches expectation columns) is a static source scan, not a DB privilege. Still open: ligature normaliser (ff/fi/fl → C0 codes break search), pix2tex as a second formula decoder, citation graph anchoring to blocks |
-| **Improvement reviews (2026-09-16, first run of the closed loop)** | `Reports/LITKB_IMPROVEMENT_REVIEW_{A,B}_2026-09-16.md` + drop-off/hunt CSVs. Literature-backed order: BM25 re-ranker before any dense work (BEIR); one internal work id + Crossref-style `relation` for preprint/edition pairs (OMID: dedupe first, relate second); Crossref search as second proposer for the 50 unparsed refs; second formula decoder = pix2tex/UniMERNet (not Nougat, CC-BY-NC); merge harness per region type with the bar at DocLayNet's ~10pp human gap; citation anchoring per unarXive; retrieve-and-rank proposes the quote for `use add` (PaperQA); harness rows record the firing assertion. Loop lesson: DOI hunts need a spend rule (proposed: review workstreams spend by default) |
-| **Deferred improvements** | vector re-test on stage-5 blocks (P7 FAILED its floors on .txt text); Splink referee reading the worked examples; OmniDocBench/SCORE-Bench calibration; mutmut; targeted harness reruns. Crossref second proposer and pix2tex: built/evaluated 2026-09-19, awaiting the decisions above |
-| **Standing hazards** | `git push` from any Claude agent (orchestrator included) is refused by the auto-mode classifier — Kam pushes, or adds a Bash allow-rule; agents stall on background jobs — brief foreground polling; one tolerated red test `crown_state_model`; worker DBs `litkb_test_wN` are not guaranteed free — check before use; fourteen worktrees — consolidate after merge |
+**The plan is `LITKB_WORKPLAN.md`** (`decisions.yaml` → `litkb-plan-home`, 2026-09-20). Its
+"Where we are" block is the only litkb state kept current; this section is a pointer and
+nothing here is authoritative. Finish line: `litkb-finish-line`. Rulings: every `litkb-*` id in
+`decisions.yaml`. Use it: `.claude/skills/literature/SKILL.md`. The 2026-09-20 merge of the
+whole litkb stack to `main` is done (the "NOT merged" lines that used to sit here were stale).
 
 ### AWAITING KAM — the decision stack (nothing moves without these)
 

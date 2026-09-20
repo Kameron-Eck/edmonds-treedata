@@ -301,7 +301,8 @@ decisions:
       literature work runs LOCALLY on this laptop, CPU first, optimised as needed; no Colab
       pass, so §15.4 and §15.10 are moot for this workstream and §15.11 is answered (no PDFs go
       to Drive). §15.9: GROBID runs locally, which needs WSL2 or Docker (setup pending). The
-      nightly pg_dump is to be built, and so is the ladder check that refuses staged secrets.
+      nightly pg_dump (`litkb/ops/nightly_dump.py`) and the ladder check that refuses staged
+      secrets (`qc/check.py` rung 0) were both built 2026-09-15/16 (corrected 2026-09-20).
       Standing intent: any literature used by the project flows through this knowledge base.
       Design rev 3 follow-ups (Kam, 2026-09-14): §15.9 GROBID runs locally under WSL2 Ubuntu
       (Kam installing the distro); §15.16 local workers keep 20% of RAM and CPU free for Kam's
@@ -335,7 +336,8 @@ decisions:
       caveats recorded in Reports/LITKB_P5_FINAL_REFEREE_2026-09-16.md; a one-shot entry point
       (litkb hunt / litkb_hunt) proven the same day. SPEND RULE (Kam, 2026-09-16 night): "default
       should always allow hunt" — a DOI hunt proceeds to acquisition (open access, then the archive
-      by DOI) by default; refusing to spend is the explicit exception (--no-spend). Not yet built.
+      by DOI) by default; refusing to spend is the explicit exception (--no-spend). BUILT
+      2026-09-18 (31bc220: `held-no-spend`, `held-spend-exhausted`; corrected here 2026-09-20).
     why: >-
       P1 builds the version pointers, promotion functions and roles that §15.7 and §15.13
       constrain; P2's admission check needs the §15.15 year rule; §15.12 decides whether
@@ -565,3 +567,28 @@ decisions:
       including branches that predate the litkb merge — which a repo-tracked roster would not.
     evidence:
       - docs/LITKB_AGENT_BASE_BRIEF.md
+
+  - id: litkb-finish-line
+    question: >-
+      `litkb-operational-definition` graded brief → review on works handed to the agent by key
+      (proving run 2 pre-named three extracted works and their expected claims). What is the
+      FINISH LINE for the tool — the state at which the literature-review work is done?
+    owner: kam
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      TOPIC → GRADED REVIEW → SYNTHESIS, unattended. A cold session given only a topic string
+      discovers studies on the open web, drops off metadata + expected claims BEFORE reading full
+      text, hunts every drop-off to a named terminal state, acquires and OCRs the PDFs during the
+      run, records verified quotes, writes a review that passes K1 with K2 fired, has it checked
+      by a different model family, and then produces a SYNTHESIS — what the literature implies
+      for this pipeline — where every inference cites a verified brief line or is labelled as the
+      model's own reasoning (a new K3 gate). Promotion to the authoritative record is NOT on the
+      line; it stays Kam's track. The plan that reaches this state is `LITKB_WORKPLAN.md`.
+    why: >-
+      The operational definition proved stages 2–8 on pre-loaded works; the goal starts one
+      stage earlier (open-web discovery) and ends one stage later (reasoning with the text).
+      Naming the line as a state, not an activity, is what lets each session be graded.
+    evidence:
+      - LITKB_WORKPLAN.md
+      - Reports/LITKB_OPERATIONAL_PROVING_RUN_2026-09-20.md

@@ -16,9 +16,10 @@ end-to-end call of the real MCP tool over a real MCP session:
   (d) HELD at promote prepare                     the unapproved source cannot reach main
 
 (b), (c) and (d) are the mutation rows: each asserts something the gate must REFUSE, so each fails
-if the predicate is widened past the decision. Harness rows W1-W5
+if the predicate is widened past the decision. Harness rows W1-W6
 (`qc/instruments/litkb_p2_mutations.py`) break each call site in turn and require this file to go
-red. (a) is the row that fails if the widening is not there at all.
+red. (a) is the row that fails if the widening is not there at all. Rows (d2), (e) and (f) carry
+the three call sites and the token check that (a)-(d) do not reach on their own.
 
 Run:
     PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_w1 py -3.12 -m pytest qc/test_litkb_web_gate.py
@@ -190,6 +191,23 @@ def block_ids(result):
     return [b["block_id"] for b in result.get("blocks", [])]
 
 
+def unapproved_hits(kb, result):
+    """The returned blocks whose FILE main does not point at — i.e. every unapproved proposal in
+    this result, whoever proposed it.
+
+    The rows below assert on this rather than on `blocks == []`, because an empty result is not a
+    property this test can own: the any-term leg matches ANY word of the query, so in a database
+    other modules have populated ("change", "label", "error") there are always approved hits. That
+    is what `qc/check.py` found and a run of this file alone never could — the file sorts last in
+    `pytest qc`, so it is the only litkb module that sees the whole session's material."""
+    ids = block_ids(result)
+    if not ids:
+        return []
+    return [str(r[0]) for r in kb["conn"].execute(
+        "SELECT b.id FROM litkb.blocks b JOIN litkb.files f ON f.id = b.file_id "
+        "WHERE b.id = ANY(%s::uuid[]) AND f.current_version_id IS NULL", (ids,)).fetchall()]
+
+
 # ── (a) visible from the workstream that proposed it ──────────────────────────────────────
 
 @pg_only
@@ -197,7 +215,7 @@ def test_a_visible_from_the_proposing_workstream(kb):
     """The decision's whole point: the loop keeps moving. Workstream A proposed the source, so
     workstream A can search it, and the result SAYS the hits include its own proposals."""
     _work, _file, block = propose_web_source(kb)
-    r = _mcp([("litkb_search", {"query": QUERY, "limit": 10})], env_at(kb, "A"))[0]
+    r = _mcp([("litkb_search", {"query": QUERY, "limit": 50})], env_at(kb, "A"))[0]
     assert r["ok"], r
     assert block in block_ids(r), r
     hit = [b for b in r["blocks"] if b["block_id"] == block][0]
@@ -212,10 +230,10 @@ def test_b_invisible_from_a_different_workstream(kb):
     """MUTATION ROW. Workstream B has its own token and its own worktree, and sees main only. A
     predicate that widened search to "any proposal" instead of "this workstream's" fails here."""
     _work, _file, block = propose_web_source(kb)
-    r = _mcp([("litkb_search", {"query": QUERY, "limit": 10})], env_at(kb, "B"))[0]
+    r = _mcp([("litkb_search", {"query": QUERY, "limit": 50})], env_at(kb, "B"))[0]
     assert r["ok"], r
     assert block not in block_ids(r), ("workstream B can read A's unapproved proposal", r)
-    assert r["blocks"] == [], r
+    assert unapproved_hits(kb, r) == [], ("workstream B read an unapproved proposal", r)
 
 
 # ── (c) invisible with no workstream at all ───────────────────────────────────────────────
@@ -226,9 +244,11 @@ def test_c_invisible_with_no_workstream(kb):
     before the change. `ws` binds NULL, the correlated subquery returns NULL, `coalesce` falls back
     to main's pointer and the EXISTS is false — the old join, clause for clause."""
     _work, _file, block = propose_web_source(kb)
-    r = _mcp([("litkb_search", {"query": QUERY, "limit": 10})], env_at(kb, "none"))[0]
+    r = _mcp([("litkb_search", {"query": QUERY, "limit": 50})], env_at(kb, "none"))[0]
     assert r["ok"], r
-    assert r["blocks"] == [], ("an unapproved proposal is readable from a tree with no workstream", r)
+    assert block not in block_ids(r), r
+    assert unapproved_hits(kb, r) == [], \
+        ("an unapproved proposal is readable from a tree with no workstream", r)
     assert "no open workstream" in r["proposals"], r["proposals"]
 
 
@@ -340,7 +360,7 @@ def test_e_a_forged_token_buys_no_proposal(kb):
     forged = _git_worktree(kb["tmp"] / "forged")
     (forged / workstream.TOKEN_FILE).write_text(
         json.dumps({"workstream_id": kb["ws"]["A"], "token": "0" * 64}), encoding="utf-8")
-    r = _mcp([("litkb_search", {"query": QUERY, "limit": 10})],
+    r = _mcp([("litkb_search", {"query": QUERY, "limit": 50})],
              dict(kb["env"], LITKB_WORKTREE=str(forged)))[0]
     assert r["ok"] is False and r["refused"] == "bad-token", r
     assert block not in json.dumps(r), "a forged token read the workstream's proposal"

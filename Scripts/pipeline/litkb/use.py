@@ -70,7 +70,7 @@ def work_by(conn, *, key=None, doi=None, work_id=None):
     return {"work_id": r[0], "key": r[1], "title": r[2], "year": r[3]} if r else None
 
 
-def locate_quote(conn, work_id, quote, page=None):
+def locate_quote(conn, work_id, quote, page=None, ws=None):
     """Where the quote sits in the work's extracted text -> list of candidate anchors.
 
     The search is over the CURRENT run of the work's active files only (`files.current_run_id`), for
@@ -81,15 +81,23 @@ def locate_quote(conn, work_id, quote, page=None):
     extraction is NOT silently accepted here — the caller is told nothing matched, and what the
     database would verify is the extraction's own characters, so an approximate match would produce
     `quote_verified = false` rows and call them evidence.
+
+    `ws` is the caller's open workstream, or None (decisions.yaml litkb-web-source-gate). With it,
+    a file THIS workstream proposed is searched as well as main's — the same widening
+    `litkb_search` and `_record_use` make, from the same one definition in `litkb.visibility`, so
+    the CLI cannot end up able to find a quote the MCP path cannot or the other way round.
     """
+    from litkb import visibility
+
     sql = ("SELECT b.id, b.run_id, b.page_no, b.text FROM litkb.blocks b "
            "  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id "
-           "  JOIN litkb.main_files mf ON mf.file_id = f.id AND mf.status = 'active' "
-           " WHERE mf.work_id = %s AND b.text IS NOT NULL AND position(%s in b.text) > 0")
-    args = [work_id, quote]
+           + visibility.FILE_JOIN +
+           " WHERE fv.work_id = %(work_id)s AND fv.status = 'active' "
+           "   AND b.text IS NOT NULL AND position(%(quote)s in b.text) > 0")
+    args = {"work_id": work_id, "quote": quote, "ws": ws}
     if page is not None:
-        sql += " AND b.page_no = %s"
-        args.append(page)
+        sql += " AND b.page_no = %(page)s"
+        args["page"] = page
     out = []
     for bid, run, pno, text in conn.execute(sql + " ORDER BY b.page_no, b.reading_order NULLS LAST", args).fetchall():
         start = text.index(quote)

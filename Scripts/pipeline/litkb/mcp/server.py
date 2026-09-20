@@ -78,6 +78,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from litkb import visibility
+
 VERSION = "0.1.0"
 SERVER_NAME = "litkb"
 SCRIPTS = Path(__file__).resolve().parents[3]
@@ -286,11 +288,14 @@ def _registry_client():
 # one statement selected the all-terms matches and re-sorted them by trigram similarity, so what the
 # result called two legs was one candidate set ordered twice (P8 referee §3.5) and a block only
 # trigram could find, below the lexical cut, was never retrieved at all.
-_BLOCK_FROM = """
+#: `visibility.FILE_JOIN` replaced the `main_files`/`main_works` join here on 2026-09-20
+#: (decisions.yaml litkb-web-source-gate): the caller's OWN workstream also sees the files it has
+#: proposed and a second session has not yet approved. With no open workstream this is the same
+#: join it was; the module's docstring is the one home for why, and for what promotion still holds.
+_BLOCK_FROM = f"""
   FROM litkb.blocks b
   JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id
-  JOIN litkb.main_files mf ON mf.version_id = f.current_version_id
-  JOIN litkb.main_works w ON w.work_id = mf.work_id
+  {visibility.FILE_JOIN}
  WHERE b.type = ANY(%(kinds)s)
 """
 _BLOCK_COLS = "SELECT b.id::text, w.key, b.page_no, b.type, b.section_path, b.text, f.id::text"
@@ -422,12 +427,36 @@ def _rrf(*legs, k=60):
             for key in sorted(score, key=lambda i: (-score[i], str(i)))]
 
 
-def _leg(conn, sql, query, limit, shape, kinds=None):
+def _leg(conn, sql, query, limit, shape, kinds=None, ws=None):
     """One retrieval leg: run its own statement, return [(id, payload)] in its own rank order."""
     args = {"q": query, "n": limit}
     if kinds is not None:
         args["kinds"] = kinds
+        args["ws"] = ws          # only the block legs carry visibility.FILE_JOIN
     return [(r[0], shape(r)) for r in conn.execute(sql, args).fetchall()]
+
+
+def _caller_workstream(conn):
+    """This worktree's open workstream id, or None — what `visibility.FILE_JOIN` binds as `ws`.
+
+    A READ tool that is about to widen what it returns must present the token, for the reason the
+    P8 referee's F-1 gives: a workstream id is not a secret (a tracked report prints one), so a
+    `.litkb-workstream` naming a real workstream with a forged token would otherwise read the
+    proposals of the session that owns it. Here that check is the DIFFERENCE between the two
+    visibilities, so it is exactly where it belongs.
+
+    No token file is not an error — it is the other half of the decision. A tree with no open
+    workstream searches main, which is what every tree did before this change."""
+    try:
+        ws_id, token = _session()
+    except Refusal as e:
+        if e.code in ("no-workstream", "bad-workstream-file"):
+            return None
+        raise
+    # BEGIN guard: proposal visibility presents the workstream token
+    _require_token(conn, ws_id, token)
+    # END guard: proposal visibility presents the workstream token
+    return ws_id
 
 
 def _search(query, limit, scope, kinds=""):
@@ -441,12 +470,13 @@ def _search(query, limit, scope, kinds=""):
 
     want, kinds_note = _kinds(kinds)
     with _conn("reader") as conn:
+        ws = _caller_workstream(conn)
         hits = {"blocks": [], "uses": []}
         if scope in ("all", "blocks"):
             hits["blocks"] = _rrf(
-                _leg(conn, _SEARCH_BLOCKS_ALL, query, limit, block, want),
-                _leg(conn, _SEARCH_BLOCKS_ANY, query, limit, block, want),
-                _leg(conn, _SEARCH_BLOCKS_TRGM, query, limit, block, want))[:limit]
+                _leg(conn, _SEARCH_BLOCKS_ALL, query, limit, block, want, ws),
+                _leg(conn, _SEARCH_BLOCKS_ANY, query, limit, block, want, ws),
+                _leg(conn, _SEARCH_BLOCKS_TRGM, query, limit, block, want, ws))[:limit]
         if scope in ("all", "uses"):
             hits["uses"] = _rrf(
                 _leg(conn, _SEARCH_USES_ALL, query, limit, use),
@@ -458,6 +488,12 @@ def _search(query, limit, scope, kinds=""):
         n_vec = (conn.execute("SELECT count(*) FROM litkb.embeddings").fetchone()[0]
                  if VECTOR_ENABLED else None)
     return _ok(query=query, scope=scope, kinds=kinds_note,
+               proposals=("this worktree has no open workstream, so only APPROVED material was "
+                          "searched" if ws is None else
+                          "blocks of files THIS workstream proposed and no second session has "
+                          "approved are searched too, and are invisible to every other workstream. "
+                          "A quote from one is recordable, and its use is HELD at promote prepare "
+                          "until the admission is approved (decision litkb-web-source-gate)."),
                legs=["lexical (all terms)", "lexical (any term)", "trigram"],
                normalisation="the text and the query are both read through litkb.norm_search_text: "
                              "U+FFFD and soft hyphens dropped, line-break hyphenation joined. The "
@@ -825,11 +861,15 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
                            "decision <slug>, report <FILE>.md#§<loc>). A bare §N is not one.",
                            bad_feeds=bad)
         # END guard: every feeds token is in the convention's vocabulary
+        # visibility.FILE_JOIN, not main_files: a quote may come from a file THIS workstream
+        # proposed (decisions.yaml litkb-web-source-gate). The use is written and its quote is
+        # verified exactly as any other; what the proposal cannot do is reach main, which
+        # `promote prepare` holds on the work's admission chain.
         blk = conn.execute(
-            "SELECT b.text, b.page_no, b.run_id::text, f.current_run_id::text, mw.key, mf.work_id::text "
+            "SELECT b.text, b.page_no, b.run_id::text, f.current_run_id::text, w.key, fv.work_id::text "
             "FROM litkb.blocks b JOIN litkb.files f ON f.id = b.file_id "
-            "JOIN litkb.main_files mf ON mf.version_id = f.current_version_id "
-            "JOIN litkb.main_works mw ON mw.work_id = mf.work_id WHERE b.id = %s", (block_id,)).fetchone()
+            + visibility.FILE_JOIN
+            + " WHERE b.id = %(block_id)s", {"block_id": block_id, "ws": ws_id}).fetchone()
         if not blk:
             return _refuse("unknown-block",
                            f"no block {block_id}. Evidence points at a block of the file's CURRENT "

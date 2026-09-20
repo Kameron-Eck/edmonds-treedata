@@ -1105,6 +1105,63 @@ replace("HB3", f"{PKG}/brief.py",
         "same spliced-reference shape as gate 2's kill in qc/test_litkb_hunt_request.py, at the "
         "brief's own call site", tests=TESTS_BRIEF)
 
+# ── the web-source gate: what an unapproved proposal may and may not reach ────────────────
+#
+# decisions.yaml `litkb-web-source-gate` MOVED a boundary, and a moved boundary needs rows on BOTH
+# sides: W2 is the half that must be THERE (the widening itself — without it the unattended loop
+# stalls on every web find), and W1, W3-W6 are the halves that must still REFUSE. The predicate is
+# one string in litkb/visibility.py and three call sites, which is why W3, W4 and W6 mutate the
+# ARGUMENT at each site rather than the string all three share.
+TESTS_WEB = ["qc/test_litkb_web_gate.py"]
+M.append(dict(id="W1", kind="multi", tests=TESTS_WEB,
+              what="the gate stops being PER-WORKSTREAM: the file head and the work head are looked "
+                   "up without the workstream, so any workstream reads any other's unapproved web "
+                   "source — the visibility the decision deliberately did not grant",
+              edits=[
+    dict(file=f"{PKG}/visibility.py",
+         old="WHERE h.workstream_id = %(ws)s::uuid AND h.entity = 'file' AND h.entity_id = f.id",
+         new="WHERE h.entity = 'file' AND h.entity_id = f.id"),
+    dict(file=f"{PKG}/visibility.py",
+         old="WHERE hw.workstream_id = %(ws)s::uuid AND hw.entity = 'work'\n"
+             "                      AND hw.entity_id = w.id",
+         new="WHERE hw.entity = 'work'\n                      AND hw.entity_id = w.id")]))
+replace("W2", f"{PKG}/visibility.py",
+        "  JOIN litkb.file_versions fv ON fv.version_id = coalesce(\n"
+        "         (SELECT h.version_id FROM litkb.ws_heads h\n"
+        "           WHERE h.workstream_id = %(ws)s::uuid AND h.entity = 'file' AND h.entity_id = f.id),\n"
+        "         f.current_version_id)",
+        "  JOIN litkb.file_versions fv ON fv.version_id = f.current_version_id",
+        "the widening is gone and the predicate is main-only again: the workstream that has just "
+        "admitted a web source cannot read one word of it back, which is the stall the decision "
+        "removed (an unattended run cannot hold a human round trip per web find)",
+        tests=TESTS_WEB)
+M.append(dict(id="W3", kind="multi", tests=TESTS_WEB,
+              what="CALL SITE _search::_leg — the three block legs stop binding the caller's "
+                   "workstream, so search is main-only however right the predicate is",
+              edits=[dict(file=f"{PKG}/mcp/server.py",
+                          old=f"_leg(conn, _SEARCH_BLOCKS_{leg}, query, limit, block, want, ws){tail}",
+                          new=f"_leg(conn, _SEARCH_BLOCKS_{leg}, query, limit, block, want, None){tail}")
+                     for leg, tail in (("ALL", ","), ("ANY", ","), ("TRGM", ")[:limit]"))]))
+replace("W4", f"{PKG}/mcp/server.py",
+        '+ " WHERE b.id = %(block_id)s", {"block_id": block_id, "ws": ws_id}).fetchone()',
+        '+ " WHERE b.id = %(block_id)s", {"block_id": block_id, "ws": None}).fetchone()',
+        "CALL SITE _record_use — the quote lookup stops binding the workstream: a block the session "
+        "has just been shown by litkb_search comes back `unknown-block`, which is the second half "
+        "of the same stall and the half that would have been found last",
+        tests=TESTS_WEB)
+site("W5", "litkb/mcp/server.py::_caller_workstream::_require_token", "None", tests=TESTS_WEB,
+     what="the widening is granted on the workstream ID ALONE: a `.litkb-workstream` naming a real "
+          "workstream with a forged token reads that workstream's unapproved proposals — the P8 "
+          "referee's F-1 attack, against the one read tool that had no reason to present a token "
+          "until this decision gave it one")
+replace("W6", f"{PKG}/use.py",
+        'args = {"work_id": work_id, "quote": quote, "ws": ws}',
+        'args = {"work_id": work_id, "quote": quote, "ws": None}',
+        "CALL SITE locate_quote — the CLI's half of 'where does this quote live' stops binding the "
+        "workstream, so the two entry points answer differently about the same quote: the twin "
+        "drift this predicate was put in one module to prevent",
+        tests=TESTS_WEB)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

@@ -1223,6 +1223,113 @@ site("W15", "litkb/mcp/server.py::_hunt_request_add::_require_token", "None", te
           "answers first and a caller who cannot present the token is told the workstream is "
           "merged — the F-1 disclosure, in the order the two guards are written")
 
+# ── the K1/K2 gate on a written review (litkb/review_check.py, stage 8, 2026-09-20) ─────────
+# decisions.yaml::litkb-operational-definition fixes the two kill criteria; these rows are what
+# makes them GATES rather than intentions. qc/test_litkb_review_check.py's m1-m5 prove the guards
+# fire on known-bad REVIEWS; the rows below prove those tests fail when the guards are removed --
+# the two halves CLAUDE.md 3.4c asks for, neither one substituting for the other.
+TESTS_REVIEW = [*TESTS, "qc/test_litkb_review_check.py"]
+block("RC1", f"{PKG}/review_check.py",
+      "guard: a citation resolves to a visible block at the work key and page it names",
+      "a citation naming a block that does not exist (or one belonging to another work, or on "
+      "another page) is graded as if it resolved: the review's location is unchecked and m1's "
+      "invented block_id passes", tests=TESTS_REVIEW)
+block("RC2", f"{PKG}/review_check.py",
+      "guard: the quoted span is verbatim in the cited block's text",
+      "a quote altered by one word -- or a citation carrying no quote at all -- passes: the "
+      "review asserts words the ingested block does not contain (m2)", tests=TESTS_REVIEW)
+block("RC3", f"{PKG}/review_check.py",
+      "guard: every citation names a VERIFIED line of this workstream's brief",
+      "a real block that NO promotable use_evidence row anchors may be cited: K1 degrades from "
+      "'traceable to a verified quote' to 'the block exists', and a writer can quote outside its "
+      "brief (m1b)", tests=TESTS_REVIEW)
+block("RC4", f"{PKG}/review_check.py",
+      "guard: K1 -- every claim sentence carries a citation, and no citation sits in a non-claim section",
+      "K1 stops being enforced: an uncited claim sentence passes (m3, m7), an uncited table row "
+      "passes (m8), and a review can satisfy the grader by moving its claims into Scope (m10)",
+      tests=TESTS_REVIEW)
+block("RC5", f"{PKG}/review_check.py",
+      "guard: K2 -- the section exists and names every contradicted/unconfirmed expectation",
+      "K2 stops being enforced: a review whose own expectation came back CONTRADICTED passes "
+      "without saying so, which is precisely the failure hunt_request exists to catch (m4)",
+      tests=TESTS_REVIEW)
+block("RC6", f"{PKG}/review_check.py",
+      "guard: every cited work key is listed in Sources, and Sources lists no work the body never cited",
+      "a work cited in the body need not appear in the Sources table: the review's own "
+      "bibliography no longer has to agree with what it cited", tests=TESTS_REVIEW)
+block("RC7", f"{PKG}/review_check.py",
+      "guard: a citation-shaped token the strict grammar rejected is named, never ignored",
+      "a mangled citation is invisible: its paragraph fails as `uncited-claim` instead, which "
+      "names the wrong defect and sends the writer to fix the wrong thing", tests=TESTS_REVIEW)
+# RC8-RC10: the three guards added on 2026-09-20 after the stage-8 audit measured six routes by
+# which a grammar-conforming review could PASS while unsupported (auditor-3-stage8.md §6). A new
+# FAIL name with no row here is a gate nobody has shown to fire.
+block("RC8", f"{PKG}/review_check.py",
+      "guard: the quoted span lies inside a span the brief VERIFIED, not merely inside the block",
+      "K1 degrades from 'traceable to a VERIFIED QUOTE' to 'traceable to a verified BLOCK, "
+      "quoting anything in it': a block is a whole paragraph, so a citation verified for its "
+      "first sentence carries a quote from its fourth under a claim about the fourth (m6)",
+      tests=TESTS_REVIEW)
+block("RC9", f"{PKG}/review_check.py",
+      "guard: a fenced block inside a claim section is refused, never graded as absent",
+      "fenced text goes back to being dropped before any unit is formed: a claim section's code "
+      "block can hold any assertion at all and K1 cannot see it (m9)", tests=TESTS_REVIEW)
+block("RC10", f"{PKG}/review_check.py",
+      "guard: K2 first half -- the workstream holds an expectation that came back unsupported",
+      "K2's first half stops being machine-checked: a workstream in which every expectation came "
+      "back CONFIRMED passes with nothing to disclose, and a green review-check reports that the "
+      "honesty machinery worked when it was never asked to fire (m11)", tests=TESTS_REVIEW)
+# RC11-RC13: the three K1 routes auditor 3b measured as STILL OPEN at 6667e3d and found in
+# neither the grammar's disclosure list nor the fix's (auditor-3b-stage8-fixes.md §1.6, §1.7,
+# §1.9). Each was measured PASSING on the fixed grader, which is why each gets its own row.
+block("RC11", f"{PKG}/review_check.py",
+      "guard: a citation's quote is long enough to carry information",
+      "a one-character -- or one-SPACE -- quote satisfies every byte-exact guard in the file: a "
+      "single space is a substring of essentially every verified span, so any claim at all can be "
+      "made citable by attaching a trivially-contained fragment (m12)", tests=TESTS_REVIEW)
+block("RC12", f"{PKG}/review_check.py",
+      "guard: a non-claim section name opens at most once in the document",
+      "a second `## Scope` un-polices the rest of the document: NON_CLAIM is matched per heading "
+      "OCCURRENCE, so a writer opens a fresh Scope under its own findings and every later "
+      "assertion is outside K1 (m13)", tests=TESTS_REVIEW)
+block("RC13", f"{PKG}/review_check.py",
+      "guard: a deep heading in a claim section asserts nothing without a citation",
+      "an assertion written as a `###` heading is never graded: heading lines are dropped before "
+      "a unit is formed, so the most natural place for a model to put a summary claim is the one "
+      "place K1 cannot look (m14)", tests=TESTS_REVIEW)
+# RC14/RC15: not REFUSALS but the RELAXATION, which needs its own kills for the same reason --
+# it has two halves, in two languages, with no migration binding them, and either half alone
+# silently restores the defect it was written to remove (48.9 % of current-run blocks carry
+# `\r\n`; 7 of the project's 8 verified spans cross one). Each row makes ONE half the identity.
+replace("RC14", f"{PKG}/textnorm.py",
+        '    return None if s is None else _LINE_ENDING.sub("\\n", str(s))',
+        "    return s",
+        "the PYTHON half of the newline canonicalisation becomes the identity: the review's quote "
+        "is compared including the ENCODING of each line break, so the LF file a writer's Write "
+        "tool actually produces stops matching a span that crosses a stored CRLF, and the brief "
+        "renders that quote uncopyable again", tests=TESTS_REVIEW)
+replace("RC15", f"{PKG}/review_check.py",
+        '_CANON_TEXT = "replace(replace(b.text, chr(13)||chr(10), chr(10)), chr(13), chr(10))"',
+        '_CANON_TEXT = "b.text"',
+        "the SQL half becomes the identity: the two sides of the comparison are canonicalised "
+        "differently, which is worse than neither -- the block keeps its CRLF while the quote is "
+        "rewritten to LF, so every CRLF-crossing quote fails `quote-not-verbatim` while still "
+        "passing the span guard", tests=TESTS_REVIEW)
+# RC16: the EXPORT's half, and the only one the writer agent ever touches. Its input is the MCP
+# tool litkb_brief -> brief.build(), never render(), so a canonicalisation that lived in the
+# markdown would have fixed the path nobody walks (auditor 3c). Its tests are the brief's.
+# A `replace`, not a `block`: deleting the dict entry removes the KEY and crashes the exporter,
+# which would "fire" for a reason that is not the defect. This makes the export the identity.
+replace("RC16", f"{PKG}/brief.py",
+        '                "quote": canonical_newlines(quote),',
+        '                "quote": quote,',
+        "the brief hands the writer the stored bytes, CR and all: on a block with `\\r\\n` -- "
+        "48.9 % of current-run blocks -- the agent must reproduce a raw CR byte in its markdown "
+        "for the quote to match, which no LLM has ever been observed doing, so the one "
+        "instruction grammar §3 gives ('copy the quote out of the brief') yields a review that "
+        "cannot pass. render() still canonicalises, which is why only the MCP path breaks -- and "
+        "the MCP path is the writer's only path", tests=TESTS_BRIEF)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

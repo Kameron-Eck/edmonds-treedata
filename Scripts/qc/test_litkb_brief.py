@@ -75,6 +75,73 @@ def test_verified_lines_carry_full_location_end_to_end(pg):
 
 
 @pg_only
+def test_build_hands_the_MCP_WRITER_a_quote_with_canonical_line_endings(pg):
+    """G2, on the path the writer actually walks. The agent's whole input is the MCP tool
+    `litkb_brief`, which returns `build()`'s dicts verbatim (`mcp/server.py::_brief`) and never
+    touches `render` -- so canonicalising the markdown alone would have fixed the path nobody
+    walks. The stored block keeps its `\\r\\n`; the exported quote does not."""
+    from litkb import brief
+
+    w = _evidence_world(pg)
+    text = "A canopy line\r\nand its second half, stored as the extractor wrote it."
+    span = "A canopy line\r\nand its second half"
+    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
+    _add_evidence(pg, pg.conn, dict(w, block=block), w["ws"], w["uv"], span, 0, len(span))
+
+    stored = pg.one("SELECT quote FROM litkb.use_evidence WHERE block_id = %s", (block,))[0]
+    assert "\r\n" in stored, "the database must still hold the extractor's own bytes"
+
+    _expected, verified = brief.build(pg.conn, w["ws"])
+    assert len(verified) == 1, verified
+    quote = verified[0]["quote"]
+    assert "\r" not in quote, repr(quote)
+    assert quote == stored.replace("\r\n", "\n")
+
+
+@pg_only
+def test_the_MCP_route_round_trips_a_crlf_span_into_a_passing_review(pg, tmp_path):
+    """The whole path, end to end, on a block stored with `\\r\\n`: `build()`'s quote -- the exact
+    string `litkb_brief` hands the agent -- pasted into an LF-only review file, graded by
+    `review_check.check`. Before G2 this string carried a CR the writer had to reproduce."""
+    from litkb import brief, review_check
+
+    w = _evidence_world(pg)
+    key = pg.one("SELECT key FROM litkb.works WHERE id = %s", (w["work"],))[0]
+    text = ("Canopy cover fell by eleven percent between 2000 and 2020.\r\n"
+            "The decline was concentrated in the northern parcels.")
+    span = text[:len(text)]
+    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
+    _add_evidence(pg, pg.conn, dict(w, block=block), w["ws"], w["uv"], span, 0, len(span))
+    hr = _hrmod._record(pg, w["ws"], ref="10.1/contradicted", expected_claim="the opposite")
+    _hrmod._link(pg, w["ws"], hr, w["work"])
+    _use, uv2 = pg.proposal(pg.conn, "use", None,
+                            {"work_id": str(w["work"]), "hunt_request_id": str(hr)}, None,
+                            {"statement": "refutes it", "kind": "contradiction",
+                             "status": "refuted"}, None, w["ws"])
+    _add_evidence(pg, pg.conn, dict(w, block=block), w["ws"], uv2, text[:58], 0, 58,
+                  stance="refutes")
+
+    _expected, verified = brief.build(pg.conn, w["ws"])
+    # the canonical quote is ONE character shorter than the span the database stores, which is
+    # the whole point: the CRLF became an LF
+    quote = max((v["quote"] for v in verified), key=len)
+    assert "\r" not in quote and len(quote) == len(span) - 1
+
+    review = (f"<!-- litkb-review workstream={w['ws']} -->\n\n# R\n"
+              "\n## Scope\nOne quote, copied out of what litkb_brief returned.\n"
+              "\n## Findings\n"
+              f'The work states it: "{quote}" [{key} p.1 #{block}].\n'
+              f"\n## Expectations not supported\n- hunt_request `{hr}` came back contradicted.\n"
+              f"\n## Sources\n\n| work | key | pages |\n|---|---|---|\n| w | `{key}` | 1 |\n")
+    path = tmp_path / "mcp_route.md"
+    path.write_bytes(review.encode("utf-8"))
+    assert b"\r" not in path.read_bytes()
+    assert review_check.check(pg.conn, str(path)) == []
+
+
+@pg_only
 def test_verified_lines_exclude_non_promotable_evidence(pg):
     """A use with no PROMOTABLE quote contributes no VERIFIED line -- the exporter never invents a
     location-carrying line for evidence the database itself would not promote."""
@@ -203,6 +270,32 @@ def test_render_flags_unconfirmed_and_contradicted_explicitly():
     md = brief.render(ws_row, expected, [])
     assert "UNCONFIRMED" in md
     assert "CONTRADICTED" in md
+
+
+def test_a_crlf_quote_is_rendered_and_WRITTEN_in_its_canonical_form(tmp_path):
+    """G2, and it is the other half of a round trip whose reading half was fixed first.
+
+    Grammar §3's one instruction to a writer is "copy the quote out of the brief". `write` below
+    is `write_text`, i.e. universal newline translation on the way OUT, so on Windows every `\\n`
+    became `\\r\\n` -- and a quote that already held `\\r\\n` came out as `\\r\\r\\n`. Measured on
+    a real brief of `improve-review-1`: 3 occurrences (auditor-3b-stage8-fixes.md §5.4). The
+    quote is rendered canonical, so whatever the platform then does to the line endings of the
+    FILE, the bytes a writer copies are bytes `review-check` accepts."""
+    from litkb import brief
+    from litkb.textnorm import canonical_newlines
+
+    quote = "Tent reduces generalization error\r\nfor image classification on corrupted ImageNet"
+    ws_row = {"id": "ws1", "slug": "s", "state": "open", "purpose": "p"}
+    verified = [{"marker": "VERIFIED", "work_key": "K_2020_x", "statement": "s", "kind": "method",
+                 "rationale": None, "quote": quote, "stance": "supports", "page": 3,
+                 "block_id": "b1"}]
+    assert "\r" not in brief.render(ws_row, [], verified)
+
+    path = brief.write(tmp_path / "b.md", ws_row, [], verified)
+    raw = path.read_bytes()
+    assert b"\r\r\n" not in raw
+    # and what a writer copies out of the file is what the grader canonicalises to
+    assert canonical_newlines(quote) in canonical_newlines(raw.decode("utf-8"))
 
 
 # ── end to end: the CLI command ──────────────────────────────────────────────────────────────

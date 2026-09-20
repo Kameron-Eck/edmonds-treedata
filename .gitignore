@@ -158,6 +158,16 @@ desktop.ini
 !/Reports/sources/text/
 !/Reports/sources/text/*.txt
 
+# Reports/reviews: the written literature reviews, added 2026-09-20 with stage 8. A review is
+# the pipeline's OUTPUT — the document `litkb review-check` grades against K1/K2
+# (decisions.yaml::litkb-operational-definition), written by .claude/agents/review-writer.md
+# from a workstream's brief. Without this rule `/Reports/*` swallows the directory and
+# `!/Reports/*.md` cannot reach inside it: the one artifact the whole run exists to produce
+# would be untracked, and the evidence for a pass or a fail would not survive the worktree.
+!/Reports/reviews/
+/Reports/reviews/*
+!/Reports/reviews/*.md
+
 # ── .github: track the CI workflow, nothing else ──────────────────────────
 # Added 2026-08-25 (overhaul E03). The /* rule at the top ignored .github/
 # wholesale, so .github/workflows/ci.yml was invisible to git — `git add` on it

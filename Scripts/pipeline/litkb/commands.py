@@ -23,6 +23,7 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb hunt <doi-or-url> [--title T] [--author A] [--year Y] [--no-extract] [--no-spend]
                           [--hunt-request ID]
     py -3.12 -m litkb brief [workstream-id-or-slug] [--out PATH]
+    py -3.12 -m litkb review-check <review.md>          (exit 1 on any K1/K2 failure)
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -537,6 +538,37 @@ def cmd_brief(args, conn):
     return 0
 
 
+def cmd_review_check(args, conn):
+    """The K1/K2 gate on a WRITTEN review (stage 8; litkb/review_check.py, grammar in
+    Scripts/docs/LITKB_REVIEW_GRAMMAR.md). Deterministic: no model runs, and the workstream
+    graded against is the one the REVIEW declares in its own header, never one named on the
+    command line -- a review graded against a workstream it was not written from would pass K2
+    by holding no expectations at all.
+
+    `--workstream <id|slug|current>` therefore does NOT choose what is graded: it ASSERTS that the
+    workstream the caller means is the one the document declares, and `check` refuses a mismatch
+    by name. `current` is this worktree's own, the same source `brief` and `export` default to --
+    which is what an unattended loop has to hand, since it knows its workstream and not the
+    review's header.
+
+    One JSON object per finding, then a summary; returns 1 when any finding is a `fail`, so
+    `py -3.12 -m litkb review-check <review.md>` exits non-zero and can gate an unattended loop.
+    """
+    from litkb import review_check as _rc
+
+    ws_ref = getattr(args, "workstream", None)
+    if ws_ref == "current":
+        ws_id, _token = _ws(args)
+        ws_ref = str(ws_id)
+    findings = _rc.check(conn, args.review, k2_workstream=ws_ref)
+    for f in findings:
+        _print({"review": str(args.review), **f})
+    bad = _rc.fails(findings)
+    _print({"review": str(args.review), "findings": len(findings), "fails": len(bad),
+            "notices": len(findings) - len(bad), "verdict": "FAIL" if bad else "PASS"})
+    return 1 if bad else 0
+
+
 def cmd_hunt(args, conn):
     """The whole hunt protocol in one call (litkb/hunt.py).
 
@@ -731,6 +763,17 @@ def build_parser():
                                       "(VERIFIED) this workstream holds, as markdown")
     br.add_argument("workstream", nargs="?", help="workstream id or slug (default: this worktree's)")
     br.add_argument("--out", help="output path (default: _derived/briefs/<slug>.md, untracked)")
+
+    # ── the K1/K2 gate on a written review, 2026-09-20 (litkb/review_check.py) ──────────────
+    rc = sub.add_parser("review-check", help="grade a written review against its own workstream: "
+                                             "every claim traceable to a VERIFIED quote (K1) and "
+                                             "every unsupported expectation disclosed (K2)")
+    rc.add_argument("review", help="path to the review .md (it names its own workstream in its "
+                                   "first line)")
+    rc.add_argument("--workstream", help="id, slug, or 'current' (this worktree's): ASSERTS which "
+                                         "workstream this review is, and is refused when the "
+                                         "review's own header declares another. It never "
+                                         "redirects the grade")
     return ap
 
 
@@ -765,6 +808,7 @@ def main(argv=None, connect=None):
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
+                "review-check": cmd_review_check,
                 "promote": cmd_promote}[args.cmd](args, conn)
     finally:
         conn.close()

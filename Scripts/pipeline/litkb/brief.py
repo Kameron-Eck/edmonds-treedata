@@ -26,6 +26,10 @@ a convention (CLAUDE.md 3.4c):
   * `_require_location` refuses a VERIFIED line missing its work key, page or block id: "the
     VERIFIED quote with its location" is not printed without the location that makes it
     re-checkable (mutation HB1).
+  * a VERIFIED line's `quote` leaves with canonical line endings (`verified_lines`, mutation
+    RC16). That is the EXPORT's one normalisation and it is on the DICT, not on the markdown,
+    because the writer agent's input is the MCP tool `litkb_brief` -- these dicts -- and never
+    `render`. See `verified_lines` for the whole reason.
 
 Kinds print AS THE DATABASE NAMES THEM (method, theorem, parameter, empirical evidence, negative
 result, context, contradiction) -- never remapped to words like "principle" or "data". `kind` is
@@ -40,6 +44,8 @@ there is no cross-query join between the two, only a shared label in the rendere
 """
 from datetime import datetime, timezone
 from pathlib import Path
+
+from litkb.textnorm import canonical_newlines
 
 
 class BriefInvariantError(RuntimeError):
@@ -129,13 +135,26 @@ def verified_lines(conn, ws):
     """Every promotable quote this workstream can see, marked VERIFIED. `promotable`
     (litkb.use_evidence_status, migration 0004/0007) is the database's own verdict -- verified
     AND anchored in the file's CURRENT extraction run -- never recomputed here, the same rule
-    litkb/hunt_request.py's resolution_state leans on."""
+    litkb/hunt_request.py's resolution_state leans on.
+
+    A VERIFIED line's `quote` leaves here with its LINE ENDINGS CANONICAL
+    (`textnorm.canonical_newlines`) -- the same rule `litkb review-check` applies to both sides of
+    its comparison, so a quote copied out of a brief is a quote the grader accepts. It is done
+    HERE, on the line dict, rather than in `render`, because THE WRITER NEVER SEES `render`: the
+    agent's input is the MCP tool `litkb_brief`, which returns exactly these dicts
+    (`litkb/mcp/server.py::_brief` -> `build`), and the markdown file is the CLI's convenience.
+    Canonicalising only the rendering would have fixed the path nobody walks. Nothing else about
+    the quote changes, and the stored `use_evidence` row keeps its own bytes -- this is the
+    EXPORT, and the one thing it normalises is the encoding of a line break."""
     out = []
     for (key, uv, statement, kind, rationale, status, hr_id, quote, stance, page, block_id
          ) in conn.execute(_VERIFIED_SQL, {"ws": ws}).fetchall():
         line = {"marker": "VERIFIED", "work_key": key, "use_version_id": str(uv),
                 "statement": statement, "kind": kind, "rationale": rationale, "status": status,
-                "hunt_request_id": str(hr_id) if hr_id else None, "quote": quote,
+                "hunt_request_id": str(hr_id) if hr_id else None,
+                # BEGIN guard: a VERIFIED line's quote leaves the brief with canonical line endings
+                "quote": canonical_newlines(quote),
+                # END guard: a VERIFIED line's quote leaves the brief with canonical line endings
                 "stance": stance, "page": page, "block_id": str(block_id)}
         _require_location(line)
         out.append(line)
@@ -162,7 +181,17 @@ _STATE_CALLOUT = {
 
 def render(ws_row, expected, verified):
     """Markdown. Every EXPECTED line's `abstract_passage` is printed labelled UNVERIFIED and
-    never inside a VERIFIED block; every VERIFIED line prints its own work key/page/block id."""
+    never inside a VERIFIED block; every VERIFIED line prints its own work key/page/block id.
+
+    A VERIFIED line reaches here with its quote already canonical (`verified_lines`, which is
+    where the rule belongs because that is what the MCP tool returns). `canonical_newlines` is
+    applied again below, and deliberately: it is idempotent, and `render` is also called with
+    hand-built line dicts, so the markdown may not depend on who assembled them. Without it the
+    rendered brief was worse than uncopyable -- `write()` is `write_text`, Windows turns every
+    `\\n` into `\\r\\n` on the way out, and a quote that already held `\\r\\n` came out as
+    `\\r\\r\\n`, three times in a real brief of `improve-review-1`
+    (auditor-3b-stage8-fixes.md §5.4, measured).
+    """
     by_work = {}
     for v in verified:
         by_work.setdefault(v["work_key"], []).append(v)
@@ -198,8 +227,9 @@ def render(ws_row, expected, verified):
     for key in sorted(by_work):
         lines.append(f"### {key}")
         for v in by_work[key]:
-            lines.append(f'- VERIFIED [{v["kind"]}, {v["stance"]}] "{v["quote"]}" -- '
-                        f'{key} p.{v["page"]} block `{v["block_id"]}`')
+            lines.append(f'- VERIFIED [{v["kind"]}, {v["stance"]}] '
+                         f'"{canonical_newlines(v["quote"])}" -- '
+                         f'{key} p.{v["page"]} block `{v["block_id"]}`')
             lines.append(f"  claim: {v['statement']}")
             if v["rationale"]:
                 lines.append(f"  rationale: {v['rationale']}")

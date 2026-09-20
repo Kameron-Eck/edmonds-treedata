@@ -26,6 +26,12 @@
 !/.claude/skills/
 !/.claude/agents/
 !/.claude/hooks/
+# The litkb MCP server registration is PROJECT-scoped on purpose (2026-09-20): this database holds
+# one project's literature and must not be reachable from another project on the machine, which a
+# user-scope registration would allow. A tracked .mcp.json is also a reviewable diff. It carries no
+# secrets (agent/session labels only; the DB login comes from pgpass), and Claude Code still asks
+# each user to approve a project-scoped server once before it runs.
+!/.mcp.json
 
 # ── inside Scripts: code+docs yes, artifacts no ──
 Scripts/logs/

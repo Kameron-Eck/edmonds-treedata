@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "litkb": {
+      "type": "stdio",
+      "command": "py",
+      "args": [
+        "-3.12",
+        "-m",
+        "litkb.mcp.server"
+      ],
+      "env": {
+        "LITKB_AGENT": "claude",
+        "LITKB_SESSION": "default"
+      }
+    }
+  }
+}

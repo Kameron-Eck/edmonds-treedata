@@ -300,8 +300,12 @@ def _registry_client():
 
 # ── read tools ────────────────────────────────────────────────────────────────────────────
 
-# Both legs read the text and the query through litkb.norm_search_text (migration 0018): U+FFFD and
-# soft hyphens dropped, line-break hyphenation joined, whitespace collapsed. The P8 referee's Q3 is
+# Both legs read the text and the query through litkb.norm_search_text (migration 0018, body
+# replaced by 0025): U+FFFD and soft hyphens dropped, line-break hyphenation joined, whitespace
+# collapsed; since 0025 a C0 control byte inside a word (an extracted ff/fi/fl ligature of unknown
+# identity) has its alternative spellings PREPENDED to the text, the 0018 output following them
+# byte for byte, so the index gains `floating` beside `<1d>oating` and loses nothing (measured on
+# every block of the 2026-09-19 dump: 0 lexemes lost). The P8 referee's Q3 is
 # what this is for — the block holds `misclassi<FFFD>cation` and `this overesti- mate increases`
 # because that is what the PDF's text layer renders, so the gold passage was reachable only by a
 # caller who already knew how the extractor had mangled the word (§2.4). The normaliser is ONE SQL
@@ -561,7 +565,9 @@ def _search(query, limit, scope, kinds=""):
     return _ok(query=query, scope=scope, kinds=kinds_note, proposals=proposals,
                legs=["lexical (all terms)", "lexical (any term)", "trigram"],
                normalisation="the text and the query are both read through litkb.norm_search_text: "
-                             "U+FFFD and soft hyphens dropped, line-break hyphenation joined. The "
+                             "U+FFFD and soft hyphens dropped, line-break hyphenation joined, and a "
+                             "C0 control byte inside a word (an extracted ff/fi/fl ligature) is "
+                             "searchable under its ligature spellings (migration 0025). The "
                              "blocks still store what the PDF's text layer rendered.",
                vector_leg=("OFF (LITKB_VECTOR_SEARCH is not set): these hits are lexical, so a "
                            "paraphrase sharing no words with the text will NOT be found"

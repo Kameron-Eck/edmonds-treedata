@@ -27,7 +27,7 @@ Update this block only. Everything else in the file changes when a session lands
 - **Next:** S1 (the front door). Entry condition: S0 landed; paper-search MCP registered in
   `.mcp.json` (see S1).
 - **Open questions for Kam:** `litkb-k2-no-seeding` (status `open`); re-registering the
-  `litkb-nightly-dump` scheduled task against the merged tree.
+  nightly-dump scheduled task (Windows task name litkb-nightly-dump) against the merged tree.
 
 ---
 
@@ -128,8 +128,9 @@ Done-state
   `py -3.12 -m pytest qc/test_docs_match_code.py -q` green with this file gated ·
   `py -3.12 -m pytest qc -q -k crossref_raw_search` green (the proposer never auto-confirms) ·
   `py -3.12 qc/check.py --fast`.
-- (c) remove one (c) bullet from a session block → `sessions_missing_abc=1`; name a
-  `litkb-nonexistent` id → `unresolved_decision_ids=1`; the guard refuses a temp worktree whose
+- (c) remove one (c) bullet from a session block → `sessions_missing_abc=1`; backtick a made-up
+  id (litkb-nonexistent, unbackticked here on purpose) → `unresolved_decision_ids=1`; the guard
+  refuses a temp worktree whose
   root holds a dummy `.litkb-workstream`; a manifest listing a checkout that still exists →
   `unexpected_worktrees=1`.
 

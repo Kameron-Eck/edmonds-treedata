@@ -143,6 +143,15 @@ def test_migration_files_are_named_and_numbered():
     one: 0020 was written here while 0018 and 0019 were being written on
     `work/20260915-access-layer`. A reserved number is a DECLARED gap; every other gap still fails,
     which the next test is for.
+
+    A declaration may also be PERMANENT. 0024 was reserved for `work/20260920-web-source-gate`,
+    which merged without a migration, so that number will never be written and its gap will never
+    close; renumbering around it would rewrite migrations that instruments and reports already name.
+    Nothing below distinguishes the two cases — the assertions are "1..N once the held numbers are
+    taken out", "a number on disk is not also reserved", and "every held number says why" — so a
+    retired reservation is accepted by the same rule as an in-flight one. That is checked here
+    rather than assumed: this test passes against a `_reserved.txt` whose only line is 0024's,
+    marked RETIRED.
     """
     from litkb.db import migrate
     found = migrate.discover()
@@ -171,9 +180,24 @@ def test_an_undeclared_gap_in_the_migration_numbering_is_still_refused(tmp_path)
     assert hole_v < found[-1][0], "the hole must be in the middle, not the tail"
     (tmp_path / hole_name).unlink()
     declared = tmp_path / "_reserved.txt"
-    with pytest.raises(migrate.MigrationError, match="without gaps"):
+    # The match names the MANUFACTURED hole, and that is load-bearing (audit 2026-09-20 §5). Against
+    # an EMPTY _reserved.txt this copy also has a gap at the tree's own reserved 0024, so a bare
+    # `match="without gaps"` is satisfied by repository state whether or not a hole was dug here —
+    # measured: with no hole at all and an empty reservation file, discover still raises, at 0024.
+    # Matching the expected NUMBER is what keeps the manufactured hole the thing being refused.
+    with pytest.raises(migrate.MigrationError, match=f"expected {hole_v:04d}"):
         migrate.discover(tmp_path, reserved_path=declared)                       # undeclared: refused
-    declared.write_text(f"{hole_v:04d}  a branch that has not merged here yet\n", encoding="utf-8")
+    # The TREE's own reservations travel with the copy, exactly as they do in
+    # test_gate_runner_refuses_an_edited_applied_migration above — for a reason that only showed up
+    # when it bit (2026-09-20, landing 0025 while 0024 was still reserved for a parallel branch): a
+    # declared gap BELOW the highest migration on disk is now an ordinary state of this directory.
+    # Writing only the manufactured hole dropped 0024's line, so `discover` refused the copy at 0025
+    # and this assert failed for a property of the repository rather than of the rule — the same
+    # borrowed-state mistake the docstring above was written about, from the other side.
+    held = dict(migrate.reserved())
+    held[hole_v] = "a branch that has not merged here yet"
+    declared.write_text("".join(f"{v:04d}  {why}\n" for v, why in sorted(held.items())),
+                        encoding="utf-8")
     assert len(migrate.discover(tmp_path, reserved_path=declared)) == len(found) - 1   # declared: ok
 
 

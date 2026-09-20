@@ -5,10 +5,28 @@
 # would put two different migrations on one number at merge. Delete the line in the merge that
 # lands the file.
 #
+# TWO KINDS OF LINE LIVE HERE, and until 2026-09-20 this header only described the first:
+#   IN FLIGHT   a branch is writing that migration. The line goes away with the merge that lands it.
+#   RETIRED     the branch merged WITHOUT a migration, so the number was never written and never
+#               will be. The gap is permanent, the line is permanent, and the number is never
+#               reused — renumbering the files above it would rewrite migrations that other
+#               branches, instruments and reports already name. A retired line is marked RETIRED
+#               and says what happened.
+# The runner does not distinguish them (litkb.db.migrate.reserved parses `NNNN why`), and it does
+# not need to: both are a declared gap. The distinction is for the human deciding whether to delete
+# the line.
+#
 # NNNN  why
 
-0024  web-source gate: search visibility inside the proposing workstream (work/20260920-web-source-gate)
-0025  index-only ligature/C0 normalisation in litkb.norm_search_text (work/20260920-index-normaliser)
+0024  RETIRED — reserved 2026-09-20 for work/20260920-web-source-gate, merged without a migration; the number is retired, never reuse it
+#
+# 0025 is no longer reserved: it landed on this branch (work/20260920-index-normaliser) as
+# 0025_search_index_ligature_expansion.sql, and a number on disk must not also be reserved
+# (qc/test_litkb_p1.py::test_migration_files_are_named_and_numbered). It CREATE OR REPLACEs
+# litkb.norm_search_text, which is the two-branches-one-function hazard the note below describes, so
+# it was checked rather than assumed: on 2026-09-19 `git grep norm_search_text` over the migrations
+# directory of every local and remote work/* and fix/* ref found that function in 0018 and in this
+# file only. Nothing else open replaces it, so apply ORDER cannot produce two different bodies.
 #
 # 0018 and 0019 landed 2026-09-16 with the merge of work/20260915-access-layer, so their lines are
 # gone: a number on disk must not also be reserved

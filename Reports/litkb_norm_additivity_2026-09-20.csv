@@ -1,0 +1,27 @@
+stage,metric,subject,value,note
+before,block_probe,01a0aba2-3d3b L1,leg1=True leg2=True,"mid-word byte, numword tail"
+before,block_probe,01a0abcb-2c40 Tv2c,leg1=True leg2=True,"mid-word byte, numword tail"
+before,block_probe,01a0abb4-5276 k2,leg1=True leg2=True,"mid-word byte, numword tail"
+before,block_probe,01a0abc6-d87b DwR2,leg1=True leg2=True,"word-initial byte, numword tail"
+before,leg1_hits,L1,corpus=1277 visible=297,
+before,leg1_hits,k2,corpus=245 visible=60,
+before,leg1_hits,misclassification,corpus=612 visible=117,
+before,leg1_hits,covariate effects,corpus=390 visible=86,
+after,blocks_losing_a_lexeme,all 372192 blocks,0,must be 0
+after,lexemes_lost,all 372192 blocks,0,must be 0
+after,norm_text_chars,old -> new,67473804 -> 67758222,+0.42%
+after,block_probe,01a0aba2-3d3b L1,leg1=True leg2=True,"mid-word byte, numword tail"
+after,block_probe,01a0abcb-2c40 Tv2c,leg1=True leg2=True,"mid-word byte, numword tail"
+after,block_probe,01a0abb4-5276 k2,leg1=True leg2=True,"mid-word byte, numword tail"
+after,block_probe,01a0abc6-d87b DwR2,leg1=True leg2=True,"word-initial byte, numword tail"
+after,leg1_hits,L1,corpus=1277 visible=297,
+after,leg1_hits,k2,corpus=245 visible=60,
+after,leg1_hits,misclassification,corpus=906 visible=187,
+after,leg1_hits,covariate effects,corpus=394 visible=87,
+mutated,leg1_hits_visible,misclassification,187,"d6a0a29: spellings written in, match ends at the last letter"
+mutated,leg1_hits_visible,L1,280,"d6a0a29: spellings written in, match ends at the last letter"
+mutated,blocks_losing_a_lexeme,"d6a0a29: spellings written in, match ends at the last letter",570,809 lexemes — the gate firing
+mutated,leg1_hits_visible,misclassification,187,"same, match carried to the end of the whitespace run"
+mutated,leg1_hits_visible,L1,297,"same, match carried to the end of the whitespace run"
+mutated,blocks_losing_a_lexeme,"same, match carried to the end of the whitespace run",78,268 lexemes — the gate firing
+restored,blocks_losing_a_lexeme,after ROLLBACK,0,must be 0 again

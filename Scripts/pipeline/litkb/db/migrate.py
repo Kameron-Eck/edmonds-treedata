@@ -49,6 +49,12 @@ def reserved(path=None):
     So a gap is allowed only when it is DECLARED, one line per number, in `_reserved.txt`. A number
     that is missing and not declared is still a lost migration and still refused; a declared number
     that has landed is simply no longer missing, so the line is deleted with the merge that lands it.
+
+    A declaration can also be PERMANENT, which this docstring did not admit until 2026-09-20: a
+    branch may merge without ever writing the migration it reserved (0024, work/20260920-web-source-
+    gate). Renumbering the files above it is not an option — instruments, mutation rows and reports
+    name migrations by number — so the number is retired, the gap stays, and the line stays with it.
+    Nothing here treats the two cases differently; both are a `NNNN why` line and both are allowed.
     """
     p = Path(path or RESERVED_FILE)
     if not p.exists():

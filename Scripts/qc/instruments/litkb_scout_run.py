@@ -93,6 +93,11 @@ def _hunt_once(hunt, row, *, db, worktree, agent, session, spend):
         return False, "error", f"hunt returned {type(res).__name__}, not a dict", secs
     ok = bool(res.get("ok"))
     state = res.get("state") or res.get("refused") or ""
+    # a no-spend stop comes back as state `held` + outcome `held-no-spend`; the ledger records the
+    # DELIBERATE stop, not the rung it happens to be standing on (first run: nine `held` rows that
+    # were all no-spend stops, indistinguishable from a hunt that spent and found nothing)
+    if res.get("outcome") == "held-no-spend":
+        state = "held-no-spend"
     message = str(res.get("message") or "")
     # a title refusal carries the resolver's own verdict (`best=<src>:<ratio>:<doi>`) in
     # `resolver_detail`, outside `message`; without it the ledger says only "refused" and a
@@ -103,8 +108,16 @@ def _hunt_once(hunt, row, *, db, worktree, agent, session, spend):
     return ok, str(state), message[:500], secs
 
 
-def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=None, limit=None):
-    """Drive every drop-off in the manifest's workstream. -> (written, skipped, [row dicts])."""
+def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=None, limit=None,
+        retry=()):
+    """Drive every drop-off in the manifest's workstream. -> (written, skipped, [row dicts]).
+
+    ``retry``: states whose existing rows are hunted AGAIN and replaced in place — the deliberate
+    exception to the resume rule, for a state that names a transient condition rather than a
+    verdict. The first scout run (2026-09-20) had an arXiv drop-off answer `admission-refused`
+    because arXiv returned a 406 for two minutes; the same hunt admitted the work an hour later.
+    A ledger that could only be appended to would carry that 406 forever as the drop-off's
+    outcome. The replaced row is not lost: it is written to ``<csv>.retried`` first."""
     acc = _acceptance()
     db = manifest["db"]
     role = manifest.get("reader_role") or "litkb_reader"
@@ -127,6 +140,11 @@ def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=No
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     done = existing_rows(out)
+    retry = set(retry or ())
+    retried = [r for r in done if r.get("hunt_state_or_refusal") in retry]
+    if retried:
+        _append(Path(str(out) + ".retried"), retried, acc.RUN_CSV_COLUMNS)
+        done = [r for r in done if r.get("hunt_state_or_refusal") not in retry]
     seen = {str(r.get("hr_id", "")).strip() for r in done}
     written = list(done)
     n_new = 0
@@ -154,6 +172,17 @@ def run(manifest, out, *, hunt=None, rows=None, agent="scout-driver", session=No
     if not written:
         _write(out, written, acc.RUN_CSV_COLUMNS)      # the header alone, so the file always exists
     return n_new, len(done), written
+
+
+def _append(path, rows, columns):
+    """Append rows (header once) — the audit trail of rows a `--retry` replaced."""
+    new = not path.exists()
+    with open(path, "a", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(columns))
+        if new:
+            w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in columns})
 
 
 def _write(path, rows, columns):
@@ -185,10 +214,16 @@ def main(argv=None):
     ap.add_argument("--session", default=None)
     ap.add_argument("--limit", type=int, default=None,
                     help="stop after this many NEW hunts (a bounded first pass)")
+    ap.add_argument("--retry", default="",
+                    help="comma-separated states whose rows are hunted again and replaced "
+                         "(the replaced rows go to <csv>.retried); for transient conditions "
+                         "such as admission-refused after a registry 406, never for verdicts")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
     manifest = json.loads(Path(a.manifest).read_text(encoding="utf-8"))
     out = a.out or manifest["run_csv"]
-    n_new, n_skipped, rows = run(manifest, out, agent=a.agent, session=a.session, limit=a.limit)
+    retry = tuple(s.strip() for s in a.retry.split(",") if s.strip())
+    n_new, n_skipped, rows = run(manifest, out, agent=a.agent, session=a.session, limit=a.limit,
+                                 retry=retry)
     states = {}
     for r in rows:
         states[r["hunt_state_or_refusal"]] = states.get(r["hunt_state_or_refusal"], 0) + 1

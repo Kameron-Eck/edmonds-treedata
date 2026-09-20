@@ -792,13 +792,14 @@ def test_the_closed_vocabulary_matches_hunts_own(mod):
     """`CLOSED_STATES` stays pinned to `litkb.hunt.STATES`. If hunt gained a ladder state and this
     constant did not, every run carrying it would be refused as `unknown_states`."""
     pytest.importorskip("litkb", reason="litkb imports only with PYTHONPATH=pipeline")
-    from litkb.hunt import REF_REFUSALS, STATES
+    from litkb.hunt import HUNT_REFUSALS, REF_REFUSALS, STATES
     assert mod.CLOSED_STATES[:len(STATES)] == tuple(STATES)
     assert "error" not in mod.CLOSED_STATES
-    # pinned to hunt's own closed tuple, not to a list retyped here: the merge of the two S1
-    # builders found this constant one code short (`unknown-ref-scheme`)
-    assert set(mod.CLOSED_STATES) - set(STATES) == {"held-no-spend", *REF_REFUSALS}
-    assert len(mod.CLOSED_STATES) == len(STATES) + 1 + len(REF_REFUSALS)
+    # pinned to hunt's own closed tuples, not to a list retyped here: the merge of the two S1
+    # builders found this constant one code short (`unknown-ref-scheme`), and the first scout
+    # run found it ten short (every pre-S1 code, e.g. `admission-refused`)
+    assert set(mod.CLOSED_STATES) - set(STATES) == {"held-no-spend", *REF_REFUSALS, *HUNT_REFUSALS}
+    assert len(mod.CLOSED_STATES) == len(STATES) + 1 + len(REF_REFUSALS) + len(HUNT_REFUSALS)
 
 
 def test_the_required_field_set_is_the_eight_the_skill_names(mod):
@@ -904,6 +905,48 @@ def test_the_driver_keeps_the_resolvers_detail_in_the_message(driver, tmp_path):
     assert rows[0]["hunt_state_or_refusal"] == "ambiguous-title"
     assert "best=crossref:0.74:10.1/wrong" in rows[0]["message"]
     assert rows[0]["message"].startswith("gate 0 refused it")
+
+
+def test_the_driver_records_a_no_spend_stop_as_held_no_spend(driver, tmp_path):
+    """hunt reports a no-spend stop as state `held` + outcome `held-no-spend`; the ledger must
+    keep the deliberate stop (first run: nine indistinguishable `held` rows)."""
+    def hunt(ref, **kw):
+        return {"ok": True, "state": "held", "outcome": "held-no-spend", "message": "no spend"}
+
+    _w, _s, rows = driver.run(fake_manifest(tmp_path), tmp_path / "run.csv", hunt=hunt,
+                              rows=fake_rows(1))
+    assert rows[0]["hunt_state_or_refusal"] == "held-no-spend"
+
+
+def test_retry_rehunts_only_the_named_states_and_keeps_the_replaced_rows(driver, tmp_path):
+    """`--retry admission-refused` re-hunts exactly those rows, replaces them in place, and
+    writes the replaced rows to <csv>.retried; every other row is resumed untouched."""
+    import csv
+
+    calls = []
+
+    def first(ref, **kw):
+        calls.append(ref)
+        return ({"ok": False, "refused": "admission-refused", "message": "406"} if ref.endswith("1")
+                else {"ok": True, "state": "extracted"})
+
+    def second(ref, **kw):
+        calls.append(ref)
+        return {"ok": True, "state": "held", "outcome": "held-no-spend"}
+
+    out = tmp_path / "run.csv"
+    driver.run(fake_manifest(tmp_path), out, hunt=first, rows=fake_rows(3))
+    assert len(calls) == 3
+    # a plain rerun resumes everything — the 406 row included
+    driver.run(fake_manifest(tmp_path), out, hunt=second, rows=fake_rows(3))
+    assert len(calls) == 3
+    n_new, n_done, rows = driver.run(fake_manifest(tmp_path), out, hunt=second, rows=fake_rows(3),
+                                     retry=("admission-refused",))
+    assert calls[3:] == ["10.1/1"] and (n_new, n_done) == (1, 2)
+    by = {r["hr_id"]: r["hunt_state_or_refusal"] for r in rows}
+    assert by == {"hr-0": "extracted", "hr-1": "held-no-spend", "hr-2": "extracted"}
+    kept = list(csv.DictReader(open(str(out) + ".retried", encoding="utf-8")))
+    assert [(r["hr_id"], r["hunt_state_or_refusal"]) for r in kept] == [("hr-1", "admission-refused")]
 
 
 def test_the_driver_never_spends_even_when_the_manifest_omits_the_key(driver, tmp_path):

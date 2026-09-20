@@ -1153,6 +1153,18 @@ def _hunt_request_add(ref, ref_scheme, expected_claim, why_relevant, abstract_pa
                                           "gap_question does this on demand; this tool does not).")
         gap_id = row[0]
     with _conn("writer") as conn:
+        # BEGIN guard: the drop-off presents the workstream token
+        # Above the state check, so that check tells a caller who cannot present the token nothing
+        # about the workstream — the same order as `_record_use` and `_brief`.
+        _require_token(conn, ws_id, token)
+        # END guard: the drop-off presents the workstream token
+        # BEGIN guard: a drop-off is recorded into an OPEN workstream
+        # `litkb.record_hunt_request` refuses a non-open workstream with a PL/pgSQL RAISE, which
+        # `_guarded` turns into `refused: error` carrying the database's raw sentence — the shape
+        # the operational referee's R-1 is about, and the one an unattended loop cannot act on.
+        # The RAISE stays where it is: it is the enforcement. This is the refusal a caller reads.
+        _require_open(conn, ws_id)
+        # END guard: a drop-off is recorded into an OPEN workstream
         hr_id = hunt_request.record(conn, ws_id, token, ref=ref, ref_scheme=ref_scheme,
                                     expected_claim=expected_claim, why_relevant=why_relevant,
                                     abstract_passage=abstract_passage or None,

@@ -498,6 +498,49 @@ def test_h_a_stale_token_file_refuses_search_and_names_the_file(kb):
     assert gone not in json.dumps(r), "the refusal named the workstream"
 
 
+# ── (j) the drop-off tool obeys the same two rules ────────────────────────────────────────
+
+@pg_only
+def test_j_hunt_request_add_refuses_a_merged_workstream_and_presents_its_token(kb):
+    """MUTATION ROWS (W14, W15). `litkb_hunt_request_add` is the loop's FIRST write — the drop-off
+    a review agent makes before any full text exists. On a merged workstream it reached
+    `litkb.record_hunt_request`, whose PL/pgSQL RAISE arrived as `refused: error` carrying the
+    database's raw sentence: the operational referee's R-1 shape, which an unattended loop cannot
+    act on (auditor-2a2). It now refuses like the other four, and names the file.
+
+    The forged-token half is here rather than in a row of its own because it is the same two lines
+    in the other order: without the token check the state check answers first, and a caller who
+    cannot present the token is told that the workstream is merged."""
+    from litkb import workstream
+
+    env = env_at(kb, "A")
+    first = _mcp([("litkb_hunt_request_add", {
+        "ref": f"10.5555/open-{uuid.uuid4().hex[:8]}", "ref_scheme": "doi",
+        "expected_claim": "leaf-off phenology dominates two-date canopy change",
+        "why_relevant": "the label-error argument this workstream is testing"})], env)[0]
+    assert first["ok"], ("an OPEN workstream cannot drop off a hunt request", first)
+    kb["conn"].execute("UPDATE litkb.workstreams SET state = 'merged', closed_at = now(), "
+                       "merge_commit = %s WHERE id = %s",
+                       (uuid.uuid4().hex + uuid.uuid4().hex[:8], kb["ws"]["A"]))
+    drop = {"ref": f"10.5555/merged-{uuid.uuid4().hex[:8]}", "ref_scheme": "doi",
+            "expected_claim": "anything at all", "why_relevant": "tests the state gate"}
+    after = _mcp([("litkb_hunt_request_add", drop)], env)[0]
+    assert after["ok"] is False, after
+    assert after["refused"] == "workstream-not-open", \
+        ("the database's raw RAISE is still the refusal a caller reads", after)
+    assert ".litkb-workstream" in after["message"], after["message"]
+    forged = _git_worktree(kb["tmp"] / "forged-hr")
+    (forged / workstream.TOKEN_FILE).write_text(
+        json.dumps({"workstream_id": kb["ws"]["A"], "token": "0" * 64}), encoding="utf-8")
+    bad = _mcp([("litkb_hunt_request_add", drop)],
+               dict(kb["env"], LITKB_WORKTREE=str(forged)))[0]
+    assert bad["ok"] is False and bad["refused"] == "bad-token", bad
+    assert "merged" not in json.dumps(bad), ("a forged token was told the workstream's state", bad)
+    assert kb["conn"].execute(
+        "SELECT count(*) FROM litkb.hunt_requests WHERE workstream_id = %s",
+        (kb["ws"]["A"],)).fetchone()[0] == 1, "a refused drop-off was written"
+
+
 # ── (i) the quote path presents the token BEFORE it widens ────────────────────────────────
 
 @pg_only

@@ -1211,6 +1211,17 @@ block("W13", f"{PKG}/mcp/server.py", "guard: candidates reads an OPEN workstream
       "litkb_candidates keeps listing a merged workstream's discovery log, so a finished worktree "
       "reads as a live one at the tool a loop uses to decide what is left to acquire",
       tests=TESTS_WEB)
+# W14-W15: the same two rules at the loop's FIRST write. A drop-off into a merged workstream
+# reached litkb.record_hunt_request and came back as the PL/pgSQL RAISE, shaped `refused: error`
+# (auditor-2a2) — the operational referee's R-1 shape, which an unattended loop cannot act on.
+block("W14", f"{PKG}/mcp/server.py", "guard: a drop-off is recorded into an OPEN workstream",
+      "litkb_hunt_request_add answers a merged workstream with the database's raw RAISE again, as "
+      "`refused: error` — the loop's first write is the one place a bad refusal shape stops it "
+      "before anything else has been tried", tests=TESTS_WEB)
+site("W15", "litkb/mcp/server.py::_hunt_request_add::_require_token", "None", tests=TESTS_WEB,
+     what="the drop-off stops presenting the token before the STATE check, so the state check "
+          "answers first and a caller who cannot present the token is told the workstream is "
+          "merged — the F-1 disclosure, in the order the two guards are written")
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
@@ -1643,6 +1654,172 @@ def sink_check(verbose=True):
         for p in problems:
             print("  PROBLEM " + p)
     return not problems, rows
+
+
+# ── the structural guard: every VISIBILITY WIDENING sits behind the token and state checks ─
+# Auditor-2a2's finding, and the reason the per-call-site rule alone was not enough here. That rule
+# censuses calls of HELPERS names — so it asks "is every _require_token call mutation-covered?" and
+# answers yes while a NEW query that binds `ws` into litkb.visibility.FILE_JOIN with no token check
+# at all passes in silence. The census enumerated the guard, not the thing guarded. This scan
+# enumerates the THING GUARDED: every place under Scripts/pipeline/litkb that names FILE_JOIN or
+# binds the `ws` parameter that grants the widening.
+#
+# It is the same shape as the sink scan: syntactic, and honest about it. It cannot follow a ws id
+# from the resolver that checked it into the function that binds it, so a site whose guard is one
+# frame up is named HERE with a written reason, and the reason is checked as far as it can be (the
+# named resolver must itself call _require_token and is_open). What the scan does enforce without
+# help is the kill: a new binding in a function with no guard above it, and no row here, FAILS.
+VIS_MARKER = "FILE_JOIN"          #: the predicate
+VIS_PARAM = "ws"                  #: the query parameter that GRANTS the widening
+VIS_GUARDS = ("_require_token", "_require_open")
+VIS_RESOLVER_GUARDS = ("_require_token", "is_open")
+
+#: site -> (how it is guarded, why that is enough). Modes:
+#:   "in-function"      both guards are called in this function, above the binding (the scan proves it)
+#:   "resolver:<name>"  the ws comes from that resolver, which presents the token and checks the state
+#:   "definition"       the predicate's own text, executed by nobody
+#:   "constant"         a module-level string built from it, executed by nobody
+#:   "caller-supplied"  a library function whose caller supplies ws — named, with what its callers do
+VIS_LEDGER = {
+    "litkb/visibility.py::<module>": ("definition",
+        "FILE_JOIN's own assignment. The module holds the predicate and is_open and executes "
+        "neither; every reader of it is a row below."),
+    "litkb/mcp/server.py::<module>": ("constant",
+        "_BLOCK_FROM, the f-string that interpolates the predicate into the three search-leg "
+        "statements. A string at import time binds no parameters and runs no query; the statements "
+        "built from it are executed in _leg, which is the row below."),
+    "litkb/mcp/server.py::_leg": ("resolver:_caller_workstream",
+        "the block legs' ws is _search's, and _search resolves it once through _caller_workstream "
+        "— which returns None for a tree with no token file, refuses on a bad token, and narrows "
+        "to main for a workstream that is not open. _leg itself is handed the answer."),
+    "litkb/mcp/server.py::_record_use": ("in-function",
+        "the quote path presents the token and checks the state itself, above the block lookup "
+        "(rows W11 and W9). It is the site that did NOT, for one day, and the reason this scan "
+        "exists."),
+    "litkb/use.py::locate_quote": ("caller-supplied",
+        "a library function: ws is a parameter, default None, and it holds no session to check a "
+        "token against. Its callers are the CLI's cmd_use (passes none — main only) and this "
+        "test's row (f). Any NEW caller that passes a ws must carry the guards itself, and the "
+        "call-site rule sees it there."),
+}
+
+
+def vis_sites_of_text(text, rel):
+    """vis_sites() for ONE module's source -> {site_id: {"binds", "guards", "ok"}}.
+
+    A BIND is a reference to FILE_JOIN or a `ws` key written into a parameter dict — `{"ws": x}` or
+    `args["ws"] = x`. A site is OK when both guards are called in the same function ABOVE the first
+    bind; ordering is by line, because a guard below the query it is meant to protect is not one."""
+    tree = ast.parse(text)
+    out, stack = {}, []
+
+    def entry():
+        return out.setdefault(f"{rel}::{'.'.join(stack) or '<module>'}",
+                              {"file": rel, "binds": set(), "guards": {}})
+
+    class V(ast.NodeVisitor):
+        def visit_FunctionDef(self, n):
+            stack.append(n.name)
+            self.generic_visit(n)
+            stack.pop()
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_Attribute(self, n):
+            if n.attr == VIS_MARKER:
+                entry()["binds"].add(n.lineno)
+            self.generic_visit(n)
+
+        def visit_Name(self, n):
+            if n.id == VIS_MARKER:
+                entry()["binds"].add(n.lineno)
+            self.generic_visit(n)
+
+        def visit_Dict(self, n):
+            if any(isinstance(k, ast.Constant) and k.value == VIS_PARAM for k in n.keys):
+                entry()["binds"].add(n.lineno)
+            self.generic_visit(n)
+
+        def visit_Subscript(self, n):
+            if (isinstance(n.slice, ast.Constant) and n.slice.value == VIS_PARAM
+                    and isinstance(n.ctx, ast.Store)):
+                entry()["binds"].add(n.lineno)
+            self.generic_visit(n)
+
+        def visit_Call(self, n):
+            name = _dotted(n.func).split(".")[-1]
+            if name in set(VIS_GUARDS) | set(VIS_RESOLVER_GUARDS):
+                g = entry()["guards"]
+                g[name] = min(g.get(name, n.lineno), n.lineno)
+            self.generic_visit(n)
+    V().visit(tree)
+    for info in out.values():
+        first = min(info["binds"]) if info["binds"] else None
+        info["ok"] = bool(info["binds"]) and all(
+            info["guards"].get(g) is not None and info["guards"][g] < first for g in VIS_GUARDS)
+    return {sid: i for sid, i in out.items() if i["binds"]}
+
+
+def vis_sites(root=None):
+    """Every visibility-widening site under Scripts/pipeline/litkb (or `root`, for the probe)."""
+    root = Path(root or (SCRIPTS / PKG))
+    out = {}
+    for p in sorted(root.rglob("*.py")):
+        text = p.read_text(encoding="utf-8")
+        if VIS_MARKER in text or "visibility" in text:
+            out |= vis_sites_of_text(text, p.relative_to(root.parent).as_posix())
+    return out
+
+
+def vis_check(verbose=True, root=None, ledger=None):
+    """-> (ok, rows), one row per widening site. The kill: a bind with no guard and no ledger row."""
+    ledger = VIS_LEDGER if ledger is None else ledger
+    sites, problems, rows = vis_sites(root), [], []
+    for sid in sorted(ledger):
+        if sid not in sites:
+            problems.append(f"{sid}: in the ledger but no longer binds the predicate "
+                            "(renamed or removed?) — drop the row")
+    for sid, info in sorted(sites.items()):
+        mode, why = ledger.get(sid, (None, None))
+        if mode is None:
+            problems.append(f"{sid}: binds {VIS_MARKER}/{VIS_PARAM} at line(s) "
+                            f"{sorted(info['binds'])} with no {' + '.join(VIS_GUARDS)} above it, "
+                            "and no row in VIS_LEDGER")
+        elif mode == "in-function" and not info["ok"]:
+            problems.append(f"{sid}: VIS_LEDGER says the guards are in this function, and they are "
+                            f"not above the bind (guards {info['guards']}, binds "
+                            f"{sorted(info['binds'])})")
+        elif mode.startswith("resolver:"):
+            res = f"{info['file']}::{mode.split(':', 1)[1]}"
+            g = sites.get(res, {}).get("guards", {}) or _vis_guards_of(info["file"], mode.split(":", 1)[1], root)
+            missing = [x for x in VIS_RESOLVER_GUARDS if x not in g]
+            if missing:
+                problems.append(f"{sid}: its resolver {res} does not call {missing}")
+        elif mode in ("definition", "constant", "caller-supplied") and not why:
+            problems.append(f"{sid}: ledgered {mode} with no reason")
+        rows.append((sid, sorted(info["binds"]), info["ok"], mode))
+    if verbose:
+        print(f"\n{'visibility widening site':<52} {'binds':<14} guarded")
+        for sid, binds, ok, mode in rows:
+            print(f"{sid:<52} {str(binds):<14} "
+                  f"{'in-function' if ok else 'LEDGER: ' + (mode or 'NOTHING')}")
+        print(f"\n{len(rows)} widening sites, {sum(1 for r in rows if r[2])} guarded in-function")
+        for p in problems:
+            print("  PROBLEM " + p)
+    return not problems, rows
+
+
+def _vis_guards_of(rel, func, root=None):
+    """The guard calls inside one function, for a resolver that binds nothing itself."""
+    root = Path(root or (SCRIPTS / PKG))
+    p = root.parent / rel
+    if not p.exists():
+        return {}
+    tree = ast.parse(p.read_text(encoding="utf-8"))
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == func:
+            return {_dotted(c.func).split(".")[-1]: c.lineno for c in ast.walk(n)
+                    if isinstance(c, ast.Call)}
+    return {}
 
 
 def sites_of_text(text, rel):

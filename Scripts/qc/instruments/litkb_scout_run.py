@@ -163,18 +163,27 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="resolve every scout drop-off through hunt, one CSV "
                                              "row each (no spend)")
     ap.add_argument("--manifest", required=True, help="the manifest frozen before the scout run")
-    ap.add_argument("--out", required=True, help="the run CSV (Reports/LITKB_SCOUT_RUN_<date>.csv)")
+    # DEFAULTS TO THE MANIFEST'S OWN `run_csv`, and that is the point. The freeze names the CSV
+    # after the FREEZE DATE, and the acceptance checker reads the manifest's path. A recipe that
+    # spelled the date out here would put the rows in one file and look for them in another the
+    # first time a run crossed midnight — every drop-off scoring `missing_hunt_results`, a false
+    # red produced by the recipe rather than by the run. Passing --out still works, for a replay
+    # into a scratch file; the acceptance command then needs --csv to match.
+    ap.add_argument("--out", default=None,
+                    help="the run CSV (default: the manifest's own run_csv, which is what the "
+                         "acceptance command reads)")
     ap.add_argument("--agent", default="scout-driver")
     ap.add_argument("--session", default=None)
     ap.add_argument("--limit", type=int, default=None,
                     help="stop after this many NEW hunts (a bounded first pass)")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
     manifest = json.loads(Path(a.manifest).read_text(encoding="utf-8"))
-    n_new, n_skipped, rows = run(manifest, a.out, agent=a.agent, session=a.session, limit=a.limit)
+    out = a.out or manifest["run_csv"]
+    n_new, n_skipped, rows = run(manifest, out, agent=a.agent, session=a.session, limit=a.limit)
     states = {}
     for r in rows:
         states[r["hunt_state_or_refusal"]] = states.get(r["hunt_state_or_refusal"], 0) + 1
-    print(f"hunted={n_new} resumed={n_skipped} rows={len(rows)} out={a.out}")
+    print(f"hunted={n_new} resumed={n_skipped} rows={len(rows)} out={out}")
     print(" ".join(f"{k}={v}" for k, v in sorted(states.items())))
     return 0
 

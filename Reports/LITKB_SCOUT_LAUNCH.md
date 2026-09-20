@@ -110,6 +110,10 @@ CLI exits with `When using --print, --output-format=stream-json requires --verbo
 shape below was run once as a 1-turn probe that wrote nothing, and the resulting log scored
 `read_log -> (0, 1, [])` — zero human-input events, a stated reason.
 
+Paths are the MAIN tree's throughout. The worktree this was built in
+(`D:\edmonds-pipeline\wt-s1b`) is disposed of after the merge, and a tracked recipe naming a
+checkout that no longer exists is worse than no recipe.
+
 ```
 cd D:\edmonds-pipeline\treedata
 
@@ -117,8 +121,8 @@ py -3.12 Scripts\qc\instruments\litkb_acceptance.py scout --freeze ^
     --workstream scout-1 ^
     --topic "<TOPIC>" ^
     --launch-cmd "<the claude command below, verbatim>" ^
-    --log D:\edmonds-pipeline\wt-s1b\_derived\scout\scout-1.jsonl ^
-    --out D:\edmonds-pipeline\wt-s1b\_derived\scout\scout-1-manifest.json
+    --log D:\edmonds-pipeline\treedata\_derived\scout\scout-1.jsonl ^
+    --out D:\edmonds-pipeline\treedata\_derived\scout\scout-1-manifest.json
 
 claude -p "<the template in Scripts\docs\LITKB_SCOUT_PROMPT.md, TOPIC and SLUG substituted>" ^
     --agent lit-scout ^
@@ -126,15 +130,21 @@ claude -p "<the template in Scripts\docs\LITKB_SCOUT_PROMPT.md, TOPIC and SLUG s
     --mcp-config Scripts\qc\fixtures\mcp_scout.json --strict-mcp-config ^
     --output-format stream-json --verbose ^
     --max-turns 60 ^
-    > D:\edmonds-pipeline\wt-s1b\_derived\scout\scout-1.jsonl
+    > D:\edmonds-pipeline\treedata\_derived\scout\scout-1.jsonl
 
 py -3.12 Scripts\qc\instruments\litkb_scout_run.py ^
-    --manifest D:\edmonds-pipeline\wt-s1b\_derived\scout\scout-1-manifest.json ^
-    --out Reports\LITKB_SCOUT_RUN_2026-09-20.csv
+    --manifest D:\edmonds-pipeline\treedata\_derived\scout\scout-1-manifest.json
 
 py -3.12 Scripts\qc\instruments\litkb_acceptance.py scout ^
-    --manifest D:\edmonds-pipeline\wt-s1b\_derived\scout\scout-1-manifest.json
+    --manifest D:\edmonds-pipeline\treedata\_derived\scout\scout-1-manifest.json
 ```
+
+The `--freeze` writes `_derived\scout\` before the redirect needs it, so the order above is the
+order to run them in. **The driver takes no `--out`**: it defaults to the manifest's own
+`run_csv`, which the freeze named after the FREEZE DATE and which the acceptance command reads.
+Spelling the date out here would put the rows in one file and look for them in another the first
+time a run crossed midnight — every drop-off scoring `missing_hunt_results`, a false red produced
+by the recipe rather than by the run.
 
 Notes on the choices, each of which is a choice:
 

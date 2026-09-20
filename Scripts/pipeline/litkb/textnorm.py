@@ -1,4 +1,4 @@
-"""The ONE Python normalisation of DOIs and session/agent labels. The database is the authority
+"""The ONE Python normalisation of DOIs, session/agent labels and line endings. The database is the authority
 (litkb.norm_identifier and litkb.norm_label, migration 0014); these functions must return exactly what those
 return, and qc/test_litkb_p2.py drives both over the shared table qc/testdata/litkb_p2/doi_forms.csv and over
 every invisible code point below (referee fixes D1 and D7, Reports/LITKB_P2_REFEREE_2026-09-14.md).
@@ -6,6 +6,11 @@ every invisible code point below (referee fixes D1 and D7, Reports/LITKB_P2_REFE
     normalize_doi(" https://www.doi.org/10.1890/0012-9658(1998)079[2032:RFFATD]2.0.CO;2/ ")
         -> "10.1890/0012-9658(1998)079[2032:rffatd]2.0.co;2"
     norm_label("sess-admit ") -> "sess-admit"
+    canonical_newlines("a line\\r\\nand more") -> "a line\\nand more"
+
+`canonical_newlines` is the exception to "the database is the authority": it has no litkb.* twin to agree
+with, because its database side is written inline in one query (litkb/review_check.py::_BLOCK_SQL) rather
+than in a migration. Its own docstring names the single test that binds the two.
 
 Invisible characters: every code point that Python 3.12 (Unicode 15.0) classes as whitespace (str.isspace) or
 as category Zs, Zl, Zp or Cf — NBSP, zero-width space/joiners, BOM, bidi marks, tag characters. They are REMOVED
@@ -30,6 +35,37 @@ _INVISIBLE = re.compile("[" + "".join(
     re.escape(chr(a)) if a == b else f"{re.escape(chr(a))}-{re.escape(chr(b))}" for a, b in INVISIBLE_RANGES) + "]")
 _ASCII_LOWER = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
 _DOI_TAIL = re.compile(r"[/.,;:]+$")
+#: One LINE ENDING -> one "\n". `\r\n` is ONE ending, a lone `\r` is one, `\n` is already one.
+#: Deliberately NOT a collapse of consecutive endings: see canonical_newlines.
+_LINE_ENDING = re.compile(r"\r\n|\r")
+
+
+def canonical_newlines(s):
+    """`s` with every line ENDING written as a single "\\n" -- the one newline canonicalisation
+    litkb uses when it compares a review's quote with a block's stored text (2026-09-20).
+
+    Measured on the 2026-09-19 corpus: 48.9 % of current-run blocks contain `\\r\\n` and 7 of the
+    8 verified spans the project holds cross one, so a byte-exact comparison against the review
+    file's bytes made almost every existing verified quote unquotable -- it could only match if
+    an LLM writer emitted a raw CR, which nobody has ever observed. The fix is to make the LINE
+    ENDING ENCODING canonical on BOTH sides and nothing else: every non-newline byte, its order,
+    and the NUMBER of line breaks are preserved exactly, so a match still means the reader did
+    not rewrite the paper.
+
+    `\\r\\n` -> `\\n`, `\\r` -> `\\n`, `\\n` -> `\\n`. It is NOT a run collapse: `"a\\r\\n\\r\\nb"`
+    becomes `"a\\n\\nb"`, never `"a\\nb"`. Collapsing runs would let a quote silently join two
+    paragraphs of the stored block, which is a change of CONTENT, not of encoding.
+
+    The database side of the same rule is the inline `replace(replace(b.text, chr(13)||chr(10),
+    chr(10)), chr(13), chr(10))` in `litkb/review_check.py::_BLOCK_SQL` -- Postgres's own
+    `position()` keeps the substring test (the module docstring there says why it is not
+    re-implemented in Python). The two are bound by
+    `qc/test_litkb_review_check.py::test_the_sql_and_python_newline_canonicalisations_agree`,
+    which is the ONLY thing that binds them: there is no migration to share.
+    """
+    # BEGIN guard: a line ending is canonicalised to "\n", and nothing else is normalised
+    return None if s is None else _LINE_ENDING.sub("\n", str(s))
+    # END guard: a line ending is canonicalised to "\n", and nothing else is normalised
 
 
 def norm_label(s):

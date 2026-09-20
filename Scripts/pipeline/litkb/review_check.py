@@ -45,6 +45,13 @@ WHAT IS ASKED OF THE DATABASE, AND WHY IT IS NOT RE-IMPLEMENTED HERE
     file's CURRENT run only) and, behind that, migration 0007's trigger, which re-reads the block
     at `[char_start, char_end)` and sets `quote_verified`. A Python `in` over a string this module
     fetched would be a third copy of that rule and the one that goes stale (CLAUDE.md 3.3).
+    ONE thing is canonicalised before that comparison, on BOTH sides: the LINE ENDING encoding
+    (`textnorm.canonical_newlines`, and `_CANON_TEXT` for the block). 48.9 % of current-run blocks
+    carry `\r\n` and 7 of the project's 8 verified spans cross one, so the rule "quote within one
+    stored line" truncated almost every existing verified quote -- once to 33 characters that
+    assert nothing -- and the only alternative it left was an LLM writer emitting a raw CR byte,
+    which nobody has ever observed. Content still has to match byte for byte; only the encoding of
+    a line break may differ (LITKB_REVIEW_GRAMMAR.md §2).
   * **Whether the quoted span is the span anyone VERIFIED** is `_verified_span_findings`, and it
     is the difference between K1 as written and K1 as it was first implemented. Being inside the
     block is not enough: a block is a whole paragraph, so a citation verified for its first
@@ -66,6 +73,8 @@ That judgement is a reader's, and the grammar doc says so in those words.
 """
 import re
 import uuid
+
+from litkb.textnorm import canonical_newlines
 
 #: `[work_key p.N #block_id]` -- the one citation form (LITKB_REVIEW_GRAMMAR.md §2).
 CITATION_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9_.:+-]*) p\.(\d+) #([0-9a-fA-F][0-9a-fA-F-]*)\]")
@@ -97,6 +106,15 @@ EXPECTATIONS_HEADING = "expectations not supported"
 SOURCES_HEADING = "sources"
 MUST_DISCLOSE = ("contradicted", "unconfirmed")
 NOTICE_DISCLOSE = ("open",)
+#: The shortest quote that may carry a claim, in CANONICALISED characters. See
+#: `_quote_length_findings`: below this the quote is a fragment inside almost every verified span.
+#: The corpus number behind the choice: verified spans run 83-295 characters (median 150), and the
+#: longest newline-free run inside a paragraph block has median 68 -- so 25 refuses the degenerate
+#: end without reaching anything a writer would legitimately quote.
+MIN_QUOTE_CHARS = 25
+#: The longest deep heading that is still a LABEL rather than an assertion, in words. See
+#: `_deep_heading_findings`.
+HEADING_LABEL_WORDS = 6
 
 
 class ReviewGrammarError(SystemExit):
@@ -157,7 +175,8 @@ def citations(text):
 
 
 def sections(text):
-    """[(heading-lowercased, first line no, [(line no, line)], [fence-open line no])].
+    """[(heading-lowercased, first line no, [(line no, line)], [fence-open line no],
+        [(line no, heading text)])].
 
     Split on `##` and deeper. The preamble (before any `##`) is heading "". A deeper heading does
     NOT open a new section: `### Method` inside a claim section stays inside it, so no writer can
@@ -166,8 +185,15 @@ def sections(text):
     Fenced lines are not returned as prose -- a code fence is not a paragraph -- but the line each
     fence OPENS on is, because dropping a fence silently is what let a claim section hold
     assertions no guard could see (`fenced-in-claims`, `_fenced_findings`).
+
+    THE FIFTH ELEMENT is every OTHER `#`-prefixed line of the section: `###` and deeper, and also
+    a `#`-with-no-space line, which is not a heading to a markdown renderer at all. They are kept
+    apart from prose rather than dropped, because dropping them was the same class of hole as the
+    fence: the docstring above is true of the PARAGRAPH under a demoted heading and was false of
+    the HEADING TEXT ITSELF, so `### Edmonds lost four fifths of its canopy` was never graded
+    (auditor-3b-stage8-fixes.md §1.9, measured). `_deep_heading_findings` grades them.
     """
-    out = [("", 1, [], [])]
+    out = [("", 1, [], [], [])]
     fenced = False
     for i, raw in enumerate(text.splitlines(), start=1):
         if raw.startswith("## "):
@@ -179,14 +205,17 @@ def sections(text):
             # line inside a genuine code block is the price, and it costs a false FAIL, never a
             # false pass: that fence's closing ``` then OPENS one inside the claim section.
             fenced = False
-            out.append((raw[3:].strip().rstrip("#").strip().lower(), i, [], []))
+            out.append((raw[3:].strip().rstrip("#").strip().lower(), i, [], [], []))
             continue
         if raw.lstrip().startswith("```"):
             if not fenced:
                 out[-1][3].append(i)
             fenced = not fenced
             continue
-        if fenced or raw.startswith("#"):
+        if fenced:
+            continue
+        if raw.startswith("#"):
+            out[-1][4].append((i, raw.lstrip("#").strip().rstrip("#").strip()))
             continue
         out[-1][2].append((i, raw))
     return out
@@ -299,7 +328,8 @@ def _location_findings(c, row):
 
 def _verbatim_findings(c, row):
     """RC2. The span the citation carries is VERBATIM in that block's own text -- the database's
-    own `position()` over the block bytes, the rule use.locate_quote and migration 0007 apply."""
+    own `position()` over the block bytes, the rule use.locate_quote and migration 0007 apply,
+    with the line ENDING encoding canonicalised on both sides (see `_block_row`)."""
     # BEGIN guard: the quoted span is verbatim in the cited block's text
     if not c["quote"]:
         return [_f(c["line"], "citation-without-quote",
@@ -333,16 +363,112 @@ def _verified_span_findings(c, brief_spans):
     the span migration 0007's trigger re-read and marked `quote_verified`. A triple absent from
     the map is `not-in-brief`'s business, not this guard's: the two name different defects (no
     evidence at all on that block, versus evidence that does not cover these words).
+
+    CONTAINMENT IS TESTED ON THE CANONICALISED SPAN TEXT, not on the block with offsets mapped.
+    Both are available; this one is the one whose correctness is a one-line argument.
+    `canonical_newlines` rewrites line ENDINGS and nothing else, so it preserves every
+    non-newline character, their order, and the number of breaks -- therefore
+    `canon(quote) in canon(span)` holds exactly when the quote and that part of the span agree on
+    every character and every break POSITION and differ only in how the breaks are ENCODED. The
+    offset route would have had to map `char_start`/`char_end` through a length-changing rewrite
+    of the block, which is more code for the same answer and a place for an off-by-one to hide.
     """
     # BEGIN guard: the quoted span lies inside a span the brief VERIFIED, not merely inside the block
     spans = brief_spans.get((c["work_key"], c["page"], c["block_id"]))
-    if spans is not None and not (c["quote"] and any(c["quote"] in s for s in spans)):
+    quote = canonical_newlines(c["quote"])
+    if spans is not None and not (quote and any(quote in canonical_newlines(s) for s in spans)):
         return [_f(c["line"], "quote-not-verified-span",
                    f"{c['raw']}: the quoted span is not inside any VERIFIED span of this block "
                    "-- it may be in the block, but no promotable use_evidence row covers these "
                    "words, so nothing verified them")]
     # END guard: the quoted span lies inside a span the brief VERIFIED, not merely inside the block
     return []
+
+
+def _quote_length_findings(c):
+    """RC11. A citation's quote must be long enough to be evidence of something.
+
+    Measured on the fixed grader (auditor-3b-stage8-fixes.md §1.6): `" "` -- a single space --
+    is a substring of essentially every verified span, so one space plus a real citation token
+    satisfied every byte-exact guard in this file, under any claim at all. `'C'`, `'by'` and
+    `' '` all passed under the invented claim *"Edmonds lost four fifths of its canopy and every
+    conifer died"*. Length is not fidelity, and no threshold makes a quote support a sentence
+    (that is grammar §7's disclosure and always will be); what it does is close the degenerate
+    end, where the quote carries no information at all.
+
+    The floor is on the CANONICALISED quote, so a line break costs one character and not two --
+    the same text may not pass or fail on which machine wrote the file.
+    """
+    # BEGIN guard: a citation's quote is long enough to carry information
+    q = canonical_newlines(c["quote"]) or ""
+    if q and len(q) < MIN_QUOTE_CHARS:
+        return [_f(c["line"], "quote-too-short",
+                   f"{c['raw']}: the quote is {len(q)} character(s), under the {MIN_QUOTE_CHARS} "
+                   f"this grammar requires ({q!r}). A fragment that short is inside almost every "
+                   "verified span and is evidence of nothing; quote the words that carry the "
+                   "claim")]
+    # END guard: a citation's quote is long enough to carry information
+    return []
+
+
+def _duplicate_section_findings(text):
+    """RC12. A non-claim section name may appear ONCE in the document.
+
+    `NON_CLAIM` is matched per heading OCCURRENCE, so a second `## Scope` anywhere turned
+    everything after it into unpoliced prose until the next heading -- the writer did not even
+    have to move its claims up into the section a reader inspects, it could open a fresh `##
+    Scope` under its findings and keep writing (auditor-3b-stage8-fixes.md §1.7, measured: a
+    document with uncited claims under a second `## Scope` returned 0 findings). Grammar §1 says
+    the four non-claim sections are a closed set of NAMES; this is what makes each a single
+    section as well.
+
+    Only the non-claim names are policed. Two claim sections may share a name: both are graded,
+    so nothing hides in the second one.
+    """
+    out = []
+    # BEGIN guard: a non-claim section name opens at most once in the document
+    seen = {}
+    for heading, hl, _lines, _fences, _deep in sections(text):
+        if not heading or heading not in NON_CLAIM:
+            continue
+        if heading in seen:
+            out.append(_f(hl, "duplicate-section",
+                          f"'## {heading}' opens again at line {hl} (already open at line "
+                          f"{seen[heading]}): a non-claim section is where K1 cannot look, so a "
+                          "second one re-opens that blind spot below the findings"))
+        else:
+            seen[heading] = hl
+    # END guard: a non-claim section name opens at most once in the document
+    return out
+
+
+def _deep_heading_findings(text):
+    """RC13. A `###`-or-deeper heading in a claim section is graded like any other unit.
+
+    `sections` dropped every `#`-prefixed line before a unit was formed, so a section heading --
+    the most natural place for a model to put a summary assertion ("### Canopy fell by 11
+    percent, 2000-2020") -- was never graded at all, and neither was a `#Edmonds lost...` line,
+    which is not a heading to a renderer either (auditor-3b-stage8-fixes.md §1.9, both measured
+    as PASS). Same class as the fence: text dropped before K1 could see it.
+
+    A heading of `MIN`-or-fewer words is exempt, because a heading that short is a LABEL for the
+    section under it ("### Method", "### 2005-2012") and cannot carry a finding. Above that, it
+    asserts, and an assertion carries a citation wherever it sits.
+    """
+    out = []
+    # BEGIN guard: a deep heading in a claim section asserts nothing without a citation
+    for heading, _hl, _lines, _fences, deep in sections(text):
+        if heading in NON_CLAIM:
+            continue
+        for no, txt in deep:
+            if len(txt.split()) <= HEADING_LABEL_WORDS or CITATION_RE.search(txt):
+                continue
+            out.append(_f(no, "uncited-heading",
+                          f"a heading in claim section '{heading}' asserts without a citation: "
+                          f"{txt[:90]!r}. A heading of more than {HEADING_LABEL_WORDS} words is a "
+                          "finding, not a label: cite it, shorten it, or write it as a sentence"))
+    # END guard: a deep heading in a claim section asserts nothing without a citation
+    return out
 
 
 def _claim_findings(text):
@@ -357,7 +483,7 @@ def _claim_findings(text):
     """
     out = []
     # BEGIN guard: K1 -- every claim sentence carries a citation, and no citation sits in a non-claim section
-    for heading, _hl, lines, _fences in sections(text):
+    for heading, _hl, lines, _fences, _deep in sections(text):
         body = units(lines)
         if heading in NON_CLAIM:
             for no, txt in body:
@@ -388,7 +514,7 @@ def _fenced_findings(text):
     """
     out = []
     # BEGIN guard: a fenced block inside a claim section is refused, never graded as absent
-    for heading, _hl, _lines, fences in sections(text):
+    for heading, _hl, _lines, fences, _deep in sections(text):
         if heading in NON_CLAIM:
             continue
         for no in fences:
@@ -411,7 +537,7 @@ def _expectation_findings(text, expected):
     """
     out = []
     # BEGIN guard: K2 -- the section exists and names every contradicted/unconfirmed expectation
-    found = [(h, hl, ls) for h, hl, ls, _fn in sections(text) if h == EXPECTATIONS_HEADING]
+    found = [(h, hl, ls) for h, hl, ls, _fn, _dp in sections(text) if h == EXPECTATIONS_HEADING]
     if not found:
         return [_f(1, "missing-expectations-section",
                    f"no '## {EXPECTATIONS_HEADING.title()}' section: K2 requires the review to "
@@ -460,7 +586,7 @@ def _sources_findings(text, cited_keys):
     uncited claim, but it is still a source the review did not use)."""
     out = []
     # BEGIN guard: every cited work key is listed in Sources, and Sources lists no work the body never cited
-    found = [(h, hl, ls) for h, hl, ls, _fn in sections(text) if h == SOURCES_HEADING]
+    found = [(h, hl, ls) for h, hl, ls, _fn, _dp in sections(text) if h == SOURCES_HEADING]
     if not found:
         return [_f(1, "missing-sources-section",
                    f"no '## {SOURCES_HEADING.title()}' section")]
@@ -498,8 +624,14 @@ def _malformed_findings(text, strict):
 # ── the database side ──────────────────────────────────────────────────────────────────────
 
 
-_BLOCK_SQL = """
-SELECT b.page_no, wk.key, coalesce(position(%(q)s in b.text) > 0, false)
+#: The block's own bytes with LINE ENDINGS canonicalised -- the database half of
+#: `textnorm.canonical_newlines`, written here because there is no migration to share it with, and
+#: bound to the Python half by test_the_sql_and_python_newline_canonicalisations_agree. CRLF first,
+#: then a lone CR, which is exactly the regex `\r\n|\r` the Python side substitutes.
+_CANON_TEXT = "replace(replace(b.text, chr(13)||chr(10), chr(10)), chr(13), chr(10))"
+
+_BLOCK_SQL = f"""
+SELECT b.page_no, wk.key, coalesce(position(%(q)s in {_CANON_TEXT}) > 0, false)
   FROM litkb.blocks b
   JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id
   JOIN litkb.ws_files wf ON wf.file_id = f.id AND wf.view_workstream_id = %(ws)s
@@ -511,12 +643,15 @@ SELECT b.page_no, wk.key, coalesce(position(%(q)s in b.text) > 0, false)
 
 def _block_row(conn, ws, block_id, quote):
     """The cited block as this workstream sees it, or None. The substring test is Postgres's
-    (`position`), on the block's own bytes -- see the module docstring."""
+    (`position`), on the block's own bytes with only their LINE ENDINGS canonicalised -- the
+    quote is canonicalised by the same rule before it is sent (`textnorm.canonical_newlines`),
+    so the two sides differ in nothing else. See the module docstring."""
     try:
         uuid.UUID(block_id)
     except ValueError:
         return None
-    row = conn.execute(_BLOCK_SQL, {"ws": ws, "bid": block_id, "q": quote or ""}).fetchone()
+    row = conn.execute(_BLOCK_SQL,
+                       {"ws": ws, "bid": block_id, "q": canonical_newlines(quote) or ""}).fetchone()
     return None if not row else {"page_no": row[0], "work_key": row[1], "quote_in_block": row[2]}
 
 
@@ -573,8 +708,11 @@ def check(conn, path_or_text, *, is_text=False, k2_workstream=None):
         out += _verbatim_findings(c, row)
         out += _in_brief_findings(c, set(spans))
         out += _verified_span_findings(c, spans)
+        out += _quote_length_findings(c)
     out += _claim_findings(text)
     out += _fenced_findings(text)
+    out += _duplicate_section_findings(text)
+    out += _deep_heading_findings(text)
     out += _expectation_findings(text, expected)
     out += _never_fired_findings(expected)
     out += _sources_findings(text, {c["work_key"] for c in cits})

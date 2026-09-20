@@ -41,6 +41,8 @@ there is no cross-query join between the two, only a shared label in the rendere
 from datetime import datetime, timezone
 from pathlib import Path
 
+from litkb.textnorm import canonical_newlines
+
 
 class BriefInvariantError(RuntimeError):
     """The marking gate refused: a VERIFIED line with no location, or an EXPECTED line dropped."""
@@ -162,7 +164,18 @@ _STATE_CALLOUT = {
 
 def render(ws_row, expected, verified):
     """Markdown. Every EXPECTED line's `abstract_passage` is printed labelled UNVERIFIED and
-    never inside a VERIFIED block; every VERIFIED line prints its own work key/page/block id."""
+    never inside a VERIFIED block; every VERIFIED line prints its own work key/page/block id.
+
+    A VERIFIED line's quote is rendered with its LINE ENDINGS CANONICALISED
+    (`textnorm.canonical_newlines`), which is the same rule `litkb review-check` applies to both
+    sides of its comparison. Grammar §3's one instruction to a writer is "copy the quote out of
+    the brief", and until 2026-09-20 that instruction produced bytes no grader could accept: the
+    stored quote holds `\\r\\n`, `write()` below is `write_text`, and Windows turns every `\\n`
+    into `\\r\\n` on the way out, so a real brief of `improve-review-1` came out carrying
+    `\\r\\r\\n` inside three of its quotes (auditor-3b-stage8-fixes.md §5.4, measured). Nothing
+    else about the quote is touched, and `build()`/`verified_lines()` still hand back the
+    database's own bytes -- this is the RENDERING, and only the encoding of a line break changes.
+    """
     by_work = {}
     for v in verified:
         by_work.setdefault(v["work_key"], []).append(v)
@@ -198,8 +211,9 @@ def render(ws_row, expected, verified):
     for key in sorted(by_work):
         lines.append(f"### {key}")
         for v in by_work[key]:
-            lines.append(f'- VERIFIED [{v["kind"]}, {v["stance"]}] "{v["quote"]}" -- '
-                        f'{key} p.{v["page"]} block `{v["block_id"]}`')
+            lines.append(f'- VERIFIED [{v["kind"]}, {v["stance"]}] '
+                         f'"{canonical_newlines(v["quote"])}" -- '
+                         f'{key} p.{v["page"]} block `{v["block_id"]}`')
             lines.append(f"  claim: {v['statement']}")
             if v["rationale"]:
                 lines.append(f"  rationale: {v['rationale']}")

@@ -1161,6 +1161,42 @@ block("RC10", f"{PKG}/review_check.py",
       "K2's first half stops being machine-checked: a workstream in which every expectation came "
       "back CONFIRMED passes with nothing to disclose, and a green review-check reports that the "
       "honesty machinery worked when it was never asked to fire (m11)", tests=TESTS_REVIEW)
+# RC11-RC13: the three K1 routes auditor 3b measured as STILL OPEN at 6667e3d and found in
+# neither the grammar's disclosure list nor the fix's (auditor-3b-stage8-fixes.md §1.6, §1.7,
+# §1.9). Each was measured PASSING on the fixed grader, which is why each gets its own row.
+block("RC11", f"{PKG}/review_check.py",
+      "guard: a citation's quote is long enough to carry information",
+      "a one-character -- or one-SPACE -- quote satisfies every byte-exact guard in the file: a "
+      "single space is a substring of essentially every verified span, so any claim at all can be "
+      "made citable by attaching a trivially-contained fragment (m12)", tests=TESTS_REVIEW)
+block("RC12", f"{PKG}/review_check.py",
+      "guard: a non-claim section name opens at most once in the document",
+      "a second `## Scope` un-polices the rest of the document: NON_CLAIM is matched per heading "
+      "OCCURRENCE, so a writer opens a fresh Scope under its own findings and every later "
+      "assertion is outside K1 (m13)", tests=TESTS_REVIEW)
+block("RC13", f"{PKG}/review_check.py",
+      "guard: a deep heading in a claim section asserts nothing without a citation",
+      "an assertion written as a `###` heading is never graded: heading lines are dropped before "
+      "a unit is formed, so the most natural place for a model to put a summary claim is the one "
+      "place K1 cannot look (m14)", tests=TESTS_REVIEW)
+# RC14/RC15: not REFUSALS but the RELAXATION, which needs its own kills for the same reason --
+# it has two halves, in two languages, with no migration binding them, and either half alone
+# silently restores the defect it was written to remove (48.9 % of current-run blocks carry
+# `\r\n`; 7 of the project's 8 verified spans cross one). Each row makes ONE half the identity.
+replace("RC14", f"{PKG}/textnorm.py",
+        '    return None if s is None else _LINE_ENDING.sub("\\n", str(s))',
+        "    return s",
+        "the PYTHON half of the newline canonicalisation becomes the identity: the review's quote "
+        "is compared including the ENCODING of each line break, so the LF file a writer's Write "
+        "tool actually produces stops matching a span that crosses a stored CRLF, and the brief "
+        "renders that quote uncopyable again", tests=TESTS_REVIEW)
+replace("RC15", f"{PKG}/review_check.py",
+        '_CANON_TEXT = "replace(replace(b.text, chr(13)||chr(10), chr(10)), chr(13), chr(10))"',
+        '_CANON_TEXT = "b.text"',
+        "the SQL half becomes the identity: the two sides of the comparison are canonicalised "
+        "differently, which is worse than neither -- the block keeps its CRLF while the quote is "
+        "rewritten to LF, so every CRLF-crossing quote fails `quote-not-verbatim` while still "
+        "passing the span guard", tests=TESTS_REVIEW)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

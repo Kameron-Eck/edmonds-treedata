@@ -205,6 +205,32 @@ def test_render_flags_unconfirmed_and_contradicted_explicitly():
     assert "CONTRADICTED" in md
 
 
+def test_a_crlf_quote_is_rendered_and_WRITTEN_in_its_canonical_form(tmp_path):
+    """G2, and it is the other half of a round trip whose reading half was fixed first.
+
+    Grammar §3's one instruction to a writer is "copy the quote out of the brief". `write` below
+    is `write_text`, i.e. universal newline translation on the way OUT, so on Windows every `\\n`
+    became `\\r\\n` -- and a quote that already held `\\r\\n` came out as `\\r\\r\\n`. Measured on
+    a real brief of `improve-review-1`: 3 occurrences (auditor-3b-stage8-fixes.md §5.4). The
+    quote is rendered canonical, so whatever the platform then does to the line endings of the
+    FILE, the bytes a writer copies are bytes `review-check` accepts."""
+    from litkb import brief
+    from litkb.textnorm import canonical_newlines
+
+    quote = "Tent reduces generalization error\r\nfor image classification on corrupted ImageNet"
+    ws_row = {"id": "ws1", "slug": "s", "state": "open", "purpose": "p"}
+    verified = [{"marker": "VERIFIED", "work_key": "K_2020_x", "statement": "s", "kind": "method",
+                 "rationale": None, "quote": quote, "stance": "supports", "page": 3,
+                 "block_id": "b1"}]
+    assert "\r" not in brief.render(ws_row, [], verified)
+
+    path = brief.write(tmp_path / "b.md", ws_row, [], verified)
+    raw = path.read_bytes()
+    assert b"\r\r\n" not in raw
+    # and what a writer copies out of the file is what the grader canonicalises to
+    assert canonical_newlines(quote) in canonical_newlines(raw.decode("utf-8"))
+
+
 # ── end to end: the CLI command ──────────────────────────────────────────────────────────────
 
 

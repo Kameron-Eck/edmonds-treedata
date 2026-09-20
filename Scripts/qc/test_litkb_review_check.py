@@ -34,9 +34,24 @@ stays disclosed in grammar §7.
        claim there is invisible, a CITED one is not)              claim-section
   m11  a workstream whose every expectation came back            k2-never-fired        test_m11_*
        CONFIRMED -- K2's first half never fired
-  CR   a quote spanning the CRLF of a block stored with CRLF,    (none, and the same   test_crlf_*
-       through the FILE path: `read_text` translated it to LF     findings as in-
-       and no such quote could ever pass the CLI                  process)
+
+Auditor 3b then measured three routes STILL open on the fixed grader, none of them in the
+grammar's disclosure list (auditor-3b-stage8-fixes.md §1.6, §1.7, §1.9), and one MEASUREMENT that
+made a rule untenable (§5):
+
+  m12  a one-character -- or one-SPACE -- quote under any        quote-too-short       test_m12_*
+       claim at all: ' ' is a substring of every verified span
+  m13  a second `## Scope` opened below the findings, which      duplicate-section     test_m13_*
+       un-polices everything after it
+  m14  a 12-word assertion written as a `###` heading, which     uncited-heading       test_m14_*
+       was dropped before a unit was formed
+  CR   a quote crossing a block's stored `\r\n`, quoted from an  (none -- it PASSES,   test_crlf_*
+       LF-only file. 48.9 % of current-run blocks carry `\r\n`    and one changed
+       and 7 of 8 verified spans cross one, so "quote within      character still
+       one stored line" truncated almost every verified quote     fails)
+       -- once to 33 characters asserting nothing. The LINE
+       ENDING ENCODING is now canonical on both sides, and
+       nothing else is.
 
 m5 is built from REAL rows: the work, file, extraction run, block and promotable use_evidence
 that `_evidence_world` writes into the worker database, quoted from that block's own bytes. The
@@ -44,9 +59,11 @@ worker database holds no ingested PDF -- `litkb_pg_base` resets and re-migrates 
 -- so "real blocks" here means real rows through the real write path, not a real paper.
 
 The CODE-mutation campaign (break each -- BEGIN guard -- block in review_check.py, show this file
-fails, restore, sha256-verify) is qc/instruments/litkb_p2_mutations.py rows RC1-RC7. m1-m5 are
-INPUT mutations: they prove the guards fire on bad documents. RC1-RC7 prove the tests fail when
-the guards are removed. Neither substitutes for the other.
+fails, restore, sha256-verify) is qc/instruments/litkb_p2_mutations.py rows RC1-RC15. m1-m14 are
+INPUT mutations: they prove the guards fire on bad documents. RC1-RC15 prove the tests fail when
+the guards are removed. Neither substitutes for the other. RC14 and RC15 are the two halves of
+the newline canonicalisation, in two languages with no migration binding them: either half alone,
+made the identity, silently restores the defect the pair was written to remove.
 """
 import argparse
 import uuid
@@ -178,7 +195,7 @@ def test_an_unclosed_fence_cannot_swallow_a_claim_section():
 
     md = ("<!-- litkb-review workstream=w -->\n\n## Scope\n```\nsome setup\n\n"
           "## Findings\nCanopy cover fell 40 percent and two species were lost.\n```\n")
-    assert [h for h, _l, _ls, _f in rc.sections(md)] == ["", "scope", "findings"]
+    assert [h for h, _l, _ls, _f, _d in rc.sections(md)] == ["", "scope", "findings"]
     assert [f["code"] for f in rc._fenced_findings(md)] == ["fenced-in-claims"]
     assert [f["code"] for f in rc._claim_findings(md)] == ["uncited-claim"]
 
@@ -192,6 +209,83 @@ def test_m10_a_citation_moved_into_scope_fails():
     assert [f["code"] for f in rc._claim_findings(md)] == ["claim-outside-claim-section"]
     md2 = ('<!-- litkb-review workstream=w -->\n\n## Sources\nAs "shown" in [K p.1 #ab].\n')
     assert [f["code"] for f in rc._claim_findings(md2)] == ["claim-outside-claim-section"]
+
+
+def test_canonical_newlines_maps_the_ENCODING_and_never_the_content():
+    """G1's whole correctness argument in three lines: every line ending becomes one `\\n`, and
+    the number of breaks is preserved -- a run is NOT collapsed. Collapsing `\\n\\n` to `\\n`
+    would let a quote silently join two paragraphs of the stored block, which is a change of
+    content, not of encoding, and the guard would then accept words the paper never put together."""
+    from litkb.textnorm import canonical_newlines as canon
+
+    assert canon("a\r\nb") == canon("a\rb") == canon("a\nb") == "a\nb"
+    assert canon("a\r\n\r\nb") == "a\n\nb"          # two breaks stay two
+    assert canon("a b") == "a b" and canon(None) is None
+
+
+def test_m12_a_quote_too_short_to_be_evidence_fails():
+    """The auditor's §1.6, measured on the fixed grader: `' '` -- one space -- is a substring of
+    essentially every verified span, so one space plus a real citation token satisfied every
+    byte-exact guard in the file, under any claim at all."""
+    from litkb import review_check as rc
+
+    for quote in (" ", "C", "by", "fell by eleven percent"):
+        c = rc.citations(f'Edmonds lost four fifths of its canopy: "{quote}" [K p.1 #ab].')[0]
+        assert [f["code"] for f in rc._quote_length_findings(c)] == ["quote-too-short"], quote
+    long = rc.citations('It says "Canopy cover fell by eleven percent between 2000 and 2020." '
+                        "[K p.1 #ab].")[0]
+    assert rc._quote_length_findings(long) == []
+    # A BREAK COSTS ONE CHARACTER, NOT TWO. This is the only assertion that reaches the
+    # `canonical_newlines` call inside this guard: the quote below is 24 characters canonical and
+    # 25 raw, so without the canon it would be exactly long enough and pass.
+    edge = "a" * 11 + "\r\n" + "b" * 12
+    assert len(edge) == 25 and len(edge.replace("\r\n", "\n")) == 24
+    assert [f["code"] for f in rc._quote_length_findings(dict(long, quote=edge))] == [
+        "quote-too-short"]
+    # and the same text may not pass or fail on which machine wrote the file
+    crlf = dict(long, quote="A canopy line\r\nand its second half")
+    assert rc._quote_length_findings(crlf) == rc._quote_length_findings(
+        dict(long, quote="A canopy line\nand its second half")) == []
+
+
+def test_m13_a_second_non_claim_section_cannot_un_police_the_document():
+    """The auditor's §1.7, measured as PASS: `NON_CLAIM` is matched per OCCURRENCE, so a second
+    `## Scope` under the findings turned everything below it into unpoliced prose -- cheaper than
+    the E4 hole it generalises, because the writer never has to move anything upward."""
+    from litkb import review_check as rc
+
+    md = ("<!-- litkb-review workstream=w -->\n\n## Scope\nwhat this reads.\n"
+          '\n## What the record shows\nThe record is explicit: "q" [K p.1 #ab].\n'
+          "\n## Scope\nEdmonds lost four fifths of its canopy and every conifer species died.\n")
+    found = rc._duplicate_section_findings(md)
+    assert [f["code"] for f in found] == ["duplicate-section"], found
+    assert found[0]["line"] == 9 and "line 3" in found[0]["detail"], found
+    # the first occurrence of each is fine, and two CLAIM sections may share a name: both are
+    # graded, so nothing hides in the second one
+    assert rc._duplicate_section_findings(md.replace("\n## Scope\nEdmonds", "\n## Findings\nEdmonds")) == []
+
+
+def test_m14_an_assertion_written_as_a_heading_is_graded():
+    """The auditor's §1.9, measured as PASS: `sections` dropped every `#`-prefixed line before a
+    unit was formed, so the most natural place for a model to put a summary assertion was the one
+    place K1 could not look. A heading short enough to be a LABEL is still exempt."""
+    from litkb import review_check as rc
+
+    base = "<!-- litkb-review workstream=w -->\n\n## Findings\n"
+    long_heading = "### Edmonds lost four fifths of its canopy and every conifer species died\n"
+    found = rc._deep_heading_findings(base + long_heading)
+    assert [f["code"] for f in found] == ["uncited-heading"], found
+    assert found[0]["line"] == 4
+    # the same text with no space after the '#' is not a heading to a renderer either
+    assert [f["code"] for f in rc._deep_heading_findings(base + long_heading.replace("### ", "#"))
+            ] == ["uncited-heading"]
+    # exempt: a label, and any heading that carries its own citation
+    assert rc._deep_heading_findings(base + "### Method\n") == []
+    assert rc._deep_heading_findings(base + "#### 2005 to 2012, northern parcels\n") == []
+    assert rc._deep_heading_findings(base + long_heading.rstrip("\n") + ' "q" [K p.1 #ab]\n') == []
+    # and a deep heading in a NON-claim section is not graded (Scope is the writer's own words)
+    assert rc._deep_heading_findings(
+        "<!-- litkb-review workstream=w -->\n\n## Scope\n" + long_heading) == []
 
 
 def test_a_mangled_citation_is_named_not_ignored():
@@ -212,14 +306,37 @@ def test_a_well_formed_citation_is_not_reported_as_malformed():
 # ── the worlds the m-rows are graded against ───────────────────────────────────────────────
 
 
+#: The block every m-row is graded against. `_evidence_world`'s own block is 59 characters and the
+#: spans the P1 suite anchors in it are 16 and 19 -- all under `MIN_QUOTE_CHARS` since 2026-09-20,
+#: so a world built on it would fail `quote-too-short` in every row and test nothing else. Three
+#: sentences, because m6 needs a real sentence of the block that NO verified span covers.
+#:   S1 [0:58)    58 chars   verified, stance supports   -- the review's quote
+#:   S2 [59:112)  53 chars   verified, stance refutes    -- the contradicting use
+#:   S3 [113:151) 38 chars   in the block, in no verified span -- m6 quotes this
+_BLOCK_TEXT = ("Canopy cover fell by eleven percent between 2000 and 2020. The decline was "
+               "concentrated in the northern parcels. Conifer mortality explained most of it.")
+_S1, _S2, _S3 = (0, 58), (59, 112), (113, 151)
+
+
+def _long_block(pg, w):
+    """Give the world a block long enough to quote from, in the SAME file and extraction run (so
+    it is still that file's current run, which is all `_BLOCK_SQL` asks). Must run BEFORE any
+    `_add_evidence` call: that helper anchors on `w["block"]`."""
+    w["text"] = _BLOCK_TEXT
+    w["block"] = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
+                        "(%s, %s, 1, 'paragraph', %s) RETURNING id",
+                        (w["file"], w["run"], _BLOCK_TEXT))[0]
+    return w
+
+
 def _world(pg):
     """A workstream holding: one promotable quote (a VERIFIED brief line) and one hunt_request
     the database resolves CONTRADICTED. Both halves are what a review must account for."""
-    w = _evidence_world(pg)
+    w = _long_block(pg, _evidence_world(pg))
     ws = w["ws"]
     w["key"] = pg.one("SELECT key FROM litkb.works WHERE id = %s", (w["work"],))[0]
-    w["quote"] = w["text"][4:20]
-    _add_evidence(pg, pg.conn, w, ws, w["uv"], w["quote"], 4, 20, stance="supports")
+    w["quote"] = w["text"][slice(*_S1)]
+    _add_evidence(pg, pg.conn, w, ws, w["uv"], w["quote"], *_S1, stance="supports")
 
     hr = _hrmod._record(pg, ws, ref="10.1/contradicted",
                         expected_claim="the identity fails under model mismatch")
@@ -228,7 +345,7 @@ def _world(pg):
                             {"work_id": str(w["work"]), "hunt_request_id": str(hr)}, None,
                             {"statement": "refutes it", "kind": "contradiction",
                              "status": "refuted"}, None, ws)
-    _add_evidence(pg, pg.conn, w, ws, uv2, w["text"][21:40], 21, 40, stance="refutes")
+    _add_evidence(pg, pg.conn, w, ws, uv2, w["text"][slice(*_S2)], *_S2, stance="refutes")
     w["hr"] = hr
     assert pg.one("SELECT resolution_state FROM litkb.hunt_request_status WHERE id = %s",
                   (hr,))[0] == "contradicted"
@@ -239,11 +356,11 @@ def _confirmed_world(pg):
     """A workstream whose ONLY expectation came back CONFIRMED. Everything a review needs is
     here -- a promotable quote, a hunt_request, a disclosure section -- and K2's first half has
     still never fired, which is what `k2-never-fired` exists to refuse (m11)."""
-    w = _evidence_world(pg)
+    w = _long_block(pg, _evidence_world(pg))
     ws = w["ws"]
     w["key"] = pg.one("SELECT key FROM litkb.works WHERE id = %s", (w["work"],))[0]
-    w["quote"] = w["text"][4:20]
-    _add_evidence(pg, pg.conn, w, ws, w["uv"], w["quote"], 4, 20, stance="supports")
+    w["quote"] = w["text"][slice(*_S1)]
+    _add_evidence(pg, pg.conn, w, ws, w["uv"], w["quote"], *_S1, stance="supports")
 
     hr = _hrmod._record(pg, ws, ref="10.1/confirmed",
                         expected_claim="the identity holds under model mismatch")
@@ -252,7 +369,7 @@ def _confirmed_world(pg):
                             {"work_id": str(w["work"]), "hunt_request_id": str(hr)}, None,
                             {"statement": "confirms it", "kind": "empirical evidence",
                              "status": "supported"}, None, ws)
-    _add_evidence(pg, pg.conn, w, ws, uv2, w["text"][21:40], 21, 40, stance="supports")
+    _add_evidence(pg, pg.conn, w, ws, uv2, w["text"][slice(*_S2)], *_S2, stance="supports")
     w["hr"] = hr
     assert pg.one("SELECT resolution_state FROM litkb.hunt_request_status WHERE id = %s",
                   (hr,))[0] == "confirmed"
@@ -306,18 +423,18 @@ def test_m1b_a_real_block_outside_the_brief_still_fails(pg):
     """K1 is 'traceable to a VERIFIED quote', not 'the block exists': a second block of the same
     file, quoted verbatim, carries no promotable use_evidence row and must be refused."""
     w = _world(pg)
+    text = "A second paragraph of the same file that nobody ever recorded a use for."
     other = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                   "(%s, %s, 1, 'paragraph', %s) RETURNING id",
-                   (w["file"], w["run"], "A second paragraph nobody recorded a use for."))[0]
-    codes = _codes(pg, _review(w, block_id=other, quote="second paragraph"))
+                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
+    codes = _codes(pg, _review(w, block_id=other, quote=text))
     assert codes == ["not-in-brief"], codes
 
 
 @pg_only
 def test_m2_a_quote_altered_by_one_word_fails(pg):
     w = _world(pg)
-    altered = w["quote"].replace("optimism", "pessimism")
-    assert altered != w["quote"]
+    altered = w["quote"].replace("eleven", "twelve")
+    assert altered != w["quote"] and altered not in w["text"]
     codes = _codes(pg, _review(w, quote=altered))
     assert "quote-not-verbatim" in codes, codes
 
@@ -352,10 +469,12 @@ def test_m6_a_quote_outside_every_verified_span_fails(pg):
     VERIFIED line's (work, page, block), and nobody ever verified it. K1 says *verified quote*,
     and before this guard the grader enforced *verified block, quote anything in it*."""
     w = _world(pg)
-    outside = w["text"][47:58]
-    assert outside == "joint model", outside
-    assert outside not in w["quote"] and outside not in w["text"][21:40]
+    outside = w["text"][slice(*_S3)]
+    assert outside == "Conifer mortality explained most of it", outside
+    assert outside not in w["quote"] and outside not in w["text"][slice(*_S2)]
     assert outside in w["text"]                      # so RC1/RC2/RC3 all pass it
+    from litkb.review_check import MIN_QUOTE_CHARS   # and RC11: it is not simply too short
+    assert len(outside) >= MIN_QUOTE_CHARS
     codes = _codes(pg, _review(w, quote=outside))
     assert codes == ["quote-not-verified-span"], codes
 
@@ -365,7 +484,33 @@ def test_the_verified_span_itself_and_a_substring_of_it_pass(pg):
     """The control m6 needs: the guard accepts what the brief verified, and any part of it."""
     w = _world(pg)
     assert _codes(pg, _review(w, quote=w["quote"])) == []
-    assert _codes(pg, _review(w, quote=w["quote"][2:10])) == []
+    assert _codes(pg, _review(w, quote=w["quote"][2:40])) == []
+
+
+@pg_only
+def test_m12_a_one_space_quote_no_longer_satisfies_every_byte_exact_guard(pg):
+    """End to end, against the real brief: a single space is inside every verified span, so
+    before RC11 it carried any claim at all past every guard in the file."""
+    w = _world(pg)
+    assert " " in w["quote"]                        # which is why it used to pass
+    assert _codes(pg, _review(w, quote=" ")) == ["quote-too-short"]
+    assert _codes(pg, _review(w, quote=w["quote"][:10])) == ["quote-too-short"]
+
+
+@pg_only
+def test_m13_a_second_scope_below_the_findings_fails_end_to_end(pg):
+    w = _world(pg)
+    text = _review(w) + ("\n## Scope\nEdmonds lost four fifths of its canopy and every conifer "
+                         "species died.\n")
+    assert _codes(pg, text) == ["duplicate-section"]
+
+
+@pg_only
+def test_m14_a_heading_that_asserts_fails_end_to_end(pg):
+    w = _world(pg)
+    text = _review(w, extra_claim="\n### Edmonds lost four fifths of its canopy and every "
+                                  "conifer species died\n")
+    assert _codes(pg, text) == ["uncited-heading"]
 
 
 @pg_only
@@ -423,12 +568,10 @@ def test_the_workstream_flag_asserts_and_never_redirects(pg):
 
 
 @pg_only
-def test_crlf_a_quote_spanning_a_stored_line_break_grades_the_same_from_disk(pg, tmp_path):
-    """The auditor's measured defect (§3.3): `_read` was `read_text`, i.e. universal newlines, so
-    every CRLF in the review became a bare LF while the block kept its CRLF. The same bytes
-    passed in-process and failed through the command line, and no multi-line quote could ever
-    pass the CLI on a block stored with CRLF. The quote is compared byte-for-byte, so the reader
-    may not rewrite it."""
+def _crlf_world(pg):
+    """`_world`, plus a block stored the way ~half this corpus really is: with `\\r\\n` inside it,
+    and a VERIFIED span that CROSSES that break. Measured on the 2026-09-19 dump: 48.9 % of
+    current-run blocks carry `\\r\\n` and 7 of the project's 8 verified spans cross one."""
     w = _world(pg)
     text = "A canopy line\r\nand its second half, stored as the extractor wrote it."
     span = "A canopy line\r\nand its second half"
@@ -436,22 +579,79 @@ def test_crlf_a_quote_spanning_a_stored_line_break_grades_the_same_from_disk(pg,
     block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
                    "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
     _add_evidence(pg, pg.conn, dict(w, block=block), w["ws"], w["uv"], span, 0, len(span))
+    return w, block, span
 
+
+@pg_only
+def test_crlf_an_lf_review_may_quote_a_span_that_crosses_a_stored_crlf(pg, tmp_path):
+    """THE CASE THE GRAMMAR USED TO FORBID, and the reason it could not stand.
+
+    Until 2026-09-20 the comparison was byte-exact including the line ENDING, so a quote crossing
+    a stored `\\r\\n` could only match if the review file carried that CR -- and grammar §2 told
+    writers to quote within one stored line instead. The auditor measured the price: that rule
+    truncates 7 of the project's 8 verified spans, one of them to the 33 characters
+    `Tent reduces generalization error`, which assert nothing without the rest of the sentence.
+    The only other path was an LLM emitting a raw CR byte through its `Write` tool, which nobody
+    has ever observed.
+
+    So the LINE ENDING ENCODING is canonicalised on both sides and nothing else is. This test is
+    the file written the way a writer's `Write` tool actually writes one -- LF only, no CR
+    anywhere in the bytes on disk -- quoting a span that crosses the block's `\\r\\n`."""
+    w, block, span = _crlf_world(pg)
+    review = _review(w, block_id=block, quote=span.replace("\r\n", "\n"))
+    path = tmp_path / "lf.md"
+    path.write_bytes(review.encode("utf-8"))
+    assert b"\r" not in path.read_bytes()
+
+    from litkb import review_check as rc
+    in_process = rc.check(pg.conn, review, is_text=True)
+    from_disk = rc.check(pg.conn, str(path))
+    assert in_process == from_disk == [], (in_process, from_disk)
+
+
+@pg_only
+def test_crlf_a_crlf_review_quoting_the_same_span_also_passes(pg, tmp_path):
+    """The other encoding of the same content. `_read` still reads with newline translation OFF
+    (the auditor's F1), so the two routes see different bytes and must reach the same verdict:
+    the encoding of a line break is the ONE difference the grader forgives."""
+    w, block, span = _crlf_world(pg)
     review = _review(w, block_id=block, quote=span.replace("\r\n", "\n")).replace("\n", "\r\n")
     assert review.count("\r\n") and "\r\r\n" not in review
     path = tmp_path / "crlf.md"
     path.write_bytes(review.encode("utf-8"))
 
     from litkb import review_check as rc
-    in_process = rc.check(pg.conn, review, is_text=True)
-    from_disk = rc.check(pg.conn, str(path))
-    assert in_process == from_disk == [], (in_process, from_disk)
-    # and the byte-exact rule still bites: the SAME quote with the line break translated to LF
-    # -- what `read_text` used to hand the grader -- is not this block's text
-    # (both byte-exact guards refuse it: it is not the block's text, and not the span anyone
-    # verified -- the same rule asked twice, of the block and of the evidence row)
-    assert [f["code"] for f in rc.check(pg.conn, review.replace("\r\n", "\n"), is_text=True)] == [
+    assert rc.check(pg.conn, review, is_text=True) == rc.check(pg.conn, str(path)) == []
+
+
+@pg_only
+def test_crlf_one_changed_character_in_that_span_still_fails(pg, tmp_path):
+    """The control the relaxation needs: only the BREAK may differ. The same LF-on-disk review
+    with one character of the quote altered is refused by both byte-exact guards -- it is not the
+    block's text, and not the span anyone verified."""
+    w, block, span = _crlf_world(pg)
+    altered = span.replace("\r\n", "\n").replace("canopy", "canapy")
+    assert altered != span.replace("\r\n", "\n")
+    path = tmp_path / "lf_altered.md"
+    path.write_bytes(_review(w, block_id=block, quote=altered).encode("utf-8"))
+    assert b"\r" not in path.read_bytes()
+
+    from litkb import review_check as rc
+    assert [f["code"] for f in rc.check(pg.conn, str(path))] == [
         "quote-not-verbatim", "quote-not-verified-span"]
+
+
+@pg_only
+def test_the_sql_and_python_newline_canonicalisations_agree(pg):
+    """`canonical_newlines` has no litkb.* twin: its database half is written inline in
+    `_BLOCK_SQL` (`_CANON_TEXT`). THIS TEST IS THE ONLY THING BINDING THE TWO -- there is no
+    migration to share, so if one is changed and this passes, the other was changed too."""
+    from litkb import review_check as rc
+    from litkb.textnorm import canonical_newlines
+
+    text = "crlf\r\nbare cr\rlf\nand a blank\r\n\r\nline"
+    got = pg.one(f"SELECT {rc._CANON_TEXT} FROM (SELECT %s::text AS text) b", (text,))[0]
+    assert got == canonical_newlines(text) == "crlf\nbare cr\nlf\nand a blank\n\nline", got
 
 
 @pg_only

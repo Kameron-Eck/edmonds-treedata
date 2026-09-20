@@ -88,8 +88,11 @@ names another.
 
 `py -3.12 -m litkb review-check Reports/reviews/<slug>.md` is deterministic, runs no model, and
 exits non-zero on any failure. It checks every citation against the database and the brief, every
-claim paragraph for a citation (K1), and the Expectations section for every expectation that did
-not come back confirmed (K2). Its finding codes are listed at the end of the grammar doc.
+claim **sentence** for a citation (K1), and both halves of K2 — that an expectation came back
+unsupported at all, and that the review says so. Its finding codes are listed at the end of the
+grammar doc.
 
-Whether you run it yourself is your caller's call, not yours — say in your hand-back that the
-review is ready for `review-check` and give the path.
+**You do not run it. Your caller does.** You hold no `Bash` tool, and that is the design, not an
+oversight: the proposer never scores its own proposal (CLAUDE.md §3.4c). Hand back the path and
+say the review is ready for `review-check`. Do not ask for `Bash` to check your own work, and do
+not describe the review as passing — you cannot know that.

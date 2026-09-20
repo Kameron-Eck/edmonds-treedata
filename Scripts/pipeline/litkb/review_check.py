@@ -11,21 +11,20 @@ kill criteria, quoted here as the decision words them:
   K2  at least one dropped-off expectation must come back CONTRADICTED or UNCONFIRMED **and the
       review must SAY so** -- the honesty machinery is required to FIRE, not merely to exist.
 
-K1 IS ENFORCED HERE IN FULL. **K2 IS NOT, AND THIS FILE IS NOT THE WHOLE GATE.** What
-`_expectation_findings` decides is the second clause: *given* an expectation the database resolved
-CONTRADICTED or UNCONFIRMED, is it named in the review's own section. The first clause -- that at
-least one expectation came back that way AT ALL -- is a property of the RUN, not of the document:
-a workstream holding no such expectation produces a review with nothing to disclose, and this
-module returns no finding for it. Whoever grades a proving run therefore needs BOTH this command's
-exit code AND a count from the workstream:
+BOTH KILL CRITERIA ARE ENFORCED HERE, and K2 has two halves that are checked by two different
+guards, because they are two different questions:
 
-    py -3.12 -m litkb hunt-request list --state contradicted
-    py -3.12 -m litkb hunt-request list --state unconfirmed      # > 0 rows, or K2's first half
-                                                                 # was never exercised
-
-Written here rather than left implicit because a reader who takes a green `review-check` for the
-whole of K2 would conclude the honesty machinery fired when it may simply have had nothing to fire
-on -- which is the exact failure the operational definition calls load-bearing.
+  * `_never_fired_findings` is K2's FIRST half -- did the machinery fire at all. The workstream
+    this review declares must HOLD at least one hunt_request the database resolved CONTRADICTED or
+    UNCONFIRMED; a workstream in which every expectation came back confirmed produces a review
+    with nothing to disclose, and a green grade on it would say the honesty machinery worked when
+    it had simply never been asked. That is `k2-never-fired`, and it is ON by default: a proving
+    run that cannot show one negative has not proved the thing it exists to prove. It was a
+    human-run `hunt-request list --state contradicted` count until 2026-09-20; a step whose
+    skipping is invisible is not a gate.
+  * `_expectation_findings` is K2's SECOND half -- given such an expectation, is it NAMED in the
+    review's own section. A review in which the machinery fired and the document did not say so is
+    exactly the failure `hunt_request` exists to catch.
 
 No model runs here. Everything below is a parse, a set membership, or a question asked of the
 database; a review either satisfies the grammar in `Scripts/docs/LITKB_REVIEW_GRAMMAR.md` or it
@@ -46,6 +45,15 @@ WHAT IS ASKED OF THE DATABASE, AND WHY IT IS NOT RE-IMPLEMENTED HERE
     file's CURRENT run only) and, behind that, migration 0007's trigger, which re-reads the block
     at `[char_start, char_end)` and sets `quote_verified`. A Python `in` over a string this module
     fetched would be a third copy of that rule and the one that goes stale (CLAUDE.md 3.3).
+  * **Whether the quoted span is the span anyone VERIFIED** is `_verified_span_findings`, and it
+    is the difference between K1 as written and K1 as it was first implemented. Being inside the
+    block is not enough: a block is a whole paragraph, so a citation verified for its first
+    sentence would otherwise carry a quote from its fourth, which nobody checked, under a claim
+    about the fourth. The brief's VERIFIED line prints the exact text of `[char_start, char_end)`
+    -- the span migration 0007's trigger re-read and marked `quote_verified` -- so the rule is:
+    the review's quote is that span, or a substring of it. This comparison is a set membership
+    between two strings the brief already handed us, not a second copy of the database's substring
+    rule: what it asks is "which verified span is this quote inside", which no query answers.
   * **Which file a workstream can see** is `litkb.ws_files`, not `main_files`: a source admitted
     inside an open workstream is quotable there before anything promotes it
     (decisions.yaml::litkb-web-source-gate), and a grader reading main's view only would refuse
@@ -73,9 +81,16 @@ HEADER_RE = re.compile(r"<!--\s*litkb-review\s+workstream=(\S+)\s*-->")
 _CLOSERS = '"”'
 _OPENERS = '"“'
 _LIST_RE = re.compile(r"\s*(?:[-*+]\s|\d+[.)]\s)")
+#: A markdown table's delimiter row (`|---|:--:|`). It and the header row above it assert nothing
+#: and carry no citation; every other table row in a claim section is a unit -- see `units`.
+_DELIM_ROW = re.compile(r"^\|[\s:|-]+\|?\s*$")
+#: The citation unit is the SENTENCE (LITKB_REVIEW_GRAMMAR.md §4), not the paragraph -- see
+#: `sentences` for why the splitter is this simple and which direction it errs in.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.?!])\s+")
 
 #: Headings whose paragraphs assert nothing and therefore carry no citation. Everything else in
-#: the document is a CLAIM section. "" is the preamble (title and header) -- see `_claims_only`.
+#: the document is a CLAIM section. "" is the preamble (title and header). The list is CLOSED and
+#: it is the grammar's §1 list -- `_claim_findings` is where it is applied.
 NON_CLAIM = ("", "scope", "expectations not supported", "sources")
 #: The two sections that are required to exist by name, and the states K2 makes them carry.
 EXPECTATIONS_HEADING = "expectations not supported"
@@ -142,20 +157,34 @@ def citations(text):
 
 
 def sections(text):
-    """[(heading-lowercased, first line no, [(line no, line)])] -- split on `##` and deeper.
+    """[(heading-lowercased, first line no, [(line no, line)], [fence-open line no])].
 
-    The preamble (before any `##`) is heading "". A deeper heading does NOT open a new section:
-    `### Method` inside a claim section stays inside it, so no writer can slip a claim paragraph
-    out of K1 by demoting its heading one level.
+    Split on `##` and deeper. The preamble (before any `##`) is heading "". A deeper heading does
+    NOT open a new section: `### Method` inside a claim section stays inside it, so no writer can
+    slip a claim paragraph out of K1 by demoting its heading one level.
+
+    Fenced lines are not returned as prose -- a code fence is not a paragraph -- but the line each
+    fence OPENS on is, because dropping a fence silently is what let a claim section hold
+    assertions no guard could see (`fenced-in-claims`, `_fenced_findings`).
     """
-    out = [("", 1, [])]
+    out = [("", 1, [], [])]
     fenced = False
     for i, raw in enumerate(text.splitlines(), start=1):
-        if raw.lstrip().startswith("```"):
-            fenced = not fenced
+        if raw.startswith("## "):
+            # A `##` at column 0 ENDS any open fence before it opens the section. Without this an
+            # UNCLOSED fence is a way out of K1 that `fenced-in-claims` cannot see: open one in
+            # `Scope` -- where the grammar tells writers a code block belongs -- and every later
+            # heading is swallowed, so a whole claim section is dropped before a unit is formed
+            # while the fence itself is recorded against `scope`, which is not policed. A `##`
+            # line inside a genuine code block is the price, and it costs a false FAIL, never a
+            # false pass: that fence's closing ``` then OPENS one inside the claim section.
+            fenced = False
+            out.append((raw[3:].strip().rstrip("#").strip().lower(), i, [], []))
             continue
-        if not fenced and raw.startswith("## "):
-            out.append((raw[3:].strip().rstrip("#").strip().lower(), i, []))
+        if raw.lstrip().startswith("```"):
+            if not fenced:
+                out[-1][3].append(i)
+            fenced = not fenced
             continue
         if fenced or raw.startswith("#"):
             continue
@@ -166,17 +195,28 @@ def sections(text):
 def units(lines):
     """The prose units of a section: [(first line no, text)].
 
-    A unit is what must carry a citation. A blank line ends one; a list marker starts one (so a
-    bulleted section is N units, not one, and a single citation cannot cover a list of claims);
-    a table row, an HTML comment and a heading are not prose and belong to no unit. Blockquote
-    lines continue the unit above them, because a block quote is how a writer shows the quote
-    its sentence cites.
+    A unit is a run of text the grader looks at as one thing. A blank line ends one; a list marker
+    starts one (so a bulleted section is N units, not one, and a single citation cannot cover a
+    list of claims); blockquote lines continue the unit above them, because a block quote is how a
+    writer shows the quote its sentence cites.
+
+    A TABLE ROW IS ITS OWN UNIT. It used to be dropped as "not prose", and a findings table -- the
+    most natural way for a model to present per-year results -- was therefore entirely outside K1
+    (the stage-8 audit's E5, measured: a four-row loss table passed with no citation anywhere).
+    Two rows are exempt because neither asserts anything: the delimiter row `|---|---|`, and the
+    header row it delimits.
     """
     out, cur = [], None
-    for no, raw in lines:
+    for i, (no, raw) in enumerate(lines):
         s = raw.strip()
-        if not s or s.startswith("|") or s.startswith("<!--"):
+        if not s or s.startswith("<!--"):
             cur = None
+            continue
+        if s.startswith("|"):
+            cur = None
+            nxt = lines[i + 1][1].strip() if i + 1 < len(lines) else ""
+            if not (_DELIM_ROW.match(s) or _DELIM_ROW.match(nxt)):
+                out.append([no, s])
             continue
         if _LIST_RE.match(raw):
             out.append([no, s])
@@ -188,6 +228,50 @@ def units(lines):
         else:
             cur[1] += "\n" + s
     return [(no, txt) for no, txt in out]
+
+
+def _protected(txt):
+    """[(start, end)] of the spans a sentence split may not cut: a strict citation together with
+    the verbatim quote immediately before it. See `sentences`."""
+    out = []
+    for m in CITATION_RE.finditer(txt):
+        j = m.start() - 1
+        while j >= 0 and txt[j] in " \t":
+            j -= 1
+        k = -1
+        if j >= 0 and txt[j] in _CLOSERS:
+            k = j - 1
+            while k >= 0 and txt[k] not in _OPENERS:
+                k -= 1
+        out.append((k if k >= 0 else m.start(), m.end()))
+    return out
+
+
+def sentences(txt):
+    """The SENTENCES of a unit -- the thing K1 is enforced per, since 2026-09-20.
+
+    It was the paragraph, and the audit measured what that cost: `Canopy fell 40 percent. Two
+    species vanished. The work states it: "<quote>" [cite].` passed, three assertions deep, on one
+    citation attached to the fourth. A simple splitter on `.`/`?`/`!` + whitespace is deliberate:
+    an abbreviation ("et al.", "e.g.") splits a sentence it should not have, and the extra unit
+    then has no citation and FAILS. That direction is the safe one, and the grammar tells writers
+    to keep the citation in the fragment or spell the abbreviation out.
+
+    The one place it does not split is inside a strict citation's own quote: that text is compared
+    byte-for-byte against a VERIFIED span, so a sentence boundary inside it is the PAPER's, not
+    the review's, and cutting there would make a faithfully-copied two-sentence quote unwritable.
+    """
+    spans = _protected(txt)
+    out, start = [], 0
+    for m in _SENTENCE_SPLIT.finditer(txt):
+        if any(a < m.start() < b for a, b in spans):
+            continue
+        if txt[start:m.start()].strip():
+            out.append(txt[start:m.start()])
+        start = m.end()
+    if txt[start:].strip():
+        out.append(txt[start:])
+    return out or [txt]
 
 
 # ── the guards: one BEGIN/END block per kill, each with a row in the mutation harness ───────
@@ -240,28 +324,79 @@ def _in_brief_findings(c, brief_triples):
     return []
 
 
+def _verified_span_findings(c, brief_spans):
+    """RC8. The quoted text lies WITHIN a span the brief verified for that block -- it is the
+    VERIFIED quote itself, or a substring of it.
+
+    `brief_spans` maps (work key, page, block id) -> the set of VERIFIED quote texts the brief
+    prints for it; each is the exact `[char_start, char_end)` of a promotable `use_evidence` row,
+    the span migration 0007's trigger re-read and marked `quote_verified`. A triple absent from
+    the map is `not-in-brief`'s business, not this guard's: the two name different defects (no
+    evidence at all on that block, versus evidence that does not cover these words).
+    """
+    # BEGIN guard: the quoted span lies inside a span the brief VERIFIED, not merely inside the block
+    spans = brief_spans.get((c["work_key"], c["page"], c["block_id"]))
+    if spans is not None and not (c["quote"] and any(c["quote"] in s for s in spans)):
+        return [_f(c["line"], "quote-not-verified-span",
+                   f"{c['raw']}: the quoted span is not inside any VERIFIED span of this block "
+                   "-- it may be in the block, but no promotable use_evidence row covers these "
+                   "words, so nothing verified them")]
+    # END guard: the quoted span lies inside a span the brief VERIFIED, not merely inside the block
+    return []
+
+
 def _claim_findings(text):
-    """RC4 = K1. Every prose unit of a claim section carries at least one citation, and no claim
-    leaks into the two sections K1 does not police (the preamble and Scope), which is the one way
-    a writer could satisfy K1 by relabelling its claims as scope."""
+    """RC4 = K1. Every SENTENCE of every unit of a claim section carries at least one citation,
+    and no citation appears in a section K1 does not police.
+
+    The second half is the tell. K1 cannot see an uncited sentence in `Scope` -- by construction:
+    those sections exist for the writer's own words, and the grammar says in as many words that a
+    literature fact asserted there is a violation the grader is blind to. What it CAN see is a
+    claim that was MOVED there, because a claim carries its citation with it: a citation token in
+    any non-claim section, or a quoted span in the preamble or `Scope`, is refused.
+    """
     out = []
-    # BEGIN guard: K1 -- every claim paragraph carries a citation, and claims live only in claim sections
-    for heading, _hl, lines in sections(text):
-        body = [(no, txt) for no, txt in units(lines)]
+    # BEGIN guard: K1 -- every claim sentence carries a citation, and no citation sits in a non-claim section
+    for heading, _hl, lines, _fences in sections(text):
+        body = units(lines)
         if heading in NON_CLAIM:
-            if heading in ("", "scope"):
-                for no, txt in body:
-                    if CITATION_RE.search(txt) or _CLOSERS[0] in txt or _OPENERS[1] in txt:
-                        out.append(_f(no, "claim-outside-claim-section",
-                                      f"a citation or a quoted span in the '{heading or 'preamble'}' "
-                                      "section, which K1 does not police: claims belong in a "
-                                      "claim section"))
+            for no, txt in body:
+                quoted = heading in ("", "scope") and (_CLOSERS[0] in txt or _OPENERS[1] in txt)
+                if CITATION_RE.search(txt) or quoted:
+                    out.append(_f(no, "claim-outside-claim-section",
+                                  f"a citation or a quoted span in the '{heading or 'preamble'}' "
+                                  "section, which K1 does not police: claims belong in a "
+                                  "claim section"))
             continue
         for no, txt in body:
-            if not CITATION_RE.search(txt):
-                out.append(_f(no, "uncited-claim",
-                              f"paragraph in '{heading}' asserts without a citation: {txt[:90]!r}"))
-    # END guard: K1 -- every claim paragraph carries a citation, and claims live only in claim sections
+            for sent in sentences(txt):
+                if not CITATION_RE.search(sent):
+                    out.append(_f(no, "uncited-claim",
+                                  f"sentence in '{heading}' asserts without a citation: "
+                                  f"{sent.strip()[:90]!r}"))
+    # END guard: K1 -- every claim sentence carries a citation, and no citation sits in a non-claim section
+    return out
+
+
+def _fenced_findings(text):
+    """RC9. A fenced code block inside a claim section is a FAILURE, not invisible text.
+
+    `sections` drops fenced lines before any unit is formed, so everything a writer puts in a
+    fence was outside K1 entirely (the audit's E6, measured). Refusing the fence rather than
+    grading its contents is the choice that cannot be gamed: fenced text has no sentences to
+    police, and a review needing a code block has a non-claim section to put it in.
+    """
+    out = []
+    # BEGIN guard: a fenced block inside a claim section is refused, never graded as absent
+    for heading, _hl, _lines, fences in sections(text):
+        if heading in NON_CLAIM:
+            continue
+        for no in fences:
+            out.append(_f(no, "fenced-in-claims",
+                          f"a fenced code block opens in claim section '{heading}': fenced text "
+                          "carries no citation and K1 cannot see it. Put it in Scope, or write "
+                          "the claim as a cited sentence"))
+    # END guard: a fenced block inside a claim section is refused, never graded as absent
     return out
 
 
@@ -276,7 +411,7 @@ def _expectation_findings(text, expected):
     """
     out = []
     # BEGIN guard: K2 -- the section exists and names every contradicted/unconfirmed expectation
-    found = [(h, hl, ls) for h, hl, ls in sections(text) if h == EXPECTATIONS_HEADING]
+    found = [(h, hl, ls) for h, hl, ls, _fn in sections(text) if h == EXPECTATIONS_HEADING]
     if not found:
         return [_f(1, "missing-expectations-section",
                    f"no '## {EXPECTATIONS_HEADING.title()}' section: K2 requires the review to "
@@ -298,13 +433,34 @@ def _expectation_findings(text, expected):
     return out
 
 
+def _never_fired_findings(expected):
+    """RC10 = K2's FIRST half. The workstream must HOLD at least one expectation the database
+    resolved CONTRADICTED or UNCONFIRMED.
+
+    `expected` is the brief's own EXPECTED set, which `brief._require_every_hunt_request` refuses
+    to shorten -- so this counts the workstream's whole ledger, not a filtered view of it. A run
+    in which every drop-off came back confirmed has not exercised the honesty machinery at all,
+    and a green grade on its review would report that the machinery worked.
+    """
+    # BEGIN guard: K2 first half -- the workstream holds an expectation that came back unsupported
+    if not any((e.get("resolution_state") or "").lower() in MUST_DISCLOSE for e in expected):
+        return [_f(1, "k2-never-fired",
+                   "this workstream holds no hunt_request in state "
+                   f"{'/'.join(MUST_DISCLOSE)} ({len(expected)} recorded): K2 requires at least "
+                   "one dropped-off expectation to COME BACK unsupported, not merely that the "
+                   "review would have disclosed one. Nothing here contradicts or fails to confirm "
+                   "anything, so the review's Expectations section proves nothing about the run")]
+    # END guard: K2 first half -- the workstream holds an expectation that came back unsupported
+    return []
+
+
 def _sources_findings(text, cited_keys):
     """RC6. Every work the body cites is listed in the Sources table, and the table lists nothing
     the body never cited (a notice: an unread source in a bibliography is a smaller sin than an
     uncited claim, but it is still a source the review did not use)."""
     out = []
     # BEGIN guard: every cited work key is listed in Sources, and Sources lists no work the body never cited
-    found = [(h, hl, ls) for h, hl, ls in sections(text) if h == SOURCES_HEADING]
+    found = [(h, hl, ls) for h, hl, ls, _fn in sections(text) if h == SOURCES_HEADING]
     if not found:
         return [_f(1, "missing-sources-section",
                    f"no '## {SOURCES_HEADING.title()}' section")]
@@ -374,13 +530,19 @@ def resolve_workstream(conn, ref):
     return row[0], row[1]
 
 
-def check(conn, path_or_text, *, is_text=False):
+def check(conn, path_or_text, *, is_text=False, k2_workstream=None):
     """Every finding against this review. [] means it passed; `fails()` is what sets the exit code.
 
     The brief is built with `litkb.brief.build`, so this grader inherits that export's own gates
     (HB1: a VERIFIED line always carries its location; HB2: no expectation is silently dropped).
     A `BriefInvariantError` is deliberately NOT caught: a brief the exporter would not stand
     behind is not a brief a review can be graded against.
+
+    `k2_workstream` (the CLI's `--workstream`) does NOT redirect the grade: it is an ASSERTION
+    that the workstream the caller believes it is grading is the one the document declares, and a
+    mismatch is refused. Counting K2's negatives in another workstream's ledger would prove
+    nothing about this review, which is the same reason the header is the only place a workstream
+    is named (LITKB_REVIEW_GRAMMAR.md §1).
     """
     from litkb import brief as _brief
 
@@ -391,8 +553,17 @@ def check(conn, path_or_text, *, is_text=False):
             "litkb review-check: the review's first non-blank line must be "
             "'<!-- litkb-review workstream=<id-or-slug> -->' (LITKB_REVIEW_GRAMMAR.md §1)")
     ws, _slug = resolve_workstream(conn, ref)
+    if k2_workstream is not None:
+        named, named_slug = resolve_workstream(conn, k2_workstream)
+        if str(named) != str(ws):
+            raise ReviewGrammarError(
+                f"litkb review-check: --workstream {k2_workstream!r} is {named} ({named_slug}), "
+                f"but the review's header declares {ws} ({_slug}). The grade is always against "
+                "the workstream the document names; the flag only asserts which one that is")
     expected, verified = _brief.build(conn, ws)
-    triples = {(v["work_key"], v["page"], v["block_id"]) for v in verified}
+    spans = {}
+    for v in verified:
+        spans.setdefault((v["work_key"], v["page"], v["block_id"]), set()).add(v["quote"])
 
     cits = citations(text)
     out = list(_malformed_findings(text, cits))
@@ -400,9 +571,12 @@ def check(conn, path_or_text, *, is_text=False):
         row = _block_row(conn, ws, c["block_id"], c["quote"])
         out += _location_findings(c, row)
         out += _verbatim_findings(c, row)
-        out += _in_brief_findings(c, triples)
+        out += _in_brief_findings(c, set(spans))
+        out += _verified_span_findings(c, spans)
     out += _claim_findings(text)
+    out += _fenced_findings(text)
     out += _expectation_findings(text, expected)
+    out += _never_fired_findings(expected)
     out += _sources_findings(text, {c["work_key"] for c in cits})
     return sorted(out, key=lambda f: (f["line"], f["code"]))
 
@@ -413,4 +587,11 @@ def _read(path):
     p = Path(path)
     if not p.exists():
         raise ReviewGrammarError(f"litkb review-check: no such review {p}")
-    return p.read_text(encoding="utf-8")
+    # NEWLINE TRANSLATION OFF. `read_text` is universal-newlines: it turns every CRLF in the file
+    # into a bare LF before the grader sees a byte, while the block's stored text keeps its CRLF.
+    # A quote spanning a line break on such a block then passed in-process and failed through the
+    # command line, on the same bytes -- the quote is compared byte-for-byte (Postgres
+    # `position()`), so the reader may not rewrite it. `Path.read_text` has no `newline=`
+    # parameter, hence the explicit open (LITKB_REVIEW_GRAMMAR.md §2).
+    with p.open(encoding="utf-8", newline="") as fh:
+        return fh.read()

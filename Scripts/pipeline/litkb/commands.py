@@ -542,12 +542,22 @@ def cmd_review_check(args, conn):
     command line -- a review graded against a workstream it was not written from would pass K2
     by holding no expectations at all.
 
+    `--workstream <id|slug|current>` therefore does NOT choose what is graded: it ASSERTS that the
+    workstream the caller means is the one the document declares, and `check` refuses a mismatch
+    by name. `current` is this worktree's own, the same source `brief` and `export` default to --
+    which is what an unattended loop has to hand, since it knows its workstream and not the
+    review's header.
+
     One JSON object per finding, then a summary; returns 1 when any finding is a `fail`, so
     `py -3.12 -m litkb review-check <review.md>` exits non-zero and can gate an unattended loop.
     """
     from litkb import review_check as _rc
 
-    findings = _rc.check(conn, args.review)
+    ws_ref = getattr(args, "workstream", None)
+    if ws_ref == "current":
+        ws_id, _token = _ws(args)
+        ws_ref = str(ws_id)
+    findings = _rc.check(conn, args.review, k2_workstream=ws_ref)
     for f in findings:
         _print({"review": str(args.review), **f})
     bad = _rc.fails(findings)
@@ -757,6 +767,10 @@ def build_parser():
                                              "every unsupported expectation disclosed (K2)")
     rc.add_argument("review", help="path to the review .md (it names its own workstream in its "
                                    "first line)")
+    rc.add_argument("--workstream", help="id, slug, or 'current' (this worktree's): ASSERTS which "
+                                         "workstream this review is, and is refused when the "
+                                         "review's own header declares another. It never "
+                                         "redirects the grade")
     return ap
 
 

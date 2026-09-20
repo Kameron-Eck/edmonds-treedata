@@ -1126,9 +1126,10 @@ block("RC3", f"{PKG}/review_check.py",
       "'traceable to a verified quote' to 'the block exists', and a writer can quote outside its "
       "brief (m1b)", tests=TESTS_REVIEW)
 block("RC4", f"{PKG}/review_check.py",
-      "guard: K1 -- every claim paragraph carries a citation, and claims live only in claim sections",
-      "K1 stops being enforced: an uncited claim paragraph passes, and a review can satisfy the "
-      "grader by relabelling its claims as Scope (m3)", tests=TESTS_REVIEW)
+      "guard: K1 -- every claim sentence carries a citation, and no citation sits in a non-claim section",
+      "K1 stops being enforced: an uncited claim sentence passes (m3, m7), an uncited table row "
+      "passes (m8), and a review can satisfy the grader by moving its claims into Scope (m10)",
+      tests=TESTS_REVIEW)
 block("RC5", f"{PKG}/review_check.py",
       "guard: K2 -- the section exists and names every contradicted/unconfirmed expectation",
       "K2 stops being enforced: a review whose own expectation came back CONTRADICTED passes "
@@ -1142,6 +1143,24 @@ block("RC7", f"{PKG}/review_check.py",
       "guard: a citation-shaped token the strict grammar rejected is named, never ignored",
       "a mangled citation is invisible: its paragraph fails as `uncited-claim` instead, which "
       "names the wrong defect and sends the writer to fix the wrong thing", tests=TESTS_REVIEW)
+# RC8-RC10: the three guards added on 2026-09-20 after the stage-8 audit measured six routes by
+# which a grammar-conforming review could PASS while unsupported (auditor-3-stage8.md §6). A new
+# FAIL name with no row here is a gate nobody has shown to fire.
+block("RC8", f"{PKG}/review_check.py",
+      "guard: the quoted span lies inside a span the brief VERIFIED, not merely inside the block",
+      "K1 degrades from 'traceable to a VERIFIED QUOTE' to 'traceable to a verified BLOCK, "
+      "quoting anything in it': a block is a whole paragraph, so a citation verified for its "
+      "first sentence carries a quote from its fourth under a claim about the fourth (m6)",
+      tests=TESTS_REVIEW)
+block("RC9", f"{PKG}/review_check.py",
+      "guard: a fenced block inside a claim section is refused, never graded as absent",
+      "fenced text goes back to being dropped before any unit is formed: a claim section's code "
+      "block can hold any assertion at all and K1 cannot see it (m9)", tests=TESTS_REVIEW)
+block("RC10", f"{PKG}/review_check.py",
+      "guard: K2 first half -- the workstream holds an expectation that came back unsupported",
+      "K2's first half stops being machine-checked: a workstream in which every expectation came "
+      "back CONFIRMED passes with nothing to disclose, and a green review-check reports that the "
+      "honesty machinery worked when it was never asked to fire (m11)", tests=TESTS_REVIEW)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

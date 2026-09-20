@@ -3,7 +3,6 @@ editable install is re-run from a tree that contains litkb:
 
     py -3.12 -m litkb ws open <slug> [--purpose P] [--branch B] [--brief PATH]
     py -3.12 -m litkb ws status
-    py -3.12 -m litkb discover "<query>" [--source crossref] [--max 5]
     py -3.12 -m litkb admit --doi D [--title T --authors A --year Y | --tracker-id N] [--key K] [--file PDF]
     py -3.12 -m litkb admit --manual --title T --authors A --year Y --file PDF --source-note "..."
     py -3.12 -m litkb admit --web --title T --authors A --year Y --url U --retrieved DATE
@@ -43,6 +42,12 @@ from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[2]
 TRACKER_CSV = SCRIPTS.parent / "Reports" / "literature_tracker.csv"
+
+# The ref-scheme vocabulary, imported rather than restated: the parser's help text and the
+# `hunt-request add` refusal both read it, and a hand-typed copy here is exactly the stale list
+# that would refuse `title` at the CLI after migration 0027 widened the database's CHECK
+# (CLAUDE.md §3.3). The module imports nothing itself, so this costs nothing at CLI start-up.
+from litkb.hunt_request import REF_SCHEMES  # noqa: E402
 
 
 def _git(*args, cwd=None):
@@ -129,25 +134,22 @@ def cmd_ws(args, conn):
     return 0
 
 
-def cmd_discover(args, conn):
-    from litkb.admit.front import add_candidate
-
-    ws_id, token = _ws(args)
-    if args.source != "crossref":
-        raise SystemExit("litkb discover: only --source crossref is wired in P2")
-    from paper_search_mcp.academic_platforms.crossref import CrossRefSearcher
-
-    papers = CrossRefSearcher().search(args.query, max_results=args.max)
-    out = []
-    for p in papers:
-        d = p.to_dict()
-        year = p.published_date.year if getattr(p, "published_date", None) else None
-        cid = add_candidate(conn, ws_id, token, source="paper-search", source_detail="crossref", query=args.query,
-                            raw=json.loads(json.dumps(d, default=str)), title=p.title, authors=list(p.authors or []),
-                            year=year, ids={"doi": p.doi} if p.doi else {})
-        out.append({"candidate_id": cid, "title": p.title, "year": year, "doi": p.doi})
-    _print(out)
-    return 0
+# `cmd_discover` was RETIRED here on 2026-09-20 (LITKB_WORKPLAN.md S1, "cmd_discover retired or
+# folded, decided by whether the scout uses it"). It ran a Crossref title search through
+# `paper_search_mcp.academic_platforms.crossref.CrossRefSearcher` and wrote `candidates` rows.
+#
+# WHY IT GOES. S1 gives discovery to the lit-scout, and the scout reaches the paper-search MCP
+# SERVER directly (`.mcp.json`) — it never shells out to this CLI. What the command left behind
+# was a second, unused route into the same package, with its own `--source crossref` half-wiring
+# ("only --source crossref is wired in P2") and its own candidate-writing path that nothing
+# exercised. A route nobody calls is a route nobody notices breaking.
+#
+# CHECKED BEFORE REMOVING, 2026-09-20: `grep -rn "cmd_discover\|litkb discover"` over Scripts/
+# found the definition, the parser, the dispatcher entry and this module's own usage line, and
+# nothing else — no test, no instrument, no skill, no agent file. The only OTHER mention of the
+# command is in LITKB_WORKPLAN.md's dated 2026-09-20 survey appendix, which is explicitly "not
+# maintained", so it is left as the record it is. `add_candidate` (admit/front.py) keeps its other
+# callers; `paper_search_mcp` remains a dependency of `acquire/open_access.py` (Unpaywall).
 
 
 def cmd_admit(args, conn):
@@ -485,6 +487,14 @@ def cmd_hunt_request(args, conn):
         _print(rows)
         return 0
     agent, session = _labels(args)
+    # BEGIN guard: the CLI drop-off's ref_scheme is in the vocabulary before the write is attempted
+    # The table's CHECK is what ENFORCES this; the check here is so the caller reads the
+    # vocabulary rather than a raw PL/pgSQL constraint-violation sentence, and reads it from the
+    # ONE constant the database's CHECK is held equal to (migration 0027).
+    if args.ref_scheme not in REF_SCHEMES:
+        raise SystemExit(f"litkb hunt-request add: --ref-scheme {args.ref_scheme!r} is not one of "
+                         f"{', '.join(REF_SCHEMES)}")
+    # END guard: the CLI drop-off's ref_scheme is in the vocabulary before the write is attempted
     gap_id = None
     if args.gap:
         row = conn.execute("SELECT id::text FROM litkb.gaps WHERE slug = %s", (args.gap,)).fetchone()
@@ -593,7 +603,7 @@ def cmd_hunt(args, conn):
                      key=args.key, source_note=args.source_note, retrieved=args.retrieved,
                      extract=not args.no_extract, device=args.device,
                      docling_python=args.docling_python, derived=args.derived, spend=spend,
-                     hunt_request_id=args.hunt_request)
+                     hunt_request_id=args.hunt_request, ref_scheme=args.ref_scheme)
     _print(res)
     return 0 if res.get("ok") else 1
 
@@ -614,11 +624,6 @@ def build_parser():
     o.add_argument("--branch")
     o.add_argument("--brief")
     wsub.add_parser("status")
-
-    d = sub.add_parser("discover")
-    d.add_argument("query")
-    d.add_argument("--source", default="crossref")
-    d.add_argument("--max", type=int, default=5)
 
     a = sub.add_parser("admit")
     a.add_argument("--doi")
@@ -734,6 +739,13 @@ def build_parser():
     h.add_argument("--hunt-request", dest="hunt_request",
                    help="a hunt_request id (migration 0023): link this drop-off to whatever work "
                         "this reference resolves to, cached or fresh")
+    h.add_argument("--ref-scheme", dest="ref_scheme",
+                   help="what this reference IS, one of " + " | ".join(REF_SCHEMES) + ". "
+                        "Omitted, the scheme is inferred from the shape, and a shape nothing "
+                        "matches is refused `malformed-ref` (never a DOI by default). With "
+                        "--hunt-request the drop-off's own scheme wins, and one that disagrees "
+                        "with it is refused `ref-scheme-mismatch`. `title` needs --author and "
+                        "--year")
 
     # ── the drop-off record, 2026-09-18 (migration 0023, litkb/hunt_request.py) ─────────────
     hr = sub.add_parser("hunt-request", help="the review agent's drop-off: a claim, why it "
@@ -743,8 +755,8 @@ def build_parser():
     hra = hrsub.add_parser("add")
     hra.add_argument("--ref", required=True, help="the identifier/URL/citation as given")
     hra.add_argument("--ref-scheme", dest="ref_scheme", required=True,
-                     help="doi | arxiv | jstor | isbn | pmid | pmcid | openalex | s2 | handle | "
-                          "url | tracker | legacy_stem | other")
+                     help=" | ".join(REF_SCHEMES) + "  (the one vocabulary: "
+                          "litkb.hunt_request.REF_SCHEMES, held equal to the table's CHECK)")
     hra.add_argument("--expected-claim", dest="expected_claim", required=True,
                      help="the claim you expect this paper to support")
     hra.add_argument("--why-relevant", dest="why_relevant", required=True)
@@ -804,7 +816,7 @@ def main(argv=None, connect=None):
     args = build_parser().parse_args(sys.argv[1:] if argv is None else argv)
     conn = _NoConn() if args.cmd in _OWN_LOGINS and connect is None else (connect or _default_connect)(args.db)
     try:
-        return {"ws": cmd_ws, "discover": cmd_discover, "admit": cmd_admit, "approve": cmd_approve,
+        return {"ws": cmd_ws, "admit": cmd_admit, "approve": cmd_approve,
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,

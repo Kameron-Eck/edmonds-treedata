@@ -46,8 +46,12 @@ each handed a path, and only one of the three is documented to ignore the extens
 """
 import datetime
 import os
+import re
 import time
+import urllib.parse
 from pathlib import Path
+
+from litkb.hunt_request import REF_SCHEMES
 
 #: Tool artifacts (TEI, DoclingDocument) for the files hunt extracts. OUTSIDE the repository, and
 #: a directory of its own: the P5 bulk driver's `LITKB_P5_DERIVED` tree is that pass's resumable
@@ -99,16 +103,180 @@ def _now():
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-def ref_kind(ref):
-    """``'url'`` or ``'doi'`` for a reference as a session types it.
+#: The schemes a HUNT can follow, out of `hunt_request.REF_SCHEMES` (the recordable vocabulary).
+#: Everything else in that vocabulary is recordable as a drop-off and refused here as
+#: `unsupported-ref-scheme` — S3 owns those routes. The two sets are deliberately different: a
+#: scout may drop off a PMID today and nothing should pretend a hunt can chase it.
+HUNTABLE = ("doi", "arxiv", "url", "title")
 
-    A DOI is anything else, deliberately: ``normalize_doi`` is what decides whether the rest of
-    the string IS one, and it is called by the admission that stores it, not twice."""
+#: A DOI's registrant prefix is `10.` plus 4-9 digits, then a slash and a non-empty suffix. Checked
+#: AFTER `normalize_doi` has stripped the `https://doi.org/` / `doi:` wrapper, the invisible
+#: characters and the trailing punctuation, so the shape is tested on the canonical form that
+#: `litkb.norm_identifier` would store.
+_DOI_SHAPE = re.compile(r"^10\.\d{4,9}/\S+$")
+
+#: arXiv's two id shapes: the post-2007 `YYMM.NNNNN` (4 or 5 digits after the dot) and the old
+#: `archive[.subject]/YYMMNNN`. NOTHING IN litkb VALIDATED AN arXiv ID BEFORE THIS — searched
+#: 2026-09-20 across `pipeline/litkb/**.py`: `registry.arxiv_record` and `annas.arxiv_id_of` each
+#: carry the same two STRIPPERS (`^arxiv:` and `v\d+$`) and no shape test at all, and the SQL
+#: `norm_identifier('arxiv', …)` strips the same two and nothing more. So the strippers below are
+#: those, reused verbatim; the shape itself is new and is said to be new.
+_ARXIV_NEW = re.compile(r"^\d{4}\.\d{4,5}$")
+_ARXIV_OLD = re.compile(r"^[a-z-]+(\.[a-z]{2})?/\d{7}$")
+
+
+def normalize_arxiv(ref):
+    """The canonical arXiv id: the `arxiv:` prefix and the `vN` version suffix removed, lowercased.
+
+    The same two substitutions `litkb.admit.registry.arxiv_record` applies before it queries, and
+    the same two the database's `litkb.norm_identifier('arxiv', …)` applies before it stores — so a
+    reference that passes here is the form the identifier lookup will find."""
+    return re.sub(r"v\d+$", "", re.sub(r"^arxiv:", "", (ref or "").strip().lower(), flags=re.I))
+
+
+def is_arxiv(ref):
+    a = normalize_arxiv(ref)
+    return bool(_ARXIV_NEW.match(a) or _ARXIV_OLD.match(a))
+
+
+def is_doi(ref):
+    """Does this reference reduce to a DOI's shape?
+
+    THE ONE PLACE `normalize_doi` IS CALLED IN THIS MODULE, deliberately: both readers of the
+    answer (:func:`ref_kind`'s inference and :func:`validate_ref`'s check against a declared
+    `doi`) go through here, so the canonicalisation and the shape test cannot drift apart into two
+    call sites that disagree — and one mutation row (HS1) covers both readers instead of one
+    covering the reader that happened to be tested (the V2b/E3f class,
+    qc/instruments/litkb_p2_mutations.py's per-call-site rule)."""
+    from litkb.admit.resolver import normalize_doi
+
+    return bool(_DOI_SHAPE.match(normalize_doi(ref)))
+
+
+def ref_kind(ref):
+    """The scheme a reference's SHAPE says it is, or ``None`` when no shape matches it.
+
+    IT USED TO CLASSIFY; IT NOW INFERS, AND ADMITS THAT IT CAN FAIL. Until 2026-09-20 this
+    returned ``'url'`` for an http reference and ``'doi'`` for *anything else* — so a title, an
+    ISBN, a PMID and a typo were all called DOIs, handed to `admit_registry`, and died at
+    `AdmissionError("… is not a DOI")` or, worse, at a registry call for a string nobody meant as
+    an identifier. A scout drops off every one of those shapes. ``None`` here becomes
+    `malformed-ref` in :func:`validate_ref`, which is a RESULT the caller can read.
+
+    ``'title'`` is never inferred, and cannot be: every string is a possible title, so inferring it
+    would make `malformed-ref` unreachable. A title reference is hunted only when the caller (or
+    the hunt_request row it is following up) SAYS ``ref_scheme='title'``."""
     r = (ref or "").strip()
     low = r.lower()
-    if low.startswith(("http://", "https://")) and "doi.org/" not in low:
-        return "url"
-    return "doi"
+    if low.startswith(("http://", "https://")):
+        if "doi.org/" in low:
+            return "doi" if is_doi(r) else None
+        p = urllib.parse.urlsplit(r)
+        return "url" if p.scheme and p.netloc else None
+    if is_doi(r):
+        return "doi"
+    if is_arxiv(r):
+        return "arxiv"
+    return None
+
+
+def validate_ref(ref, scheme=None):
+    """-> (scheme, reference). Raises :class:`HuntRefused` — every shape ends in a NAMED result.
+
+    ``scheme`` is what the caller (or the hunt_request row) declares. Given, it is authoritative
+    and the reference is checked AGAINST it; absent, the scheme is inferred from the shape, and a
+    shape nothing matches is `malformed-ref` rather than a DOI by default."""
+    r = (ref or "").strip()
+    # BEGIN guard: a reference is validated against its scheme, or inferred strictly, never assumed
+    if not r:
+        raise HuntRefused("malformed-ref", "the reference is empty.", ref_scheme=scheme)
+    if scheme is None or scheme == "":
+        k = ref_kind(r)
+        if k is None:
+            raise HuntRefused(
+                "malformed-ref",
+                "this reference matches no shape a hunt can follow: it is not a DOI "
+                "(10.NNNN/… after normalisation), not an arXiv id (YYMM.NNNNN or "
+                "archive/YYMMNNN), and not a URL with a scheme and a host. If it is a TITLE, say "
+                "so — --ref-scheme title with --author and --year, or drop it off first with "
+                "litkb_hunt_request_add(ref_scheme='title').", ref_scheme=None)
+        return k, r
+    s = str(scheme).strip().lower()
+    if s not in REF_SCHEMES:
+        raise HuntRefused("unknown-ref-scheme",
+                          f"{scheme!r} is not one of litkb's reference schemes: "
+                          f"{', '.join(REF_SCHEMES)}.", ref_scheme=scheme)
+    if s not in HUNTABLE:
+        raise HuntRefused(
+            "unsupported-ref-scheme",
+            f"{s!r} is a scheme litkb RECORDS (a drop-off may carry it) and a hunt cannot yet "
+            f"follow: hunting it needs a resolver S3 owns (LITKB_WORKPLAN.md). A hunt follows "
+            f"{', '.join(HUNTABLE)}. The drop-off keeps the reference either way; nothing is "
+            f"lost by recording it now.", ref_scheme=s)
+    if s == "doi":
+        if not is_doi(r):
+            raise HuntRefused("malformed-ref",
+                              f"{r!r} is declared a DOI and does not normalise to one "
+                              f"(10.NNNN/…).", ref_scheme=s)
+    elif s == "arxiv":
+        if not is_arxiv(r):
+            raise HuntRefused("malformed-ref",
+                              f"{r!r} is declared an arXiv id and matches neither arXiv shape "
+                              f"(YYMM.NNNNN, or archive/YYMMNNN).", ref_scheme=s)
+    elif s == "url":
+        p = urllib.parse.urlsplit(r)
+        if not (p.scheme in ("http", "https") and p.netloc):
+            raise HuntRefused("malformed-ref",
+                              f"{r!r} is declared a URL and does not parse as one (it needs an "
+                              f"http/https scheme and a host).", ref_scheme=s)
+    # a title has no shape to check — what it needs is an author and a year, and that refusal is
+    # made at the call site that uses them, where the missing field can be NAMED
+    return s, r
+    # END guard: a reference is validated against its scheme, or inferred strictly, never assumed
+
+
+def resolve_title(ref, author, year, *, client=None, pacer=None):
+    """A `title` reference -> (doi, source, evidence), through gate 0 UNCHANGED.
+
+    `litkb.admit.resolver.resolve_doi` is the whole of it: Crossref, then Semantic Scholar (whose
+    candidates Crossref must confirm), then arXiv, each candidate judged by `judge_candidate` at
+    `RESOLVE_TITLE_RATIO` with the first-author family name and the year. Nothing here re-decides
+    any of that, and nothing here relaxes it — the value of the ratio is not this module's to
+    choose, and `qc/test_litkb_hunt.py::test_a_wrong_work_scoring_just_under_the_ratio_is_refused`
+    is the proof that lowering it admits a wrong work.
+
+    The two refusals are told apart by what gate 0 SAW. `best=none` means no registry returned a
+    candidate at all — `unresolved-title`, and the next move is a better title. Any other reason
+    means a candidate existed and the gate refused it — `ambiguous-title`, and the gate's own
+    sentence rides along in `extra` so the caller can see the ratio it missed by. (Gate 0 returns
+    the FIRST candidate it accepts and stops, so "two candidates above the ratio" is not a thing
+    it can report; re-running its loop here to find out would be a second copy of the S2-confirm
+    rule. The distinction that matters to a caller — nothing found vs found and refused — is the
+    one it can make.)"""
+    from litkb.admit import front
+    from litkb.admit import resolver as _resolver
+
+    if pacer is None:
+        from litkb.netutil import Pacer
+        pacer = Pacer(interval=_resolver.REGISTRY_MIN_INTERVAL,
+                      backoff=_resolver.REGISTRY_BACKOFF)
+    surname = front.first_author_of(author)
+    doi, source, evidence = _resolver.resolve_doi(ref, surname, year, client, pacer)
+    # BEGIN guard: a title resolves through gate 0 or is refused by name, never admitted on a guess
+    if not doi:
+        code = "unresolved-title" if str(evidence or "").startswith("best=none") \
+            else "ambiguous-title"
+        raise HuntRefused(
+            code,
+            (f"no registry returned a candidate for this title (searched by title, first author "
+             f"{surname!r} and year {year}). Check the title, or drop the reference off and hunt "
+             f"it by identifier." if code == "unresolved-title" else
+             f"a registry candidate was found for this title and gate 0 refused it: the title "
+             f"ratio, the first-author family name or the year did not agree. litkb does not "
+             f"admit a work it is not sure is the one asked for."),
+            ref_scheme="title", resolver_detail=evidence, surname=surname, year=year)
+    # END guard: a title resolves through gate 0 or is refused by name, never admitted on a guess
+    return doi, source, evidence
 
 
 def _role(kind):
@@ -412,7 +580,7 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
          year=None, source_note=None, key=None, work_type="report", retrieved=None,
          fetch=None, store=None, reader_role=None, writer_role=None, extract=True,
          device="cuda", docling_python=None, derived=None, registry_client=None,
-         spend=True, acquirer=None, hunt_request_id=None):
+         spend=True, acquirer=None, hunt_request_id=None, ref_scheme=None, pacer=None):
     """Resolve → admit → bind → extract → ingest, for one reference. -> the result dict.
 
     ``spend`` (default True, SPEND RULE 2026-09-16, decisions.yaml litkb-p0-foundation): a
@@ -429,11 +597,31 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
     idempotent). Naming a request requires ``agent``/``session`` even for an otherwise label-less
     cached lookup, because linking is a write.
 
-    Never raises for a refusal: a caller reads ``ok``, ``refused`` and ``refusals``.
+    ``ref_scheme`` (S1, 2026-09-20): the scheme the caller DECLARES this reference is, one of
+    ``hunt_request.REF_SCHEMES``. Given, it is what the reference is validated against; absent,
+    the scheme is inferred from the shape and a shape nothing matches is `malformed-ref` rather
+    than — as until now — a DOI by default. When ``hunt_request_id`` names a drop-off, THAT row's
+    scheme is authoritative and an explicit ``ref_scheme`` disagreeing with it is
+    `ref-scheme-mismatch`: the drop-off is the record of what the scout meant, and a hunt that
+    silently overrode it would link a work to an expectation about a different reference.
+
+    ``out['ref_kind']`` is the scheme this hunt VALIDATED and followed, and it is ``None`` when
+    validation refused — there is no validated scheme in that case, and a guess in that field is
+    the whole defect this change removes. The scheme that was RECOGNISED but could not be followed
+    comes back separately as ``ref_scheme``, so `unsupported-ref-scheme` ("litkb has no route for
+    an ISBN yet") is distinguishable from `unknown-ref-scheme` ("litkb has never heard of this").
+
+    Never raises for a refusal: a caller reads ``ok``, ``refused`` and ``refusals``. That now
+    includes every reference SHAPE — `malformed-ref`, `unknown-ref-scheme`,
+    `unsupported-ref-scheme`, `ref-scheme-mismatch`, `unresolved-title`, `ambiguous-title` — which
+    is the whole of the S1 change: a scout's drop-off ends in a named result or a state, never in
+    a traceback and never in a misclassification.
     """
     t_start = time.monotonic()
     timing, refusals = {}, []
-    out = {"ref": ref, "ref_kind": ref_kind(ref), "at": _now().isoformat()}
+    # ref_kind is NOT computed here any more: validation can refuse, and a refusal raised outside
+    # the try below would leave `hunt` raising for something its own docstring promises it reports.
+    out = {"ref": ref, "ref_kind": None, "at": _now().isoformat()}
     try:
         return _hunt(ref, out, timing, refusals, db=db, worktree=worktree, agent=agent,
                      session=session, title=title, author=author, year=year,
@@ -441,7 +629,8 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
                      fetch=fetch, store=store, reader_role=reader_role, writer_role=writer_role,
                      extract=extract, device=device, docling_python=docling_python,
                      derived=derived, registry_client=registry_client, spend=spend,
-                     acquirer=acquirer, hunt_request_id=hunt_request_id)
+                     acquirer=acquirer, hunt_request_id=hunt_request_id, ref_scheme=ref_scheme,
+                     pacer=pacer)
     except HuntRefused as e:
         refusals.append({"code": e.code, "message": e.message} | e.extra)
         return out | {"ok": False, "refused": e.code, "message": e.message,
@@ -457,7 +646,7 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
 def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, author, year,
           source_note, key, work_type, retrieved, fetch, store, reader_role, writer_role,
           extract, device, docling_python, derived, registry_client, spend, acquirer,
-          hunt_request_id=None):
+          hunt_request_id=None, ref_scheme=None, pacer=None):
     from litkb.acquire.store import Store
     from litkb.admit import front
     from litkb.db import connect as c
@@ -470,7 +659,6 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     # through and the admission is signed by a session the approval rule cannot compare
     agent = norm_label(agent or os.environ.get("LITKB_AGENT") or "")
     session = norm_label(session or os.environ.get("LITKB_SESSION") or "")
-    kind = out["ref_kind"]
 
     # BEGIN guard: hunt refuses outside a worktree that holds a workstream
     ws_id, token = load_workstream(worktree)
@@ -487,10 +675,64 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                           "LITKB_SESSION, or pass --agent/--session.")
     # END guard: naming a hunt_request always requires labels, even on an otherwise cached hunt
 
+    # ── the reference itself: validated, never classified (S1, 2026-09-20) ──────────────────
+    declared = ref_scheme
+    if hunt_request_id:
+        row_scheme = _request_scheme(db, hunt_request_id, reader_role)
+        # BEGIN guard: the drop-off's own scheme outranks an explicit one that disagrees with it
+        # A hunt_request is the RECORD of what the scout meant by this reference. Overriding it
+        # silently would link a work to an expectation written about something else, and
+        # hunt_request_status would then read as confirmed/contradicted for the wrong reference —
+        # the one thing migration 0023 exists to make impossible.
+        if row_scheme and declared and str(declared).strip().lower() != row_scheme:
+            raise HuntRefused(
+                "ref-scheme-mismatch",
+                f"hunt_request {hunt_request_id} records this reference as "
+                f"{row_scheme!r} and this hunt was told it is "
+                f"{str(declared).strip().lower()!r}. The drop-off is the record of what was "
+                f"meant; hunt it without --ref-scheme, or fix the drop-off.",
+                hunt_request=hunt_request_id, request_ref_scheme=row_scheme,
+                given_ref_scheme=str(declared).strip().lower())
+        # END guard: the drop-off's own scheme outranks an explicit one that disagrees with it
+        # a request id this workstream cannot see leaves `declared` alone: the LINK below is where
+        # that is reported, and it reports it without failing a hunt that reached a real state
+        declared = row_scheme or declared
+    kind, ref = validate_ref(ref, declared)
+    out["ref_kind"] = kind
+    lookup_kind, lookup_ref = kind, ref
+    if kind == "title":
+        # BEGIN guard: a title reference carries an author surname and a year, or it is refused
+        # `resolve_doi` judges a candidate on the title ratio AND the first-author family name AND
+        # the year; with either missing, `judge_candidate` refuses every candidate on
+        # "year unknown" / "first author '' != ''" and the hunt reports `ambiguous-title` for a
+        # reference that was never resolvable. Guessing them is worse: the resolver would then
+        # accept on the title ratio alone, which is exactly the check a wrong sibling edition
+        # passes. Name the missing field and stop.
+        missing = [n for n, v in (("--author (an author surname)", author), ("--year", year))
+                   if not v]
+        if missing:
+            raise HuntRefused(
+                "malformed-ref",
+                f"a title reference is resolved by title AND first-author surname AND year, and "
+                f"this hunt was given neither of: {', '.join(missing)}. litkb does not guess "
+                f"either — a title alone matches a sibling edition as well as the work.",
+                ref_scheme="title", missing=[m.split()[0] for m in missing])
+        # END guard: a title reference carries an author surname and a year, or it is refused
+        t0 = time.monotonic()
+        doi, source, evidence = resolve_title(ref, author, year, client=registry_client,
+                                              pacer=pacer)
+        timing["resolve_title"] = round(time.monotonic() - t0, 2)
+        out["resolved"] = {"from_title": ref, "doi": doi, "registry": source,
+                           "evidence": evidence}
+        # the rest of the hunt is the DOI path, on the DOI gate 0 confirmed; `ref_kind` keeps
+        # saying `title`, because that is what the REFERENCE is and what a caller declared
+        lookup_kind, lookup_ref = "doi", doi
+        title = title or ref
+
     t0 = time.monotonic()
     reader = _reader(db, reader_role)
     try:
-        held = look_up(reader, ws_id, ref, kind)
+        held = look_up(reader, ws_id, lookup_ref, lookup_kind)
     finally:
         reader.close()
     timing["resolve"] = round(time.monotonic() - t0, 2)
@@ -515,7 +757,8 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     # already holds, and check 2 would refuse it with a message about a DUPLICATE, so a second
     # hunt of a DOI would report a collision instead of the state it is in.
     if held and held["state"] == "held":
-        return _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals,
+        return _spend_on_held(db, ws_id, token, lookup_ref, lookup_kind, held, out, timing,
+                              refusals,
                               spend=spend, agent=agent, session=session, store=store,
                               reader_role=reader_role, writer_role=writer_role, extract=extract,
                               device=device, docling_python=docling_python, derived=derived,
@@ -541,18 +784,26 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     store = store or Store()
     writer = c.connect(db, writer_role or _role("writer"), autocommit=True)
     try:
-        if kind == "doi":
+        # A DOI, an arXiv id, and a title that resolved to a DOI are ONE path: `admit_registry`
+        # takes either identifier, asks the registry that owns it (`confirm_doi` /
+        # `registry.arxiv_record`), and the database's check 1 is the confirm gate for both. An
+        # arXiv branch that called `arxiv_record` itself here would be a second copy of the
+        # registry call the admission already makes, and a second place its result is judged.
+        if lookup_kind in ("doi", "arxiv"):
             t0 = time.monotonic()
             claimed = {k: v for k, v in (("title", title), ("authors", author),
                                          ("year", year)) if v}
-            res = front.admit_registry(writer, ws_id, token, doi=ref, claimed=claimed or None,
+            res = front.admit_registry(writer, ws_id, token,
+                                       **({"doi": lookup_ref} if lookup_kind == "doi"
+                                          else {"arxiv": lookup_ref}),
+                                       claimed=claimed or None,
                                        key=key, agent=agent, session=session,
                                        client=registry_client)
             timing["admit"] = round(time.monotonic() - t0, 2)
             if res.get("outcome") != "admitted":
                 raise HuntRefused("admission-refused",
-                                  "the DOI was not admitted; the checks say why.",
-                                  admission=_thin(res))
+                                  f"the {lookup_kind.upper()} was not admitted; the checks say "
+                                  f"why.", admission=_thin(res))
             out["admission"] = _thin(res)
             # BEGIN call site: hunt_request linked from a fresh DOI admission
             if hunt_request_id:
@@ -563,7 +814,8 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
             # STATE rather than an error: the work is admitted, which is progress. `litkb acquire`
             # (or `_spend_on_held`'s own call into the same acquisition code) owns the route
             # decision and records every attempt.
-            return _spend_on_held(db, ws_id, token, ref, kind, {"work_id": str(res["work_id"])},
+            return _spend_on_held(db, ws_id, token, lookup_ref, lookup_kind,
+                                  {"work_id": str(res["work_id"])},
                                   out, timing, refusals, spend=spend, agent=agent,
                                   session=session, store=store, reader_role=reader_role,
                                   writer_role=writer_role, extract=extract, device=device,
@@ -752,6 +1004,26 @@ def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, d
                          "effect": "the reconciliation ran on Docling alone"})
     return out | {"ok": True, "state": "extracted", "outcome": "extracted",
                   "refusals": refusals, "seconds": timing} | _report(db, ws_id, held, reader_role)
+
+
+def _request_scheme(db, hunt_request_id, reader_role=None):
+    """The `ref_scheme` the drop-off records, or None when no such request can be read.
+
+    Read through `hunt_request.status` (the `hunt_request_status` view), so there is no second
+    copy of that row's shape here. None is NOT an error: a request id that names nothing this
+    reader can see leaves the scheme to the caller's own declaration or to the shape, and the LINK
+    call site downstream is where that id's real problem is reported — without failing a hunt that
+    otherwise reached a real state (`_link_hunt_request`'s own rule)."""
+    from litkb import hunt_request
+
+    conn = _reader(db, reader_role)
+    try:
+        row = hunt_request.status(conn, hunt_request_id)
+    except Exception:                            # noqa: BLE001 — a malformed id is not a scheme
+        return None
+    finally:
+        conn.close()
+    return (row or {}).get("ref_scheme")
 
 
 def _link_hunt_request(db, ws_id, token, hunt_request_id, work_id, agent, session, writer_role,

@@ -1,0 +1,475 @@
+{
+ "_provenance": {
+  "what": "ONE real Crossref search response, frozen, whose TOP candidate is a WRONG work scoring in [0.80, 0.85) against the title the identity test resolves. The gate proof for LITKB_WORKPLAN.md S1 done-state (c): RESOLVE_TITLE_RATIO lowered 0.85 -> 0.80 turns qc/test_litkb_hunt.py::test_a_wrong_work_scoring_just_under_the_ratio_is_refused RED.",
+  "crossref_body_copied_from": "qc/fixtures/litkb_crossref_raw_search_item2.json",
+  "crossref_body_originally_fetched": "2026-09-19",
+  "crossref_body_fetched_by": "live curl to api.crossref.org, this session, independent of the design report",
+  "crossref_query_as_sent": "the besag_b11 reference of qc/fixtures/litkb_crossref_raw_search_item2.json (a title/author-blind reference; its raw string is below). The body below is that response byte-for-byte; nothing was re-fetched for this fixture.",
+  "crossref_query_raw_reference": "--(1972c). On the statistical analysis ofnearest-neighbour systems. Proceedings of the European Meeting of Statisticians, Budapest, August 1972 (to appear).",
+  "derived": "2026-09-20",
+  "derived_how": "DEVIATION FROM THE BRIEF, stated plainly. The brief asked for a NEW capture whose query title IS the title the test resolves. Twenty live Crossref queries (the brief bound) over invented canopy/remote-sensing titles found nothing in the band -- the highest top-candidate ratio was 0.741 -- because query.bibliographic answers an invented title with topically similar, not near-verbatim, works. So the band was reached offline instead, with no further network call: the queried title below is a deliberate near-title of this frozen response top candidate own title, scored with litkb.admit.resolver.title_match_ratio until it sat in [0.80, 0.85). The query that was SENT to Crossref and the title the test RESOLVES are therefore different strings, which is the deviation; what the gate sees is identical either way -- a candidate scoring 0.83 against the resolved title, which is a wrong work in the only sense the ratio gate can measure.",
+  "why_the_top_candidate_is_a_wrong_work": "The resolved title names a volume that is not this one. The frozen top candidate is Plackett 1975 reviewing Progress in Statistics, Vols I and II; the test resolves Recent Progress in Statistics: European Meeting of Statisticians, Budapest. -- a sibling-volume shape, the same class confirm_s2_candidate already refuses by name. Admitting the candidate for it would bind the wrong work to the reference.",
+  "isolation_of_the_ratio": "judge_candidate refuses on ratio OR first-author family OR year. The surname and year the test passes are taken FROM THE CANDIDATE ITSELF (Plackett / 1975), so family_matches and the year rule both PASS and the ratio is the only check that can refuse. Without that, lowering the ratio would not change the verdict and the RED proof would be void."
+ },
+ "resolved_title": "Recent Progress in Statistics: European Meeting of Statisticians, Budapest.",
+ "surname": "Plackett",
+ "year": 1975,
+ "expected": {
+  "top_candidate_doi": "10.2307/2345225",
+  "top_candidate_title": "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II.",
+  "ratio": 0.8333,
+  "at_ratio_0_85": {
+   "doi": null,
+   "reason": "best=crossref:0.83:10.2307/2345225"
+  },
+  "at_ratio_0_80": {
+   "doi": "10.2307/2345225",
+   "source": "crossref"
+  }
+ },
+ "crossref_search_body": {
+  "status": "ok",
+  "message-type": "work-list",
+  "message-version": "1.0.0",
+  "message": {
+   "facets": {},
+   "total-results": 674230,
+   "items": [
+    {
+     "indexed": {
+      "date-parts": [
+       [
+        2022,
+        4,
+        5
+       ]
+      ],
+      "date-time": "2022-04-05T01:16:32Z",
+      "timestamp": 1649121392670
+     },
+     "reference-count": 0,
+     "publisher": "JSTOR",
+     "issue": "4",
+     "content-domain": {
+      "domain": [],
+      "crossmark-restriction": false
+     },
+     "short-container-title": [
+      "Journal of the Royal Statistical Society. Series A (General)"
+     ],
+     "published-print": {
+      "date-parts": [
+       [
+        1975
+       ]
+      ]
+     },
+     "DOI": "10.2307/2345225",
+     "type": "journal-article",
+     "created": {
+      "date-parts": [
+       [
+        2006,
+        6,
+        18
+       ]
+      ],
+      "date-time": "2006-06-18T11:48:10Z",
+      "timestamp": 1150631290000
+     },
+     "page": "573",
+     "source": "Crossref",
+     "is-referenced-by-count": 0,
+     "title": [
+      "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II."
+     ],
+     "prefix": "10.2307",
+     "volume": "138",
+     "author": [
+      {
+       "given": "R. L.",
+       "family": "Plackett",
+       "sequence": "first",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "J.",
+       "family": "Gani",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "K.",
+       "family": "Sarkadi",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "I.",
+       "family": "Vincze",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      }
+     ],
+     "member": "1121",
+     "container-title": [
+      "Journal of the Royal Statistical Society. Series A (General)"
+     ],
+     "deposited": {
+      "date-parts": [
+       [
+        2021,
+        7,
+        20
+       ]
+      ],
+      "date-time": "2021-07-20T12:20:59Z",
+      "timestamp": 1626783659000
+     },
+     "score": 38.448536,
+     "resource": {
+      "primary": {
+       "URL": "https://www.jstor.org/stable/10.2307/2345225?origin=crossref"
+      }
+     },
+     "issued": {
+      "date-parts": [
+       [
+        1975
+       ]
+      ]
+     },
+     "references-count": 0,
+     "journal-issue": {
+      "issue": "4",
+      "published-print": {
+       "date-parts": [
+        [
+         1975
+        ]
+       ]
+      }
+     },
+     "URL": "https://doi.org/10.2307/2345225",
+     "ISSN": [
+      "0035-9238"
+     ],
+     "issn-type": [
+      {
+       "value": "0035-9238",
+       "type": "print"
+      }
+     ],
+     "published": {
+      "date-parts": [
+       [
+        1975
+       ]
+      ]
+     }
+    },
+    {
+     "indexed": {
+      "date-parts": [
+       [
+        2024,
+        9,
+        7
+       ]
+      ],
+      "date-time": "2024-09-07T06:36:25Z",
+      "timestamp": 1725690985537
+     },
+     "publisher-location": "Dordrecht",
+     "reference-count": 0,
+     "publisher": "Springer Netherlands",
+     "isbn-type": [
+      {
+       "type": "print",
+       "value": "9789401099127"
+      },
+      {
+       "type": "electronic",
+       "value": "9789401099103"
+      }
+     ],
+     "license": [
+      {
+       "start": {
+        "date-parts": [
+         [
+          1977,
+          1,
+          1
+         ]
+        ],
+        "date-time": "1977-01-01T00:00:00Z",
+        "timestamp": 220924800000
+       },
+       "content-version": "tdm",
+       "delay-in-days": 0,
+       "URL": "http://www.springer.com/tdm"
+      }
+     ],
+     "content-domain": {
+      "domain": [],
+      "crossmark-restriction": false
+     },
+     "published-print": {
+      "date-parts": [
+       [
+        1977
+       ]
+      ]
+     },
+     "DOI": "10.1007/978-94-010-9910-3",
+     "type": "book",
+     "created": {
+      "date-parts": [
+       [
+        2012,
+        7,
+        10
+       ]
+      ],
+      "date-time": "2012-07-10T09:39:13Z",
+      "timestamp": 1341913153000
+     },
+     "source": "Crossref",
+     "is-referenced-by-count": 0,
+     "title": [
+      "Transactions of the Seventh Prague Conference on Information Theory, Statistical Decision Functions, Random Processes and of the 1974 European Meeting of Statisticians"
+     ],
+     "prefix": "10.1007",
+     "member": "297",
+     "language": "en",
+     "link": [
+      {
+       "URL": "http://link.springer.com/content/pdf/10.1007/978-94-010-9910-3.pdf",
+       "content-type": "application/pdf",
+       "content-version": "vor",
+       "intended-application": "text-mining"
+      },
+      {
+       "URL": "http://link.springer.com/content/pdf/10.1007/978-94-010-9910-3",
+       "content-type": "unspecified",
+       "content-version": "vor",
+       "intended-application": "similarity-checking"
+      }
+     ],
+     "deposited": {
+      "date-parts": [
+       [
+        2019,
+        5,
+        15
+       ]
+      ],
+      "date-time": "2019-05-15T21:50:24Z",
+      "timestamp": 1557957024000
+     },
+     "score": 32.801544,
+     "resource": {
+      "primary": {
+       "URL": "http://link.springer.com/10.1007/978-94-010-9910-3"
+      }
+     },
+     "subtitle": [
+      "held at Prague, from August 18 to 23, 1974"
+     ],
+     "editor": [
+      {
+       "given": "J.",
+       "family": "Kožešnik",
+       "sequence": "first",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "editor",
+         "vocabulary": "crossref"
+        }
+       ]
+      }
+     ],
+     "issued": {
+      "date-parts": [
+       [
+        1977
+       ]
+      ]
+     },
+     "ISBN": [
+      "9789401099127",
+      "9789401099103"
+     ],
+     "references-count": 0,
+     "URL": "https://doi.org/10.1007/978-94-010-9910-3",
+     "published": {
+      "date-parts": [
+       [
+        1977
+       ]
+      ]
+     }
+    },
+    {
+     "indexed": {
+      "date-parts": [
+       [
+        2024,
+        8,
+        6
+       ]
+      ],
+      "date-time": "2024-08-06T10:32:03Z",
+      "timestamp": 1722940323142
+     },
+     "reference-count": 0,
+     "publisher": "S. Karger AG",
+     "isbn-type": [
+      {
+       "type": "print",
+       "value": "9783805549028"
+      },
+      {
+       "type": "electronic",
+       "value": "9783318017892"
+      }
+     ],
+     "content-domain": {
+      "domain": [],
+      "crossmark-restriction": false
+     },
+     "published-print": {
+      "date-parts": [
+       [
+        1988,
+        8,
+        26
+       ]
+      ]
+     },
+     "DOI": "10.1159/isbn.978-3-318-01789-2",
+     "type": "monograph",
+     "created": {
+      "date-parts": [
+       [
+        2014,
+        12,
+        2
+       ]
+      ],
+      "date-time": "2014-12-02T13:19:50Z",
+      "timestamp": 1417526390000
+     },
+     "source": "Crossref",
+     "is-referenced-by-count": 1,
+     "title": [
+      "European Pancreatic Club EPC"
+     ],
+     "prefix": "10.1159",
+     "member": "127",
+     "language": "en",
+     "deposited": {
+      "date-parts": [
+       [
+        2014,
+        12,
+        2
+       ]
+      ],
+      "date-time": "2014-12-02T13:24:15Z",
+      "timestamp": 1417526655000
+     },
+     "score": 32.41224,
+     "resource": {
+      "primary": {
+       "URL": "http://www.karger.com/Book/Home/221627"
+      }
+     },
+     "subtitle": [
+      "20th Meeting, Budapest, August 1988: Abstracts"
+     ],
+     "editor": [
+      {
+       "name": "European Pancreatic Club (EPC)",
+       "sequence": "first",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "editor",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "M.",
+       "family": "Papp",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "editor",
+         "vocabulary": "crossref"
+        }
+       ]
+      }
+     ],
+     "issued": {
+      "date-parts": [
+       [
+        1988,
+        8,
+        26
+       ]
+      ]
+     },
+     "ISBN": [
+      "9783805549028",
+      "9783318017892"
+     ],
+     "references-count": 0,
+     "URL": "https://doi.org/10.1159/isbn.978-3-318-01789-2",
+     "published": {
+      "date-parts": [
+       [
+        1988,
+        8,
+        26
+       ]
+      ]
+     }
+    }
+   ],
+   "items-per-page": 3,
+   "query": {
+    "start-index": 0,
+    "search-terms": null
+   }
+  }
+ }
+}

@@ -1707,6 +1707,63 @@ hu(block, "H7", f"{PKG}/mcp/server.py",
    "litkb_hunt's spend=False is silently dropped: the CLI subprocess never sees --no-spend, so "
    "an MCP caller who asked not to spend gets the default spend anyway")
 
+# ── HS: the reference is VALIDATED, not classified (S1, 2026-09-20) ─────────────────────────
+# `ref_kind` called every non-http reference a DOI, so a title, an ISBN, a PMID and a typo were
+# all handed to `admit_registry`. A lit-scout drops off every one of those shapes, and its whole
+# contract is that a drop-off ends in a NAMED result. `qc/fixtures/litkb_ref_shapes.json` is the
+# table of what each shape must end in; these rows are the proof that the guards behind it fire.
+# One row per CALL SITE (base brief), which is why HS8 and HS9 both exist: the vocabulary check
+# is written at two entry points, and mutating one must not be covered by the other's test.
+hu(site, "HS1", "litkb/hunt.py::is_doi::normalize_doi", "{a0}",
+   what="the DOI shape is tested on the RAW reference instead of the canonical one: "
+        "`https://doi.org/10.1016/…` no longer starts with `10.` and every doi.org form a "
+        "session types is refused `malformed-ref`")
+hu(block, "HS2", f"{PKG}/hunt.py",
+   "guard: a reference is validated against its scheme, or inferred strictly, never assumed",
+   "no reference is validated at all: the scheme is whatever the caller said or nothing, and "
+   "every shape — garbage, an ISBN, an unknown scheme — flows on into the ladder")
+hu(replace, "HS3", f"{PKG}/hunt.py",
+   "        k = ref_kind(r)\n        if k is None:",
+   "        k = ref_kind(r) or \"doi\"\n        if k is None:",
+   "THE ORIGINAL DEFECT, restored in one line: a reference whose shape matches nothing is called "
+   "a DOI again, so `see the attached spreadsheet, row 14` reaches admit_registry and dies at "
+   "AdmissionError instead of coming back `malformed-ref`")
+hu(replace, "HS4", f"{PKG}/hunt.py", "    if s not in HUNTABLE:", "    if False:",
+   "a scheme litkb records but cannot hunt (isbn, pmid, handle …) is no longer refused: it falls "
+   "through to the web-source path and the hunt tries to FETCH an ISBN")
+hu(block, "HS5", f"{PKG}/hunt.py",
+   "guard: the drop-off's own scheme outranks an explicit one that disagrees with it",
+   "an explicit --ref-scheme silently overrides the scheme the hunt_request recorded: the work "
+   "is linked to an expectation written about a different reference, and hunt_request_status "
+   "then reads confirmed/contradicted for the wrong one")
+hu(block, "HS6", f"{PKG}/hunt.py",
+   "guard: a title reference carries an author surname and a year, or it is refused",
+   "a title is resolved with no surname and no year: judge_candidate refuses every candidate for "
+   "a reason that has nothing to do with the title, and the hunt reports `ambiguous-title` for a "
+   "reference that was never resolvable")
+hu(block, "HS7", f"{PKG}/hunt.py",
+   "guard: a title resolves through gate 0 or is refused by name, never admitted on a guess",
+   "gate 0 returning no DOI stops being a refusal: the hunt carries None forward as the "
+   "identifier instead of answering `unresolved-title` / `ambiguous-title`")
+hu(block, "HS8", f"{PKG}/mcp/server.py",
+   "guard: the MCP drop-off's ref_scheme is in the vocabulary before the write is attempted",
+   "litkb_hunt_request_add stops naming an unrecognised scheme: it reaches the table's CHECK and "
+   "comes back as the ordinary `error` shape carrying a raw PL/pgSQL sentence, which is what an "
+   "unattended scout cannot act on")
+hu(block, "HS9", f"{PKG}/commands.py",
+   "guard: the CLI drop-off's ref_scheme is in the vocabulary before the write is attempted",
+   "`litkb hunt-request add` stops naming an unrecognised scheme and lets the database refuse it")
+# The ratio gate itself. Its VALUE is not this branch's to change (the S1 brief says so), and this
+# row does not change it in the tree: it lowers 0.85 -> 0.80 for the length of one mutation and
+# shows the identity test go RED — LITKB_WORKPLAN.md S1 done-state (c) item 3, RUN rather than
+# described. The frozen Crossref candidate scores 0.83 against the title the test resolves, with
+# that candidate's OWN surname and year passed in, so the ratio is the only check that can refuse.
+hu(replace, "HS10", f"{PKG}/admit/resolver.py",
+   "RESOLVE_TITLE_RATIO = 0.85", "RESOLVE_TITLE_RATIO = 0.80",
+   "the title gate admits a WRONG work: the frozen candidate of "
+   "qc/fixtures/litkb_title_gate_wrong_work.json, a sibling volume scoring 0.83 against the "
+   "queried title, resolves to its DOI and is admitted as the work that was asked for")
+
 
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.

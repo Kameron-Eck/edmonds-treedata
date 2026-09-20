@@ -173,7 +173,17 @@ def test_an_undeclared_gap_in_the_migration_numbering_is_still_refused(tmp_path)
     declared = tmp_path / "_reserved.txt"
     with pytest.raises(migrate.MigrationError, match="without gaps"):
         migrate.discover(tmp_path, reserved_path=declared)                       # undeclared: refused
-    declared.write_text(f"{hole_v:04d}  a branch that has not merged here yet\n", encoding="utf-8")
+    # The TREE's own reservations travel with the copy, exactly as they do in
+    # test_gate_runner_refuses_an_edited_applied_migration above — for a reason that only showed up
+    # when it bit (2026-09-20, landing 0025 while 0024 was still reserved for a parallel branch): a
+    # declared gap BELOW the highest migration on disk is now an ordinary state of this directory.
+    # Writing only the manufactured hole dropped 0024's line, so `discover` refused the copy at 0025
+    # and this assert failed for a property of the repository rather than of the rule — the same
+    # borrowed-state mistake the docstring above was written about, from the other side.
+    held = dict(migrate.reserved())
+    held[hole_v] = "a branch that has not merged here yet"
+    declared.write_text("".join(f"{v:04d}  {why}\n" for v, why in sorted(held.items())),
+                        encoding="utf-8")
     assert len(migrate.discover(tmp_path, reserved_path=declared)) == len(found) - 1   # declared: ok
 
 

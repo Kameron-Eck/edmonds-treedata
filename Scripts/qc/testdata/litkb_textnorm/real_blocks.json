@@ -1,0 +1,42 @@
+{
+  "conflict-ff": {
+    "block_id": "01a0abc7-429d-7a0d-b7fb-252dab0c32ec",
+    "file_id": "01a0a4d6-6db4-7343-965a-aca7b3c090d4",
+    "run_id": "01a0abc7-4269-7d4d-a8f9-cf6b5d42c699",
+    "page_no": 5,
+    "type": "heading",
+    "text": "Modelling covariate e\u0001ects\r\nAs di",
+    "sha256": "d47a5ab2802d79dde52f710020ca0d28b8dbfba7edaee6230851639f12f6904a",
+    "chars": 33
+  },
+  "conflict-fi": {
+    "block_id": "01a0abc7-42ad-7050-b607-63aacd8a50c8",
+    "file_id": "01a0a4d6-6db4-7343-965a-aca7b3c090d4",
+    "run_id": "01a0abc7-4269-7d4d-a8f9-cf6b5d42c699",
+    "page_no": 7,
+    "type": "paragraph",
+    "text": "this section we apply the modelling techniques described above to data from two prospective studies of infectious disease manifestations. In addition to serving as case studies for\r\napplication of the methods, we feel that the results provide unique insights into the nature of\r\nthe underlying disease processes and complement previously published \u0001ndings. In both applications, we \u0001t hidden Markov models to the basic transition structure and compare the results\r\nto empirical and simulated estimates using the diagnostic procedures described in Section 2.5.\r\nWe also compare estimated transition structure for hidden Markov models with corresponding\r\nMarkov models not incorporating misclassi\u0001cation probabilities. In addition, we investigate\r\nthe eects of selected covariates on disease acquisition and clearance intensities. Initial single\r\ncovariate models include coe\u0004cients for eects on both transitions. Models with two covariates are constructed similarly based on variables retained in corresponding single-covariate\r\nmodels. In cases suggested by the supporting literature, we augment the models to include\r\neects of covariates on misclassi\u0001cation probabilities. Inference procedures for evaluating covariate eects are based primarily on likelihood ratio comparison of nested models. Use of\r\nthese tests rely on the fact that the null distribution of 2 times the log of the likelihood\r\nratio tends to a chi-square distribution as the number of subjects tends to in\u0001nity or, as implied by the results of Bickel et al. [17], as the length of the observation sequence becomes\r\nin\u0001nitely long.\r\n3.1. S",
+    "sha256": "380e48f7329fcc87004cd387c570a7e749088c2b1dbff08e4ae03d0a33c1722e",
+    "chars": 1608
+  },
+  "floating": {
+    "block_id": "01a0ad5b-1765-7e08-89cc-5342a879f416",
+    "file_id": "01a0ad55-ebb2-7cf4-8b7d-7f4122466864",
+    "run_id": "01a0ad5b-16aa-7864-aba6-35cdb04e05a1",
+    "page_no": 6,
+    "type": "paragraph",
+    "text": "The activation function selected between the layers and each another\r\nis the Hyperbolic Tangent Function. More details on structure and testing\r\nare attached in the individual report prepared by Ahmed Ezzat. The \r\nfunction deals with a large number of inputs, same issue as convolution.\r\nDuring the convolution part of the integration, the TanH function is of\r\nsize 16, and at the fully connected parts it\u2019s at size 32. The convergance \r\ncondition and the limiting range of 16 bit half precision \u001doating point\r\nnumbers, and also the fact that this is implemented using the taylor\r\napproximation of the function, make this a bottleneck of accuracy. \r\nThe accuracy is within the accepted range though.",
+    "sha256": "8c90a29483044d1d8836c8199869116b0f9ecc3d69712341f23b7173a696962b",
+    "chars": 699
+  },
+  "hyphenated": {
+    "block_id": "01a0abc8-4a18-7ca5-88e5-6dac9bf744f0",
+    "file_id": "01a0a4d1-69b0-7521-b86b-7f30f3c53f57",
+    "run_id": "01a0abc8-4a05-7843-963f-951c1387553b",
+    "page_no": 3,
+    "type": "paragraph",
+    "text": "The positional accuracy of a spatial object, or a digital representation of a feature, can be de\u00aened through measures of the di\u0080 erence between the apparent location of\r\nthe feature as recorded in the database, and the true location. Unfortunately, abund- ant di\u0081 culties exist in identifying the true location of a feature because of problems\r\nwith measuring instruments, frames of geodetic reference, and feature de\u00aenitions.\r\nInstead, positional accuracy of a feature\u2019s digital representation in a database may\r\nneed to be de\u00aened in practice through measures of the di\u0080 erence between the location\r\nrecorded in the database, and a location determined with higher accuracy. We term\r\nthe \u00aerst representation the tested source and the second representation the reference\r\nsource. If the accuracy of the reference source is su\u0081 ciently high, one can ignore the\r\n(unmeasured) di\u0080 erence between it and the truth, and treat the measure of accuracy\r\nas a property of the tested source only",
+    "sha256": "dfd4c2e5b2574876aed7e8ef6384c1da7343be762df2679e3f266fac57d34978",
+    "chars": 984
+  }
+}

@@ -1,0 +1,11 @@
+case,block_id,query,must_match,leg1_old,leg1_byte_table_0x01_fi,leg1_new,verdict
+conflict-ff,01a0abc7-429d-7a0d-b7fb-252dab0c32ec,covariate effects,True,False,False,True,ok
+conflict-fi,01a0abc7-42ad-7050-b607-63aacd8a50c8,infinitely long,True,False,True,True,ok
+floating,01a0ad5b-1765-7e08-89cc-5342a879f416,floating point,True,False,False,True,ok
+overmatch-word,01a0ad5b-1765-7e08-89cc-5342a879f416,parachute deployment,False,False,False,False,ok
+overmatch-word,01a0abc7-429d-7a0d-b7fb-252dab0c32ec,photosynthesis,False,False,False,False,ok
+overmatch-short,01a0abc7-42ad-7050-b607-63aacd8a50c8,fix,False,False,False,False,ok
+state-before,372192,md5(blocks.text),,b2225fbb8fe59a7d829f3f5ba8f1912b,8,a64950b6ebed89e73ba256bc6c6b24e7,
+state-after,372192,md5(blocks.text),,b2225fbb8fe59a7d829f3f5ba8f1912b,8,a64950b6ebed89e73ba256bc6c6b24e7,identical
+reindex,blocks_norm_text_fts,28.2s,,,,,
+reindex,blocks_norm_text_trgm,33.7s,,,,,

@@ -951,17 +951,46 @@ block("X12", MIG21,
       "database built from scratch that is 0020's, which takes `framework §13.1.1` where the convention "
       "allows at most one sub-level (F-3, and the 0018/0020 apply-order split)")
 M[-1]["tests"] = TESTS_P8
-M.append(dict(id="X13", kind="multi", tests=TESTS_P8,
+#: migration 0025 (decisions.yaml litkb-ligature-repair, option c) — the index-only ligature repair.
+#: Its tests are P8's search set plus the recorded-corpus set written with it; a mutation of this
+#: function has to be red in BOTH or the row is claiming reach it does not have.
+MIG25 = f"{MIG}/0025_search_index_ligature_expansion.sql"
+TESTS_NORM = [*TESTS_P8, "qc/test_litkb_textnorm_index.py"]
+
+# X13 was authored against 0018 and is REPOINTED to 0025 here, for the reason X12 gives about 0021:
+# migration 0025 CREATE OR REPLACEs norm_search_text, so from 0025 on 0018's body is DEAD TEXT and a
+# mutation of it changes nothing a database ever runs. The two clauses it weakens (drop U+FFFD/U+00AD;
+# join line-break hyphenation) were carried into 0025 unchanged, and they are mutated there — which is
+# also what keeps them tested at all, since 0025 is the only live definition.
+M.append(dict(id="X13", kind="multi", tests=TESTS_NORM,
               what="norm_search_text becomes a whitespace collapser: it stops dropping the "
                    "extractor's replacement characters and stops joining line-break hyphenation, so "
                    "`overesti- mate` is two words again on both sides of the comparison",
               edits=[
-    dict(file=f"{MIG}/0018_access_layer.sql",
-         old="             translate(coalesce(p_text, ''), chr(65533) || chr(173), ''),",
-         new="             coalesce(p_text, ''),"),
-    dict(file=f"{MIG}/0018_access_layer.sql",
-         old="             '-[ \\t\\r\\n]+', '', 'g'),",
-         new="             'ZZZZ-[ \\t\\r\\n]+', '', 'g'),")]))
+    dict(file=MIG25,
+         old="                 translate(coalesce(p_text, ''), chr(65533) || chr(173), ''),",
+         new="                 coalesce(p_text, ''),"),
+    dict(file=MIG25,
+         old="                 '-[ \\t\\r\\n]+', '', 'g'),",
+         new="                 'ZZZZ-[ \\t\\r\\n]+', '', 'g'),")]))
+# The 0025 rule itself, one row per CLAUSE, because the two clauses see different damage: a byte with
+# letters on both sides (`e<0x01>ects`) and a word-initial byte (`<0x1d>oating`). A row that broke only
+# one of them would leave the other looking tested. Each mutation leaves a VALID migration whose
+# function still normalises — it just stops expanding — which is exactly the pre-0025 recall hole.
+replace("X13a", MIG25,
+        "               '\\& \\1\\2 \\1ff\\2 \\1fi\\2 \\1fl\\2 \\1ffi\\2 \\1ffl\\2', 'g'),\n",
+        "               '\\&', 'g'),\n",
+        "the mid-word ligature expansion is gone: a C0 byte with letters on both sides is left as the "
+        "extractor wrote it, so `covariate effects` and `infinitely long` cannot reach the blocks that "
+        "hold `e<0x01>ects` and `in<0x01>nitely` — the same file, the same byte, both unreachable",
+        tests=TESTS_NORM)
+replace("X13b", MIG25,
+        "             '\\& \\2 ff\\2 fi\\2 fl\\2 ffi\\2 ffl\\2', 'g'),\n",
+        "             '\\&', 'g'),\n",
+        "the WORD-INITIAL ligature expansion is gone, which the mid-word clause cannot cover (it "
+        "requires a letter before the byte): `floating point` no longer reaches the block that holds "
+        "`<0x1d>oating point`",
+        tests=TESTS_NORM)
 replace("X14", f"{MIG}/0018_access_layer.sql",
         "    t := plainto_tsquery('simple', w);\n",
         "    t := NULL::tsquery;\n",

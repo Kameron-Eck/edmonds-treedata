@@ -56,8 +56,10 @@ WHAT IS ASKED OF THE DATABASE, AND WHY IT IS NOT RE-IMPLEMENTED HERE
     is the difference between K1 as written and K1 as it was first implemented. Being inside the
     block is not enough: a block is a whole paragraph, so a citation verified for its first
     sentence would otherwise carry a quote from its fourth, which nobody checked, under a claim
-    about the fourth. The brief's VERIFIED line prints the exact text of `[char_start, char_end)`
-    -- the span migration 0007's trigger re-read and marked `quote_verified` -- so the rule is:
+    about the fourth. The brief's VERIFIED line prints the stored quote of `[char_start,
+    char_end)` -- the span the verify trigger re-read and marked `quote_verified`, equal to it in
+    every character and every break POSITION and possibly not in how a break is ENCODED (migration
+    0026, and the brief canonicalises what it prints anyway) -- so the rule is:
     the review's quote is that span, or a substring of it. This comparison is a set membership
     between two strings the brief already handed us, not a second copy of the database's substring
     rule: what it asks is "which verified span is this quote inside", which no query answers.
@@ -74,7 +76,7 @@ That judgement is a reader's, and the grammar doc says so in those words.
 import re
 import uuid
 
-from litkb.textnorm import canonical_newlines
+from litkb.textnorm import canonical_newlines, sql_canonical_newlines
 
 #: `[work_key p.N #block_id]` -- the one citation form (LITKB_REVIEW_GRAMMAR.md §2).
 CITATION_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9_.:+-]*) p\.(\d+) #([0-9a-fA-F][0-9a-fA-F-]*)\]")
@@ -359,8 +361,10 @@ def _verified_span_findings(c, brief_spans):
     VERIFIED quote itself, or a substring of it.
 
     `brief_spans` maps (work key, page, block id) -> the set of VERIFIED quote texts the brief
-    prints for it; each is the exact `[char_start, char_end)` of a promotable `use_evidence` row,
-    the span migration 0007's trigger re-read and marked `quote_verified`. A triple absent from
+    prints for it; each is the `[char_start, char_end)` of a promotable `use_evidence` row -- the
+    span the verify trigger re-read and marked `quote_verified`, which since migration 0026 may
+    differ from the stored bytes in the ENCODING of a line break and in nothing else (and this
+    guard canonicalises both sides anyway, below). A triple absent from
     the map is `not-in-brief`'s business, not this guard's: the two name different defects (no
     evidence at all on that block, versus evidence that does not cover these words).
 
@@ -625,10 +629,13 @@ def _malformed_findings(text, strict):
 
 
 #: The block's own bytes with LINE ENDINGS canonicalised -- the database half of
-#: `textnorm.canonical_newlines`, written here because there is no migration to share it with, and
-#: bound to the Python half by test_the_sql_and_python_newline_canonicalisations_agree. CRLF first,
-#: then a lone CR, which is exactly the regex `\r\n|\r` the Python side substitutes.
-_CANON_TEXT = "replace(replace(b.text, chr(13)||chr(10), chr(10)), chr(13), chr(10))"
+#: `textnorm.canonical_newlines`. It was written inline here until 2026-09-20; migration 0026 made
+#: it `litkb.canonical_newlines(text)`, because the RECORDING path needs the same rewrite in the
+#: verify trigger and in `use.locate_quote`, and three inline copies of one rule is the drift
+#: CLAUDE.md 3.3 is about. `textnorm.sql_canonical_newlines` is the ONE Python spelling of that
+#: call, and the two halves are bound by test_the_sql_and_python_newline_canonicalisations_agree,
+#: which now drives the function itself.
+_CANON_TEXT = sql_canonical_newlines("b.text")
 
 _BLOCK_SQL = f"""
 SELECT b.page_no, wk.key, coalesce(position(%(q)s in {_CANON_TEXT}) > 0, false)

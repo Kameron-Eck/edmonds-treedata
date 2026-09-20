@@ -931,6 +931,98 @@ def test_all_seven_feeds_forms_pass_the_gate_at_record_use(hunt_env):
     assert one("litkb_my_uses", {})["uses"][0]["feeds"] == FEEDS_VOCABULARY
 
 
+# ── the quote that crosses a stored line break (2026-09-20, migration 0026) ───────────────
+
+CRLF_TEXT = ("Canopy cover was measured on eleven plots in June.\r\n"
+             "The same plots were flown again in October of the same year.\r\n"
+             "\r\n"
+             "A second paragraph begins here and says something else entirely.\r\n")
+CRLF_SPAN = "measured on eleven plots in June.\r\nThe same plots were flown again"
+
+
+@pg_only
+def test_an_lf_quote_crossing_a_stored_crlf_records_and_verifies(hunt_env):
+    """THE MCP HALF of the fix, through the real tool. 48.9 % of current-run blocks store `\\r\\n`
+    and the writer is an LLM emitting JSON: the transport carries `\\r\\n` (asserted below --
+    json.dumps/loads round-trips it), but no LLM has been observed emitting a raw CR, so before
+    2026-09-20 every quote crossing a stored line break came back `quote-not-in-block` and the
+    proving run's review quoted single LINES instead -- 33 characters at the longest inside a real
+    verified span, which an adversarial reviewer then found half the sentences overreaching.
+
+    Four things are asserted together, because each alone would pass under a wrong fix: the call
+    is accepted; the DATABASE says quote_verified; the offsets recorded are the STORED text's own
+    (so they cut the CRLF original, and every row written before this change keeps its meaning);
+    and the quote STORED is the caller's LF string -- not the block's bytes substituted in, which
+    would make the trigger's verdict a tautology."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "a quote across a stored line break"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    lf = CRLF_SPAN.replace("\r\n", "\n")
+    assert json.loads(json.dumps({"q": CRLF_SPAN}))["q"] == CRLF_SPAN, "JSON lost the CR"
+    res = one("litkb_record_use", {
+        "statement": "supplies a sentence that runs across a stored line break", "kind": "context",
+        "quote": lf, "block_id": seeded["block_id"], "gap": f"p8-crlf-{uuid.uuid4().hex[:6]}",
+        "gap_question": "does an LF quote crossing a stored CRLF record?"})
+    assert res["ok"] and res["quote_verified"] is True, res
+    start = CRLF_TEXT.index(CRLF_SPAN)
+    assert (res["char_start"], res["char_end"]) == (start, start + len(CRLF_SPAN)), res
+    stored, cut = conn.execute(
+        "SELECT e.quote, substring(b.text FROM e.char_start + 1 FOR e.char_end - e.char_start) "
+        "  FROM litkb.use_evidence e JOIN litkb.blocks b ON b.id = e.block_id WHERE e.id = %s",
+        (res["evidence_id"],)).fetchone()
+    assert stored == lf and cut == CRLF_SPAN, (stored, cut)
+
+
+@pg_only
+def test_a_quote_altered_by_one_word_is_still_refused_at_record_use(hunt_env):
+    """The reverse guarantee at the same tool: the relaxation is of the line-break ENCODING and of
+    nothing else, so one changed word is still `quote-not-in-block` and still writes nothing --
+    not even the gap. The unaltered quote in the same test is what makes this a refusal of the BAD
+    one rather than of the call."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf2-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "one changed word across a line break"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    gap = f"p8-crlf2-{uuid.uuid4().hex[:6]}"
+    bad = one("litkb_record_use", {
+        "statement": "must not record: one word differs", "kind": "context",
+        "quote": CRLF_SPAN.replace("\r\n", "\n").replace("eleven", "twelve"),
+        "block_id": seeded["block_id"], "gap": gap,
+        "gap_question": "is a quote with one changed word refused?"})
+    assert bad["refused"] == "quote-not-in-block", bad
+    assert conn.execute("SELECT count(*) FROM litkb.gaps WHERE slug = %s", (gap,)).fetchone()[0] == 0
+    good = one("litkb_record_use", {
+        "statement": "supplies the same sentence, unaltered", "kind": "context",
+        "quote": CRLF_SPAN.replace("\r\n", "\n"), "block_id": seeded["block_id"],
+        "gap": f"p8-crlf3-{uuid.uuid4().hex[:6]}", "gap_question": "and the unaltered one records?"})
+    assert good["ok"] and good["quote_verified"] is True, good
+
+
+@pg_only
+def test_a_quote_that_drops_a_blank_line_is_refused_at_record_use(hunt_env):
+    """The other half of the reverse guarantee, and the reason the rule is not a run collapse:
+    dropping the blank line between two paragraphs makes the end of one and the start of the next
+    read as one sentence. That is a change of CONTENT, not of encoding, and it is refused."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf4-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "two paragraphs joined"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    real = "flown again in October of the same year.\r\n\r\nA second paragraph begins"
+    assert real in CRLF_TEXT
+    res = one("litkb_record_use", {
+        "statement": "must not record: a blank line was dropped", "kind": "context",
+        "quote": real.replace("\r\n\r\n", "\n"), "block_id": seeded["block_id"],
+        "gap": f"p8-crlf4-{uuid.uuid4().hex[:6]}",
+        "gap_question": "is a quote that joins two paragraphs refused?"})
+    assert res["refused"] == "quote-not-in-block", res
+    kept = one("litkb_record_use", {
+        "statement": "supplies the two paragraphs with their break intact", "kind": "context",
+        "quote": real.replace("\r\n", "\n"), "block_id": seeded["block_id"],
+        "gap": f"p8-crlf5-{uuid.uuid4().hex[:6]}", "gap_question": "and with the blank line kept?"})
+    assert kept["ok"] and kept["quote_verified"] is True, kept
+
+
 def _seed_work_file_block(conn, ws_id, text, block_type="paragraph", extra=()):
     """A work, an active file and one block of its current run, written as FACTS.
 

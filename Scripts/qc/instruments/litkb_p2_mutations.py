@@ -1105,6 +1105,44 @@ replace("HB3", f"{PKG}/brief.py",
         "same spliced-reference shape as gate 2's kill in qc/test_litkb_hunt_request.py, at the "
         "brief's own call site", tests=TESTS_BRIEF)
 
+# ── the K1/K2 gate on a written review (litkb/review_check.py, stage 8, 2026-09-20) ─────────
+# decisions.yaml::litkb-operational-definition fixes the two kill criteria; these rows are what
+# makes them GATES rather than intentions. qc/test_litkb_review_check.py's m1-m5 prove the guards
+# fire on known-bad REVIEWS; the rows below prove those tests fail when the guards are removed --
+# the two halves CLAUDE.md 3.4c asks for, neither one substituting for the other.
+TESTS_REVIEW = [*TESTS, "qc/test_litkb_review_check.py"]
+block("RC1", f"{PKG}/review_check.py",
+      "guard: a citation resolves to a visible block at the work key and page it names",
+      "a citation naming a block that does not exist (or one belonging to another work, or on "
+      "another page) is graded as if it resolved: the review's location is unchecked and m1's "
+      "invented block_id passes", tests=TESTS_REVIEW)
+block("RC2", f"{PKG}/review_check.py",
+      "guard: the quoted span is verbatim in the cited block's text",
+      "a quote altered by one word -- or a citation carrying no quote at all -- passes: the "
+      "review asserts words the ingested block does not contain (m2)", tests=TESTS_REVIEW)
+block("RC3", f"{PKG}/review_check.py",
+      "guard: every citation names a VERIFIED line of this workstream's brief",
+      "a real block that NO promotable use_evidence row anchors may be cited: K1 degrades from "
+      "'traceable to a verified quote' to 'the block exists', and a writer can quote outside its "
+      "brief (m1b)", tests=TESTS_REVIEW)
+block("RC4", f"{PKG}/review_check.py",
+      "guard: K1 -- every claim paragraph carries a citation, and claims live only in claim sections",
+      "K1 stops being enforced: an uncited claim paragraph passes, and a review can satisfy the "
+      "grader by relabelling its claims as Scope (m3)", tests=TESTS_REVIEW)
+block("RC5", f"{PKG}/review_check.py",
+      "guard: K2 -- the section exists and names every contradicted/unconfirmed expectation",
+      "K2 stops being enforced: a review whose own expectation came back CONTRADICTED passes "
+      "without saying so, which is precisely the failure hunt_request exists to catch (m4)",
+      tests=TESTS_REVIEW)
+block("RC6", f"{PKG}/review_check.py",
+      "guard: every cited work key is listed in Sources, and Sources lists no work the body never cited",
+      "a work cited in the body need not appear in the Sources table: the review's own "
+      "bibliography no longer has to agree with what it cited", tests=TESTS_REVIEW)
+block("RC7", f"{PKG}/review_check.py",
+      "guard: a citation-shaped token the strict grammar rejected is named, never ignored",
+      "a mangled citation is invisible: its paragraph fails as `uncited-claim` instead, which "
+      "names the wrong defect and sends the writer to fix the wrong thing", tests=TESTS_REVIEW)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

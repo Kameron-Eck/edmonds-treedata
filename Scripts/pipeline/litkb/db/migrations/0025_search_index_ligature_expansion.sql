@@ -56,9 +56,10 @@
 --        same, match extended to the end of the whitespace-delimited run      78 / 268
 --        THIS FILE: spellings prepended, the text never written into           0 /   0
 --
---     The 570 is the 2026-09-20 audit's: the inserted space cut `u<0x05>L1(BR(0))` in half, the
---     lexeme `l1` vanished, `uffll1` was manufactured, and `L1` fell from 297 to 280 visible leg-1
---     hits. The 78 is what survives when the match is carried to the end of the whitespace run so
+--     The 570 is the 2026-09-20 audit's, reproduced here exactly: the inserted space cut
+--     `u<0x05>L1(BR(0))` in half, the lexeme `l1` vanished and `uffll1` was manufactured, and the
+--     recall table below puts the audit's `L1` 297 -> 280 alongside it. The 78 is what survives
+--     when the match is carried to the end of the whitespace run so
 --     the inserted space can only land where a space already was — and it is NOT zero, which is
 --     the measurement that killed that design:
 --
@@ -73,11 +74,26 @@
 --       `x.com/a` four (protocol/url/host/url_path), `a_b` two, and a C0 byte is itself `blank`.
 --       Prepending sidesteps the whole question: the old string is untouched and unsplit.
 --
---     The inline design also cost RECALL, because `g` matching does not overlap and a second
---     damaged word inside the same whitespace run was swallowed by the first match's tail:
---     `misclassification` recovered 117 -> 157 visible leg-1 hits under it, and 117 -> 187 here.
---     The instrument's --mutate mode re-installs BOTH rejected rules and counts them again, so
---     the three numbers above are a gate that has been SHOWN to fire, not an assertion.
+--     RECALL under each of the three rules, all counted from the FUNCTION with index scans
+--     disabled — never read through an expression index, for the reason the index section below
+--     gives. Visible leg-1 hits (DEFAULT_KINDS + the main_files/main_works joins):
+--
+--        rule                                         `misclassification`        `L1`
+--        pre-0025 (0018)                                        117               297
+--        d6a0a29: spellings written in                          187               280
+--        same, match to the end of the run                      187               297
+--        THIS FILE                                              187               297
+--
+--     READ THE SECOND COLUMN. All three rules recover `misclassification` equally — the repair is
+--     not what separates them. What separates them is that d6a0a29 DESTROYS 17 `L1` hits it was
+--     never asked to touch, which is the audit's 297 -> 280, reproduced here from the function.
+--     The run-extended rule costs nothing on either query and still loses 78 blocks / 268 lexemes
+--     elsewhere, which is why it is rejected too: a loss that does not show up in the query you
+--     happened to measure is still a loss. Every number in both tables is counted with index scans
+--     DISABLED, from the function itself — see the index section below for what a number read
+--     through an expression index was worth on 2026-09-20. The instrument's --mutate mode
+--     re-installs BOTH rejected rules and counts all of this again, so every row is a gate that
+--     has been SHOWN to fire.
 --     NOT CLAIMED FOR LEG 3: the trigram leg scores similarity() over the whole normalised
 --     string, so on an affected block the added text shifts that score slightly, and a marginal
 --     `%` match could move either way. That was not measured.
@@ -174,7 +190,11 @@ LANGUAGE sql IMMUTABLE AS $$
   -- 0025: every alternative spelling this text could have, collected — NOT substituted into it.
   -- regexp_matches(...,'g') reads the damage; nothing writes back into `base.t`.
   spellings AS (
-    SELECT string_agg(x, ' ') AS extra FROM (
+    -- ORDER BY is not cosmetic. This function also backs a TRIGRAM index, and a trigram set depends
+    -- on the boundaries BETWEEN these tokens: reorder them and the index entry changes. An
+    -- unordered string_agg leaves the output formally order-unspecified, which an IMMUTABLE
+    -- function backing an index may not be.
+    SELECT string_agg(x, ' ' ORDER BY x) AS extra FROM (
       -- case A: a C0 byte with letters on BOTH sides. The byte-dropped form, then the five
       -- ligatures. Never a choice between them — see the header's same-file conflict.
       SELECT m[1] || m[2] || ' ' || m[1] || 'ff' || m[2] || ' ' || m[1] || 'fi' || m[2] || ' '
@@ -223,11 +243,13 @@ GRANT EXECUTE ON FUNCTION litkb.norm_search_text(text) TO litkb_reader, litkb_wr
 -- 2026-09-19 dump):
 --
 --   CREATE OR REPLACE + REINDEX, run the way migrate.apply() runs it — the whole file in ONE
---   psycopg execute inside one transaction — left the fts index holding PRE-0025 entries. The
---   function answered `misclassification` on 906 blocks; the same query served from that index
---   answered 722. Same database, same instant. Through psql (`-1`, the same single transaction)
---   the identical file REINDEXed correctly, so the trigger is the execution path and not the SQL.
---   A defect that appears on one client and not another is not one to rely on either way.
+--   psycopg execute inside one transaction — left the fts index answering `misclassification` on
+--   722 blocks. The function answered 906. The PRE-0025 function answered 612. Same database, same
+--   instant: the index agreed with NEITHER definition, and what it was actually built from was not
+--   identified. Through psql (`-1`, the same single transaction) the identical file REINDEXed
+--   correctly, so the trigger is the execution path and not the SQL — which makes it worse, not
+--   better, because it cannot be reproduced from this file alone. It was observed once and not
+--   explained; what stands in for the explanation is the guard below.
 --
 --   DROP + CREATE measured 906 on both paths. A new index has no prior expression state to
 --   inherit. A stale search index is the worst thing this migration could ship — every leg reads

@@ -77,6 +77,11 @@ LEG1_TABLE = ("SELECT to_tsvector('english', litkb.norm_search_text(replace(b.te
 COUNT_Q = ("SELECT count(*) FROM litkb.blocks b "
            " WHERE to_tsvector('english', litkb.norm_search_text(b.text)) "
            "       @@ plainto_tsquery('english', litkb.norm_search_text(%s))")
+#: the same for leg 3's `%` operator, which reads the OTHER expression index
+#: (blocks_norm_text_trgm, gin_trgm_ops) — rebuilt by the same statements and just as able to go
+#: stale, and invisible to a check that only exercises the tsvector one
+COUNT_TRGM = ("SELECT count(*) FROM litkb.blocks b "
+              " WHERE litkb.norm_search_text(b.text) %% litkb.norm_search_text(%s)")
 
 STATE = ("SELECT (SELECT count(*) FROM litkb.blocks),"
          "       (SELECT md5(string_agg(text, '' ORDER BY id)) FROM litkb.blocks),"
@@ -131,17 +136,23 @@ def main():
     # not see the new body, every leg silently reads pre-0025 entries and NOTHING else here would
     # notice: the leg-1 probes below fetch one block by primary key and never touch this index.
     # Measured 2026-09-20: CREATE OR REPLACE + REINDEX through migrate.apply() left the fts index
-    # answering `misclassification` on 722 blocks while the function answered 906. The migration
-    # drops and recreates instead; this is the check that says so on every run.
+    # answering `misclassification` on 722 blocks, while the function answered 906 and the PRE-0025
+    # function answered 612 — it agreed with neither, and the mechanism was never identified. The
+    # migration drops and recreates instead; this is the check that says so on every run. BOTH
+    # expression indexes are checked: the trigram one was rebuilt the same way and a guard that
+    # looked only at the tsvector one would have said "ok" about half the search layer.
     agree = {}
-    for q in ("misclassification", "covariate effects", "floating point"):
-        served = conn.execute(COUNT_Q, (q,)).fetchone()[0]
-        conn.execute("SET enable_indexscan = off; SET enable_bitmapscan = off")
-        scanned = conn.execute(COUNT_Q, (q,)).fetchone()[0]
-        conn.execute("RESET enable_indexscan; RESET enable_bitmapscan")
-        agree[q] = (served, scanned)
-        print(f"  index vs function {q!r:22} index={served} seqscan={scanned} "
-              f"{'ok' if served == scanned else 'STALE INDEX'}")
+    for label, sql, qs in (("fts ", COUNT_Q, ("misclassification", "covariate effects",
+                                              "floating point")),
+                           ("trgm", COUNT_TRGM, ("misclassification", "covariate effects"))):
+        for q in qs:
+            served = conn.execute(sql, (q,)).fetchone()[0]
+            conn.execute("SET enable_indexscan = off; SET enable_bitmapscan = off")
+            scanned = conn.execute(sql, (q,)).fetchone()[0]
+            conn.execute("RESET enable_indexscan; RESET enable_bitmapscan")
+            agree[f"{label} {q}"] = (served, scanned)
+            print(f"  {label} index vs function {q!r:22} index={served} seqscan={scanned} "
+                  f"{'ok' if served == scanned else 'STALE INDEX'}")
     index_agrees = all(a == b for a, b in agree.values())
     # END guard: the search index agrees with the function it is built from
 

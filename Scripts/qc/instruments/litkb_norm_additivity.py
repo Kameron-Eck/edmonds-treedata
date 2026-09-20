@@ -128,6 +128,8 @@ PROBE_BLOCKS = [("01a0aba2-3d3b-750c-8abb-90b1d39e8f95", "L1", "mid-word byte, n
                 ("01a0abc6-d87b-7dc6-b50e-8d1f421020ee", "DwR2", "word-initial byte, numword tail")]
 #: corpus-wide and VISIBLE hit counts for the same tokens. Visible = what litkb_search can reach.
 PROBE_QUERIES = ["L1", "k2", "misclassification", "covariate effects"]
+#: the two the rejected rules are scored on as well: one the repair is FOR, one it must not lose
+RECALL_QUERIES = ["misclassification", "L1"]
 
 
 def _visible_sql(fn):
@@ -164,6 +166,13 @@ def main(argv):
     # the corpus has words past the parser's 2047-character limit; its NOTICE is per row and drowns
     # everything this prints. The limit is not this migration's business either way.
     conn.execute("SET client_min_messages = warning")
+    # EVERY number below is computed from the FUNCTION, never read through an expression index.
+    # That is not tidiness: on 2026-09-20 an index rebuilt inside migrate.apply() answered
+    # `misclassification` on 722 blocks while the function answered 906, and a recall number taken
+    # through it would have been a fact about a stale index. Whether the index agrees with the
+    # function is a separate question with its own instrument (litkb_norm_index_proof.py).
+    conn.execute("SET enable_indexscan = off; SET enable_bitmapscan = off; "
+                 "SET enable_indexonlyscan = off")
     print(f"database: {db} ({conn.execute('SELECT current_database()').fetchone()[0]})")
     coll = conn.execute("SELECT datcollate, datctype FROM pg_database "
                         "WHERE datname = current_database()").fetchone()
@@ -248,6 +257,15 @@ def main(argv):
                 fired.append((why, mb, ml))
                 print(f"MUTATION  {why}\n          blocks losing >=1 lexeme: {mb}   "
                       f"lexemes lost: {ml}  ({msecs:.0f}s)")
+                # What each rejected rule COSTS in recall, measured under the same seq-scan rule as
+                # every other number here. This is the row that decides whether the inline design
+                # lost hits or only lost lexemes — it must not be read through an index.
+                for q in RECALL_QUERIES:
+                    n = conn.execute(_visible_sql("norm_search_text"),
+                                     {**kinds, "q": q}).fetchone()[0]
+                    rows.append(dict(stage="mutated", metric="leg1_hits_visible", subject=q,
+                                     value=n, note=why))
+                    print(f"          leg1 visible {q!r:22} {n}")
             finally:
                 conn.execute("ROLLBACK")
             # END guard: a rejected rule is scored inside a transaction and rolled back

@@ -8,5 +8,5 @@ overmatch-short,01a0abc7-42ad-7050-b607-63aacd8a50c8,fix,False,False,False,False
 overmatch-near,01a0ad5b-1765-7e08-89cc-5342a879f416,gloating,False,False,False,False,ok
 state-before,372192,md5(blocks.text),,b2225fbb8fe59a7d829f3f5ba8f1912b,8,a64950b6ebed89e73ba256bc6c6b24e7,
 state-after,372192,md5(blocks.text),,b2225fbb8fe59a7d829f3f5ba8f1912b,8,a64950b6ebed89e73ba256bc6c6b24e7,identical
-reindex,blocks_norm_text_fts,38.1s,,,,,
-reindex,blocks_norm_text_trgm,44.2s,,,,,
+reindex,blocks_norm_text_fts,38.9s,,,,,
+reindex,blocks_norm_text_trgm,44.9s,,,,,

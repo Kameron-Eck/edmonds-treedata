@@ -47,7 +47,30 @@ between this branch's merge and its migration. The fragment reads only tables th
 since migration 0001 and that `litkb_reader` has held SELECT on since 0006
 (`qc/test_litkb_web_gate.py::test_the_reader_role_may_read_the_visibility_tables` measures that
 rather than trusting it).
+
+A workstream's proposals are visible to it only while it is OPEN. `litkb.check_ws_token`
+(migration 0018) reads `workstream_tokens` and nothing else, so it answers TRUE for a workstream
+that has been merged or abandoned — the write functions refuse on `workstreams.state` themselves
+(`_write_version`, 0007:39-44), the read path had no such check, and this decision is what made
+`ws_heads` load-bearing for SEARCH. A merged workstream's `.litkb-workstream` survives the merge
+(nothing deletes it), so without `is_open` below a finished worktree would go on searching, briefing
+and quoting material that never entered main. `is_open` is that check, in Python rather than in a
+new migration, and it is asked AFTER the token is presented: the state of a workstream is something
+a caller learns only once it has proved it owns it.
 """
+
+
+def is_open(conn, ws_id):
+    """True when `ws_id` is an OPEN workstream of this database — the condition for widening.
+
+    A workstream that does not exist is not open either, so a token file naming a workstream from
+    another database narrows to main rather than raising. Read as a plain SELECT on
+    `litkb.workstreams`, which `litkb_reader` may read (`litkb_ws_status` already does;
+    `qc/test_litkb_web_gate.py::test_the_reader_role_may_read_the_visibility_tables` measures it).
+    """
+    row = conn.execute("SELECT state FROM litkb.workstreams WHERE id = %s", (ws_id,)).fetchone()
+    return bool(row) and row[0] == "open"
+
 
 #: Joins `litkb.file_versions fv` and `litkb.works w` onto an already-joined `litkb.files f`.
 #: Binds ONE named parameter, `ws` — the caller's open workstream id, or None. Every statement that

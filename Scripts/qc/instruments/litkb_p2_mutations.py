@@ -1162,6 +1162,33 @@ replace("W6", f"{PKG}/use.py",
         "drift this predicate was put in one module to prevent",
         tests=TESTS_WEB)
 
+# W7-W9: the widening lasts only as long as the workstream is OPEN (audit item 4 of
+# jobs/litkb-operational/auditor-2a-web-source-gate.md). `litkb.check_ws_token` reads
+# `workstream_tokens` and nothing else, so it says TRUE for a merged or abandoned workstream, and
+# nothing deletes `.litkb-workstream` at a merge — so the READ side of this decision had no state
+# check at all while the write side (0007:41-44) had one. Three call sites, three rows, because the
+# three tools answer differently: search NARROWS, brief and record_use REFUSE.
+block("W7", f"{PKG}/mcp/server.py", "guard: proposal visibility requires an OPEN workstream",
+      "a MERGED or abandoned workstream keeps searching its own unapproved proposals: the worktree "
+      "is finished, its token file outlived it, and search still reaches material that never "
+      "entered main", tests=TESTS_WEB)
+block("W8", f"{PKG}/mcp/server.py", "guard: the brief is a brief of an OPEN workstream",
+      "litkb_brief keeps serving a merged workstream's proposal quotes as VERIFIED — the audit "
+      "measured exactly this: a use recorded before the merge still renders in the brief after it",
+      tests=TESTS_WEB)
+block("W9", f"{PKG}/mcp/server.py", "guard: a use is recorded into an OPEN workstream",
+      "litkb_record_use reads a merged workstream's proposal block back and gets as far as the "
+      "database's own state refusal, which _guarded turns into an opaque `error` — the caller is "
+      "told nothing it can act on, where the refusal names the file that outlived the workstream",
+      tests=TESTS_WEB)
+replace("W10", f"{PKG}/commands.py",
+        "            reasons = promote.hold_reasons(pconn, pid)",
+        "            reasons = {}",
+        "the promotion report and the tool's JSON lose the reason for every chain held by the "
+        "DEPENDENCY FIXPOINT — `—` in the why column of the one chain the web-source decision "
+        "exists to hold, in the artifact Kam reviews inside the merge (auditor-2a §7.2)",
+        tests=TESTS_WEB)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":

@@ -217,6 +217,28 @@ def _require_token(conn, ws_id, token):
         raise Refusal("bad-token", BAD_TOKEN_MESSAGE)
 
 
+def _require_open(conn, ws_id):
+    """Refuse a tool that reads or writes THIS workstream's own proposals when it is no longer open.
+
+    The counterpart of `_caller_workstream`'s state check, for the tools where narrowing to main is
+    not a sensible answer: `litkb_brief` and `litkb_record_use` are ABOUT one workstream, so a
+    merged or abandoned one must be told so rather than handed a main-only view of somebody else's
+    material. The database already refuses the WRITE on state (`_write_version`, 0007:39-44) — with
+    an InvalidParameterValue that `_guarded` turns into an opaque `error`; this makes the refusal
+    the read path's own, before a row is read or a gap is proposed.
+
+    Called only after the caller's token has been presented, so the workstream's state is told to
+    nobody who has not proved it owns it."""
+    if not visibility.is_open(conn, ws_id):
+        row = conn.execute("SELECT state FROM litkb.workstreams WHERE id = %s", (ws_id,)).fetchone()
+        raise Refusal("workstream-not-open",
+                      f"this worktree's workstream is {row[0] if row else 'not in this database'}, "
+                      "not open: a merged or abandoned workstream neither reads back its own "
+                      "unapproved proposals nor records new uses. Its .litkb-workstream outlived "
+                      "it — remove that file, or open a new workstream here with litkb_ws_open.",
+                      state=row[0] if row else None)
+
+
 #: one sentence for a refused token, wherever it is refused — here for the read tools, and in
 #: `_guarded` for the write tools, where it arrives as the database's InsufficientPrivilege. It
 #: names NOTHING about the workstream: not its slug, not its state, not whether it exists.
@@ -436,8 +458,33 @@ def _leg(conn, sql, query, limit, shape, kinds=None, ws=None):
     return [(r[0], shape(r)) for r in conn.execute(sql, args).fetchall()]
 
 
+#: what `litkb_search` says about the two visibilities, and about the third case — a token file that
+#: names a workstream which is no longer open. A result that widened and one that did not must not
+#: read the same, or an unattended loop cannot tell "nothing found" from "nothing searched".
+_PROPOSALS_MAIN_ONLY = ("this worktree has no open workstream, so only APPROVED material was "
+                        "searched")
+_PROPOSALS_NOT_OPEN = (
+    "this worktree's {file} names a workstream that is no longer open ({state}), so only APPROVED "
+    "material was searched — a merged or abandoned workstream's proposals are not searched, and "
+    "nothing it proposed and did not get approved is readable here. Remove that file, or open a "
+    "new workstream with litkb_ws_open.")
+_PROPOSALS_WIDENED = ("blocks of files THIS workstream proposed and no second session has approved "
+                      "are searched too, and are invisible to every other workstream. A quote from "
+                      "one is recordable, and its use is HELD at promote prepare until the "
+                      "admission is approved (decision litkb-web-source-gate).")
+
+#: the tail the SEARCH path adds to a refused token. `BAD_TOKEN_MESSAGE` names nothing about the
+#: workstream and must not start; what this adds is about the FILE and about this tool: a stale or
+#: copied `.litkb-workstream` is a configuration error, and search FAILS CLOSED on it rather than
+#: quietly narrowing to main, which would read as an empty corpus (audit §7.1).
+_STALE_TOKEN_TAIL = ("litkb_search is REFUSED in this worktree until {file} is removed — the tree "
+                     "then searches approved material only — or the workstream it names is opened "
+                     "again with its own token.")
+
+
 def _caller_workstream(conn):
-    """This worktree's open workstream id, or None — what `visibility.FILE_JOIN` binds as `ws`.
+    """(workstream id or None, the sentence the result carries) — what `visibility.FILE_JOIN`
+    binds as `ws`, and why.
 
     A READ tool that is about to widen what it returns must present the token, for the reason the
     P8 referee's F-1 gives: a workstream id is not a secret (a tracked report prints one), so a
@@ -446,17 +493,39 @@ def _caller_workstream(conn):
     visibilities, so it is exactly where it belongs.
 
     No token file is not an error — it is the other half of the decision. A tree with no open
-    workstream searches main, which is what every tree did before this change."""
+    workstream searches main, which is what every tree did before this change.
+
+    A file naming a workstream that is no longer OPEN is the third case (audit item 4): the token
+    still checks out — `litkb.check_ws_token` reads only `workstream_tokens` — so without
+    `visibility.is_open` a merged or abandoned worktree would go on searching proposals that never
+    entered main. It narrows to main and SAYS so; it is not refused, because a merged workstream is
+    a finished one, not a misconfigured one. The state is read only after the token is presented."""
+    from litkb import workstream as _ws
+
     try:
         ws_id, token = _session()
     except Refusal as e:
         if e.code in ("no-workstream", "bad-workstream-file"):
-            return None
+            return None, _PROPOSALS_MAIN_ONLY
         raise
-    # BEGIN guard: proposal visibility presents the workstream token
-    _require_token(conn, ws_id, token)
-    # END guard: proposal visibility presents the workstream token
-    return ws_id
+    tok_file = _worktree() / _ws.TOKEN_FILE
+    try:
+        # BEGIN guard: proposal visibility presents the workstream token
+        _require_token(conn, ws_id, token)
+        # END guard: proposal visibility presents the workstream token
+    except Refusal as e:
+        if e.code != "bad-token":
+            raise
+        raise Refusal(e.code, e.message + " " + _STALE_TOKEN_TAIL.format(file=tok_file),
+                      **e.extra) from None
+    # BEGIN guard: proposal visibility requires an OPEN workstream
+    if not visibility.is_open(conn, ws_id):
+        state = conn.execute("SELECT state FROM litkb.workstreams WHERE id = %s",
+                             (ws_id,)).fetchone()
+        return None, _PROPOSALS_NOT_OPEN.format(
+            file=tok_file, state=state[0] if state else "no such workstream in this database")
+    # END guard: proposal visibility requires an OPEN workstream
+    return ws_id, _PROPOSALS_WIDENED
 
 
 def _search(query, limit, scope, kinds=""):
@@ -470,7 +539,7 @@ def _search(query, limit, scope, kinds=""):
 
     want, kinds_note = _kinds(kinds)
     with _conn("reader") as conn:
-        ws = _caller_workstream(conn)
+        ws, proposals = _caller_workstream(conn)
         hits = {"blocks": [], "uses": []}
         if scope in ("all", "blocks"):
             hits["blocks"] = _rrf(
@@ -487,13 +556,7 @@ def _search(query, limit, scope, kinds=""):
         # comes back says which of the three states this search was in.
         n_vec = (conn.execute("SELECT count(*) FROM litkb.embeddings").fetchone()[0]
                  if VECTOR_ENABLED else None)
-    return _ok(query=query, scope=scope, kinds=kinds_note,
-               proposals=("this worktree has no open workstream, so only APPROVED material was "
-                          "searched" if ws is None else
-                          "blocks of files THIS workstream proposed and no second session has "
-                          "approved are searched too, and are invisible to every other workstream. "
-                          "A quote from one is recordable, and its use is HELD at promote prepare "
-                          "until the admission is approved (decision litkb-web-source-gate)."),
+    return _ok(query=query, scope=scope, kinds=kinds_note, proposals=proposals,
                legs=["lexical (all terms)", "lexical (any term)", "trigram"],
                normalisation="the text and the query are both read through litkb.norm_search_text: "
                              "U+FFFD and soft hyphens dropped, line-break hyphenation joined. The "
@@ -838,6 +901,15 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
                        "quote.", length=len(statement), cap=STATEMENT_MAX)
     # END guard: the statement is a statement
     with _conn("writer") as conn:
+        # BEGIN guard: a use is recorded into an OPEN workstream
+        # Before the block lookup, because that lookup is the half this decision WIDENED: it binds
+        # the caller's workstream into visibility.FILE_JOIN, and a merged or abandoned workstream
+        # may not read its unapproved proposals back (audit item 4). The database refuses the write
+        # itself (`_write_version`, 0007:41-44) — this makes the refusal legible and makes it
+        # happen before a row is read. It discloses one bit (the state) to a caller whose token the
+        # DATABASE would have refused; the block lookup below already trusted the same id.
+        _require_open(conn, ws_id)
+        # END guard: a use is recorded into an OPEN workstream
         # BEGIN guard: every feeds token is in the convention's vocabulary
         # Shape-checked by the DATABASE's own validator, not by a regex here: `litkb._feeds_token_ok`
         # (migration 0021) is the one definition of the convention's seven forms, and a second copy
@@ -1085,6 +1157,9 @@ def _brief(limit=200):
     ws_id, token = _session()
     with _conn("reader") as conn:
         _require_token(conn, ws_id, token)
+        # BEGIN guard: the brief is a brief of an OPEN workstream
+        _require_open(conn, ws_id)
+        # END guard: the brief is a brief of an OPEN workstream
         expected, verified = _br.build(conn, ws_id)
     return _ok(workstream_id=str(ws_id), expected=expected[:limit], verified=verified[:limit],
                n_expected=len(expected), n_verified=len(verified))

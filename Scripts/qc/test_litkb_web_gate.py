@@ -281,7 +281,11 @@ def test_the_reader_role_may_read_the_visibility_tables(kb):
     """`litkb_reader` is the login the search tool uses, and the new join reads two tables the old
     one did not name. The grant is 0006's `GRANT SELECT ON ALL TABLES`; this MEASURES it instead of
     trusting it, because a reader that cannot see `ws_heads` would fail closed in production and
-    pass here, where the suite logs in as the database's owner."""
+    pass here, where the suite logs in as the database's owner.
+
+    `litkb.workstreams` is in the list since the state check (row g): `visibility.is_open` runs on
+    the SAME reader connection, and a reader that could not read it would refuse every search in a
+    worktree that has a workstream at all."""
     from litkb import visibility
 
     conn = kb["conn"]
@@ -292,8 +296,9 @@ def test_the_reader_role_may_read_the_visibility_tables(kb):
             "JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id "
             + visibility.FILE_JOIN, {"ws": None}).fetchone()[0]
         assert rows >= 0
-        for t in ("ws_heads", "file_versions", "works"):
+        for t in ("ws_heads", "file_versions", "works", "workstreams"):
             conn.execute(f"SELECT count(*) FROM litkb.{t}").fetchone()
+        assert visibility.is_open(conn, kb["ws"]["A"]) is True
     finally:
         conn.execute("RESET ROLE")
 
@@ -342,6 +347,19 @@ def test_d_a_use_quoting_the_proposal_is_held_at_prepare(kb):
     assert any("approve_admission" in r for r in reasons.get(f"work:{work_id}", [])), conflicts
     assert any(f"dependency held: work:{work_id}" in r for r in reasons.get(f"use:{use_id}", [])), \
         ("prepare did not hold the use on its unapproved work", conflicts)
+    # MUTATION ROW (W10). The reason above must REACH the two places a human reads: the JSON this
+    # tool returns and the markdown report the CLI writes into the worktree for Kam's merge. It did
+    # not — a chain held only by the dependency fixpoint has no problems of its own, so both
+    # rendered `—` on the one chain this decision exists to hold (auditor-2a §7.2). The reason was
+    # never missing; `_ws_chains` does not carry it and `promotions.conflicts` does
+    # (promote.hold_reasons).
+    assert any(f"dependency held: work:{work_id}" in w
+               for w in held[f"use:{use_id}"]["why"]), ("the held use carries no reason", offered)
+    report = Path(offered["report_written"]).read_text(encoding="utf-8")
+    line = [ln for ln in report.splitlines() if f"`{use_id}`" in ln]
+    assert len(line) == 1, (offered["report_written"], line)
+    assert f"dependency held: work:{work_id}" in line[0], line[0]
+    assert "| — |" not in line[0], ("the report renders an em dash for the held use", line[0])
     state = kb["conn"].execute(
         "SELECT state FROM litkb.use_versions WHERE version_id = %s",
         (used["use_version_id"],)).fetchone()[0]
@@ -385,6 +403,85 @@ def test_f_locate_quote_is_the_same_predicate(kb):
     assert _use.locate_quote(conn, work_id, PASSAGE[:80]) == [], "main sees an unapproved proposal"
     assert _use.locate_quote(conn, work_id, PASSAGE[:80], ws=kb["ws"]["B"]) == [], \
         "workstream B sees workstream A's unapproved proposal"
+
+
+# ── (g) the workstream must still be OPEN ─────────────────────────────────────────────────
+
+@pg_only
+def test_g_a_workstream_that_is_no_longer_open_widens_nothing(kb):
+    """MUTATION ROW (W7/W8/W9), and the hole the audit found in the first cut of this branch
+    (auditor-2a §4a): `litkb.check_ws_token` reads `workstream_tokens` and NOTHING else, so it
+    answers TRUE for a workstream that has been merged or abandoned. Nothing deletes
+    `.litkb-workstream` at a merge, so a finished worktree kept searching, briefing and quoting
+    proposals that never entered main — reads stayed wide open while the writes were refused.
+
+    The state is flipped in the database directly, which is what `promote commit` does at the end
+    of a merge (`promote_commit` sets `workstreams.state = 'merged'`, 0005) — the row is about the
+    STATE, not about how it got there.
+
+    Search NARROWS (a merged workstream's own main-visible material is still searchable, and the
+    result says why); `litkb_brief` and `litkb_record_use` REFUSE, because each is about one
+    workstream and a main-only view of somebody else's material is not an answer to either."""
+    _work, _file, block = propose_web_source(kb)
+    env = env_at(kb, "A")
+    before = _mcp([("litkb_search", {"query": QUERY, "limit": 50})], env)[0]
+    assert block in block_ids(before), ("the widening was not there to begin with", before)
+    # `closed_at` and `merge_commit` alongside the state, because the table's own CHECKs
+    # (`workstreams_closed_iff_not_open` and `workstreams_merged_iff_commit`, 0001_core.sql:41-42)
+    # tie all three — a merged workstream with a NULL `closed_at` or no merge commit is a row the
+    # database would never hold, so the row below is the state `promote commit` actually leaves.
+    kb["conn"].execute("UPDATE litkb.workstreams SET state = 'merged', closed_at = now(), "
+                       "merge_commit = %s WHERE id = %s",
+                       (uuid.uuid4().hex + uuid.uuid4().hex[:8], kb["ws"]["A"]))
+    after, briefed, used = _mcp([
+        ("litkb_search", {"query": QUERY, "limit": 50}),
+        ("litkb_brief", {}),
+        ("litkb_record_use", {
+            "statement": "quotes a proposal after the workstream was merged",
+            "kind": "context", "quote": PASSAGE[:80], "block_id": block,
+            "gap": f"web-gate-merged-{uuid.uuid4().hex[:6]}",
+            "gap_question": "does a merged workstream still quote its proposal?",
+            "feeds": "decision litkb-web-source-gate"})], env)
+    assert after["ok"], after
+    assert block not in block_ids(after), ("a merged workstream still reads its proposal", after)
+    assert unapproved_hits(kb, after) == [], after
+    assert "no longer open" in after["proposals"] and "merged" in after["proposals"], \
+        after["proposals"]
+    assert briefed["ok"] is False and briefed["refused"] == "workstream-not-open", briefed
+    assert used["ok"] is False and used["refused"] == "workstream-not-open", used
+    # and nothing was written by the refused call
+    assert kb["conn"].execute(
+        "SELECT count(*) FROM litkb.ws_heads WHERE workstream_id = %s AND entity = 'use'",
+        (kb["ws"]["A"],)).fetchone()[0] == 0, "a merged workstream recorded a use"
+
+
+# ── (h) a token file that outlived its workstream ─────────────────────────────────────────
+
+@pg_only
+def test_h_a_stale_token_file_refuses_search_and_names_the_file(kb):
+    """The behaviour change this branch introduced and did not state (auditor-2a §7.1), now
+    DECIDED and tested: before it, `_search` never called `_session()`, so a `.litkb-workstream`
+    naming a workstream this database does not have was simply ignored and the tree searched main.
+    Now the search is REFUSED.
+
+    Failing closed is the choice: a token file that no longer checks out is a configuration error,
+    and a tool that quietly narrowed to main would hide it — an unattended loop would read the
+    narrowed result as "the corpus does not have this". So the refusal has to say what to do, and
+    it names the FILE (the refusal still names nothing about the workstream — row (e) holds that)."""
+    from litkb import workstream
+
+    stale = _git_worktree(kb["tmp"] / "stale")
+    gone = str(uuid.uuid4())
+    (stale / workstream.TOKEN_FILE).write_text(
+        json.dumps({"workstream_id": gone, "token": "a" * 64}), encoding="utf-8")
+    r = _mcp([("litkb_search", {"query": QUERY, "limit": 50})],
+             dict(kb["env"], LITKB_WORKTREE=str(stale)))[0]
+    assert r["ok"] is False and r["refused"] == "bad-token", r
+    assert "blocks" not in r, ("a refused search returned hits", r)
+    assert str(stale / workstream.TOKEN_FILE) in r["message"], r["message"]
+    assert "REFUSED" in r["message"], r["message"]
+    assert "removed" in r["message"] and "opened" in r["message"], r["message"]
+    assert gone not in json.dumps(r), "the refusal named the workstream"
 
 
 @pg_only

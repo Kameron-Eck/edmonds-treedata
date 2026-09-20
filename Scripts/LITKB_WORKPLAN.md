@@ -124,7 +124,7 @@ Done-state
 - (b) `py -3.12 qc/instruments/litkb_acceptance.py plan --file LITKB_WORKPLAN.md` →
   `sessions_missing_abc=0 unresolved_decision_ids=0` ·
   `py -3.12 qc/instruments/litkb_acceptance.py disposition --manifest <manifest>` →
-  `unexpected_worktrees=0 undeleted_approved_refs=0 missing_evidence=0 token_vault_mismatches=0` ·
+  `unexpected_worktrees=0 branches_not_at_parity=0 missing_evidence=0 token_vault_mismatches=0` ·
   `py -3.12 -m pytest qc/test_docs_match_code.py -q` green with this file gated ·
   `py -3.12 -m pytest qc -q -k crossref_raw_search` green (the proposer never auto-confirms) ·
   `py -3.12 qc/check.py --fast`.
@@ -392,11 +392,16 @@ lands, delete its rows.
 |---|---|
 | no autonomous topic → drop-off workflow; `hunt` classifies rather than validates refs; no `title` ref scheme | S1 |
 | unknown-work handoff never exercised end to end; two acquisition provenance shapes | S2 |
-| terminal-state vocabulary not closed; HTML-only, two-DOI works, staging orphans, `absent` ambiguity, `litkb_acquire` detail, the approve path never run, Kam's held-row rulings | S3 |
-| no extraction queue, no fail-closed page cap, zero-content/multi-file works, cross-page `page_no`, metrics in JSONL, superseded run sets, the book | S4 |
+| terminal-state vocabulary not closed; HTML-only, two-DOI works, staging orphans, `absent` ambiguity, `litkb_acquire` strips `detail` (the MCP wrapper drops the whole dict), the approve path never run, Kam's held-row rulings; files still bound at `_litkb_staging/incoming/*.download` paths (the 2026-09-16 CSVs list sixteen; refile/rebind path needed — a retry returns `duplicate-held`) | S3 |
+| no extraction queue, no fail-closed page cap, zero-content/multi-file works, cross-page `page_no`, metrics in JSONL, superseded run sets, the book; the L4 formula re-crop of Reynolds_2000 and Montgomery_1991 never ran | S4 |
 | Codex cannot read block context; run-2 review fails the tightened grader; no run protocol | S5 |
 | no synthesis grammar or K3 | S6 |
-| no doctor; ledger not a `check.py` rung; harness has no baseline diff; tolerated red; `report_path` unbounded; nightly dump task points at an old worktree | S7 (dump task: Kam, now) |
+| no doctor; ledger not a `check.py` rung; harness `run_one` calls any failure FIRED (no per-row baseline diff); the tolerated red is `test_experiments::test_pointer_paths_resolve[crown_state_model]` — an untracked CSV named in the yaml's outputs, not a litkb test; `report_path` unbounded; nightly dump task points at an old worktree | S7 (dump task: Kam, now) |
+
+Adjudicated 2026-09-20 (S0, read-only against code): of the survey's twelve POSSIBLY-STALE items
+CLOSED R4 A5 B7 E6 E11 O9 O11 (A5 had misnamed the ref — `::b10` is Hall_1985, Burnicki's two
+cases are already pinned; O6 had misnamed the test); OPEN B5 → S3, E13 → S3, E10 → S4, O6 → S7,
+O8 → S7, rows above.
 
 ---
 

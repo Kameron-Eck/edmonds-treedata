@@ -117,6 +117,17 @@ HUNTABLE = ("doi", "arxiv", "url", "title")
 REF_REFUSALS = ("malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme",
                 "ref-scheme-mismatch", "unresolved-title", "ambiguous-title")
 
+#: Every OTHER code a hunt can refuse with — the ones that existed before S1 and were never listed
+#: anywhere. Found by the first scout run (2026-09-20): an arXiv drop-off answered
+#: `admission-refused` (arXiv returned a transient 406 that check 1 treated as terminal) and the
+#: instrument scored it `unknown_states` because its closed vocabulary knew only REF_REFUSALS.
+#: `qc/test_litkb_hunt.py::test_every_refusal_code_this_module_raises_is_listed` AST-scans every
+#: `HuntRefused(...)` literal here against REF_REFUSALS + this tuple, so a new code cannot be
+#: raised without being named. `error` (the boundary in `hunt()`) stays deliberately outside.
+HUNT_REFUSALS = ("admission-refused", "bad-workstream-file", "fetch-failed", "file-missing",
+                 "incomplete-record", "no-artifact", "no-labels", "no-workstream",
+                 "not-a-pdf", "truncated-pdf")
+
 #: A DOI's registrant prefix is `10.` plus 4-9 digits, then a slash and a non-empty suffix. Checked
 #: AFTER `normalize_doi` has stripped the `https://doi.org/` / `doi:` wrapper, the invisible
 #: characters and the trailing punctuation, so the shape is tested on the canonical form that

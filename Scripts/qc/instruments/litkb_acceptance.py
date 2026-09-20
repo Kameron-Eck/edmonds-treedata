@@ -380,10 +380,18 @@ ALLOWED_SCHEMES = ("doi", "arxiv", "url", "title")
 #: `litkb.hunt.REF_REFUSALS` so this constant cannot drift away from the module it describes —
 #: it already had, once: the builders worked in parallel and the sixth code (`unknown-ref-scheme`)
 #: was added after this list was written.
+#: The third group is `litkb.hunt.HUNT_REFUSALS`: the codes hunt could ALREADY refuse with before
+#: S1. The first scout run (2026-09-20) scored a real `admission-refused` — arXiv answered a
+#: transient 406 and check 1 called it terminal — as `unknown_states`, because this list knew
+#: only the six S1 codes. Both tuples are pinned by the test, and hunt.py's own test AST-scans
+#: its source so no code can be raised without being listed.
 CLOSED_STATES = ("absent", "held", "bound-unextracted", "extracted",
                  "held-no-spend",
                  "malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme",
-                 "ref-scheme-mismatch", "unresolved-title", "ambiguous-title")
+                 "ref-scheme-mismatch", "unresolved-title", "ambiguous-title",
+                 "admission-refused", "bad-workstream-file", "fetch-failed", "file-missing",
+                 "incomplete-record", "no-artifact", "no-labels", "no-workstream",
+                 "not-a-pdf", "truncated-pdf")
 
 #: The CSV the driver (qc/instruments/litkb_scout_run.py) writes, and this checker reads.
 RUN_CSV_COLUMNS = ("hr_id", "ref", "ref_scheme", "claimed_title", "claimed_year",

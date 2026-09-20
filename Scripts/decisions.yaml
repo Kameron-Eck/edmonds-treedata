@@ -684,3 +684,24 @@ decisions:
       into the plan. Proposed by Claude on Codex's review of the plan; ruled by Kam the same day.
     evidence:
       - LITKB_WORKPLAN.md
+
+  - id: litkb-s1-dropoff-shortfall
+    question: >-
+      S1's done-state (b) bounds the scout run at `dropoffs>=10`. The first real run stopped by
+      its own rule at 9 (two consecutive queries added nothing) with every other counter met.
+      Does 9 land S1, or does it earn ONE bounded rerun on a second topic?
+    owner: kam
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      ACCEPT THE SHORTFALL. S1 is landed at dropoffs=9; the shortfall is recorded in
+      Reports/LITKB_SCOUT_RUN_2026-09-20.md and no rerun is made to clear the number.
+    why: >-
+      The bound measured volume; the machinery counters (required fields, scheme set, hunt
+      results, closed states, human input) are what S1 exists to prove, and all were met. A
+      rerun chosen to reach a count is the quota that docs/LITKB_SCOUT_PROMPT.md forbids ("a
+      cap, not a quota"): the scout's stop rule firing honestly on a thin topic is the behaviour
+      the design wants, not a failure of it. Recommended by Claude; ruled by Kam the same day.
+    evidence:
+      - Reports/LITKB_SCOUT_RUN_2026-09-20.md
+      - Reports/LITKB_SCOUT_RUN_2026-09-20.csv

@@ -631,6 +631,34 @@ def test_a_wrong_work_scoring_just_under_the_ratio_is_refused():
     assert evidence == fx["expected"]["at_ratio_0_85"]["reason"], evidence
 
 
+def test_every_refusal_code_this_module_raises_is_listed():
+    """The closed vocabulary is enforced against the SOURCE, not maintained by memory: every
+    string literal handed to `HuntRefused(...)` in hunt.py must be in REF_REFUSALS or
+    HUNT_REFUSALS, and the two dynamic sites (the title code, the pdf shape) are accounted for by
+    name. The first scout run scored a legitimate `admission-refused` as `unknown_states` because
+    nothing listed it (2026-09-20)."""
+    import ast
+    import pathlib
+
+    from litkb import hunt as H
+
+    src = pathlib.Path(H.__file__).read_text(encoding="utf-8")
+    listed = set(H.REF_REFUSALS) | set(H.HUNT_REFUSALS)
+    assert not (set(H.REF_REFUSALS) & set(H.HUNT_REFUSALS))
+    literals, dynamic = set(), []
+    for n in ast.walk(ast.parse(src)):
+        if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "HuntRefused" and n.args:
+            a = n.args[0]
+            if isinstance(a, ast.Constant):
+                literals.add(a.value)
+            else:
+                dynamic.append(ast.unparse(a))
+    assert literals <= listed, sorted(literals - listed)
+    # the two dynamic sites: `code` (unresolved-title / ambiguous-title) and the pdf shape
+    assert sorted(dynamic) == sorted(["code", "'not-a-pdf' if shape == 'not-a-pdf' else shape"]), dynamic
+    assert {"unresolved-title", "ambiguous-title", "not-a-pdf", "truncated-pdf"} <= listed
+
+
 def test_the_frozen_body_matches_its_recorded_hash():
     """The fixture's provenance is ENFORCED, not narrated. The S1 audit (2026-09-20) found the
     original `response_sha256` was of the raw wire bytes, which the file does not store, so no

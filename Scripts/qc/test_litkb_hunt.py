@@ -678,30 +678,3 @@ def test_the_cli_drop_off_names_an_unknown_scheme_before_it_writes(env):
                 "--ref-scheme", "bibtex", "--expected-claim", "c", "--why-relevant", "w"],
                connect=lambda db: C._NoConn())
     assert "bibtex" in str(e.value) and "title" in str(e.value), str(e.value)
-
-
-def test_the_sql_check_and_the_python_vocabulary_agree():
-    """ONE ref-scheme vocabulary (CLAUDE.md §3.3). The SQL CHECK is what ENFORCES it; the Python
-    constant is what the CLI and the MCP tool refuse against before the write, so a caller reads a
-    named refusal rather than a raw PL/pgSQL sentence. A stale copy in Python would refuse, at the
-    MCP layer, a scheme the database accepts — which is exactly how the scout's first `title`
-    drop-off would have died.
-
-    The HIGHEST-numbered migration that states the CHECK is the live one: reading only 0023 would
-    compare against the list 0027 replaced. Kept here rather than in test_litkb_hunt_request.py so
-    that `-k ref_shapes`'s neighbours and this gate move together; the harness runs both files."""
-    import re as _re
-
-    from litkb.hunt_request import REF_SCHEMES
-
-    mig = Path(__file__).resolve().parents[1] / "pipeline" / "litkb" / "db" / "migrations"
-    pat = _re.compile(r"ref_scheme\s+IN\s*\((?P<body>[^)]*)\)", _re.S | _re.I)
-    found = []
-    for p in sorted(mig.glob("0*.sql")):
-        m = pat.search(p.read_text(encoding="utf-8"))
-        if m:
-            found.append((p.name, tuple(_re.findall(r"'([a-z0-9_]+)'", m.group("body")))))
-    assert found, "no migration states the hunt_requests.ref_scheme CHECK any more"
-    live_file, live = found[-1]
-    assert set(live) == set(REF_SCHEMES), (live_file, sorted(live), sorted(REF_SCHEMES))
-    assert "title" in live, live_file

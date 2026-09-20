@@ -1137,6 +1137,15 @@ M.append(dict(id="HQ7", kind="multi", tests=TESTS_HR,
          new="count(*) FILTER (WHERE ues.stance = 'supports') AS n_confirming,"),
     dict(file=MIG23, old="count(*) FILTER (WHERE ues.promotable AND ues.stance = 'refutes')  AS n_contradicting",
          new="count(*) FILTER (WHERE ues.stance = 'refutes')  AS n_contradicting")]))
+# HQ9, added 2026-09-20 with migration 0027 (which DROPs and re-ADDs the ref_scheme CHECK on this
+# table): the table's OTHER CHECKs had no row and no test, and a constraint rebuild is exactly when
+# that is noticed. A drop-off with no expected_claim records nothing a later verified use can be
+# checked against, and hunt_request_status would still walk it open -> unconfirmed -> confirmed.
+replace("HQ9", MIG23, "  expected_claim     text NOT NULL CHECK (expected_claim <> ''),",
+        "  expected_claim     text,",
+        "a hunt_request is recorded with an EMPTY expected_claim (and with none at all): the "
+        "drop-off carries no prior, and nothing downstream can tell that from one that does",
+        tests=TESTS_HR)
 replace("HQ8", MIG23, "WHERE u.hunt_request_id = hr.id\n    ) agg ON true;",
         "WHERE true\n    ) agg ON true;",
         "hunt_request_status: a use linked to ANOTHER hunt_request confirms/contradicts this one "

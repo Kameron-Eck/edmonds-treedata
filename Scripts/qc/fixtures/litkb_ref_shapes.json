@@ -1,0 +1,166 @@
+{
+ "_what": "Every SHAPE a scout can drop off, and the named result `litkb.hunt.hunt` must end each one in. Driven by qc/test_litkb_hunt.py::test_ref_shapes (selectable with -k ref_shapes) against the worker database, with the registry client, the title resolver's client and the fetch all INJECTED — no test here opens a socket. The point is not that a hunt succeeds: it is that nothing ends in a traceback and nothing ends in a misclassification. Before 2026-09-20 `ref_kind` called every non-http reference a DOI, so the isbn and garbage rows below reached `admit_registry` and died at AdmissionError.",
+ "_columns": {
+  "id": "the row name; it is also the pytest parametrize id",
+  "ref": "the reference exactly as the caller gives it",
+  "ref_scheme": "what the caller DECLARES it is; null means the scheme is inferred from the shape",
+  "inputs": "the other hunt() kwargs this row passes (title/author/year/extract/spend)",
+  "seed": "a work seeded into the database before the hunt (scheme/value/state), or null. Seeding is how a row reaches a ladder rung without admitting anything: admission is tested by qc/test_litkb_p2.py, this file tests the front door",
+  "fetch": "what the injected fetch does: explode (any call fails the test), html (200 + an HTML sign-in page), pdf (200 + a synthetic one-page PDF)",
+  "registry": "none (a client that answers 404 to everything) or title_gate (the frozen Crossref search body of qc/fixtures/litkb_title_gate_wrong_work.json, served for api.crossref.org/works? and 404 for everything else)",
+  "expect": "the result: ok + state + outcome, or ok=false + the refusal code",
+  "why": "what this row is protecting"
+ },
+ "rows": [
+  {
+   "id": "doi",
+   "ref": "10.9999/refshape.doi",
+   "ref_scheme": null,
+   "inputs": {},
+   "seed": {"scheme": "doi", "value": "10.9999/refshape.doi", "state": "extracted"},
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": true, "ref_kind": "doi", "state": "extracted", "outcome": "already-extracted"},
+   "why": "the shape that always worked, kept as the control: a strict DOI regex that rejected real DOIs would show up here first."
+  },
+  {
+   "id": "arxiv",
+   "ref": "arXiv:2106.15928v2",
+   "ref_scheme": null,
+   "inputs": {},
+   "seed": {"scheme": "arxiv", "value": "2106.15928", "state": "extracted"},
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": true, "ref_kind": "arxiv", "state": "extracted", "outcome": "already-extracted"},
+   "why": "an arXiv id is its OWN scheme, not a DOI. The hunted form carries the `arXiv:` prefix and a `v2` the stored identifier does not, so this also proves hunt's normaliser and litkb.norm_identifier('arxiv', ...) agree — a reference that normalised differently would miss the work and be admitted a second time."
+  },
+  {
+   "id": "url-pdf",
+   "ref": "https://example.org/refshape/paper.pdf",
+   "ref_scheme": null,
+   "inputs": {"extract": false, "title": "A Hunted Document", "author": "Doe", "year": 2020},
+   "seed": null,
+   "fetch": "pdf",
+   "registry": "none",
+   "expect": {"ok": true, "ref_kind": "url", "state": "bound-unextracted", "outcome": "bound"},
+   "why": "the web-source path, end to end minus the GPU: fetched, shape-checked, filed under the work key and admitted as a manual PROPOSAL. extract=false stops before GROBID/Docling, which no unit test may run."
+  },
+  {
+   "id": "url-html",
+   "ref": "https://example.org/refshape/signin.pdf",
+   "ref_scheme": null,
+   "inputs": {"key": "Refshape_2026_html-not-a-paper"},
+   "seed": null,
+   "fetch": "html",
+   "registry": "none",
+   "expect": {"ok": false, "ref_kind": "url", "refused": "not-a-pdf"},
+   "why": "a URL whose shape is fine and whose BYTES are not. The reference validation must not swallow this: it is a different refusal, made later, on the bytes (the 2026-09-15 incident, row H1)."
+  },
+  {
+   "id": "title",
+   "ref": "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II.",
+   "ref_scheme": "title",
+   "inputs": {"author": "Plackett", "year": 1975},
+   "seed": {"scheme": "doi", "value": "10.2307/2345225", "state": "extracted"},
+   "fetch": "explode",
+   "registry": "title_gate",
+   "expect": {"ok": true, "ref_kind": "title", "state": "extracted", "outcome": "already-extracted",
+              "resolved_doi": "10.2307/2345225"},
+   "why": "the new scheme, and the handoff that makes it work: the title goes through gate 0 (resolve_doi -> RESOLVE_TITLE_RATIO -> first-author family -> year) and the DOI it returns is what the ladder looks up. `ref_kind` stays 'title' -- that is what the REFERENCE is -- and the DOI appears under `resolved`. This row quotes the frozen candidate's title EXACTLY, so its ratio is 1.00 and RESOLVE_TITLE_RATIO is untouched; the same frozen response with a NEAR title (ratio 0.83) is refused by test_a_wrong_work_scoring_just_under_the_ratio_is_refused. One response, both sides of the gate."
+  },
+  {
+   "id": "title-missing-author",
+   "ref": "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972.",
+   "ref_scheme": "title",
+   "inputs": {"year": 1975},
+   "seed": null,
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": false, "ref_kind": "title", "refused": "malformed-ref", "message_names": "--author"},
+   "why": "gate 0 judges on title AND first-author family AND year. Without the surname every candidate is refused for a reason that has nothing to do with the title, and the hunt would report `ambiguous-title` for a reference that was never resolvable. The refusal NAMES the missing flag instead."
+  },
+  {
+   "id": "title-missing-year",
+   "ref": "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972.",
+   "ref_scheme": "title",
+   "inputs": {"author": "Plackett"},
+   "seed": null,
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": false, "ref_kind": "title", "refused": "malformed-ref", "message_names": "--year"},
+   "why": "the other half. A title with no year accepts a sibling edition as readily as the work, and litkb does not guess a year."
+  },
+  {
+   "id": "title-by-request-id",
+   "ref": "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II.",
+   "ref_scheme": null,
+   "inputs": {},
+   "hunt_request": {"ref_scheme": "title", "claimed_authors": "Plackett, R. L. and Barnard, G. A.",
+                    "claimed_year": 1975},
+   "seed": {"scheme": "doi", "value": "10.2307/2345225", "state": "extracted"},
+   "fetch": "explode",
+   "registry": "title_gate",
+   "expect": {"ok": true, "ref_kind": "title", "state": "extracted", "outcome": "already-extracted",
+              "resolved_doi": "10.2307/2345225", "filled": ["author", "year"],
+              "first_author": "Plackett"},
+   "why": "THE DRIVER'S PATH. A scout drops off a title with claimed_authors and claimed_year, and a driver hunts it by id ALONE -- no ref_scheme, no --author, no --year. The row supplies all three. Without this the scheme resolves to `title`, author and year stay None, and the missing-field guard refuses a hunt for fields the database was holding two columns away. `Plackett, R. L. and Barnard, G. A.` also exercises the surname rule: split on ' and ', first entry, the part before the comma -> `Plackett`, which is the family name the resolver's candidate carries."
+  },
+  {
+   "id": "title-by-request-id-blank-authors",
+   "ref": "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II.",
+   "ref_scheme": null,
+   "inputs": {},
+   "hunt_request": {"ref_scheme": "title", "claimed_authors": null, "claimed_year": 1975},
+   "seed": null,
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": false, "ref_kind": "title", "refused": "malformed-ref",
+              "message_names": "claimed_authors"},
+   "why": "the other half: the row itself is silent, so the guard still fires -- filling from the record is not guessing, and a blank column is not a value. The message names the COLUMN rather than `--author`, because a driver hunting by id has no flag to reach for and being told to pass one it cannot pass is what an unattended loop stalls on."
+  },
+  {
+   "id": "title-unresolved",
+   "ref": "An Entirely Unfindable Monograph On Nothing In Particular",
+   "ref_scheme": "title",
+   "inputs": {"author": "Nobody", "year": 1999},
+   "seed": null,
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": false, "ref_kind": "title", "refused": "unresolved-title"},
+   "why": "gate 0 saw NO candidate at all (every registry answered 404). That is a different problem from a candidate the gate refused, and the next move is a better title -- so it gets its own code rather than being folded into `ambiguous-title`."
+  },
+  {
+   "id": "title-ambiguous",
+   "ref": "Recent Progress in Statistics: European Meeting of Statisticians, Budapest.",
+   "ref_scheme": "title",
+   "inputs": {"author": "Plackett", "year": 1975},
+   "seed": null,
+   "fetch": "explode",
+   "registry": "title_gate",
+   "expect": {"ok": false, "ref_kind": "title", "refused": "ambiguous-title"},
+   "why": "the SAME frozen response as the `title` row, queried with a near-title instead of the exact one: the candidate scores 0.83, gate 0 refuses it, and the hunt says a candidate was found and refused rather than pretending none existed. This is the identity gate seen from inside hunt() -- test_a_wrong_work_scoring_just_under_the_ratio_is_refused is the same refusal seen at resolve_doi."
+  },
+  {
+   "id": "isbn",
+   "ref": "978-0-13-110362-7",
+   "ref_scheme": "isbn",
+   "inputs": {},
+   "seed": null,
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": false, "ref_kind": null, "refused": "unsupported-ref-scheme", "ref_scheme": "isbn"},
+   "why": "(c) item 2. A scheme litkb RECORDS and a hunt cannot follow is a RESULT that says so and names who owns it (S3) -- never a traceback, and never an attempt to confirm an ISBN at Crossref as if it were a DOI. `ref_kind` is null because nothing was validated as huntable; the scheme that WAS recognised comes back as `ref_scheme`, so a caller can tell 'litkb has no route for this' from 'litkb has never heard of this'."
+  },
+  {
+   "id": "garbage",
+   "ref": "see the attached spreadsheet, row 14",
+   "ref_scheme": null,
+   "inputs": {},
+   "seed": null,
+   "fetch": "explode",
+   "registry": "none",
+   "expect": {"ok": false, "ref_kind": null, "refused": "malformed-ref"},
+   "why": "(c) item 1, and the whole reason ref_kind stopped classifying. This string used to be called a DOI, handed to admit_registry and killed with AdmissionError('... is not a DOI'). It is now a named refusal, and `ref_kind` is null rather than a guess."
+  }
+ ]
+}

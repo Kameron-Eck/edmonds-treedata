@@ -22,16 +22,43 @@ Neither function normalises agent/session (unlike `use.py`'s callers, which go t
 commands.py's `_labels`, mcp/server.py's `_labels`).
 """
 
+#: THE REF-SCHEME VOCABULARY, ONE HOME (CLAUDE.md §3.3). The SQL twin is the
+#: `hunt_requests_ref_scheme_check` CHECK — stated in migration 0023 and widened by 0027, which is
+#: what enforces it; this constant is what every Python entry point validates against BEFORE the
+#: write, so a caller reads a named refusal instead of a raw PL/pgSQL sentence. The two are held
+#: equal by `qc/test_litkb_hunt_request.py::test_the_sql_check_and_the_python_vocabulary_agree`,
+#: which parses the highest-numbered migration that states the CHECK — it is not a convention that
+#: they agree, because a stale copy here would refuse, at the MCP layer, a scheme the database
+#: accepts, and the scout's first `title` drop-off is exactly the call that would die of it.
+#:
+#: `title` (0027) is a reference carried as title + author + year and no identifier — what a web
+#: search result usually is. What each scheme MEANS to `litkb hunt` is hunt.py's business, not
+#: this module's: hunt supports doi, arxiv, url and title, and refuses the rest as
+#: `unsupported-ref-scheme` (S3 owns them). A scheme being recordable is not a promise that a hunt
+#: can follow it — a drop-off is a prior, and recording one litkb cannot yet chase is the point of
+#: having the record.
+REF_SCHEMES = ("doi", "arxiv", "jstor", "isbn", "pmid", "pmcid", "openalex", "s2",
+               "handle", "url", "tracker", "legacy_stem", "title", "other")
+
 
 def record(conn, ws, token, *, ref, ref_scheme, expected_claim, why_relevant, agent, session,
            abstract_passage=None, claimed_title=None, claimed_authors=None, claimed_year=None,
            gap_id=None):
     """The review agent's write. -> hunt_request_id.
 
-    `ref_scheme` is the database's own vocabulary (doi, arxiv, jstor, isbn, pmid, pmcid, openalex,
-    s2, handle, url, tracker, legacy_stem, other) — a value outside it is refused by the table's
-    own CHECK, not re-validated here.
+    `ref_scheme` is the database's own vocabulary, :data:`REF_SCHEMES` above — a value outside it
+    is refused by the table's own CHECK, not re-validated here. The entry points DO check it
+    first (commands.py's `--ref-scheme`, mcp/server.py's `_hunt_request_add`) so that a caller
+    reads a named refusal rather than a raw PL/pgSQL sentence; the CHECK is what enforces it, and
+    this function deliberately holds no third copy.
+
+    The two NOT-EMPTY CHECKs (`expected_claim`, `why_relevant`) compare against `''`, so a
+    whitespace-only value would pass them and record a drop-off with no prior. The values are
+    STRIPPED here — normalised, not validated — so that `'   '` reaches the database as `''` and
+    the table's own CHECK is what refuses it (S1 audit, 2026-09-20; mutation row HQ10).
     """
+    expected_claim = (expected_claim or "").strip()
+    why_relevant = (why_relevant or "").strip()
     row = conn.execute(
         "SELECT litkb.record_hunt_request(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (ws, token, ref, ref_scheme, expected_claim, why_relevant, abstract_passage, claimed_title,

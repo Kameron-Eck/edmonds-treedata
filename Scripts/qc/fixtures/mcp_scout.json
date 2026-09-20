@@ -9,8 +9,8 @@
         "litkb.mcp.server"
       ],
       "env": {
-        "LITKB_AGENT": "claude",
-        "LITKB_SESSION": "default"
+        "LITKB_AGENT": "lit-scout",
+        "LITKB_SESSION": "scout-1"
       }
     },
     "paper-search-mcp": {

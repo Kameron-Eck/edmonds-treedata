@@ -1111,7 +1111,7 @@ def _propose_promotion(report_path=None, repo=None):
 
 
 def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, extract=True,
-          agent=None, session=None, spend=True, hunt_request_id=None):
+          agent=None, session=None, spend=True, hunt_request_id=None, ref_scheme=None):
     """`litkb hunt`, run as a SUBPROCESS of the CLI — for the reason `_propose_promotion` runs one.
 
     A hunt INGESTS, and ingesting is the `litkb_ingest` login (design §4.7, §9): the writer holds
@@ -1137,7 +1137,13 @@ def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, e
 
     `hunt_request_id` (migration 0023) becomes `--hunt-request <id>`: the CLI does the actual
     linking (litkb.hunt._link_hunt_request), inside the same subprocess that already holds the
-    writer connection for the admission."""
+    writer connection for the admission.
+
+    `ref_scheme` (S1, 2026-09-20) becomes `--ref-scheme <s>` and is likewise THREADED, not
+    re-decided: `litkb.hunt.validate_ref` owns the vocabulary check, the shape check and the
+    precedence against a hunt_request's own scheme, and a copy of any of the three here would be
+    a second place the rule is written (the reason the LABEL check is not repeated in this
+    wrapper either)."""
     ws_id, _token = _session()
     wt = _worktree()
     cmd = [sys.executable, "-m", "litkb", "--db", _db(), "--dir", str(wt)]
@@ -1147,7 +1153,8 @@ def _hunt(ref, title=None, author=None, year=None, key=None, source_note=None, e
         cmd += ["--session", session]
     cmd += ["hunt", ref]
     for flag, value in (("--title", title), ("--author", author), ("--key", key),
-                        ("--source-note", source_note), ("--hunt-request", hunt_request_id)):
+                        ("--source-note", source_note), ("--hunt-request", hunt_request_id),
+                        ("--ref-scheme", ref_scheme)):
         if value:
             cmd += [flag, str(value)]
     if year:
@@ -1176,8 +1183,13 @@ def _hunt_request_add(ref, ref_scheme, expected_claim, why_relevant, abstract_pa
     """The review agent's drop-off (migration 0023): identifiers, the claim it expects the paper
     to support, why it is relevant, and the abstract passage it reasoned from — written BEFORE the
     full text exists, so a later verified use can be checked against the expectation that
-    motivated the hunt. `ref_scheme` is the database's own vocabulary; an unrecognised one is
-    refused by the table's CHECK, surfaced here as the ordinary `error` refusal shape.
+    motivated the hunt. `ref_scheme` is the database's own vocabulary
+    (`litkb.hunt_request.REF_SCHEMES`, held equal to the table's CHECK by
+    qc/test_litkb_hunt_request.py). It is checked HERE, before the write, so an unrecognised one
+    comes back as the named `unknown-ref-scheme` refusal carrying the vocabulary — until
+    2026-09-20 it reached the table's CHECK and surfaced as the ordinary `error` shape with a raw
+    PL/pgSQL sentence, which is exactly what an unattended scout cannot act on. The CHECK is
+    still what ENFORCES it; this is what a caller READS.
 
     `gap`, if given, is the gap SLUG this drop-off is meant to help answer; it is stored as
     `gap_id` and must already exist (litkb_record_use opens one on demand — this tool does not,
@@ -1186,6 +1198,14 @@ def _hunt_request_add(ref, ref_scheme, expected_claim, why_relevant, abstract_pa
 
     ws_id, token = _session()
     a, s = _labels(agent, session)
+    # BEGIN guard: the MCP drop-off's ref_scheme is in the vocabulary before the write is attempted
+    if ref_scheme not in hunt_request.REF_SCHEMES:
+        return _refuse("unknown-ref-scheme",
+                       f"{ref_scheme!r} is not one of litkb's reference schemes: "
+                       f"{', '.join(hunt_request.REF_SCHEMES)}. A find with no identifier at all "
+                       f"is 'title' (and the drop-off should carry claimed_title, "
+                       f"claimed_authors and claimed_year so a hunt can resolve it).")
+    # END guard: the MCP drop-off's ref_scheme is in the vocabulary before the write is attempted
     gap_id = None
     if gap:
         with _conn("reader") as conn:
@@ -1417,14 +1437,22 @@ def build_server():
         "PDF) SPENDS by default: open access, then the archive, then Sci-Hub. Pass spend=False "
         "to stop at `held` instead — a distinct, deliberate outcome, not an error. Pass "
         "hunt_request (an id from litkb_hunt_request_add) to link the drop-off to whatever work "
-        "this reference resolves to — cached or fresh, any rung of the ladder."))
+        "this reference resolves to — cached or fresh, any rung of the ladder. "
+        "ref_scheme says what the reference IS (doi | arxiv | url | title are the ones a hunt "
+        "can follow; the rest of litkb's vocabulary is recordable as a drop-off and refused here "
+        "as unsupported-ref-scheme). Omitted, the scheme is inferred from the shape and a shape "
+        "nothing matches is refused malformed-ref — never treated as a DOI. ref_scheme='title' "
+        "resolves title + author + year through the registries and needs BOTH author and year. "
+        "With hunt_request, that drop-off's own scheme wins and a disagreeing ref_scheme is "
+        "refused ref-scheme-mismatch."))
     def litkb_hunt(ref: str, title: str = "", author: str = "", year: int = 0, key: str = "",
                    source_note: str = "", extract: bool = True, spend: bool = True,
-                   hunt_request: str = "") -> str:
+                   hunt_request: str = "", ref_scheme: str = "") -> str:
         return _guarded(_hunt)(ref=ref, title=title or None, author=author or None,
                                year=year or None, key=key or None,
                                source_note=source_note or None, extract=bool(extract),
-                               spend=bool(spend), hunt_request_id=hunt_request or None)
+                               spend=bool(spend), hunt_request_id=hunt_request or None,
+                               ref_scheme=ref_scheme or None)
 
     return srv
 

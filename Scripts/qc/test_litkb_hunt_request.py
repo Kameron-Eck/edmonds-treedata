@@ -369,3 +369,80 @@ def test_cmd_hunt_request_refuses_without_labels(tmp_path, monkeypatch):
                               claimed_title=None, claimed_authors=None, claimed_year=None, gap=None)
     with pytest.raises(SystemExit, match="agent and a session"):
         commands.cmd_hunt_request(args, commands._NoConn())
+
+
+# ── the table's own CHECKs: a drop-off with no expectation is not a drop-off ────────────────
+
+@pg_only
+@pytest.mark.parametrize("field", ["expected_claim", "why_relevant"])
+def test_a_drop_off_with_an_empty_expectation_is_refused(pg, field):
+    """A hunt_request exists to record WHAT an agent expected and WHY, so a later verified use can
+    be checked against it. A row with either field empty records nothing checkable, and
+    `hunt_request_status` would still walk it open -> unconfirmed -> confirmed as though it did.
+
+    The CHECK is the table's own (`hunt_requests_expected_claim_check`, migration 0023); mutation
+    row HQ9 removes it and shows this test go red. Written 2026-09-20 alongside S1's migration
+    0027, which DROPs and re-ADDs the ref_scheme CHECK on this same table: a constraint rebuild is
+    exactly the moment the OTHER constraints on a table want covering, and nothing covered these."""
+    ws = pg.ws()
+    with pytest.raises(pg.errors.CheckViolation, match=field):
+        _record(pg, ws, **{field: ""})
+
+
+@pg_only
+@pytest.mark.parametrize("field", ["expected_claim", "why_relevant"])
+def test_a_whitespace_only_expectation_is_refused_too(pg, field):
+    """The CHECK compares against `''`, so `'   '` would pass it; `record` strips the value first
+    so the same CHECK refuses it (S1 audit 2026-09-20: found accepted at write time and caught
+    only later by the scout instrument's `missing_required_fields`). Mutation row HQ10 removes the
+    strip and shows this test go red."""
+    from litkb import hunt_request
+
+    ws = pg.ws()
+    kw = dict(ref="10.1/x", ref_scheme="doi", expected_claim="claim", why_relevant="why",
+              agent="agentA", session="sessA")
+    kw[field] = "   \t "
+    with pytest.raises(pg.errors.CheckViolation, match=field):
+        hunt_request.record(pg.conn, ws, pg.tokens[ws], **kw)
+
+
+@pg_only
+def test_the_ref_scheme_check_survived_its_rebuild_and_now_admits_title(pg):
+    """Migration 0027 DROPs and re-ADDs `hunt_requests_ref_scheme_check` under the same name. Both
+    halves are asserted: `title` is accepted (it was not before 0027), and a scheme outside the
+    vocabulary is still refused BY THE DATABASE — the Python-side checks at the CLI and the MCP
+    entry point are what a caller READS, never what enforces."""
+    ws = pg.ws()
+    hr = _record(pg, ws, ref="A Title With No Identifier", ref_scheme="title")
+    assert pg.one("SELECT ref_scheme FROM litkb.hunt_requests WHERE id = %s", (hr,))[0] == "title"
+    with pytest.raises(pg.errors.CheckViolation, match="ref_scheme"):
+        _record(pg, ws, ref="x", ref_scheme="bibtex")
+
+
+def test_the_sql_check_and_the_python_vocabulary_agree():
+    """ONE ref-scheme vocabulary (CLAUDE.md §3.3). The SQL CHECK is what ENFORCES it; the Python
+    constant `litkb.hunt_request.REF_SCHEMES` is what the CLI and the MCP tool refuse against
+    BEFORE the write, so a caller reads a named refusal instead of a raw PL/pgSQL sentence. A
+    stale copy in Python would refuse, at the MCP layer, a scheme the database accepts — which is
+    exactly how the lit-scout's first `title` drop-off would have died.
+
+    The HIGHEST-numbered migration that states the CHECK is the live one: reading only 0023 would
+    compare against the list 0027 replaced, and the test would pass while the two disagreed. No
+    database — this reads the migration FILES, so it holds on a machine with no Postgres."""
+    import pathlib
+    import re as _re
+
+    from litkb.hunt_request import REF_SCHEMES
+
+    mig = (pathlib.Path(__file__).resolve().parents[1] / "pipeline" / "litkb" / "db"
+           / "migrations")
+    pat = _re.compile(r"ref_scheme\s+IN\s*\((?P<body>[^)]*)\)", _re.S | _re.I)
+    found = []
+    for p in sorted(mig.glob("0*.sql")):
+        m = pat.search(p.read_text(encoding="utf-8"))
+        if m:
+            found.append((p.name, tuple(_re.findall(r"'([a-z0-9_]+)'", m.group("body")))))
+    assert found, "no migration states the hunt_requests.ref_scheme CHECK any more"
+    live_file, live = found[-1]
+    assert set(live) == set(REF_SCHEMES), (live_file, sorted(live), sorted(REF_SCHEMES))
+    assert "title" in live, live_file

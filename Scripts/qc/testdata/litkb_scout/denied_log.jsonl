@@ -1,0 +1,2 @@
+{"type":"system","subtype":"init"}
+{"type":"result","subtype":"success","is_error":false,"num_turns":4,"permission_denials":[{"tool_name":"WebFetch","tool_use_id":"tu_1"}],"result":"SCOUT-STOP: n=11 reason=cap"}

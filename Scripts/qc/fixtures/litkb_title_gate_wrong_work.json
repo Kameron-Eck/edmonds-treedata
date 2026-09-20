@@ -1,0 +1,494 @@
+{
+ "_provenance": {
+  "what": "ONE real Crossref search response, frozen with the exact request that produced it. Its top candidate is a REAL WRONG WORK scoring 0.8333 against THE STRING THAT WAS SENT -- which is also the string the identity test resolves. That identity (sent == resolved) is the point: a fixture whose query and whose test title differ records an interaction that never happened.",
+  "query_sent": "Recent Progress in Statistics: European Meeting of Statisticians, Budapest.",
+  "request_url": "https://api.crossref.org/works?query.bibliographic=Recent%20Progress%20in%20Statistics%3A%20European%20Meeting%20of%20Statisticians%2C%20Budapest.&rows=3",
+  "fetched": "2026-09-20T20:47:03Z",
+  "fetched_by": "live litkb.netutil.Client GET, this session (builder A, litkb S1), 1 of an authorised 3-query bound",
+  "http_status": 200,
+  "response_bytes": 5199,
+  "wire_response_sha256": "99c5c4494a5d165c6ee5d2d730a926a71373411708412838f49fb1392eb25bb1",
+  "wire_note": "sha256 of the 5199 raw bytes on the wire, recorded at capture; NOT reproducible from this file, which stores the PARSED body (the S1 audit of 2026-09-20 found it unenforceable). The enforceable field is stored_body_sha256.",
+  "stored_body_sha256": "a6fe15f92ba61c8c93492370fb0b716a42dfb4543890e458470b1b90d668f593",
+  "stored_body_hash_rule": "sha256(json.dumps(crossref_search_body, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')); checked by qc/test_litkb_hunt.py::test_the_frozen_body_matches_its_recorded_hash",
+  "strategy": "PERTURBATION. The sent string is a near-title of a real work: Plackett 1975 reviewing *Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II.* The sent string names no work -- Recent Progress in Statistics is a different volume -- so Crossref top hit is a work the query did not ask for, which is what a mis-transcribed or hallucinated title does in the field. Perturbations were scored OFFLINE with title_match_ratio against a title already known to be in Crossref, so the band was hit on the first live query of the three authorised.",
+  "why_the_top_candidate_is_a_wrong_work": "A sibling-volume shape -- the class confirm_s2_candidate already refuses by name. Admitting it for the sent title would bind the wrong work to the reference.",
+  "isolation_of_the_ratio": "judge_candidate refuses on ratio OR first-author family OR year. The surname and year the test passes are taken FROM THE CANDIDATE ITSELF (Plackett / 1975), so family_matches and the year rule both PASS and the ratio is the only check that can refuse. Without that, lowering the ratio would not change the verdict and the RED proof would be void.",
+  "other_candidates_in_this_response": "0.7394 Preece 1978 10.2307/1402379 (Recent Developments in Statistics...); 0.3925 10.18356/9789210010795c010. Both below 0.80, so at RESOLVE_TITLE_RATIO=0.80 gate 0 returns the 0.8333 candidate and no other.",
+  "supersedes": "This file REPLACES, at the same path, an earlier fixture that reused a Crossref response captured for a DIFFERENT query and reached the band offline. The coordinator ruled on 2026-09-20 that the string sent to Crossref must be the string the test resolves -- otherwise the fixture records an interaction that never happened -- and authorised this capture (<=3 live queries) to replace it. One query was needed. The superseded content is in git at 65a169f."
+ },
+ "resolved_title": "Recent Progress in Statistics: European Meeting of Statisticians, Budapest.",
+ "surname": "Plackett",
+ "year": 1975,
+ "expected": {
+  "top_candidate_doi": "10.2307/2345225",
+  "top_candidate_title": "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II.",
+  "ratio": 0.8333,
+  "at_ratio_0_85": {
+   "doi": null,
+   "reason": "best=crossref:0.83:10.2307/2345225"
+  },
+  "at_ratio_0_80": {
+   "doi": "10.2307/2345225",
+   "source": "crossref"
+  }
+ },
+ "crossref_search_body": {
+  "status": "ok",
+  "message-type": "work-list",
+  "message-version": "1.0.0",
+  "message": {
+   "facets": {},
+   "total-results": 4942838,
+   "items": [
+    {
+     "indexed": {
+      "date-parts": [
+       [
+        2022,
+        4,
+        5
+       ]
+      ],
+      "date-time": "2022-04-05T01:16:32Z",
+      "timestamp": 1649121392670
+     },
+     "reference-count": 0,
+     "publisher": "JSTOR",
+     "issue": "4",
+     "content-domain": {
+      "domain": [],
+      "crossmark-restriction": false
+     },
+     "short-container-title": [
+      "Journal of the Royal Statistical Society. Series A (General)"
+     ],
+     "published-print": {
+      "date-parts": [
+       [
+        1975
+       ]
+      ]
+     },
+     "DOI": "10.2307/2345225",
+     "type": "journal-article",
+     "created": {
+      "date-parts": [
+       [
+        2006,
+        6,
+        18
+       ]
+      ],
+      "date-time": "2006-06-18T11:48:10Z",
+      "timestamp": 1150631290000
+     },
+     "page": "573",
+     "source": "Crossref",
+     "is-referenced-by-count": 0,
+     "title": [
+      "Progress in Statistics: European Meeting of Statisticians, Budapest, 1972, Vols I and II."
+     ],
+     "prefix": "10.2307",
+     "volume": "138",
+     "author": [
+      {
+       "given": "R. L.",
+       "family": "Plackett",
+       "sequence": "first",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "J.",
+       "family": "Gani",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "K.",
+       "family": "Sarkadi",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "I.",
+       "family": "Vincze",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      }
+     ],
+     "member": "1121",
+     "container-title": [
+      "Journal of the Royal Statistical Society. Series A (General)"
+     ],
+     "deposited": {
+      "date-parts": [
+       [
+        2021,
+        7,
+        20
+       ]
+      ],
+      "date-time": "2021-07-20T12:20:59Z",
+      "timestamp": 1626783659000
+     },
+     "score": 36.396133,
+     "resource": {
+      "primary": {
+       "URL": "https://www.jstor.org/stable/10.2307/2345225?origin=crossref"
+      }
+     },
+     "issued": {
+      "date-parts": [
+       [
+        1975
+       ]
+      ]
+     },
+     "references-count": 0,
+     "journal-issue": {
+      "issue": "4",
+      "published-print": {
+       "date-parts": [
+        [
+         1975
+        ]
+       ]
+      }
+     },
+     "URL": "https://doi.org/10.2307/2345225",
+     "ISSN": [
+      "0035-9238"
+     ],
+     "issn-type": [
+      {
+       "value": "0035-9238",
+       "type": "print"
+      }
+     ],
+     "published": {
+      "date-parts": [
+       [
+        1975
+       ]
+      ]
+     }
+    },
+    {
+     "indexed": {
+      "date-parts": [
+       [
+        2024,
+        5,
+        13
+       ]
+      ],
+      "date-time": "2024-05-13T13:36:17Z",
+      "timestamp": 1715607377729
+     },
+     "reference-count": 0,
+     "publisher": "United Nations",
+     "isbn-type": [
+      {
+       "value": "9789210010795",
+       "type": "electronic"
+      }
+     ],
+     "content-domain": {
+      "domain": [],
+      "crossmark-restriction": false
+     },
+     "published-print": {
+      "date-parts": [
+       [
+        2022,
+        3,
+        29
+       ]
+      ]
+     },
+     "DOI": "10.18356/9789210010795c010",
+     "type": "book-chapter",
+     "created": {
+      "date-parts": [
+       [
+        2022,
+        4,
+        23
+       ]
+      ],
+      "date-time": "2022-04-23T07:01:17Z",
+      "timestamp": 1650697277000
+     },
+     "page": "47-57",
+     "source": "Crossref",
+     "is-referenced-by-count": 0,
+     "title": [
+      "Tracking progress at various levels"
+     ],
+     "prefix": "10.18356",
+     "author": [
+      {
+       "name": "United Nations Economic Commission for Europe",
+       "sequence": "first",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      }
+     ],
+     "member": "7834",
+     "container-title": [
+      "Conference of European Statisticians"
+     ],
+     "language": "en",
+     "deposited": {
+      "date-parts": [
+       [
+        2023,
+        4,
+        29
+       ]
+      ],
+      "date-time": "2023-04-29T07:01:03Z",
+      "timestamp": 1682751663000
+     },
+     "score": 29.078522,
+     "resource": {
+      "primary": {
+       "URL": "https://www.un-ilibrary.org/content/books/9789210010795c010"
+      }
+     },
+     "issued": {
+      "date-parts": [
+       [
+        2022,
+        3,
+        29
+       ]
+      ]
+     },
+     "ISBN": [
+      "9789210010795"
+     ],
+     "references-count": 0,
+     "URL": "https://doi.org/10.18356/9789210010795c010",
+     "published": {
+      "date-parts": [
+       [
+        2022,
+        3,
+        29
+       ]
+      ]
+     }
+    },
+    {
+     "indexed": {
+      "date-parts": [
+       [
+        2022,
+        3,
+        31
+       ]
+      ],
+      "date-time": "2022-03-31T03:32:11Z",
+      "timestamp": 1648697531825
+     },
+     "reference-count": 0,
+     "publisher": "JSTOR",
+     "issue": "3",
+     "content-domain": {
+      "domain": [],
+      "crossmark-restriction": false
+     },
+     "short-container-title": [
+      "International Statistical Review / Revue Internationale de Statistique"
+     ],
+     "published-print": {
+      "date-parts": [
+       [
+        1978,
+        12
+       ]
+      ]
+     },
+     "DOI": "10.2307/1402379",
+     "type": "journal-article",
+     "created": {
+      "date-parts": [
+       [
+        2006,
+        4,
+        18
+       ]
+      ],
+      "date-time": "2006-04-18T13:53:26Z",
+      "timestamp": 1145368406000
+     },
+     "page": "318",
+     "source": "Crossref",
+     "is-referenced-by-count": 0,
+     "title": [
+      "Recent Developments in Statistics. Proceedings, European Meeting of Statisticians, Grenoble, 1976"
+     ],
+     "prefix": "10.2307",
+     "volume": "46",
+     "author": [
+      {
+       "given": "D. A.",
+       "family": "Preece",
+       "sequence": "first",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "J. R.",
+       "family": "Barra",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "F.",
+       "family": "Brodeau",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "G.",
+       "family": "Romier",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      },
+      {
+       "given": "B.",
+       "family": "van Cutsem",
+       "sequence": "additional",
+       "affiliation": [],
+       "role": [
+        {
+         "role": "author",
+         "vocabulary": "crossref"
+        }
+       ]
+      }
+     ],
+     "member": "1121",
+     "container-title": [
+      "International Statistical Review / Revue Internationale de Statistique"
+     ],
+     "deposited": {
+      "date-parts": [
+       [
+        2018,
+        4,
+        18
+       ]
+      ],
+      "date-time": "2018-04-18T13:41:42Z",
+      "timestamp": 1524058902000
+     },
+     "score": 29.02701,
+     "resource": {
+      "primary": {
+       "URL": "https://www.jstor.org/stable/1402379?origin=crossref"
+      }
+     },
+     "issued": {
+      "date-parts": [
+       [
+        1978,
+        12
+       ]
+      ]
+     },
+     "references-count": 0,
+     "journal-issue": {
+      "issue": "3",
+      "published-print": {
+       "date-parts": [
+        [
+         1978,
+         12
+        ]
+       ]
+      }
+     },
+     "URL": "https://doi.org/10.2307/1402379",
+     "ISSN": [
+      "0306-7734"
+     ],
+     "issn-type": [
+      {
+       "value": "0306-7734",
+       "type": "print"
+      }
+     ],
+     "published": {
+      "date-parts": [
+       [
+        1978,
+        12
+       ]
+      ]
+     }
+    }
+   ],
+   "items-per-page": 3,
+   "query": {
+    "start-index": 0,
+    "search-terms": null
+   }
+  }
+ }
+}

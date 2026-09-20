@@ -1137,6 +1137,27 @@ M.append(dict(id="HQ7", kind="multi", tests=TESTS_HR,
          new="count(*) FILTER (WHERE ues.stance = 'supports') AS n_confirming,"),
     dict(file=MIG23, old="count(*) FILTER (WHERE ues.promotable AND ues.stance = 'refutes')  AS n_contradicting",
          new="count(*) FILTER (WHERE ues.stance = 'refutes')  AS n_contradicting")]))
+# HQ9, added 2026-09-20 with migration 0027 (which DROPs and re-ADDs the ref_scheme CHECK on this
+# table): the table's OTHER CHECKs had no row and no test, and a constraint rebuild is exactly when
+# that is noticed. A drop-off with no expected_claim records nothing a later verified use can be
+# checked against, and hunt_request_status would still walk it open -> unconfirmed -> confirmed.
+replace("HQ9", MIG23, "  expected_claim     text NOT NULL CHECK (expected_claim <> ''),",
+        "  expected_claim     text,",
+        "a hunt_request is recorded with an EMPTY expected_claim (and with none at all): the "
+        "drop-off carries no prior, and nothing downstream can tell that from one that does",
+        tests=TESTS_HR)
+# HQ10, S1 audit 2026-09-20: the CHECK above compares against '' and so ACCEPTED '   ' at write
+# time (caught only later by the scout instrument's missing_required_fields). hunt_request.record
+# strips the two values first so that the same CHECK refuses whitespace; this row stops the strip.
+replace("HQ10", f"{PKG}/hunt_request.py",
+        '    expected_claim = (expected_claim or "").strip()\n'
+        '    why_relevant = (why_relevant or "").strip()',
+        '    expected_claim = expected_claim\n'
+        '    why_relevant = why_relevant',
+        "a whitespace-only expected_claim / why_relevant is recorded: the drop-off carries no "
+        "prior, the CHECK is satisfied by the spaces, and the row walks open -> unconfirmed -> "
+        "confirmed like one that said something",
+        tests=TESTS_HR)
 replace("HQ8", MIG23, "WHERE u.hunt_request_id = hr.id\n    ) agg ON true;",
         "WHERE true\n    ) agg ON true;",
         "hunt_request_status: a use linked to ANOTHER hunt_request confirms/contradicts this one "
@@ -1706,6 +1727,83 @@ hu(block, "H7", f"{PKG}/mcp/server.py",
    "guard: the MCP tool's spend=False threads through as --no-spend; the default spends",
    "litkb_hunt's spend=False is silently dropped: the CLI subprocess never sees --no-spend, so "
    "an MCP caller who asked not to spend gets the default spend anyway")
+
+# ── HS: the reference is VALIDATED, not classified (S1, 2026-09-20) ─────────────────────────
+# `ref_kind` called every non-http reference a DOI, so a title, an ISBN, a PMID and a typo were
+# all handed to `admit_registry`. A lit-scout drops off every one of those shapes, and its whole
+# contract is that a drop-off ends in a NAMED result. `qc/fixtures/litkb_ref_shapes.json` is the
+# table of what each shape must end in; these rows are the proof that the guards behind it fire.
+# One row per CALL SITE (base brief), which is why HS8 and HS9 both exist: the vocabulary check
+# is written at two entry points, and mutating one must not be covered by the other's test.
+hu(site, "HS1", "litkb/hunt.py::is_doi::normalize_doi", "{a0}",
+   what="the DOI shape is tested on the RAW reference instead of the canonical one: "
+        "`https://doi.org/10.1016/…` no longer starts with `10.` and every doi.org form a "
+        "session types is refused `malformed-ref`")
+hu(block, "HS2", f"{PKG}/hunt.py",
+   "guard: a reference is validated against its scheme, or inferred strictly, never assumed",
+   "no reference is validated at all: the scheme is whatever the caller said or nothing, and "
+   "every shape — garbage, an ISBN, an unknown scheme — flows on into the ladder")
+hu(replace, "HS3", f"{PKG}/hunt.py",
+   "        k = ref_kind(r)\n        if k is None:",
+   "        k = ref_kind(r) or \"doi\"\n        if k is None:",
+   "THE ORIGINAL DEFECT, restored in one line: a reference whose shape matches nothing is called "
+   "a DOI again, so `see the attached spreadsheet, row 14` reaches admit_registry and dies at "
+   "AdmissionError instead of coming back `malformed-ref`")
+hu(replace, "HS4", f"{PKG}/hunt.py", "    if s not in HUNTABLE:", "    if False:",
+   "a scheme litkb records but cannot hunt (isbn, pmid, handle …) is no longer refused: it falls "
+   "through to the web-source path and the hunt tries to FETCH an ISBN")
+hu(block, "HS5", f"{PKG}/hunt.py",
+   "guard: the drop-off's own scheme outranks an explicit one that disagrees with it",
+   "an explicit --ref-scheme silently overrides the scheme the hunt_request recorded: the work "
+   "is linked to an expectation written about a different reference, and hunt_request_status "
+   "then reads confirmed/contradicted for the wrong one")
+# HS5b/HS5c, 2026-09-20: the drop-off does not only carry a SCHEME. A lit-scout records
+# claimed_title / claimed_authors / claimed_year, and a driver hunts the request by its id alone —
+# so the row has to fill what the caller left empty (HS5b) and must never override what the caller
+# said (HS5c). Two rows because they are two different failures of the same call site: not reading
+# the row at all, and reading it too eagerly.
+hu(block, "HS5b", f"{PKG}/hunt.py",
+   "call site: the drop-off's claimed fields fill what the caller left empty",
+   "a hunt following up a drop-off stops reading the row's claimed_title / claimed_authors / "
+   "claimed_year: a `title` request hunted by its id ALONE is refused `malformed-ref` for fields "
+   "the database was holding two columns away — which is every title the lit-scout drops off")
+hu(replace, "HS5c", f"{PKG}/hunt.py",
+   "    return (title or claimed[\"title\"] or None,\n"
+   "            author or claimed[\"authors\"] or None,\n"
+   "            year or claimed[\"year\"] or None)",
+   "    return (claimed[\"title\"] or title or None,\n"
+   "            claimed[\"authors\"] or author or None,\n"
+   "            claimed[\"year\"] or year or None)",
+   "the precedence is INVERTED: the row overrides an explicit --title/--author/--year instead of "
+   "filling around them, so a caller correcting a scout's mis-typed surname is handed the "
+   "mis-typed one back and the correction is unreachable")
+hu(block, "HS6", f"{PKG}/hunt.py",
+   "guard: a title reference carries an author surname and a year, or it is refused",
+   "a title is resolved with no surname and no year: judge_candidate refuses every candidate for "
+   "a reason that has nothing to do with the title, and the hunt reports `ambiguous-title` for a "
+   "reference that was never resolvable")
+hu(block, "HS7", f"{PKG}/hunt.py",
+   "guard: a title resolves through gate 0 or is refused by name, never admitted on a guess",
+   "gate 0 returning no DOI stops being a refusal: the hunt carries None forward as the "
+   "identifier instead of answering `unresolved-title` / `ambiguous-title`")
+hu(block, "HS8", f"{PKG}/mcp/server.py",
+   "guard: the MCP drop-off's ref_scheme is in the vocabulary before the write is attempted",
+   "litkb_hunt_request_add stops naming an unrecognised scheme: it reaches the table's CHECK and "
+   "comes back as the ordinary `error` shape carrying a raw PL/pgSQL sentence, which is what an "
+   "unattended scout cannot act on")
+hu(block, "HS9", f"{PKG}/commands.py",
+   "guard: the CLI drop-off's ref_scheme is in the vocabulary before the write is attempted",
+   "`litkb hunt-request add` stops naming an unrecognised scheme and lets the database refuse it")
+# The ratio gate itself. Its VALUE is not this branch's to change (the S1 brief says so), and this
+# row does not change it in the tree: it lowers 0.85 -> 0.80 for the length of one mutation and
+# shows the identity test go RED — LITKB_WORKPLAN.md S1 done-state (c) item 3, RUN rather than
+# described. The frozen Crossref candidate scores 0.83 against the title the test resolves, with
+# that candidate's OWN surname and year passed in, so the ratio is the only check that can refuse.
+hu(replace, "HS10", f"{PKG}/admit/resolver.py",
+   "RESOLVE_TITLE_RATIO = 0.85", "RESOLVE_TITLE_RATIO = 0.80",
+   "the title gate admits a WRONG work: the frozen candidate of "
+   "qc/fixtures/litkb_title_gate_wrong_work.json, a sibling volume scoring 0.83 against the "
+   "queried title, resolves to its DOI and is admitted as the work that was asked for")
 
 
 def call_sites(root=None):

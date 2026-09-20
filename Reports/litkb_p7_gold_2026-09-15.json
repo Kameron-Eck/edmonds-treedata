@@ -1,0 +1,607 @@
+{
+  "authored_by": "referee subagent",
+  "date": "2026-09-15",
+  "corpus_sha256": "f8a91c9585b0a7040672e88654a11ef51e8ba4500b7f1eaf8af9894ffa47ccc7",
+  "queries": [
+    {
+      "id": "g001",
+      "kind": "paraphrase",
+      "query": "Why do coarse annual maps of what covers the ground flip categories from one year to the next when nothing physically changed, and how does a latent-state sequence model tell spurious flips apart from genuine conversion?",
+      "source_stem": "Abercrombie_2016_improving-consistency",
+      "anchor_text": "Friedl\nAbstract—Land cover and land use affect a wide range of\nregional-scale to global-scale ecosystem processes, and many\nEarth system models rely on accurate land cover information.\nHowever, multitemporal land cover products often show unre-\nalistically high levels of year-to-year label change, particularly\nat coarse spatial resolution (i.e., 300–500 m). Much of this ap-\nparent land cover change arises from errors in classiﬁcation\nand does not indicate real change in land cover or land use.\nIn this paper, we present a novel framework that uses a hid-\nden Markov model (HMM) to help distinguish real land cover\nchange from spurious land cover changes in classiﬁcation time\nseries.",
+      "char_start": 339,
+      "char_end": 1027,
+      "note": "The paper's abstract states the spurious year-to-year flipping problem at 300-500 m and proposes an HMM framework to separate it from real conversion."
+    },
+    {
+      "id": "g002",
+      "kind": "paraphrase",
+      "query": "Even after careful rectification, some residual mismatch between two dates always remains; does that leftover sub-pixel shift inflate how much change a difference map appears to show, and is there a resampling way to quantify the inflation?",
+      "source_stem": "Verbyla_2000_bias-land-cover-change-estimates",
+      "anchor_text": "or recti ed with no error (Singh 1989, Coppin and Bauer 1996). However, perfect\n                                                           co-registration of multi-temporal images is impossible as there is always residual\n                                                           error in recti cation models (Labovitz and Marvin 1986). The goal of this Letter is\n                                                           to demonstrate that in some cases, even sub-pixel co-registration error can lead to\n                                                           signi cant overestimation of land cover change, and to test a bootstrap method for\n                                                           estimating this false change.",
+      "char_start": 6983,
+      "char_end": 7721,
+      "note": "States the Letter's goal: sub-pixel co-registration error can overestimate change, and a bootstrap method is tested for estimating that false change."
+    },
+    {
+      "id": "g003",
+      "kind": "paraphrase",
+      "query": "What happens to reported change-detection accuracy, and to the estimated size of the changed area, when the validation data themselves are not a perfect gold standard?",
+      "source_stem": "Foody_2010_assessing-accuracy-land-cover-change",
+      "anchor_text": "1\n\f Assessing the accuracy of land cover change with imperfect ground reference data\n\n                                             Giles M. Foody\n                                         School of Geography\n                                      University of Nottingham\n\n                                               Nottingham\n                                                NG7 2RD\n\n                                                    UK\n\nAbstract\nThe ground data used as a reference in the validation of land cover change products are\noften not an ideal gold standard but degraded by error. The effects of ground reference\ndata error on the accuracy of land cover change detection and the accuracy of estimates of\nthe extent of change was evaluated.",
+      "char_start": 659,
+      "char_end": 1412,
+      "note": "The abstract announces exactly this evaluation: degraded reference data and its effect on both accuracy and extent estimates."
+    },
+    {
+      "id": "g004",
+      "kind": "paraphrase",
+      "query": "Which estimator should be used to report how much area changed, and how should its uncertainty be expressed, when the validation sample was drawn by a common probability design?",
+      "source_stem": "Olofsson_2013_making-better-use-accuracy-data",
+      "anchor_text": "The estimator presented is a\nAccepted 26 October 2012                  stratified estimator which is applicable to data acquired using popular sampling designs such as stratified\nAvailable online 29 November 2012         random, simple random and systematic (the stratified estimator is often labeled a poststratified estimator\n                                          for the latter two designs). A confidence interval for the area of land change should also be provided to quan-\nKeywords:                                 tify the uncertainty of the change area estimate.",
+      "char_start": 1394,
+      "char_end": 1967,
+      "note": "Describes the stratified (post-stratified) estimator for the designs named, and the confidence interval that should accompany a change-area estimate."
+    },
+    {
+      "id": "g005",
+      "kind": "paraphrase",
+      "query": "How far back does the practice of evaluating thematic map quality go, and how much of what the earliest map producers did would a present-day practitioner still recognise?",
+      "source_stem": "Stehman_2019_key-issues-rigorous-accuracy",
+      "anchor_text": "vironmental Science and Forestry, Syracuse, NY 13210, United States\nb School of Geography, University of Nottingham, Sir Clive Granger Building, University Park, Nottingham NG7 2RD, United Kingdom\n\nARTICLE INFO               ABSTRACT\n\nEdited by Emilio Chuvieco  Accuracy assessment and land cover mapping have been inexorably linked throughout the first 50 years of\n                           publication of Remote Sensing of Environment. The earliest developers of land-cover maps recognized the im-\nKeywords:                  portance of evaluating the quality of their maps, and the methods and reporting format of these early accuracy\nProbability sampling       assessments included features that would be familiar to practitioners today.",
+      "char_start": 555,
+      "char_end": 1297,
+      "note": "The abstract traces the fifty-year link between mapping and its quality evaluation and says early practice is still recognisable today."
+    },
+    {
+      "id": "g006",
+      "kind": "paraphrase",
+      "query": "Validation tables are usually treated as if the field data behind them were flawless; what does the literature say happens to the resulting quality indices when they are not?",
+      "source_stem": "Radoux_2020b_about-pitfall-erroneous-validation",
+      "anchor_text": "The reference datasets used to build the confusion matrix are often assumed to be error-free,\nbut even ground data often include some errors [3]. Confusion matrices and associated quality indices\nare, therefore, likely to yield biased quality assessment of the maps. The negative impact of those\nerrors on the apparent accuracy of maps has been highlighted in previous studies [4,5]. This impact on\naccuracy indices has been quantified in situations of correlated and non correlated errors. For instance,",
+      "char_start": 3036,
+      "char_end": 3540,
+      "note": "States that reference datasets are often assumed error-free but are not, so the matrix and its indices give biased quality assessment."
+    },
+    {
+      "id": "g007",
+      "kind": "paraphrase",
+      "query": "Can the quality of a cleaning method be judged using only corrupted measurements, with no clean examples, no noise model and no signal prior, provided the corruption is independent across dimensions?",
+      "source_stem": "Batson_2019_noise2self-blind-denoising-self",
+      "anchor_text": "Noise2Self: Blind Denoising by Self-Supervision\nJoshua Batson * 1 Loic Royer * 1\nAbstract\nWe propose a general framework for denoising\nhigh-dimensional measurements which requires\nno prior on the signal, no estimate of the noise,\nand no clean training data. The only assumption\nis that the noise exhibits statistical independence\nacross different dimensions of the measurement,\nwhile the true signal exhibits some correlation.\nFor a broad class of functions (“J -invariant”), it\nis then possible to estimate the performance of\na denoiser from noisy data alone.",
+      "char_start": 0,
+      "char_end": 560,
+      "note": "The abstract states exactly this framework and the independence assumption that makes the self-scored performance estimate possible."
+    },
+    {
+      "id": "g008",
+      "kind": "paraphrase",
+      "query": "Human tracing of anatomical boundaries varies within and between the people doing it, so how can an automated delineation method be judged when the comparison standard is itself variable?",
+      "source_stem": "Warfield_2004_simultaneous-truth-performance-level",
+      "anchor_text": "STAPLE\nlimited accuracy and precision. Interactive drawing of the desired               is straightforward to apply to clinical imaging data, it readily\nsegmentation by human raters has often been the only accept-                     enables assessment of the performance of an automated image\nable approach, and yet suffers from intra-rater and inter-rater                  segmentation algorithm, and enables direct comparison of human\nvariability. Automated algorithms have been sought in order to                   rater and algorithm performance.\nremove the variability introduced by raters, but such algorithms\nmust be assessed to ensure they are suitable for the task.",
+      "char_start": 735,
+      "char_end": 1410,
+      "note": "The abstract sets out rater variability as the motivation and positions the algorithm as the way to compare automated and human delineation."
+    },
+    {
+      "id": "g009",
+      "kind": "paraphrase",
+      "query": "If a random field connects every picture element to every other one, the graph has billions of links; is approximate inference still tractable, and does that density actually improve labelling?",
+      "source_stem": "Krahenbuhl_2011_efficient-inference-fully-connected",
+      "anchor_text": "In this paper, we consider fully connected CRF models defined on the complete set of pixels in an image. The resulting graphs have billions of edges, making traditional inference algorithms impractical. Our main contribution is a highly efficient approximate inference algorithm for fully connected CRF models in which the pairwise edge potentials are defined by a linear combination of Gaussian kernels. Our experiments demonstrate that dense connectivity at the pixel level substantially improves segmentation and labeling accuracy.\n1 Introduction\nMulti-class image segmentation and labeling is one of the most challenging and actively studied problems in computer vision.",
+      "char_start": 614,
+      "char_end": 1288,
+      "note": "The abstract states the billions-of-edges problem, the Gaussian-kernel approximate inference contribution, and the accuracy improvement from dense connectivity."
+    },
+    {
+      "id": "g010",
+      "kind": "paraphrase",
+      "query": "How were multi-scale statistics aggregated for whole-scene understanding before this work, and what benchmark numbers did the proposed network reach?",
+      "source_stem": "Zhao_2017_pyramid-scene-parsing-network",
+      "anchor_text": "A single PSPNet             For typical complex scene understanding, previously to get\nyields the new record of mIoU accuracy 85.4% on PASCAL          a global image-level feature, spatial pyramid pooling [18]\nVOC 2012 and accuracy 80.2% on Cityscapes.                      was widely employed where spatial statistics provide a good\n                                                                descriptor for overall scene interpretation. Spatial pyramid\n1. Introduction                                                 pooling network [12] further enhances the ability.\n\n   Scene parsing, based on semantic segmentation, is a fun-        Different from these methods, to incorporate suitable\ndamental topic in computer vision.",
+      "char_start": 1755,
+      "char_end": 2485,
+      "note": "This passage reports the new records on the two benchmarks and reviews the earlier spatial-pyramid aggregation the method departs from."
+    },
+    {
+      "id": "g011",
+      "kind": "paraphrase",
+      "query": "What is the motivation for attaching extra loss terms to intermediate layers, and how should those extra terms be understood in relation to regularisation?",
+      "source_stem": "Lee_2015_deeply-supervised-nets",
+      "anchor_text": "We\n                                                                  provide this integrated direct hidden layer supervision\nNeural networks have recently resurged, most promi-               by introducing companion objective functions for each\nnently in deep learning (DL). The application of DL               hidden layer; these companion objective functions can\ntechniques to large training sets has yielded signifi-            be seen as an additional (soft) constraint (or as a new\ncant performance gains in image classification [12, 15]           regularization) within the learning process. Our ex-\nand speech recognition [5].",
+      "char_start": 3739,
+      "char_end": 4372,
+      "note": "Explains the introduction of per-hidden-layer objectives and frames them as an additional soft constraint or regulariser."
+    },
+    {
+      "id": "g012",
+      "kind": "paraphrase",
+      "query": "If an object appears bigger at evaluation time than during fitting because of how crops are taken, what two adjustments restore the match, and how expensive is the remedy?",
+      "source_stem": "Touvron_2019_fixing-train-test-resolution",
+      "anchor_text": "To counter this effect, we either reduce the train-time resolution, or increase the test-time resolution (third\nand fourth column). The horse then has the same size at train and test time, requiring less scale invariance for the neural net.\nOur approach only needs a computationally cheap fine-tuning.\n\nimages for training. In this paper, we focus on the ResNet-50                                   train PDF\narchitecture [13] due to its good accuracy/cost tradeoff (25.6M                                  test PDF\nparameters) and its popularity.",
+      "char_start": 10271,
+      "char_end": 10817,
+      "note": "States the two ways to equalise apparent object size across the two phases and that only cheap fine-tuning is needed."
+    },
+    {
+      "id": "g013",
+      "kind": "paraphrase",
+      "query": "Holding pixel footprint fixed, how much did lens design alone move detector performance, and what does that imply for choosing imagery for spotting animals from the air?",
+      "source_stem": "Brown_2022_aerial-animal-detection-spatial-resolution",
+      "anchor_text": "Detector mAP performance fell by 52% when a cassegrain,\n                                       rather than circular, aperture was used at a 0.5m/px GSD. Overall blurring\n                                       magnitude also had a small impact when matched to GSD, as did the internal\n                                       network resolution. Our results here inform the selection of remote sensing data\n                                       requirements for animal detection tasks, allowing farmers and ecologists to use\n                                       more accessible medium resolution imagery with confidence.",
+      "char_start": 3029,
+      "char_end": 3649,
+      "note": "Reports the 52% mAP fall from aperture type at fixed GSD and the practical implication for data-requirement selection."
+    },
+    {
+      "id": "g014",
+      "kind": "paraphrase",
+      "query": "When a reviewer spots something the automated classifier missed or wrongly included, what digitising convention did the New York City mapping team follow to record the fix?",
+      "source_stem": "MacFaden_2012_high-resolution-tree-canopy-mapping",
+      "anchor_text": "For an error of omission\n(e.g., a missing tree), a polygon representing the missing feature was drawn using ArcGIS\n10 editing tools and then coded according to the correct land-cover class to which it should\nbe changed. For an error of commission (e.g., a building awning or lamppost classified as a\ntree), a polygon was drawn that encompassed, but did not necessarily match, the erroneous fea-\nture and then coded according to both the incorrect and correct classes; this system facilitated\nrapid review by requiring only approximate correction boundaries (i.e., only a specific land-\ncover class within a polygon was ultimately changed). All changes were then incorporated\ninto a final land-cover map using eCognition.",
+      "char_start": 51450,
+      "char_end": 52170,
+      "note": "Describes the manual correction protocol: drawn polygons coded for omission and for commission, then merged back into the final map."
+    },
+    {
+      "id": "g015",
+      "kind": "paraphrase",
+      "query": "Why is watching the amount of woody cover over time a useful proxy for the health of a city's green resource, and what low-cost technique can supply the numbers?",
+      "source_stem": "Nowak_2012_tree-impervious-cover-change-u",
+      "anchor_text": "As tree cover provides a simple means to assess the magnitude of the overall urban forest resource,\n                    monitoring of tree cover changes is important to understand how tree cover and various environmental\n                    benefits derived from the trees may be changing. Photo-interpretation of digital aerial images can provide\n                    a simple and timely means to assess urban tree cover change to help cities monitor progress in sustaining\n                    desired urban tree cover levels.\n\n                                                                                                                                Published by Elsevier GmbH.",
+      "char_start": 1418,
+      "char_end": 2101,
+      "note": "States that cover is a simple proxy for the resource and its benefits, and that interpreting digital aerial images is a cheap, timely way to measure change."
+    },
+    {
+      "id": "g016",
+      "kind": "paraphrase",
+      "query": "When two coarse national products for woody cover are checked against interpreted aerial photographs for the same towns, how well do they agree, and is subtracting one from the other a safe way to measure change?",
+      "source_stem": "Walton_2008_difficulties-estimating-city-wide-urban",
+      "anchor_text": "Reference data generated by photo-interpreting the tree cover on 1994 and 2002\northoimages were compared on a city-wide basis to estimates of the tree cover derived from the\nAVHRR and NLCD tree canopy maps. Comparison of the AVHRR-based estimate with the\n1994 photo-interpreted reference showed low accuracy and high variability. The comparison\nbetween the NLCD-derived estimate and 2002 photo-interpreted values had higher accuracy\nbut shows a consistent under prediction bias for all tree cover values. In comparing the two\nphoto-interpreted reference sets, little actual change was detected for this study region.\nAssessing change using differences between the imagery-based AVHRR and NLCD urban tree\ncover datasets is shown to lead to erroneous results.",
+      "char_start": 666,
+      "char_end": 1423,
+      "note": "Reports the accuracy and bias of both products against the interpreted reference and concludes that differencing them yields erroneous change."
+    },
+    {
+      "id": "g017",
+      "kind": "paraphrase",
+      "query": "Which property-scale predictors decided whether a tree survived rebuilding in Christchurch, and how much more likely was removal on a rebuilt lot?",
+      "source_stem": "Guo_2018_redeveloping-urban-forest-effect",
+      "anchor_text": "The best\nI model included land cover, spatial, and economic variables (accuracy = 73.4%). The CT of\n\nthe corresponding model shows that trees were most likely to be removed if they were\n\nR within 1.4 m of a redeveloped building on a property with a capital value less than\nC $1,060,000 NZ. The strongest predictor of tree retention was that the property was not\n\nredeveloped. The model predicted that trees were over three times as likely to be removed\n\nS from a redeveloped property relative to a property that was not redeveloped. None of the\nU seven resident and household variables were selected by the CT as important explanatory\n\nvariables for tree removal or retention.",
+      "char_start": 3426,
+      "char_end": 4102,
+      "note": "Gives the classification-tree result: proximity to a rebuilt structure and capital value as splits, and the relative odds of removal."
+    },
+    {
+      "id": "g018",
+      "kind": "paraphrase",
+      "query": "Which planting situations suffered most when sidewalks and curbs were rebuilt, and what conflict makes such work recur in the first place?",
+      "source_stem": "Hauer_1994_street-tree-decline-construction-damage",
+      "anchor_text": "Trees in narrow tree lawns suffered the greatest reduction in condition from construction damage. Construction damage was found to have a high economic impact on street tree value.\nStreet trees, sidewalks, and curbs are positive components of the urban infrastructure; however, these features often come into conflict with one another. Tree roots may lead to sidewalk and curb lifting, and potential liability (2).\nReplacement of sidewalks and curbs is costly to both taxpayers and trees. In 1975,22 California cities incurred an average annual cost for sidewalk repair of $27,000 (2).",
+      "char_start": 306,
+      "char_end": 891,
+      "note": "States that narrow lawns lost the most condition, the monetary impact, and the root-versus-pavement conflict that drives repeated work."
+    },
+    {
+      "id": "g019",
+      "kind": "paraphrase",
+      "query": "Across published studies, what yearly death rates have been reported for city trees, how do cohort and inventory designs differ, and which variables come up most often as correlates?",
+      "source_stem": "Hilbert_2019_urban-tree-mortality-literature-review",
+      "anchor_text": "Annual mortality rates ranged from 0.6 to 68.5% for cohort studies and 0 to 30% for repeated inventories of uneven-aged trees. The 1st, 2nd, and 3rd quartiles of annual mortality were 2.8 to 3.8%, 4.4 to 6.5%, and 7.1 to 9.3% for planting cohorts, and 1.6%, 2.3 to 2.6%, and 3.0 to 3.3% for repeated inventories of uneven-aged trees (ranges reflect studies that reported a range for the time period or mortality rate). For cohort studies, annual mortality tended to be highest during the first five years after planting. The most commonly cited biophysical factors associated with mortality were taxa (15 articles), tree size/age (13 articles), and site characteristics (12 articles).",
+      "char_start": 1038,
+      "char_end": 1722,
+      "note": "Gives the quartiles for both study designs, the early-years peak for planting cohorts, and the most frequently cited biophysical correlates."
+    },
+    {
+      "id": "g020",
+      "kind": "paraphrase",
+      "query": "Why should records kept by the institution that owns the trees, and the reasoning behind deliberate removals, be part of any study of how long city trees last?",
+      "source_stem": "Roman_2022_construction-proactive-management-led",
+      "anchor_text": "e,\n\n                                               Philadelphia, PA 19118, USA; lubar@upenn.edu\n\n                                          * Correspondence: lara.roman@usda.gov\n\nCitation: Roman, L.A.; Fristensky, J.P.;  Abstract: Urban trees in lawns and along streets are anthropogenically constructed systems, in that\nLundgren, R.E.; Cerwinka, C.E.;           these tree communities are formed by human planting and removal actions. Tree mortality studies are\nLubar, J.E. Construction and              essential to understanding the temporal dynamism of urban forests, and in particular, it is critical to\nProactive Management Led to Tree          incorporate institutional records and human decision-making regarding tree removals.",
+      "char_start": 947,
+      "char_end": 1681,
+      "note": "The abstract argues that these plantings are human-constructed systems, so institutional records and removal decisions must be incorporated."
+    },
+    {
+      "id": "g021",
+      "kind": "paraphrase",
+      "query": "If further dates arrive one at a time rather than all at once, is it necessary to rerun the iterative optimisation over the whole series, or can a cheaper update be used?",
+      "source_stem": "Melgani_2003_markov-random-field-approach-spatio",
+      "anchor_text": "This a temporal sequence become progressively available and the\n\nscheme, however, may prove unsuitable if all the images of the mutual approach is applied to each new image to optimize\n\nsequence are not available from the start, but become available again all the MRF models simultaneously. However, if the\n\nprogressively. In this case, a simplified scheme may be adopted above-described simplified scheme is applied whenever a new\n\naccording to which, instead of running the ICM algorithm on the image is added to the sequence, the number of contextual\n\nwhole sequence again for each new image, one updates the clas- information sources to be handled by the mutual approach\n\nsification of few images only.",
+      "char_start": 31809,
+      "char_end": 32515,
+      "note": "Sets out the incremental alternative to re-optimising the full series and what it costs in contextual sources."
+    },
+    {
+      "id": "g022",
+      "kind": "paraphrase",
+      "query": "What did earlier work rely on before learned features, given that towns are laid out under fairly stable human design rules, and why are data-hungry learners tolerant of imperfect training labels an attractive replacement?",
+      "source_stem": "Kaiser_2017_learning-aerial-image-segmentation",
+      "anchor_text": "Since urban environments are designed by\nstudy.2 At the same time they also fulfil the other require-              humans according to relatively stable design constraints, early\nments for our study: they are data-hungry and robust to label             work attempted to construct object descriptors via sets of\nnoise [4]. And they make manual feature design somewhat                   rules, most prominently for building detection in 2D [7, 8]\nobsolete: once training data is available, retraining for different       or in 3D [9­11], and for road extraction [12­14].",
+      "char_start": 9678,
+      "char_end": 10247,
+      "note": "Motivates the shift from hand-written rule sets for structures and roads to learners that are robust to noisy labels."
+    },
+    {
+      "id": "g023",
+      "kind": "paraphrase",
+      "query": "Reading samples off an existing product can generate many of them cheaply but inherits that product's faults, while having people look at each one is slow; how did the authors weigh those two ways of getting training samples?",
+      "source_stem": "Yang_2021_30m-annual-land-cover-china",
+      "anchor_text": "The visual interpretation method can ob-\ndiscrimination ability of LC (Table 1). The spectral indexes    tain high-quality samples but require intensive human labour,\nwere mainly constructed by two short-wave infrared (SWIR)       whereas the automatic sample extraction via existing LC\nbands (e.g. band 5 and 7 for Landsat 5), since SWIR bands       products has the potential for generating a mass of randomly\nhave better capability of atmospheric transmission. Besides,    distributed samples, but the sample quality is related to the\nas suggested by Li et al., (2020b), to better distinguish be-   products used (Jokar Arsanjani et al., 2016; Wessels et al.,\ntween vegetation and non-vegetation, the spectral values of     2016).",
+      "char_start": 17881,
+      "char_end": 18614,
+      "note": "Contrasts visual interpretation with automatic sample extraction from existing products, and the quality dependence that follows."
+    },
+    {
+      "id": "g024",
+      "kind": "paraphrase",
+      "query": "Rather than hand-marking examples, users supply small programs encoding rules of unknown reliability; how does the system combine them when no verified answers exist?",
+      "source_stem": "Ratner_2017_snorkel-rapid-training-data-creation",
+      "anchor_text": "Instead, users write labeling functions that express arbi-                          Accuracy: 60%        100k labels\n                                        trary heuristics, which can have unknown accuracies and                                                           UNLABELED DATA\n                                        correlations. Snorkel denoises their outputs without ac-\n                                        cess to ground truth by incorporating the first end-to-end                          Figure 1: In Example 1.1, training data is labeled\n                                        implementation of our recently proposed machine learning                            by sources of differing accuracy and coverage.",
+      "char_start": 1462,
+      "char_end": 2190,
+      "note": "Describes labeling functions of unknown accuracy and correlation and the denoising of their outputs without ground truth."
+    },
+    {
+      "id": "g025",
+      "kind": "paraphrase",
+      "query": "How can a classifier be fitted when several people each supply their own opinion of the answer, they disagree, and no verified answer is available anywhere?",
+      "source_stem": "Raykar_2010_learning-crowds",
+      "anchor_text": "In this paper we describe a probabilistic approach for supervised learning when we have\n      multiple annotators providing (possibly noisy) labels but no absolute gold standard. The proposed\n      algorithm evaluates the different experts and also gives an estimate of the actual hidden labels.\n      Experimental results indicate that the proposed method is superior to the commonly used majority\n      voting baseline.",
+      "char_start": 1713,
+      "char_end": 2134,
+      "note": "States the probabilistic approach with several annotators, no absolute standard, estimation of both expert quality and the hidden answer, and the majority-vote comparison."
+    },
+    {
+      "id": "g026",
+      "kind": "paraphrase",
+      "query": "At the boundary between two tissues a voxel contains some of each, so what is lost by forcing every voxel into one of two categories during training, and what is the alternative?",
+      "source_stem": "Gros_2021_softseg-advantages-soft-versus-binary",
+      "anchor_text": "d linear function RPI: right-to-left, posterior-to-anterior, inferior-to-superior SCGM: spinal cord gray matter\n1\n\n\fSubmitted to Medical Image Analysis November 2020\nAbstract Most image segmentation algorithms are trained on binary masks formulated as a\nclassification task per pixel. However, in applications such as medical imaging, this \"black-and-white\" approach is too constraining because the contrast between two tissues is often ill-defined, i.e., the voxels located on objects' edges contain a mixture of tissues (a partial volume effect). Consequently, assigning a single \"hard\" label can result in a detrimental approximation. Instead, a soft prediction containing non-binary values would overcome that limitation.",
+      "char_start": 826,
+      "char_end": 1551,
+      "note": "Explains the partial-volume argument against hard per-pixel classification and proposes non-binary predictions instead."
+    },
+    {
+      "id": "g027",
+      "kind": "paraphrase",
+      "query": "For a growing city in the Pacific Northwest, which analysis combined social, physical and regulatory information with a high-resolution cover dataset to explain why crown cover disappeared between the mid and late 2010s?",
+      "source_stem": "Ock_2024_drivers-tree-canopy-loss-mid",
+      "anchor_text": "This study aims to understand the dynamics of UTC change, especially\n                                          canopy loss, and to investigate the drivers of the loss. This study draws on a high­resolution dataset\n                                          of an urban canopy in Portland, Oregon, USA, assessing changes in UTC from 2014 to 2020. By\n                                          integrating demographic, biophysical, and policy data with UTC information, we use a spatial\n                                          autoregressive model to identify the drivers of UTC loss.",
+      "char_start": 1339,
+      "char_end": 1921,
+      "note": "States the study aim, the Portland dataset and period, and the spatial autoregressive model used to identify drivers."
+    },
+    {
+      "id": "g028",
+      "kind": "paraphrase",
+      "query": "Do measures of the built fabric and of the lot itself predict woody cover better than aggregated neighbourhood demographics, and where has that been shown?",
+      "source_stem": "Locke_2025_sub-parcel-scale-analysis-needed",
+      "anchor_text": "However similar analyses of tree canopy in Raleigh, NC suggest\nareas together by comprehensively examining 1) social: which sets of            urban morphology and parcel-level variables such as parcel size, de-\nsocial variables­population density, socioeconomic status, and/or life-         tached housing, and year built are better correlates of cover than block-\nstyle/lifestage­are associated with tree canopy cover on residential            group level geodemographic variables (Bigsby et al., 2014).",
+      "char_start": 5934,
+      "char_end": 6439,
+      "note": "Cites the Raleigh comparison in which morphology and lot-level variables outperform block-group geodemographics."
+    },
+    {
+      "id": "g029",
+      "kind": "paraphrase",
+      "query": "What is known about how knocking a house down affects the trees standing beside it on that single lot, and why does the question matter for the services those trees provide?",
+      "source_stem": "Morgenroth_2017_redevelopment-urban-forest-study",
+      "anchor_text": "ermont, United States\n\narticle info                   abstract\n\nArticle history:               Though relationships between urbanization and tree cover are generally well studied, the effect of\nReceived 9 January 2016        redevelopment on urban trees, at the scale of the individual property, is not well understood. Developing\nReceived in revised form       knowledge in this area is important in order to limit tree loss during redevelopment and thus, ensure\n20 February 2017               sustained ecosystem services. Here, we explore the removal or retention of trees adjacent to building\nAccepted 21 February 2017      demolition in Christchurch, New Zealand.",
+      "char_start": 638,
+      "char_end": 1306,
+      "note": "The abstract states the gap at individual-property scale, the ecosystem-service motivation, and the demolition setting in Christchurch."
+    },
+    {
+      "id": "g030",
+      "kind": "paraphrase",
+      "query": "Why are wide-area maps of how tall the forest stands needed, and against what independent measurement are competing versions of such maps usually judged?",
+      "source_stem": "Pauls_2025_capturing-temporal-dynamics-large-scale",
+      "anchor_text": "0\n                                              accurate large-scale tree canopy height maps are\n                                              essential for understanding forest structure, esti-            Figure 1. Comparison of six canopy height maps with precise mea-\n                                              mating above-ground biomass, and monitoring                    surements obtained via aerial laser scanning (ALS). The patches\n                                              ecological disruptions. To this end, we present                contain tall trees exceeding 30 m in height.",
+      "char_start": 694,
+      "char_end": 1291,
+      "note": "States the uses that motivate large-scale height mapping and the laser-scanning comparison used to judge six such maps."
+    },
+    {
+      "id": "g031",
+      "kind": "conceptual",
+      "query": "Our surveys land on irregular dates, so we need the statistical machinery for fitting a continuous-time state process seen only at scattered observation instants, including whether a valid rate matrix exists at all.",
+      "source_stem": "Kalbfleisch_1985_analysis-panel-data-markov",
+      "anchor_text": "l children (Section 6 ) , a discussion of the embedding\n                                                                      eralizations to handle covariance analysis and to the fitting of                  problem for continuous-time Markov processes and its rela-\n                                                                      certain nonhomogeneous models are presented, and an example                       tionships to estimation (Section 7), and some concluding com-\n                                                                      based on a longitudinal study of the smoking habits of school                     ments.\n                                                                      children is discussed.",
+      "char_start": 4142,
+      "char_end": 4874,
+      "note": "Gap ledger row 17 needs panel-observed multi-state estimation; this outlines the article's treatment, including the embedding question for continuous-time processes."
+    },
+    {
+      "id": "g032",
+      "kind": "conceptual",
+      "query": "Is there an off-the-shelf implementation that fits a state process observed at arbitrary instants, allows covariates that shift the rates, and lets the recorded category be a noisy version of the real one?",
+      "source_stem": "Jackson_2011_multi-state-models-panel-data",
+      "anchor_text": "This article reviews the range of Markov\n        models and their extensions which can be fitted to panel-observed data, and their im-\n        plementation in the msm package for R. Transition intensities may vary between indi-\n        viduals, or with piecewise-constant time-dependent covariates, giving an inhomogeneous\n        Markov model. Hidden Markov models can be used for multi-state processes which are\n        misclassified or observed only through a noisy marker. The package is intended to be\n        straightforward to use, flexible and comprehensively documented. Worked examples are\n        given of the use of msm to model chronic disease progression and screening.",
+      "char_start": 651,
+      "char_end": 1334,
+      "note": "Ledger rows 17-18: this is the software and model family, explicitly covering inhomogeneity and misclassified or noisily observed states."
+    },
+    {
+      "id": "g033",
+      "kind": "conceptual",
+      "query": "We hold a matrix of category-to-category rates measured over a long gap but need the one-year step; when can a valid probability matrix be taken to a fractional power and stay valid?",
+      "source_stem": "Higham_2011_pth-roots-stochastic-matrices",
+      "anchor_text": "                    School of Mathematics\n                    The University of Manchester\n                    Manchester, M13 9PL, UK\n\n                                                  ISSN 1749-9097\n\f               On pth Roots of Stochastic Matrices$\n\n                                    Nicholas J. Higham,1, Lijing Lin\n\n             School of Mathematics, The University of Manchester, Manchester, M13 9PL, UK\n\nAbstract\nIn Markov chain models in finance and healthcare a transition matrix over a certain\ntime interval is needed but only a transition matrix over a longer time interval may be\navailable. The problem arises of determining a stochastic pth root of a stochastic matrix\n(the given transition matrix).",
+      "char_start": 352,
+      "char_end": 1069,
+      "note": "Ledger row 15 / section 15.2 yearly-root problem; this abstract states the pth-root-of-a-stochastic-matrix problem and why it arises."
+    },
+    {
+      "id": "g034",
+      "kind": "conceptual",
+      "query": "Given an empirically tabulated matrix of category switches, how do we decide whether an underlying continuous rate generator exists, choose among several if it does, and settle for an approximation if it does not?",
+      "source_stem": "Israel_2001_finding-generators-markov-chains",
+      "anchor_text": "1\n\f           Finding Generators for Markov Chains\n\n              via Empirical Transition Matrices,\n\n             with Applications to Credit Ratings\n\nAbstract.\n      In this paper we identify conditions under which a true generator does or does not exist for an empirically\n\nobserved Markov transition matrix. We show how to search for valid generators and choose the \"correct\"\none that is the most compatible with bond rating behaviors. We also show how to obtain an approximate\ngenerator when a true generator does not exist. We give illustrations using credit rating transition matrices\npublished by Moody's and by Standard and Poor's.\n\n1. Introduction.",
+      "char_start": 1282,
+      "char_end": 1940,
+      "note": "Directly answers the generator-existence question behind the yearly-root and irregular-interval rows of the ledger."
+    },
+    {
+      "id": "g035",
+      "kind": "conceptual",
+      "query": "What goes wrong when you try to back out a one-year step matrix for landscape dynamics from a matrix measured over several years, and has anyone catalogued those difficulties?",
+      "source_stem": "Takada_2010_derivation-yearly-transition",
+      "anchor_text": "Landscape Ecol (2010) 25:561­572\nDOI 10.1007/s10980-009-9433-x\n\n RESEARCH PAPER\n\nDerivation of a yearly transition probability matrix\nfor land-use dynamics and its applications\n\nTakenori Takada · Asako Miyamoto ·\nShigeaki F. Hasegawa\n\nReceived: 19 March 2008 / Accepted: 19 November 2009 / Published online: 10 December 2009\nÓ Springer Science+Business Media B.V. 2009\n\nAbstract Transition matrices have often been used                research site. We examined the first difficulty,\nin landscape ecology and GIS studies of land-use to              namely that plural solutions could exist for a yearly\nquantitatively estimate the rate of change.",
+      "char_start": 0,
+      "char_end": 646,
+      "note": "The abstract names the difficulty the ledger meets: several candidate yearly solutions can exist for the same multi-year matrix."
+    },
+    {
+      "id": "g036",
+      "kind": "conceptual",
+      "query": "How large does the grid have to be, and how weak the neighbour coupling, before estimates of the covariate coefficients in a lattice binary-dependence model can be trusted, and which fitting route is worth the compute?",
+      "source_stem": "Hughes_2011_autologistic-models-binary-data-lattice",
+      "anchor_text": "We conduct a simulation study to investigate the effects of spatial dependence and lattice size on parameter inference, and find that inference for regression parameters in the centered model is reliable only for reasonably large lattices (n > 900) and no more than moderate spatial dependence. When the lattice is large enough, and the dependence small enough, to permit reliable inference, the three approaches perform comparably, and so we recommend the PL approach for its easier implementation and much faster execution. Copyright ß 2011 John Wiley & Sons, Ltd.\nKeywords: Bayesian; Markov random field; maximum likelihood; parallel computing; perfect sampling; pseudolikelihood; spatial\n\n1.",
+      "char_start": 1325,
+      "char_end": 2020,
+      "note": "Ledger row 3 is estimating the spatial coupling; this reports the simulation limits on reliable inference and the practical recommendation."
+    },
+    {
+      "id": "g037",
+      "kind": "conceptual",
+      "query": "If we resample tiles to put an error bar on a statistic computed over a correlated field, what governs the right tile size, and does the outline of the study area matter?",
+      "source_stem": "Nordman_2004_optimal-spatial-subsample-size",
+      "anchor_text": "We derive expansions for the mean square error of the subsampling variance estimator, which yields an expression for the theoretically optimal block size. The optimal block size is shown to depend in an intricate way on the geometry of the spatial sampling region as well as characteristics of the underlying random field. Final expressions for the optimal block size make use of some nontrivial estimates of lattice point counts in shifts of convex sets. Optimal block sizes are computed for sampling regions of a number of commonly encountered shapes. Numerical studies are performed to compare subsampling methods as well as procedures for estimating the theoretically best block size.\n1. Introduction.",
+      "char_start": 501,
+      "char_end": 1206,
+      "note": "Ledger row 6 needs a correlated resampling scheme; this derives the optimal block size and shows it depends on sampling-region geometry and field properties."
+    },
+    {
+      "id": "g038",
+      "kind": "conceptual",
+      "query": "Why does shuffling observations at random into folds flatter a model fitted to data whose residuals stay correlated in space or time?",
+      "source_stem": "Roberts_2017_cross-validation-strategies-data",
+      "anchor_text": "All rights reserved.'\n\fAccepted ArticleAbstract\n\n                Ecological data often show temporal, spatial, hierarchical (random effects), or\n                phylogenetic structure. Modern statistical approaches are increasingly accounting for\n                such dependencies. However, when performing cross-validation, these structures are\n                regularly ignored, resulting in serious underestimation of predictive error. One cause for\n                the poor performance of uncorrected (random) cross-validation, noted often by\n                modellers, are dependence structures in the data that persist as dependence structures in\n                model residuals, violating the assumption of independence.",
+      "char_start": 2097,
+      "char_end": 2824,
+      "note": "Row 12 / section 3.5 honest-split question: this passage explains the underestimation of predictive error when dependence persists into residuals."
+    },
+    {
+      "id": "g039",
+      "kind": "conceptual",
+      "query": "Is there tooling that builds folds separated in geography or in predictor space, and that also reports how far apart observations must be before the covariates stop being correlated?",
+      "source_stem": "Valavi_2018_blockcv-r-package-generating-spatially",
+      "anchor_text": "We present  the R package blockCV, a new tool box for cross -validation of species 27 \ndistribution modelling. 28 \n3. The package can generate spatially or environmentally separated folds. It includes tools 29 \nto measure spatial autocorrelation ranges in candidate covariates, providing the user with 30 \ninsights into  the spatial structure in the se data. It also offers interactive graphical 31 \ncapabilities for creating spatial blocks and exploring data folds. 32 \n4. Package blockCV enables modellers to more easily implement a range of evaluation 33 \napproaches. It will help the modelling community learn more about the impacts of 34 \nevaluation approaches on ou r understanding of predictive performance of species 35 \ndistribution models.",
+      "char_start": 1425,
+      "char_end": 2174,
+      "note": "The honest-split gap wants blocked folds plus a measured separation distance; this abstract describes exactly that package."
+    },
+    {
+      "id": "g040",
+      "kind": "conceptual",
+      "query": "Our development prior must express both a curved dependence on distance and an effect that unfolds over several years after the event; what regression basis handles both dimensions at once?",
+      "source_stem": "Gasparrini_2010_distributed-lag-non-linear-models",
+      "anchor_text": "Here we develop the family of distributed lag\n      non-linear models (DLNM), a modelling framework that can simultaneously represent non-linear exposure­response dependencies\n      and delayed effects. This methodology is based on the definition of a `cross-basis', a bi-dimensional space of functions that\n      describes simultaneously the shape of the relationship along both the space of the predictor and the lag dimension of its\n      occurrence. In this way the approach provides a unified framework for a range of models that have previously been used in\n      this setting, and new more flexible variants. This family of models is implemented in the package dlnm within the statistical\n      environment R.",
+      "char_start": 529,
+      "char_end": 1245,
+      "note": "Ledger row 19 proposes a lag-distance surface; this is the cross-basis construction that represents curvature and delay simultaneously."
+    },
+    {
+      "id": "g041",
+      "kind": "conceptual",
+      "query": "How do resampling-based estimates of how well a fitted rule will do on future cases relate formally to analytic penalty formulas, and which is more accurate when the model is right?",
+      "source_stem": "Efron_2004_estimation-prediction-error-covariance",
+      "anchor_text": "A Rao­Blackwell type of relation is derived in which nonparametric methods such as cross-validation are seen to be randomized\n                                                                       versions of their covariance penalty counterparts. The model-based penalty methods offer substantially better accuracy, assuming that the\n                                                                       model is believable.\n\n                                                                       KEY WORDS: Cp; Degrees of freedom; Nonparametric estimates; Parametric bootstrap; Rao­Blackwellization; SURE.\n\n                                                                                      1.",
+      "char_start": 3970,
+      "char_end": 4668,
+      "note": "Ledger rows 5-6 rest on this relation; the abstract states the Rao-Blackwell link and the accuracy claim for the model-based penalty."
+    },
+    {
+      "id": "g042",
+      "kind": "conceptual",
+      "query": "By how much does the mistake count measured on the very data used for fitting understate the mistake count on fresh data, and how is that gap defined?",
+      "source_stem": "Efron_1986_how-biased-apparent-error-rate",
+      "anchor_text": "OPTIMISM OF THE APPARENT ERROR RATE                          Here is a hypothetical new data vector, with the same\n\n                                                               This section considers estimating the expected optimism of               distributionbut independentof the original data vectory , which\n\n                                                               -tehrer  apparent error rate,   in other words    the downward bias of   -gave 4. The notation in (3.6) indicates expectation over yNEW\n                                                                        as an estimate of the  true error rate.  A simple bias formula     B(n), with ij held fixed.",
+      "char_start": 19380,
+      "char_end": 20060,
+      "note": "Row 5 needs the optimism quantity; this section sets up expectation over an independent replicate and the resulting downward-bias formula."
+    },
+    {
+      "id": "g043",
+      "kind": "conceptual",
+      "query": "Is there a filter that deletes blobs below a chosen size without shrinking the ones it keeps, and does it carry over from two-valued images to intensity images?",
+      "source_stem": "Vincent_1993_grayscale-area-openings-closings",
+      "anchor_text": "The area opening of parameter  of X is given\nnected components with area smaller than a parameter\n                                                                                by\n is called area opening. From a morphological per-\n                                                                                      aX = fx 2 X j AreaCxX  g: 1\nspective, this filter is an algebraic opening, and it can\nbe extended to grayscale images. The properties of area                         Intuitively, if Xii2I denote the connected components\nopenings and their dual area closings are recalled.",
+      "char_start": 583,
+      "char_end": 1172,
+      "note": "Ledger row 4 considers the area opening as the smoother; this defines it, calls it an algebraic opening, and states the grayscale extension."
+    },
+    {
+      "id": "g044",
+      "kind": "conceptual",
+      "query": "When the likelihood of a dependent-data model contains an intractable normalising factor, what exponential-family setup underlies simulation-based maximisation of it?",
+      "source_stem": "Geyer_1992_constrained-monte-carlo-maximum",
+      "anchor_text": "Monte Carlo Maximum Likelihood\n\nLet /l be a measure and t a vector-valued function (both on the same space); then\n\n                             1 c(O) = exp(t(x), 0) d/l(x)                  (1)\n\nis the Laplace transform of the measure t{Jl), and the functions\n\n                             !o(x) =   1    exp(t(x),  0)                  (2)\n\n                                      c(O)\n\nare probability densities with respect to /l constituting an exponential family having\n\no and t as the canonical parameter and statistic «t, 0) denotes the inner product\n\nE ;!iOi of the vectors t and 0). In a mild abuse of terminology we shall refer to c as\n\nthe Laplace transform of the exponential family.",
+      "char_start": 3607,
+      "char_end": 4299,
+      "note": "Row 3 / row 16 fitting needs MCML; this passage sets up the Laplace transform and the exponential family the method maximises over."
+    },
+    {
+      "id": "g045",
+      "kind": "conceptual",
+      "query": "Is there prior art for holding a flagged disturbance provisional and letting later observations either confirm or withdraw it, instead of committing at the moment of detection?",
+      "source_stem": "Reiche_2015_bayesian-approach-combine-landsat-alos",
+      "anchor_text": "Thenkabail\n\nReceived: 17 March 2015 / Accepted: 14 April 2015 / Published: 23 April 2015\n\nAbstract: To address the need for timely information on newly deforested areas at medium\nresolution scale, we introduce a Bayesian approach to combine SAR and optical time series\nfor near real-time deforestation detection. Once a new image of either of the input time series\nis available, the conditional probability of deforestation is computed using Bayesian\nupdating, and deforestation events are indicated. Future observations are used to update the\nconditional probability of deforestation and, thus, to confirm or reject an indicated\ndeforestation event.",
+      "char_start": 1151,
+      "char_end": 1801,
+      "note": "The fill-or-veto alternative in the decision table; this abstract describes the sequential updating that confirms or rejects an indicated event."
+    },
+    {
+      "id": "g046",
+      "kind": "structural",
+      "query": "Find the tabulated mapping from reliability grades to exponent bands of the combined likelihood, the one used for whole-series assessment.",
+      "source_stem": "Yang_2020_evaluating-reliability-time-series-land",
+      "anchor_text": "For        important in the management and policy decision (Fritz\n\nTable 1 Orders of magnitude of the joint probability corresponding to the level for time series evaluation\n\nLevel  0                1            2            3         4        5  6      7                                   8            9   10\n\nOrders of (- 1, - 9) [- 9, - 8) [- 8, - 7) [- 7, - 6) [- 6, - 5) [- 5, - 4) [- 4, - 3) [- 3, - 2) [- 2, - 1) [- 1,0) [0,1)\n  magnitude\n\nLevel                      11           12           13          14     15                                  16           17        18\n\nOrders of magnitude        [1,2)        [2,3)        [3,4)       [4,5)  [5,6)                               [6,7)        [7,8)     [8,1)\n\nTable 2 Orders of magnitude of the joint probability corresp",
+      "char_start": 46293,
+      "char_end": 47073,
+      "note": "This is the caption and body of the level-versus-order-of-magnitude table for time series evaluation."
+    },
+    {
+      "id": "g047",
+      "kind": "structural",
+      "query": "Show me the tabulated comparison of theoretical versus simulated average run length for the second statistic at several sparsity settings.",
+      "source_stem": "Xie_2013_sequential-multi-sensor-change-point",
+      "anchor_text": "Hence it would be unwise\n\fSEQUENTIAL MULTI-SENSOR CHANGE-POINT DETECTION  15\n\n                   Table 1\n         ARL of T2(p0), m1 = 200\n\np0    b     Theory                Monte Carlo\n\n0.3   31.2    5001                  5504\n            10,002                10,221\n0.3   32.3\n              5000                  4968\n0.1   19.5  10,001                10,093\n\n0.1   20.4    5001                  4830\n            10,001                  9948\n0.03  12.7\n\n0.03  13.5\n\nsimply to replace this expectation by 0. To a crude first-order approximation\nT  b/[0( nN µn - 0/2)] = t0, say.",
+      "char_start": 38130,
+      "char_end": 38709,
+      "note": "The table caption and its numeric rows: ARL of T2(p0) with theory beside Monte Carlo columns."
+    },
+    {
+      "id": "g048",
+      "kind": "structural",
+      "query": "Which table lists average run lengths for two-sided schemes across several head-start values, and what parameter settings does it use?",
+      "source_stem": "Lucas_1982_fast-initial-response-cusum-quality",
+      "anchor_text": "Table 1                       (Barraclough and Page 1959). A FIR CUSUM is a\n                                                         gives the calculated ARL's of two-sided CUSUM                           sequence of Wald tests with the initial test having\n                                                         schemes with k = 3, h values of 4 and 5, and head-                      different a and /l errors than the following tests. For\n                                                         start values of 0, h/4, h/2, 3h/4, and h.",
+      "char_start": 11955,
+      "char_end": 12495,
+      "note": "Describes the contents of Table 1: run lengths by reference value, decision interval and head start."
+    },
+    {
+      "id": "g049",
+      "kind": "structural",
+      "query": "Point me at the caption listing how each category is defined, together with the figure captions showing which switches were admissible in the two case studies.",
+      "source_stem": "Reis_2020_avoiding-invalid-transitions-land-cover",
+      "anchor_text": "The\ndefinition of each land cover class is presented in Table 1 and\nthe defined legends are illustrated in Fig. 3. The legend with\n6 classes was used to classify all dates from Case Study 1.\nThe remaining legend levels, with 5, 10, and 8 classes, were\n\n98790\n\fM. S. Reis et al.: Avoiding Invalid Transitions in Land Cover Trajectory Classification\nTABLE 1. Land cover class definition.\n\nFIGURE 5. Validity of transitions for Case Study 1.\n\nvisual interpretation of ancillary images. These samples were                            FIGURE 6. Validity of transitions for Case Study 2.\nrandomly divided into training and test sets. We collected at\nleast 147 samples (pixels) for each class/year for the training                          FIGURE 7.",
+      "char_start": 19990,
+      "char_end": 20731,
+      "note": "Contains the class-definition table caption and the validity-of-transition figure captions for both case studies."
+    },
+    {
+      "id": "g050",
+      "kind": "structural",
+      "query": "Where is the table caption giving how many pixels were set aside for fitting and for testing on each of the two acquisition dates?",
+      "source_stem": "Melgani_2003_markov-random-field-approach-spatio",
+      "anchor_text": " of the Po river (Northern Italy), in May 1994 by (a) Landsat TM (band 5) and (b) ERS-1 SAR\n(C-band, VV polarization).\n\nthe ERS-1 SAR (C-band, VV polarization) image, and four tex-                                                  TABLE I\n                                                                          NUMBERS OF TRAINING AND TEST PIXELS FOR (a) THE APRIL IMAGE\nture features (entropy, difference entropy, correlation, and sum\n                                                                                                     AND (b) THE MAY IMAGE\nvariance) extracted from the ERS-1 SAR image by computing\n                                                                                                                    (a)\nthe gray-level cooccurrence matrix [33].",
+      "char_start": 40436,
+      "char_end": 41214,
+      "note": "The TABLE I caption, naming training and test pixel counts for the two dated images."
+    },
+    {
+      "id": "g051",
+      "kind": "structural",
+      "query": "Show me the numbered result expressing total variation as an integral over the boundary lengths of the level sets.",
+      "source_stem": "Duval_2009_tvl1-model-geometric-point-view",
+      "anchor_text": "THE TVL1 MODEL: A GEOMETRIC POINT OF VIEW\n\n3\n\nTheorem 2.2 (Coarea Formula). Let u  BV . Then:\n\n+\n\n|Du|(R2) =\n\nPer {x  R2, u(x) > t}dt.\n\n-\n\n(2.2)\n\nFor u  L1, if the right member of the equation is finite, then u  BV (R2) and the last equality holds.\nIn this paper, we only consider the case of dimension N = 2. We thus have: BV ()  L2() (with continuous embedding). We can then extend the total variation |Du| as a convex lower semi-continuous function J defined on R2 by:\n\nJ(u) =\n\n|Du|() if u belongs to BV () + if u  L2()\\BV ()\n\n(2.3)\n\nJ being a proper convex function, we can use the notion of subgradient J of J [37]: v  J(u) if and only if for all w  L2(), we have J(u + w)  J(u) + v, w L2() where ., . L2() stands for the usual L2() inner product.\n2.2.",
+      "char_start": 7291,
+      "char_end": 8048,
+      "note": "Theorem 2.2, the coarea formula, with the bounded-variation definitions that surround it."
+    },
+    {
+      "id": "g052",
+      "kind": "structural",
+      "query": "Where is the figure-referenced derivation of the ceiling on the boundary-length-to-area index for a one-cell displacement, expressed through cell width?",
+      "source_stem": "Salas_2003_perimeter-area-ratio-as-index",
+      "anchor_text": "                                                                       The theoretical limit of the P/A ratio for single pixel offsets was calculated\n                                                                               (figure 1). For purely diagonal single pixel offsets the P/A ratio~4/x [figure 1(b)],\n                                                                               regardless of the size of the diagonal strip, with x being the spatial resolution of the\n                                                                               sensor. This is the upper limit of P/A ratios for all single pixel offsets; for 28.5 m\n                                                                               spatial resolution TM data this value is 0.14 m21.",
+      "char_start": 14613,
+      "char_end": 15391,
+      "note": "Gives the 4/x limit for diagonal single-pixel offsets, with the figure reference and the worked value at 28.5 m."
+    },
+    {
+      "id": "g053",
+      "kind": "structural",
+      "query": "Find the numbered expression that multiplies a starting row vector of category areas by the switch matrix to obtain the ending areas.",
+      "source_stem": "Hasegawa_2019_probability-deriving-yearly",
+      "anchor_text": "Among 62 transition probability\nmatrices used in the empirical verification, 48 matrices were supplied together with the initial and\nfinal area size (or proportion) of each category (the row of \"Area data\" in Table 2). For these matrices,\nthe row vector of the final area size, vf in can be calculated as\n\n                                     vf in = vinit · T,                                        (3)\n\nwhere T is the transition probability matrix and vinit is the row vector of the initial area size. Assume\nthat T is a transition probability matrix in m years and A is a mth power root of the matrix calculated\n\nby TAM.",
+      "char_start": 10828,
+      "char_end": 11452,
+      "note": "Equation (3), vfin = vinit * T, with the definitions of both vectors and the table reference for the data."
+    },
+    {
+      "id": "g054",
+      "kind": "structural",
+      "query": "Which tables set out average run length at two defect rates for the single-sample and for the sequential schemes, and how were the schemes chosen?",
+      "source_stem": "Page_1954_continuous-inspection-schemes",
+      "anchor_text": "In Table 1\nthe A.R.L. functionis given fortwo values of the argument,p, for five single sampling\nschemes and in Table 2 the correspondingquantities forfivesequential schemes taken\nfromthe Appendix table; the firstthree schemes have specifiedA.R.L. at p = 0.01 and\nminimumA.R.L. at p = 003 and the last two specifiedA.R.L. at p = 0-03 and maximum\n\nA.R.L. atp = 0T01.\n\n     Table 1. Singlesamplingschemes  Table 2.",
+      "char_start": 35395,
+      "char_end": 35807,
+      "note": "Names Table 1 and Table 2 and states the criterion at each of the two argument values."
+    },
+    {
+      "id": "g055",
+      "kind": "structural",
+      "query": "Where is the design aid that gives, for several baseline rates, the decision limit producing an in-control average number of items closest to chosen targets?",
+      "source_stem": "Reynolds_1999_cusum-chart-monitoring-proportion",
+      "anchor_text": "If an item is selected every minute for in-\n   Table 1 was constructed to provide an addi-             spection, then 8.33% of the output will be inspected.\ntional design aid in determining hB for the Bernoulli      As in the first situation above, the p-chart would re-\nCUSUM chart. This table gives, for several values of       quire 100 minutes to obtain the 100 inspected items\nPo, the value of hB that will give an in-control ANOS      required to plot a point.\nclosest to several specified values. When Po is quite\nsmall, say 0.001, it will usually be desirable to choose      As a third situation, consider a modification of\nPI to be a relatively large multiple of Po, such as 3po    the second situation above in which it is more con-\nor 4po.",
+      "char_start": 30184,
+      "char_end": 30934,
+      "note": "Describes Table 1's purpose and contents for choosing the Bernoulli chart's limit."
+    },
+    {
+      "id": "g056",
+      "kind": "structural",
+      "query": "Show me the illustration caption comparing plain differencing of two dated scenes against the version corrected for positional mismatch.",
+      "source_stem": "Stow_1999_reducing-effects-misregistration-pixel",
+      "anchor_text": "ation (3)) was also applied to the multi-temporal\n\f                                            Downloaded by [North Carolina State University] at 10:18 22 January 2013                                      Remote Sensing L etters\n\nFigure 1. Change detection images generated from multi-temporal di erencing of 3 October 1986 and 22 September 1988 TM3 subsets: (a) results              2481\n         from standard di erencing; (b) results from misregistration compensation model.",
+      "char_start": 29151,
+      "char_end": 29628,
+      "note": "The Figure 1 caption naming both panels and the two acquisition dates."
+    },
+    {
+      "id": "g057",
+      "kind": "structural",
+      "query": "Where is the ablation table caption that spells out the bin-size shorthand and the pooling-type abbreviations against a dilated baseline?",
+      "source_stem": "Zhao_2017_pyramid-scene-parsing-network",
+      "anchor_text": "Different from relay backpropagation [32]\nthat blocks the backward auxiliary loss to several shallow              Table 1. Investigation of PSPNet with different settings. Baseline\nlayers, we let the two loss functions pass through all pre-             is ResNet50-based FCN with dilated network. `B1' and `B1236'\nvious layers. The auxiliary loss helps optimize the learning            denote pooled feature maps of bin sizes {1 × 1} and {1 × 1, 2 ×\nprocess, while the master branch loss takes the most respon-            2, 3 × 3, 6 × 6} respectively. `MAX' and `AVE' represent max\nsibility.",
+      "char_start": 19473,
+      "char_end": 20065,
+      "note": "The Table 1 caption defining B1, B1236, MAX and AVE, beside the auxiliary-loss discussion."
+    },
+    {
+      "id": "g058",
+      "kind": "structural",
+      "query": "Show me the diagram caption for the rearrangement step that trades a stack of small activation grids for fewer, larger ones, with its worked two-by-two illustration.",
+      "source_stem": "Chen_2018_semantic-segmentation-aerial-imagery",
+      "anchor_text": "B1 B2             A1 B1 A2 B2                                                                  Shuffling       Prediction\nA3 A4  B3 B4             C1 D1 C2 D2\n\nC1 C2  D1 D2  Shuffling  A3 B3 A4 B4\nC3 C4  D3 D4  Operator   C3 D3 C4 D4\n\nFigure 2. Basic concept of the shuffling operator: it converts          (a) Original SCNN\nc × u2 feature maps of size H × W into c feature maps of size\n\n(H × u) × (W × u). Here: H = 2, W = 2, u = 2, c = 1.",
+      "char_start": 24530,
+      "char_end": 24970,
+      "note": "The Figure 2 caption for the shuffling operator, together with the lettered cell labels of the diagram it describes."
+    },
+    {
+      "id": "g059",
+      "kind": "structural",
+      "query": "Find the numbered formula that gives pixel footprint on the ground from detector pitch, flying height and lens focal length.",
+      "source_stem": "Brown_2022_aerial-animal-detection-spatial-resolution",
+      "anchor_text": "Ground sample distance is defined using\n\n                           GSD =      pA                                      (1)\n\n                                       f\n\n    where p is the sensor pixel pitch in m/pix, A is the platform altitude and f\nis the focal distance. To simplify the calculations, a single A value was assumed\nacross the image plane, despite the earth not being flat.\n\n    Optical diffraction blurring occurs due to light diffraction at the aperture\nand is captured in the point spread function of the lens.",
+      "char_start": 14390,
+      "char_end": 14916,
+      "note": "Equation (1) for GSD with all three symbols defined, plus the flat-earth simplification stated after it."
+    },
+    {
+      "id": "g060",
+      "kind": "structural",
+      "query": "Show me the pair of numbered expressions defining the lattice scheme whose site probability has logistic form in its neighbours' values.",
+      "source_stem": "Besag_1974_spatial-interaction-statistical-analysis",
+      "anchor_text": "In\nparticular, if the only non-zero parameters are those associated with cliques con-\nsisting of single sites and of pairs of sites, we have an auto-logistic model for which\nwe may write\n\n                                                                               (4.7)\n\nIt follows that\n\n                 Pi(.) = exp{xb~i+ \"i:.f3i,jxj)}/{1 +exp(tXi+ \"i:. f3i,jXj)}'  (4.8)\n\nanalogous to a classical logistic model (Cox, 1970, Chapter 1), except that here the\nexplanatory variables are themselves observations on the process.\n\n                                        4.2.2.",
+      "char_start": 32453,
+      "char_end": 33028,
+      "note": "Equations (4.7) and (4.8), the auto-logistic model and its conditional probability, with the comparison to ordinary logistic regression."
+    }
+  ]
+}

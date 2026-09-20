@@ -26,8 +26,9 @@ Update this block only. Everything else in the file changes when a session lands
   `work/20260920-litkb-workplan`.
 - **Next:** S1 (the front door). Entry condition: S0 landed; paper-search MCP registered in
   `.mcp.json` (see S1).
-- **Open questions for Kam:** `litkb-k2-no-seeding` (status `open`); re-registering the
-  nightly-dump scheduled task (Windows task name litkb-nightly-dump) against the merged tree.
+- **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided (no seeding); S7 soak = seven nights
+  started in S1. Kam re-registers the nightly-dump scheduled task (Windows task name
+  litkb-nightly-dump) against the merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
 
 ---
 
@@ -164,10 +165,15 @@ Work
   missing author or year · isbn · garbage); mutation rows (`HS*`) in
   `qc/instruments/litkb_p2_mutations.py`.
 - One headless scout run, workstream `scout-1`, on a topic that serves the pipeline.
+- Start the S7 soak clock now (Kam's ruling): a scheduled nightly task that runs a smoke
+  `litkb_search` and a smoke `hunt` on a known-extracted key and appends one row to a soak CSV
+  under Reports/ (LITKB_SOAK). The full `doctor` joins it in S7; the row schema is fixed here so
+  S7's `soak` subcommand can read every night from S1 onward.
 
 Done-state
 - (a) the agent file; the SKILL section; the migration; `pipeline/litkb/hunt.py` + tests; the
-  fixture; the ledger rows; a scout-run CSV under Reports/ (LITKB_SCOUT_RUN_<date>).
+  fixture; the ledger rows; a scout-run CSV under Reports/ (LITKB_SCOUT_RUN_<date>); the
+  scheduled soak task with its first row written.
 - (b) `py -3.12 qc/instruments/litkb_acceptance.py scout --manifest <manifest>` →
   `dropoffs>=10 missing_required_fields=0 ref_scheme_outside_set=0 missing_hunt_results=0
   unknown_states=0 human_input_events=0` · `py -3.12 -m pytest qc/test_litkb_hunt.py -k ref_shapes`.
@@ -318,8 +324,9 @@ Done-state
 
 ### S7 — Seven nights unattended (ops)
 
-This session adds a wall-clock week to the finish line. Kam may cut it to "doctor green + one
-scheduled night".
+Kam's ruling (2026-09-20): seven nights, STARTED EARLY. S1 installs the nightly smoke task
+(see S1 Work) so the nights accumulate while S2–S6 proceed; S7 extends it with the full
+`doctor` and reads the log. No calendar cost at the end.
 
 Work
 - `litkb doctor`: DB reachable; migration tip == repo tip; dump age < 26 h AND the dump restores

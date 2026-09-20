@@ -669,15 +669,18 @@ decisions:
       scout discovers the works itself, should K2 be allowed to fire on a seeded expectation, or
       must it fire naturally — with an UNDETERMINED outcome and a bounded rerun if it does not?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-20"
+    decision: >-
+      NO SEEDING. The scout states its confidence per expectation; K2 fires naturally or the run
+      is UNDETERMINED on K2 and gets ONE bounded rerun on another topic, under an attempt limit
+      fixed before launch — exhaustion is UNDETERMINED, never a quiet extra try. An expectation
+      can go UNCONFIRMED without its paper being acquired, so the S5 acceptance counters
+      separate "unconfirmed" from "not acquired".
     why: >-
       A seeded negative proves the honesty machinery can fire; only an unseeded one proves the
       scout's priors are being tested. This EXTENDS how `litkb-operational-definition` is
-      exercised, which is why it is a question and not folded into the plan. PROPOSED answer
-      (Claude, on Codex's review of the plan, 2026-09-20 — not a ruling): no seeding; the scout
-      states its confidence per expectation; K2 fires or the run is UNDETERMINED on K2 and
-      reruns once on another topic under an attempt limit fixed before launch. An expectation
-      can go UNCONFIRMED without its paper being acquired, so the acceptance counters must
-      separate "unconfirmed" from "not acquired". Cost of not deciding: S5 cannot be launched.
+      exercised (run 2 seeded), which is why it was put to Kam as a question rather than folded
+      into the plan. Proposed by Claude on Codex's review of the plan; ruled by Kam the same day.
     evidence:
       - LITKB_WORKPLAN.md

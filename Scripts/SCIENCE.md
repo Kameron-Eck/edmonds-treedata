@@ -130,9 +130,9 @@ count beside it.
 
 A gap here is a record, not a backlog — some acquisitions are deliberately out of scope. `phase4/qc/coverage_map.md` has the matrix.
 
-## 5. What is blocked, and on whom (13 open)
+## 5. What is blocked, and on whom (12 open)
 
-**Ready now (7) — nothing above them:**
+**Ready now (6) — nothing above them:**
 
 - `synthesis-session` [kam] — Sit down with the full evidence table and set the story: what does the project claim about Edmonds canopy dire
 - `k4-signoff` [kam] — Sign off or amend the documented findings block — review corrections, bootstrap CIs, canopy definition §6 and 
@@ -140,7 +140,6 @@ A gap here is a record, not a backlog — some acquisitions are deliberately out
 - `champion-designations` [kam] — Name a champion arm for the 20 acquisitions that have none, or state which are deliberately out of scope.
 - `change-detector-build` [kam] — Green-light the change-detector build: gold-set freeze, certifier port with the three audit fixes, tiers, then
 - `augmentation-seeding` [kam] — Seed the augmentation stream — pass an explicit seed to every albumentations Compose and re-baseline every arm
-- `litkb-k2-no-seeding` [kam] — Proving run 2 SEEDED the false expectation that let K2 fire. For proving run 3, where the scout discovers the 
 
 **Waiting (6):** `ccap-bias-quantification` after k1-labelling, `thirtysix-run-go` after champion-designations, k4-signoff, `city-statement` after synthesis-session, k4-signoff, `paper-scope` after synthesis-session, k4-signoff, `forward-monitoring` after city-statement, `selection-metric-calibration` after augmentation-seeding
 

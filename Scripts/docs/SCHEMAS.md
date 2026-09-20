@@ -1701,3 +1701,63 @@ that draw's K1 and K2 counts and wall time (`secs`), and a trailer with `k3_true
 interval bounds) is a product, not evidence, and is NOT tracked; regenerate with the model.
 Version suffixes: the v2 pre-registration writes `crown_state_v2_vs_gold.csv` and
 `crown_state_v2_placebo.csv` so the killed v1 numbers stay on the record beside them.
+
+## LITKB_SOAK.csv (Reports/, APPEND-ONLY — one row per night, header FIXED in S1)
+
+Written by `pipeline/litkb/ops/nightly_soak.py` (`run()` then `append_row()`), from the scheduled
+task `litkb-nightly-soak`, daily at 03:17 local — after the 02:30 `litkb-nightly-dump`, so a
+night's dump is already on disk when the soak reads the database. One row per run, appended,
+never rewritten. `--once` runs it by hand against live; the path is resolved from `__file__` and a
+CSV outside the repository is REFUSED (`guard_path`), because an unattended nightly job with a
+free `--csv` is an unbounded write primitive.
+
+**The header is fixed here, in S1, and may not gain a column.** The soak clock starts in S1 by
+Kam's ruling of 2026-09-20 (`LITKB_WORKPLAN.md` S7) so the nights accumulate while S2-S6 proceed;
+S7's `qc/instruments/litkb_acceptance.py soak` has to read **every night from S1 onward**, and a
+column added in S7 would split the log in two with the first nights in the unreadable half. That
+is why `doctor_ok` and `doctor_detail` exist now and are written EMPTY: they are S7's two columns,
+reserved.
+
+| column | meaning |
+|---|---|
+| `ts_utc` | run start, `%Y-%m-%dT%H:%M:%SZ` |
+| `host` | `socket.gethostname()` — litkb is local-only (`decisions.yaml` `litkb-p0-foundation`) |
+| `repo_head` | `git rev-parse HEAD` in the MAIN tree; empty when git fails |
+| `migration_tip` | the highest migration version **APPLIED to the database**, read as `litkb_owner` through the passfile. EMPTY when it cannot be read — `litkb_meta` is readable by the owner alone (measured 2026-09-20: `litkb_reader` and `litkb_writer` both get `permission denied for schema litkb_meta`, `litkb_ingest` refuses the login). It is never silently replaced by the on-disk tip: "what the repo holds" and "what the DB has applied" are different facts, and S7's `doctor` compares them |
+| `search_ok` | `true`/`false`. FALSE on zero hits as well as on a refusal — the query is fixed against a work known to be extracted, so a zero-hit night is a defect, not a rephrasing |
+| `search_ms` | wall milliseconds for `litkb.mcp.server._search`, the Python side of `litkb_search` (there is no `litkb.search` module; the implementation lives in the MCP module and the tool is a thin wrapper over it) |
+| `search_hits` | blocks returned, capped at the limit (5) |
+| `hunt_ok` | `true` **only when `hunt_state` is `extracted`**. Not `res["ok"]`: a hunt that correctly reports a database which has LOST the work returns `ok: true`, and that is precisely the regression this row exists to catch |
+| `hunt_ms` | wall milliseconds for the cached-answer `hunt(spend=False, extract=True)` |
+| `hunt_state` | the ladder state reached, or the refusal code, or `error` |
+| `hunt_key` | the smoke target's work key — a module constant, so a row always says what it smoked |
+| `doctor_ok` | EMPTY until S7 |
+| `doctor_detail` | EMPTY until S7 |
+| `error` | `search: …` / `hunt: …` joined by a pipe; empty on a clean night. A failing smoke still writes its row, and the process exits non-zero |
+
+The smoke target is `Kaiser_2017_learning-aerial-image-segmentation` (DOI
+`10.1109/tgrs.2017.2719738`), chosen from the live database on 2026-09-20: `extracted`, 254
+blocks, one bound file, DOI verified by Crossref. The hunt is the CACHED-ANSWER path —
+`spend=False`, so no route is chosen and no quota is touched — which exercises resolve, look_up
+and report, the path every hunt takes before it decides whether to spend. The standing workstream
+`soak` its writes name lives outside every repository, at
+`D:\edmonds-pipeline\secrets\litkb-tokens\soak-ws\`; `LITKB_WORKTREE` is pinned to it on every run,
+because the search's worktree resolution otherwise shells out to git from whatever directory the
+scheduler started in, and a stray `.litkb-workstream` would widen the query to another
+workstream's proposals. A baseline that moves is not a baseline.
+
+## LITKB_SCOUT_RUN_&lt;date&gt;.csv (Reports/, GENERATED — the drop-off follow-up ledger)
+
+Written by `qc/instruments/litkb_scout_run.py` from the manifest that
+`qc/instruments/litkb_acceptance.py scout --freeze` wrote BEFORE the run. One row per drop-off the
+scout left after the freeze, resolved through `hunt(spend=False)`: `hr_id`, `ref`, `ref_scheme`,
+`claimed_title`, `claimed_year`, `fields_missing`, `hunt_ok`, `hunt_state_or_refusal`, `message`,
+`seconds`.
+
+The CSV is also the RESUME LEDGER — a drop-off whose `hr_id` already has a row is skipped and its
+row preserved byte for byte — so the file is idempotent and a run interrupted after seven of
+fifteen hunts costs those seven nothing. `fields_missing` is a semicolon list of the eight
+required fields (`.claude/skills/literature/SKILL.md`, "Stage 1 — discover") the drop-off left
+null or blank. A `hunt_state_or_refusal` outside `litkb_acceptance.CLOSED_STATES` is what the
+acceptance counter `unknown_states` refuses; `error` is deliberately OUTSIDE that vocabulary, so a
+driver that crashed on every row cannot report a full set of known states.

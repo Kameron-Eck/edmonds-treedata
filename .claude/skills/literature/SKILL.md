@@ -19,6 +19,114 @@ The convention this skill points at, and does not copy: `Scripts/docs/LITERATURE
 
 ---
 
+## Stage 1 — discover: turning a topic into drop-offs
+
+This stage runs BEFORE step 0 and it is the only place in this skill where the web and the
+paper-search routes are used. It belongs to the **lit-scout** subagent
+(`.claude/agents/lit-scout.md`), and the rule that makes it worth having is the ordering: a
+candidate is recorded with the claim it is EXPECTED to support before anyone reads its full text.
+
+A drop-off is a prior, not evidence. `litkb_hunt_request_add` writes it; a later `litkb_hunt` links
+it to the work it resolved to; a later `litkb_record_use` with a verified quote is what moves its
+`resolution_state` to `confirmed` or `contradicted`. An expectation written after reading the paper
+cannot be wrong, and an expectation that cannot be wrong measures nothing.
+
+### The query plan
+
+Write **3–6 queries** from the topic before running any of them, and say what each one is for. The
+topic is a question; the queries are the different vocabularies that question is asked in. One
+query is not a plan — the base and the literature both index words, not meanings, and the vector
+leg is off (see step 0), so a topic asked one way finds one community's papers.
+
+### The source ladder
+
+Climb it in order and stop as soon as you have identifiers:
+
+1. **`litkb_search` and `litkb_work`** — the knowledge base first, always (step 0). A work it
+   already holds still gets a drop-off; see below.
+2. **`search_papers`** with `sources=` naming the routes that fit the topic (for this project:
+   `arxiv,crossref,openalex,semantic`; add `pubmed,europepmc` for anything ecological). One call
+   covers several routes and deduplicates.
+3. **`search_crossref`, `search_semantic`, `search_openalex`** singly, when a targeted route
+   returns nothing or the topic is narrow enough to need one index's own ranking.
+4. **`WebSearch` last.** It finds what has no index entry — a grey report, a municipal product, a
+   technical note. It returns no DOI, so anything found here arrives as `url` or `title`, which is
+   the weakest thing to hand the hunt.
+
+**Never a `download_*` or `read_*` route.** Discovery ends at the abstract. The scout holds no such
+tool; a session doing this stage by hand keeps the same boundary, because a full text read here
+turns the expectation into a summary and the run loses its only unverified prior.
+
+### The drop-off record — eight required fields
+
+`litkb_hunt_request_add` takes all of these. The database leaves `abstract_passage` nullable; **this
+contract does not.**
+
+| field | what it must carry |
+|---|---|
+| `ref` | the identifier itself — the DOI string, the arXiv id, the URL, or the title |
+| `ref_scheme` | exactly one of `doi`, `arxiv`, `url`, `title` |
+| `claimed_title` | the title as the source you read gives it |
+| `claimed_authors` | at least the first author's surname; more is better |
+| `claimed_year` | the publication year as an integer |
+| `expected_claim` | ONE sentence, falsifiable — a sentence the paper's own text could contradict |
+| `why_relevant` | why this project cares, ending with `confidence: high\|medium\|low` |
+| `abstract_passage` | VERBATIM from the abstract you actually read |
+
+`ref_scheme` is narrower here than the database's own vocabulary (`doi`, `arxiv`, `jstor`, `isbn`,
+`pmid`, `pmcid`, `openalex`, `s2`, `handle`, `url`, `tracker`, `legacy_stem`, `other`). Those four
+are what the hunt that follows can resolve; the rest are refused as `unsupported-ref-scheme`.
+
+**DOI first.** A DOI beats an arXiv id, which beats a URL, which beats a title. A `title` drop-off
+is the last resort — it sends the hunt to a resolver that can come back `unresolved-title` or
+`ambiguous-title` — and there `claimed_authors` and `claimed_year` are the only things the resolver
+has to work with.
+
+**`expected_claim` is one falsifiable sentence.** "This paper is relevant to label noise" is not
+one: nothing in any text could contradict it. "Training on labels with ~10% noise costs under 2
+points of IoU" is one.
+
+**`why_relevant` ends with a stated confidence** (`decisions.yaml` → `litkb-k2-no-seeding`, Kam
+2026-09-20): `high` = the abstract states it; `medium` = the abstract implies it; `low` = the title
+and topic suggest it and the abstract does not say. **Never write an expectation you believe is
+false.** A seeded negative proves the honesty machinery can fire and proves nothing about whether
+the priors are being tested. A run where nothing comes back contradicted is UNDETERMINED on that
+check, which the plan handles; a seeded one is a false prior in the database, which it does not.
+
+**A work the base already holds still gets a drop-off.** `litkb_hunt_request_add` records an
+expectation, not an acquisition. If `litkb_work` says `extracted`, the drop-off is the cheapest one
+there is — the hunt answers from the database, links the request, and the expectation is tested
+against text already in hand. Skipping it discards the prior.
+
+### The stop rule
+
+Stop at the FIRST of these:
+
+- **15 drop-offs.** A cap, not a target.
+- **Two consecutive queries add nothing new** — no candidate the earlier queries had not already
+  surfaced.
+- **The full query plan is exhausted and nothing is relevant.** Then the answer is **zero**
+  drop-offs. A nonsense topic ends at `n=0`, and a fabricated drop-off to avoid an empty run is a
+  false prior everything downstream reads as real.
+
+Then say so, on the first line of the last message, in this exact shape:
+
+```
+SCOUT-STOP: n=<drop-offs recorded> reason=<cap|no-new-results|nothing-relevant|refused:<code>>
+```
+
+Under it: every drop-off's `hunt_request_id`, `ref` and confidence; what was searched; what was
+rejected and why. A tool refusal is named by its code and ends the run — the refusal is the system
+working, not something to route around.
+
+### What follows this stage
+
+Nothing in Stage 1 hunts, admits, acquires or records a use. The drop-off is the hand-off. The
+session that picks it up runs `litkb_hunt(ref=…, hunt_request=<id>)` (step 1a) and then steps 2–5
+below.
+
+---
+
 ## 0. Before anything: ask the knowledge base
 
 `litkb_search` first, every time — before a web search, before paper-search, before opening a PDF.

@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "litkb": {
+      "type": "stdio",
+      "command": "py",
+      "args": [
+        "-3.12",
+        "-m",
+        "litkb.mcp.server"
+      ],
+      "env": {
+        "LITKB_AGENT": "lit-scout",
+        "LITKB_SESSION": "scout-1"
+      }
+    },
+    "paper-search-mcp": {
+      "type": "stdio",
+      "command": "paper-search-mcp",
+      "args": []
+    }
+  }
+}

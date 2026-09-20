@@ -1375,7 +1375,7 @@ replace("RC14", f"{PKG}/textnorm.py",
         "tool actually produces stops matching a span that crosses a stored CRLF, and the brief "
         "renders that quote uncopyable again", tests=TESTS_REVIEW)
 replace("RC15", f"{PKG}/review_check.py",
-        '_CANON_TEXT = "replace(replace(b.text, chr(13)||chr(10), chr(10)), chr(13), chr(10))"',
+        '_CANON_TEXT = sql_canonical_newlines("b.text")',
         '_CANON_TEXT = "b.text"',
         "the SQL half becomes the identity: the two sides of the comparison are canonicalised "
         "differently, which is worse than neither -- the block keeps its CRLF while the quote is "
@@ -1395,6 +1395,87 @@ replace("RC16", f"{PKG}/brief.py",
         "instruction grammar §3 gives ('copy the quote out of the brief') yields a review that "
         "cannot pass. render() still canonicalises, which is why only the MCP path breaks -- and "
         "the MCP path is the writer's only path", tests=TESTS_BRIEF)
+
+# ── RC17-RC20: the RECORDING end of the same relaxation (2026-09-20, migration 0026) ──────
+# RC14-RC16 made the GRADER and the EXPORT read a CRLF span from an LF file. The proving run then
+# showed the other end was still byte-exact: `litkb_record_use` refused every quote the writer
+# could emit that crossed a stored line break (measured, on a real block: python find -> -1, SQL
+# position -> 0, the 0007 trigger -> false at the correct raw offsets), so the writer recorded
+# single-line FRAGMENTS and half the review's sentences overreached them. Four rows, because the
+# fix has four independent halves and each alone silently restores the defect or, worse, records
+# an UNVERIFIED row where the old code refused cleanly.
+TESTS_RU = [*TESTS_P8, "qc/test_litkb_first_use.py"]
+replace("RC17", f"{MIG}/0026_quote_verified_canonical_newlines.sql",
+        "    litkb.canonical_newlines(substring(b.text FROM NEW.char_start + 1 FOR NEW.char_end - NEW.char_start))\n"
+        "      = v_q",
+        "    substring(b.text FROM NEW.char_start + 1 FOR NEW.char_end - NEW.char_start)\n"
+        "      = NEW.quote",
+        "the DATABASE's half goes back to comparing raw bytes (0007's body). The locator still "
+        "finds the span, so the row is WRITTEN -- and stored with quote_verified false, which is "
+        "worse than the defect: an unverified evidence row where the old code refused at the "
+        "command, held only at promote prepare a session later", tests=TESTS_RU)
+replace("RC18", f"{PKG}/use.py",
+        "    canon_text, canon_quote = canonical_newlines(text), canonical_newlines(quote)",
+        "    canon_text, canon_quote = text, quote",
+        "the ONE Python locator stops canonicalising, which is the defect exactly as the proving "
+        "run met it: `litkb_record_use` and `litkb use add` both refuse every quote that crosses "
+        "a stored `\\r\\n` (48.9 % of current-run blocks) with `quote-not-in-block`, and the only "
+        "quote a writer can record is one inside a single stored line", tests=TESTS_RU)
+replace("RC19", f"{PKG}/use.py",
+        '        raw_at.append(j)\n        j += 2 if text.startswith("\\r\\n", j) else 1',
+        "        raw_at.append(j)\n        j += 1",
+        "the canonical->raw offset mapping loses the two-bytes-one-character rule: the quote is "
+        "still FOUND, but `char_start`/`char_end` are short by one per line break before them, so "
+        "the span the trigger re-reads is not the span quoted. The locator's own assertion catches "
+        "it, which is the point of asserting the slice and not only the index", tests=TESTS_RU)
+replace("RC20", f"{PKG}/use.py",
+        '           "   AND b.text IS NOT NULL AND position(%(quote)s in "\n'
+        '           + sql_canonical_newlines("b.text") + ") > 0")',
+        '           "   AND b.text IS NOT NULL AND position(%(quote)s in b.text) > 0")',
+        "the CLI half's SQL prefilter stops canonicalising the block while the quote it binds is "
+        "canonicalised: the two sides are normalised differently, which is worse than neither -- "
+        "`locate_quote` returns nothing for a CRLF-crossing quote and `litkb use add` reports it "
+        "as in no extracted block, while the MCP path records it happily", tests=TESTS_RU)
+# RC21/RC22: the two guards that only a role or a schema OLDER than this code can trip, and that
+# no ordinary row reaches -- the suite logs in as litkb_test, which owns everything it migrated.
+block("RC21", f"{PKG}/mcp/server.py",
+      "guard: a quote located by canonical newlines needs the trigger that verifies them",
+      "record_use stops asking whether this database HAS migration 0026. Against a schema older "
+      "than the code -- which live is, between this branch's merge and the migration being "
+      "applied -- the locator finds the CRLF-crossing span and the OLD trigger then stores the "
+      "row with quote_verified false: an unverified evidence row where the old code refused at "
+      "the command, discovered at promote prepare a session later", tests=TESTS_P8)
+block("RC22", f"{MIG}/0026_quote_verified_canonical_newlines.sql",
+      "guard: the agent roles may execute the newline rule",
+      "0026's function keeps 0001:25's default (EXECUTE revoked from PUBLIC), so only its owner "
+      "may call it: on live, `review_check._BLOCK_SQL` as litkb_reader and `use.locate_quote` as "
+      "litkb_writer both fail with permission denied. MEASURED, not hypothetical -- the function "
+      "shipped this way and no test could see it, because the suite's own login owns it",
+      tests=TESTS_RU)
+# RC23-RC25: auditor-5's two findings. The first is the one that matters -- canonicalising the
+# equality pinned the quote's CONTENT and left its OFFSETS ambiguous whenever the quote began or
+# ended on a break, and a caller may name offsets itself (`litkb_record_use(char_start=...)`).
+block("RC23", f"{MIG}/0026_quote_verified_canonical_newlines.sql",
+      "guard: the quote does not begin or end with a line break, so its offsets are unique",
+      "the DATABASE stops pinning the offsets: a quote whose canonical form ends with `\\n` "
+      "verifies at BOTH raw ranges (measured on `abc\\r\\ndef`: `abc\\n` at [0,4) and at [0,5)), "
+      "so two different spans are equally 'the verified span' and nothing says which words "
+      "anybody checked -- while `_verified_span_findings` and every later reader trust exactly "
+      "that", tests=TESTS_P8)
+block("RC24", f"{PKG}/use.py",
+      "guard: the quote does not begin or end with a line break, so its offsets are unique",
+      "the LOCATOR stops refusing the ambiguous shape, so an honest caller that never names an "
+      "offset still gets one of the two ranges -- whichever the arithmetic happened to pick -- "
+      "recorded as the span somebody verified", tests=TESTS_RU)
+# RC25 is a `replace`, not a `block`: deleting between those markers takes the whole try/except
+# with them and leaves `row` unbound, which would "fire" as a NameError -- a reason that is not
+# the defect (the RC16 note). This makes the re-raise bare, which is exactly the old behaviour.
+replace("RC25", f"{PKG}/review_check.py",
+        '        if type(e).__name__ != "UndefinedFunction":\n            raise',
+        "        raise",
+        "the grader goes back to raising psycopg's bare UndefinedFunction against a database "
+        "without migration 0026 -- a symbol, not a thing to do -- where `use.locate_quote` refuses "
+        "the same absence with a sentence naming the migration", tests=TESTS_REVIEW)
 
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {

@@ -931,6 +931,182 @@ def test_all_seven_feeds_forms_pass_the_gate_at_record_use(hunt_env):
     assert one("litkb_my_uses", {})["uses"][0]["feeds"] == FEEDS_VOCABULARY
 
 
+# ── the quote that crosses a stored line break (2026-09-20, migration 0026) ───────────────
+
+CRLF_TEXT = ("Canopy cover was measured on eleven plots in June.\r\n"
+             "The same plots were flown again in October of the same year.\r\n"
+             "\r\n"
+             "A second paragraph begins here and says something else entirely.\r\n")
+CRLF_SPAN = "measured on eleven plots in June.\r\nThe same plots were flown again"
+
+
+@pg_only
+def test_an_lf_quote_crossing_a_stored_crlf_records_and_verifies(hunt_env):
+    """THE MCP HALF of the fix, through the real tool. 48.9 % of current-run blocks store `\\r\\n`
+    and the writer is an LLM emitting JSON: the transport carries `\\r\\n` (asserted below --
+    json.dumps/loads round-trips it), but no LLM has been observed emitting a raw CR, so before
+    2026-09-20 every quote crossing a stored line break came back `quote-not-in-block` and the
+    proving run's review quoted single LINES instead -- 33 characters at the longest inside a real
+    verified span, which an adversarial reviewer then found half the sentences overreaching.
+
+    Four things are asserted together, because each alone would pass under a wrong fix: the call
+    is accepted; the DATABASE says quote_verified; the offsets recorded are the STORED text's own
+    (so they cut the CRLF original, and every row written before this change keeps its meaning);
+    and the quote STORED is the caller's LF string -- not the block's bytes substituted in, which
+    would make the trigger's verdict a tautology."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "a quote across a stored line break"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    lf = CRLF_SPAN.replace("\r\n", "\n")
+    assert json.loads(json.dumps({"q": CRLF_SPAN}))["q"] == CRLF_SPAN, "JSON lost the CR"
+    res = one("litkb_record_use", {
+        "statement": "supplies a sentence that runs across a stored line break", "kind": "context",
+        "quote": lf, "block_id": seeded["block_id"], "gap": f"p8-crlf-{uuid.uuid4().hex[:6]}",
+        "gap_question": "does an LF quote crossing a stored CRLF record?"})
+    assert res["ok"] and res["quote_verified"] is True, res
+    start = CRLF_TEXT.index(CRLF_SPAN)
+    assert (res["char_start"], res["char_end"]) == (start, start + len(CRLF_SPAN)), res
+    stored, cut = conn.execute(
+        "SELECT e.quote, substring(b.text FROM e.char_start + 1 FOR e.char_end - e.char_start) "
+        "  FROM litkb.use_evidence e JOIN litkb.blocks b ON b.id = e.block_id WHERE e.id = %s",
+        (res["evidence_id"],)).fetchone()
+    assert stored == lf and cut == CRLF_SPAN, (stored, cut)
+
+
+@pg_only
+def test_a_quote_altered_by_one_word_is_still_refused_at_record_use(hunt_env):
+    """The reverse guarantee at the same tool: the relaxation is of the line-break ENCODING and of
+    nothing else, so one changed word is still `quote-not-in-block` and still writes nothing --
+    not even the gap. The unaltered quote in the same test is what makes this a refusal of the BAD
+    one rather than of the call."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf2-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "one changed word across a line break"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    gap = f"p8-crlf2-{uuid.uuid4().hex[:6]}"
+    bad = one("litkb_record_use", {
+        "statement": "must not record: one word differs", "kind": "context",
+        "quote": CRLF_SPAN.replace("\r\n", "\n").replace("eleven", "twelve"),
+        "block_id": seeded["block_id"], "gap": gap,
+        "gap_question": "is a quote with one changed word refused?"})
+    assert bad["refused"] == "quote-not-in-block", bad
+    assert conn.execute("SELECT count(*) FROM litkb.gaps WHERE slug = %s", (gap,)).fetchone()[0] == 0
+    good = one("litkb_record_use", {
+        "statement": "supplies the same sentence, unaltered", "kind": "context",
+        "quote": CRLF_SPAN.replace("\r\n", "\n"), "block_id": seeded["block_id"],
+        "gap": f"p8-crlf3-{uuid.uuid4().hex[:6]}", "gap_question": "and the unaltered one records?"})
+    assert good["ok"] and good["quote_verified"] is True, good
+
+
+@pg_only
+def test_a_quote_that_drops_a_blank_line_is_refused_at_record_use(hunt_env):
+    """The other half of the reverse guarantee, and the reason the rule is not a run collapse:
+    dropping the blank line between two paragraphs makes the end of one and the start of the next
+    read as one sentence. That is a change of CONTENT, not of encoding, and it is refused."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf4-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "two paragraphs joined"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    real = "flown again in October of the same year.\r\n\r\nA second paragraph begins"
+    assert real in CRLF_TEXT
+    res = one("litkb_record_use", {
+        "statement": "must not record: a blank line was dropped", "kind": "context",
+        "quote": real.replace("\r\n\r\n", "\n"), "block_id": seeded["block_id"],
+        "gap": f"p8-crlf4-{uuid.uuid4().hex[:6]}",
+        "gap_question": "is a quote that joins two paragraphs refused?"})
+    assert res["refused"] == "quote-not-in-block", res
+    kept = one("litkb_record_use", {
+        "statement": "supplies the two paragraphs with their break intact", "kind": "context",
+        "quote": real.replace("\r\n", "\n"), "block_id": seeded["block_id"],
+        "gap": f"p8-crlf5-{uuid.uuid4().hex[:6]}", "gap_question": "and with the blank line kept?"})
+    assert kept["ok"] and kept["quote_verified"] is True, kept
+
+
+@pg_only
+def test_a_quote_that_ends_on_a_line_break_verifies_at_no_offsets_at_all(hunt_env):
+    """AUDITOR-5's HOLE, closed. Canonicalising the equality pins a span's CONTENT, and for an
+    ordinary quote its OFFSETS too -- but a break at either END of the quote is one canonical
+    character and TWO raw ones, so the span may stop before the `\\n` or after it and BOTH ranges
+    satisfy the comparison. Offsets are what `_verified_span_findings` and every later reader
+    trust to say WHICH words somebody checked, and `litkb_record_use` lets a caller name them, so
+    an ambiguous pair is a real hole and not a curiosity.
+
+    Measured before the fix, on `abc\\r\\ndef`: `abc\\n` verified at raw [0,4) AND at [0,5). Here
+    both candidate ranges for a line-final quote must come back NOT verified -- and, the half that
+    makes this a fix rather than a refusal of everything, the same words without the trailing
+    break must still verify, and the interior-break quote must verify at its own range and at no
+    neighbouring one."""
+    conn = hunt_env["conn"]
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf8-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "offsets are unique"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    line1 = "Canopy cover was measured on eleven plots in June."
+    cr = CRLF_TEXT.index("\r")
+    assert CRLF_TEXT[:cr] == line1 and CRLF_TEXT[cr:cr + 2] == "\r\n"
+
+    def record(quote, start, end, tag):
+        return one("litkb_record_use", {
+            "statement": "records a quote at offsets the caller named", "kind": "context",
+            "quote": quote, "block_id": seeded["block_id"], "char_start": start, "char_end": end,
+            "gap": f"p8-{tag}-{uuid.uuid4().hex[:6]}", "gap_question": "which offsets verify?"})
+
+    for end in (cr + 1, cr + 2):          # both raw ranges canonicalise to it; NEITHER may verify
+        r = record(line1 + "\n", 0, end, f"amb{end}")
+        assert r["quote_verified"] is False, (end, r)
+    good = record(line1, 0, cr, "ok")     # the same words without the break still verify
+    assert good["quote_verified"] is True, good
+    s = CRLF_TEXT.index(CRLF_SPAN)        # the interior break: its own range, and no other
+    lf = CRLF_SPAN.replace("\r\n", "\n")
+    exact = record(lf, s, s + len(CRLF_SPAN), "int")
+    off = record(lf, s, s + len(CRLF_SPAN) - 1, "off")
+    assert (exact["quote_verified"], off["quote_verified"]) == (True, False), (exact, off)
+    refused = one("litkb_record_use", {   # and the locator refuses it before anything is written
+        "statement": "must not record: the quote ends on a line break", "kind": "context",
+        "quote": line1 + "\n", "block_id": seeded["block_id"],
+        "gap": f"p8-amb0-{uuid.uuid4().hex[:6]}", "gap_question": "is it refused without offsets?"})
+    assert refused["refused"] == "quote-not-in-block", refused
+
+
+@pg_only
+def test_a_database_without_migration_0026_refuses_rather_than_storing_an_unverified_row(
+        hunt_env, monkeypatch):
+    """THE PRE-0026 TRAP, shown to fire. A client can be newer than the schema it is pointed at --
+    and between this branch's merge and the migration being applied, the live database IS that
+    database. With the new locator and the OLD trigger, a quote that differs from the stored span
+    only in its line endings would be LOCATED and then written with `quote_verified = false`: an
+    unverified evidence row where the old code refused at the command and the problem surfaced at
+    `promote prepare` a session later. That is worse than the defect being repaired, so the tool
+    asks the database first, the way `_bad_feeds` asks about `litkb._feeds_token_ok`.
+
+    The absence is simulated at `use.newline_canon_available` rather than by dropping the function,
+    because the suite shares one migrated database with every other module. BOTH halves are
+    asserted: the LF quote is refused AND the caller's own raw bytes still record, since a quote
+    that is byte-identical to its span needs no canonicalisation to verify. A guard that refused
+    everything would pass the first half alone."""
+    conn = hunt_env["conn"]
+    monkeypatch.setattr("litkb.use.newline_canon_available", lambda conn: False)
+    opened = one("litkb_ws_open", {"slug": f"p8-crlf6-{uuid.uuid4().hex[:6]}",
+                                   "purpose": "a database without 0026"})
+    seeded = _seed_work_state(conn, opened["workstream_id"], "extracted", text=CRLF_TEXT)
+    gap = f"p8-crlf6-{uuid.uuid4().hex[:6]}"
+    res = one("litkb_record_use", {
+        "statement": "must not record: the trigger would mark it unverified", "kind": "context",
+        "quote": CRLF_SPAN.replace("\r\n", "\n"), "block_id": seeded["block_id"], "gap": gap,
+        "gap_question": "is an LF quote refused when 0026 is missing?"})
+    assert res["refused"] == "no-newline-canon", res
+    assert conn.execute("SELECT count(*) FROM litkb.gaps WHERE slug = %s", (gap,)).fetchone()[0] == 0
+    assert conn.execute("SELECT count(*) FROM litkb.use_evidence e JOIN litkb.blocks b "
+                        "ON b.id = e.block_id WHERE b.id = %s",
+                        (seeded["block_id"],)).fetchone()[0] == 0
+    raw = one("litkb_record_use", {
+        "statement": "supplies the block's own bytes, which need no canonicalisation",
+        "kind": "context", "quote": CRLF_SPAN, "block_id": seeded["block_id"],
+        "gap": f"p8-crlf7-{uuid.uuid4().hex[:6]}",
+        "gap_question": "and the raw quote still records without 0026?"})
+    assert raw["ok"] and raw["quote_verified"] is True, raw
+
+
 def _seed_work_file_block(conn, ws_id, text, block_type="paragraph", extra=()):
     """A work, an active file and one block of its current run, written as FACTS.
 

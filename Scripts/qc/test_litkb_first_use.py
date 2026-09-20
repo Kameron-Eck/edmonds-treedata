@@ -413,6 +413,170 @@ def test_the_database_computes_quote_verified_not_the_client(kb, tmp_path):
     assert _use.attach_quote(kb.conn, ws, kb.tokens[ws], vid, bad, quote)["quote_verified"] is False
 
 
+# ── a quote that crosses a stored line break (2026-09-20, migration 0026) ─────────────────
+#
+# THE DEFECT, from the operational proving run. 48.9 % of current-run blocks store `\r\n` and 7
+# of the project's 8 verified spans cross one, while the review writer is an LLM emitting JSON:
+# the transport carries `\r\n` perfectly well (measured), but no LLM has been observed emitting a
+# raw CR, so every multi-line quote it sent was refused as "in no extracted block" and it answered
+# by quoting single LINES -- 33 characters at the longest inside a real verified span -- which an
+# adversarial reviewer then found half the review's sentences overreaching. The grader had already
+# solved the same comparison (`textnorm.canonical_newlines` + its SQL half); the recording path
+# had not. These four rows are the relaxation and the three refusals that bound it.
+
+CRLF_BLOCK = ("Canopy cover was measured on eleven plots in June.\r\n"
+              "The same plots were flown again in October of the same year.\r\n"
+              "\r\n"
+              "A second paragraph begins here and says something else entirely.\r\n")
+CRLF_SPAN = "measured on eleven plots in June.\r\nThe same plots were flown again"
+
+
+def test_locate_in_text_maps_canonical_offsets_back_to_the_stored_bytes():
+    """The arithmetic on its own, with no database: a `\\r\\n` is ONE canonical character and TWO
+    stored ones, so every offset after a break would be short by one per break if the mapping were
+    dropped. Each case asserts the SLICE, not just the numbers, so an off-by-one cannot pass."""
+    from litkb.textnorm import canonical_newlines
+    from litkb.use import locate_in_text
+
+    for text, quote in [(CRLF_BLOCK, canonical_newlines(CRLF_SPAN)),        # LF quote, CRLF block
+                        (CRLF_BLOCK, CRLF_SPAN),                            # the stored bytes
+                        ("a\rb\r\nc\nd", "b\nc"),                           # a lone CR counts as one
+                        ("x\r\n\r\ny", "x\n\ny"),                           # a blank line is two breaks
+                        ("no breaks at all", "breaks at")]:
+        span = locate_in_text(text, quote)
+        assert span is not None, (text, quote)
+        assert canonical_newlines(text[span[0]:span[1]]) == canonical_newlines(quote), (text, quote, span)
+    # and the offsets are the STORED ones, not the canonical ones
+    s, e = locate_in_text(CRLF_BLOCK, canonical_newlines(CRLF_SPAN))
+    assert CRLF_BLOCK[s:e] == CRLF_SPAN, (s, e, CRLF_BLOCK[s:e])
+    assert (s, e) == (CRLF_BLOCK.index(CRLF_SPAN), CRLF_BLOCK.index(CRLF_SPAN) + len(CRLF_SPAN))
+    assert locate_in_text(CRLF_BLOCK, "a quote that is not there") is None
+
+
+def test_a_quote_that_begins_or_ends_on_a_line_break_is_not_locatable():
+    """AUDITOR-5. A break at either END of the quote is ONE canonical character and TWO stored
+    ones, so the span may stop before the `\\n` or after it: measured on `abc\\r\\ndef`, the quote
+    `abc\\n` satisfies the database's comparison at raw [0,4) AND at raw [0,5). The offsets are
+    what says WHICH words anyone checked, so the shape is refused rather than anchored at
+    whichever range the arithmetic happened to pick. An INTERIOR break is unique and is the
+    ordinary case -- the rows above are all of that shape."""
+    from litkb.use import locate_in_text
+
+    line1 = "Canopy cover was measured on eleven plots in June."
+    for ambiguous in (line1 + "\n", line1 + "\r\n",
+                      "\nThe same plots were flown again", "\r\nA second paragraph begins",
+                      "\n", "abc\n\n"):
+        assert locate_in_text(CRLF_BLOCK, ambiguous) is None, ambiguous
+    assert locate_in_text("abc\r\ndef", "abc\n") is None
+    # the same words WITHOUT the break still locate, at the one range that holds them
+    assert locate_in_text(CRLF_BLOCK, line1) == (0, len(line1))
+    assert CRLF_BLOCK[len(line1)] == "\r"
+
+
+@pg_only
+def test_a_quote_spanning_a_stored_line_break_is_located_and_verified(kb, tmp_path):
+    """ROW 1. The quote a writer can actually emit -- LF only -- against a block that stores
+    `\\r\\n`. It is located; the offsets recorded are the STORED text's own, so the trigger cuts
+    the same characters; the DATABASE sets quote_verified; and the quote stored is the caller's
+    own string. That last assertion is the one that keeps the verdict meaningful: substituting the
+    block's bytes for what the caller said would make the trigger's comparison a tautology."""
+    from litkb import use as _use
+    from litkb.textnorm import canonical_newlines
+
+    ws = kb.ws(tmp_path)
+    w = _work_with_text(kb, ws, page_text=CRLF_BLOCK)
+    lf = canonical_newlines(CRLF_SPAN)
+    assert "\r" not in lf and "\r\n" in CRLF_SPAN
+    hits = _use.locate_quote(kb.conn, w["work_id"], lf)
+    assert len(hits) == 1, hits
+    assert (hits[0]["char_start"], hits[0]["char_end"]) == (
+        CRLF_BLOCK.index(CRLF_SPAN), CRLF_BLOCK.index(CRLF_SPAN) + len(CRLF_SPAN))
+    _uid, vid = _use.write_use(kb.conn, ws, kb.tokens[ws], work_id=w["work_id"], statement="s",
+                               kind="context", agent="a", session="s")
+    ev = _use.attach_quote(kb.conn, ws, kb.tokens[ws], vid, hits[0], lf)
+    assert ev["quote_verified"] is True, ev
+    stored, cut = kb.one(
+        "SELECT e.quote, substring(b.text FROM e.char_start + 1 FOR e.char_end - e.char_start) "
+        "  FROM litkb.use_evidence e JOIN litkb.blocks b ON b.id = e.block_id WHERE e.id = %s",
+        (ev["evidence_id"],))
+    assert stored == lf, "the stored quote is not the caller's own string"
+    assert cut == CRLF_SPAN, "the offsets do not cut the stored CRLF span"
+
+
+@pg_only
+def test_a_quote_that_differs_in_one_character_is_still_refused(kb, tmp_path):
+    """ROW 2, the reverse guarantee. `canonical_newlines` rewrites line ENDINGS and nothing else,
+    so the relaxation cannot reach a single letter: one changed word is in no block, and the
+    trigger says so too when a caller names the offsets itself."""
+    from litkb import use as _use
+    from litkb.textnorm import canonical_newlines
+
+    ws = kb.ws(tmp_path)
+    w = _work_with_text(kb, ws, page_text=CRLF_BLOCK)
+    altered = canonical_newlines(CRLF_SPAN).replace("eleven", "twelve")
+    assert altered not in CRLF_BLOCK and altered not in canonical_newlines(CRLF_BLOCK)
+    assert _use.locate_quote(kb.conn, w["work_id"], altered) == []
+    good = _use.locate_quote(kb.conn, w["work_id"], canonical_newlines(CRLF_SPAN))[0]
+    _uid, vid = _use.write_use(kb.conn, ws, kb.tokens[ws], work_id=w["work_id"], statement="s",
+                               kind="context", agent="a", session="s")
+    assert _use.attach_quote(kb.conn, ws, kb.tokens[ws], vid, good, altered)["quote_verified"] is False
+
+
+@pg_only
+def test_a_quote_that_joins_two_paragraphs_by_dropping_a_blank_line_is_refused(kb, tmp_path):
+    """ROW 3, and the reason `canonical_newlines` is NOT a run collapse. Dropping a blank line
+    changes the NUMBER of breaks, which is a change of CONTENT: it makes the end of one paragraph
+    and the start of the next read as one sentence. `a\\r\\n\\r\\nb` becomes `a\\n\\nb`, never
+    `a\\nb`, so this quote is in no block -- in Python and in the database's own function."""
+    from litkb import use as _use
+    from litkb.textnorm import canonical_newlines
+
+    ws = kb.ws(tmp_path)
+    w = _work_with_text(kb, ws, page_text=CRLF_BLOCK)
+    real = "flown again in October of the same year.\r\n\r\nA second paragraph begins"
+    assert real in CRLF_BLOCK, "the fixture no longer holds the paragraph break"
+    joined = canonical_newlines(real).replace("\n\n", "\n")
+    assert _use.locate_quote(kb.conn, w["work_id"], joined) == []
+    assert kb.one("SELECT position(%s in litkb.canonical_newlines(text)) FROM litkb.blocks WHERE id = %s",
+                  (joined, w["block_id"]))[0] == 0
+    assert _use.locate_quote(kb.conn, w["work_id"], canonical_newlines(real)), \
+        "the same span WITH its blank line must still locate"
+
+
+@pg_only
+def test_the_newline_rule_is_executable_by_the_roles_that_call_it(kb):
+    """MEASURED DEFECT, caught before this branch merged. `0001_core.sql:25` is `ALTER DEFAULT
+    PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`, so migration 0026's function was
+    executable by nobody but its owner -- and `review_check._BLOCK_SQL` runs as `litkb_reader`
+    while `use.locate_quote` runs as `litkb_writer`. On the live database both would have failed
+    with `permission denied for function canonical_newlines`.
+
+    NO OTHER TEST HERE CAN SEE THAT: the suite logs in as `litkb_test`, which runs the migration
+    and therefore OWNS the function. This row asks the database about the roles that are not this
+    one, which is the only way the question gets asked at all."""
+    for role in ("litkb_reader", "litkb_writer", "litkb_ingest"):
+        assert kb.one("SELECT has_function_privilege(%s, 'litkb.canonical_newlines(text)', 'EXECUTE')",
+                      (role,))[0] is True, f"{role} cannot execute litkb.canonical_newlines"
+
+
+@pg_only
+def test_an_exact_raw_crlf_quote_still_locates_at_its_own_bytes(kb, tmp_path):
+    """ROW 4, the existing behaviour. 7 of the project's 8 verified `use_evidence` rows store a
+    CR, so a caller that sends the block's own bytes -- every row written before 2026-09-20 --
+    must still locate at exactly those bytes and still verify."""
+    from litkb import use as _use
+
+    ws = kb.ws(tmp_path)
+    w = _work_with_text(kb, ws, page_text=CRLF_BLOCK)
+    hits = _use.locate_quote(kb.conn, w["work_id"], CRLF_SPAN)
+    assert len(hits) == 1 and (hits[0]["char_start"], hits[0]["char_end"]) == (
+        CRLF_BLOCK.index(CRLF_SPAN), CRLF_BLOCK.index(CRLF_SPAN) + len(CRLF_SPAN))
+    _uid, vid = _use.write_use(kb.conn, ws, kb.tokens[ws], work_id=w["work_id"], statement="s",
+                               kind="context", agent="a", session="s")
+    assert _use.attach_quote(kb.conn, ws, kb.tokens[ws], vid, hits[0],
+                             CRLF_SPAN)["quote_verified"] is True
+
+
 # ── §8.5: a DOI with no claim ─────────────────────────────────────────────────────────────
 
 @pg_only

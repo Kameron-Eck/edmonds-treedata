@@ -875,9 +875,16 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
     the offsets the database checks are the ones the quote actually occupies — and a quote that is
     not in that block is refused BEFORE anything is written (`quote-not-in-block`).
 
+    Located by `use.locate_in_text`, which compares CANONICAL LINE ENDINGS: a `\\r\\n` in the
+    stored block and a `\\n` in the caller's quote are the same break, and nothing else is
+    normalised. That is not a convenience — it is what makes a multi-line quote recordable at all
+    from an LLM writing JSON, and until 2026-09-20 it was missing here while the grader already
+    had it, so the proving run's review quoted fragments (see `use.locate_in_text`).
+
     `quote_verified` itself is never this server's word: the database recomputes it from the block
     text at [char_start, char_end) in a trigger the writer role cannot name (migration 0007/0010,
-    P1 kill M3). What comes back below is what the database stored.
+    P1 kill M3; 0026 made its comparison canonical too, so the two ends agree). What comes back
+    below is what the database stored.
 
     char_start/char_end are accepted only to let a test record a DELIBERATELY unverifiable quote —
     the P8 kill needs one to reach `promote prepare` and be refused there.
@@ -888,6 +895,7 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
     (identity is immutable)."""
     from psycopg.types.json import Jsonb
 
+    from litkb import use as _use
     from litkb.textnorm import norm_label
 
     ws_id, token = _session()
@@ -978,13 +986,41 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
                            "that block belongs to a superseded extraction run; its evidence could "
                            "never be promoted (design §4.5). Search again for the current run's block.")
         if char_start is None or char_end is None:
-            i = (text or "").find(quote)
-            if i < 0:
+            # BEGIN guard: the quote is located by the ONE locator, on canonical line endings
+            # `use.locate_in_text`, not a `find` of its own: this function and `use.locate_quote`
+            # are the MCP and the CLI halves of "where does this quote live", and until 2026-09-20
+            # each had its own — both comparing raw bytes, which is the defect. 48.9 % of
+            # current-run blocks store `\r\n`, an LLM writer emits `\n`, so every quote crossing a
+            # stored line break was refused here as "not in that block", and the proving run's
+            # writer answered by quoting single lines (33 characters at the longest inside a real
+            # verified span). The offsets this returns are the STORED text's own, so the verify
+            # trigger cuts the same characters and every existing row keeps its meaning.
+            span = _use.locate_in_text(text, quote)
+            if span is None:
                 return _refuse("quote-not-in-block",
                                "the quote is not in that block's text. A use is evidenced by a quote "
                                "the database can find at the offsets recorded — paraphrase in the "
-                               "statement, never in the quote.", block_id=block_id, work_key=blk_key)
-            char_start, char_end = i, i + len(quote)
+                               "statement, never in the quote. (A line break may be written either "
+                               "way: only its ENCODING is normalised, never a character, and never "
+                               "the number or the position of the breaks.)",
+                               block_id=block_id, work_key=blk_key)
+            char_start, char_end = span
+            # END guard: the quote is located by the ONE locator, on canonical line endings
+            # BEGIN guard: a quote located by canonical newlines needs the trigger that verifies them
+            # The pre-0026 trap, and why this is a refusal rather than a note in the result: with
+            # the locator above and the OLD trigger, a quote differing from the stored span only in
+            # its line endings is LOCATED and then written with `quote_verified = false` — an
+            # unverified row where the old code refused cleanly, which is worse than the defect
+            # being fixed. Asked of the database, like `_bad_feeds` above, because a client can be
+            # newer than the schema it is pointed at.
+            if text[char_start:char_end] != quote and not _use.newline_canon_available(conn):
+                return _refuse("no-newline-canon",
+                               "this database has no litkb.canonical_newlines: migration 0026 has "
+                               "not been applied, so the trigger that sets quote_verified still "
+                               "compares raw bytes and would store this quote unverified. Apply "
+                               "the migrations, or send the quote with the block's own line "
+                               "endings.", block_id=block_id)
+            # END guard: a quote located by canonical newlines needs the trigger that verifies them
         # BEGIN guard: evidence comes from the work the use is about
         # The strongest single property here and, until now, the one with no mutation row (P8
         # referee §6.1): the use's work is DERIVED from the block and never taken from the caller,
@@ -1309,7 +1345,11 @@ def build_server():
     @srv.tool(name="litkb_record_use", description=(
         "Record what a work supplies to a question (a gap), with a verbatim quote from a block of "
         "the file's current extraction run. The quote's offsets are located here and VERIFIED by the "
-        "database; an unverified quote is stored but its chain is refused at promote prepare. Pass "
+        "database; an unverified quote is stored but its chain is refused at promote prepare. THE "
+        "QUOTE MAY SPAN LINES: write the breaks as plain \\n — about half of all stored blocks "
+        "carry \\r\\n and only the ENCODING of a break is normalised, never a character, never the "
+        "number or the position of the breaks. So quote the whole sentence that carries the claim, "
+        "not the fragment that fits on one stored line. Pass "
         "hunt_request to link this use back to a drop-off litkb_hunt_request_add recorded — that is "
         "how a hunt_request's resolution_state can ever become confirmed or contradicted."))
     def litkb_record_use(statement: str, kind: str, quote: str, block_id: str, gap: str,

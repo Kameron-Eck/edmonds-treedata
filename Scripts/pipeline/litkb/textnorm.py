@@ -8,9 +8,12 @@ every invisible code point below (referee fixes D1 and D7, Reports/LITKB_P2_REFE
     norm_label("sess-admit ") -> "sess-admit"
     canonical_newlines("a line\\r\\nand more") -> "a line\\nand more"
 
-`canonical_newlines` is the exception to "the database is the authority": it has no litkb.* twin to agree
-with, because its database side is written inline in one query (litkb/review_check.py::_BLOCK_SQL) rather
-than in a migration. Its own docstring names the single test that binds the two.
+`canonical_newlines` HAD no litkb.* twin: until migration 0026 its database side was written inline in one
+query (litkb/review_check.py::_BLOCK_SQL). 0026 gives it one — `litkb.canonical_newlines(text)` — because
+the recording path needed the same rule in three more places (the 0007 verify trigger, use.locate_quote's
+WHERE, and review_check's), and three inline copies is the drift CLAUDE.md 3.3 is about. `sql_canonical_newlines`
+below is the ONE Python-side spelling of that call; its own docstring names the single test that binds the
+two halves.
 
 Invisible characters: every code point that Python 3.12 (Unicode 15.0) classes as whitespace (str.isspace) or
 as category Zs, Zl, Zp or Cf — NBSP, zero-width space/joiners, BOM, bidi marks, tag characters. They are REMOVED
@@ -56,16 +59,39 @@ def canonical_newlines(s):
     becomes `"a\\n\\nb"`, never `"a\\nb"`. Collapsing runs would let a quote silently join two
     paragraphs of the stored block, which is a change of CONTENT, not of encoding.
 
-    The database side of the same rule is the inline `replace(replace(b.text, chr(13)||chr(10),
-    chr(10)), chr(13), chr(10))` in `litkb/review_check.py::_BLOCK_SQL` -- Postgres's own
-    `position()` keeps the substring test (the module docstring there says why it is not
-    re-implemented in Python). The two are bound by
+    The database side of the same rule is `litkb.canonical_newlines(text)` (migration 0026),
+    called from SQL through `sql_canonical_newlines` below -- Postgres's own `position()` keeps
+    the substring test (the module docstring in review_check.py says why it is not re-implemented
+    in Python). The two are bound by
     `qc/test_litkb_review_check.py::test_the_sql_and_python_newline_canonicalisations_agree`,
-    which is the ONLY thing that binds them: there is no migration to share.
+    which is the ONLY thing that binds them: a function and a regex cannot share a definition.
     """
     # BEGIN guard: a line ending is canonicalised to "\n", and nothing else is normalised
     return None if s is None else _LINE_ENDING.sub("\n", str(s))
     # END guard: a line ending is canonicalised to "\n", and nothing else is normalised
+
+
+def sql_canonical_newlines(expr):
+    """The SQL expression that canonicalises `expr`'s line endings -- the ONE spelling of
+    migration 0026's `litkb.canonical_newlines(text)`, so a query that has to compare stored text
+    with a quote does not carry its own `replace(replace(...))`.
+
+    `expr` is SQL the caller composed (a column reference such as `b.text`), never a value: a
+    value is bound as a parameter by the caller, as everywhere else in litkb.
+
+    WHY A FUNCTION AND NOT A CONSTANT STRING: the same rule is needed inside a migration (the
+    0007/0026 `quote_verified` trigger), and a migration is a .sql file that can import nothing
+    from Python. Either the migration carries a copy of the expression, or the expression becomes
+    a call to what the migration defines. The second is one home; the first is three.
+
+    A database that has not had 0026 applied has no such function and every query built with this
+    will error there. That is deliberate: `use.newline_canon_available` is how a caller asks
+    first, and `litkb_record_use` refuses (`no-newline-canon`) rather than writing a row the old
+    trigger would mark unverified -- see its docstring.
+    """
+    # BEGIN guard: the SQL line-ending rule is migration 0026's function, not a second copy
+    return f"litkb.canonical_newlines({expr})"
+    # END guard: the SQL line-ending rule is migration 0026's function, not a second copy
 
 
 def norm_label(s):

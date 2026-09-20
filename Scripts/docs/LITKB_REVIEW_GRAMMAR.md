@@ -81,8 +81,10 @@ a delimiter. The citation must follow the closing delimiter on that delimiter's 
 **The quote must be a BYTE-EXACT substring of the stored block, in everything but the encoding of
 a line break.** Whitespace is not normalised, quotation marks are not normalised, words are not
 normalised. The grader asks Postgres whether the quoted span is a substring of the block's own
-text, the same question migration 0007's trigger asks of a recorded use, and the review file is
-read with newline translation **off** so that what you typed is what is compared.
+text, and since migration 0026 that is *exactly* the question the verify trigger asks of a
+recorded use — both sides canonicalised by the same `litkb.canonical_newlines`, so a quote that
+can be RECORDED can be CITED and the reverse. The review file is read with newline translation
+**off** so that what you typed is what is compared.
 
 The one canonicalisation, applied to **both sides** (`textnorm.canonical_newlines`):
 
@@ -115,8 +117,10 @@ printed. A block that exists in the database but that no promotable `use_evidenc
 is not what K1 means by a verified quote, and citing one fails as `not-in-brief`.
 
 **And the words you quote must be inside the span that line verified.** The brief prints each
-VERIFIED line's quote verbatim; that text is the exact `[char_start, char_end)` the database
-re-read and marked `quote_verified`. Your quote must be that text or a **substring** of it.
+VERIFIED line's quote verbatim; that text is the `[char_start, char_end)` the database re-read
+and marked `quote_verified` — the same characters and the same breaks in the same places,
+possibly written with a different line-break encoding (the brief canonicalises what it prints).
+Your quote must be that text or a **substring** of it.
 Being inside the block is not enough, and the difference is not pedantic: a block is a whole
 paragraph, so a block verified for its first sentence would otherwise let you quote its fourth —
 which nobody checked — under a claim about the fourth. Quoting outside every verified span fails

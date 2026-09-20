@@ -29,9 +29,13 @@ THE THREE THINGS IT DOES THAT A HAND-WRITTEN INSERT DID NOT:
   run, the blocks of the page named — and `char_start`/`char_end` come from that block's own text. If
   no block carries the quote, the command REFUSES. It does not fall back to free text, because a
   quote in `rationale` is exactly the unverified record §8.3 is about.
-* **`quote_verified` is the database's**. `add_evidence` inserts, the 0007 trigger re-reads the block
-  at `[char_start, char_end)` and sets the column, and no role but the owner may write it (0006). What
-  this module reports is what the database computed, never what it hoped.
+* **`quote_verified` is the database's**. `add_evidence` inserts, the verify trigger (0007, and
+  0026 for the comparison) re-reads the block at `[char_start, char_end)` and sets the column, and no
+  role but the owner may write it (0006). What this module reports is what the database computed,
+  never what it hoped. Since 0026 the comparison is on CANONICAL LINE ENDINGS — the quote stored is
+  still the caller's own string, and the database still decides whether it is the block's span, so
+  the verdict has not moved to this side of the wire; what moved is that `\r\n` and `\n` stopped
+  counting as different text. `locate_in_text` applies the same rule when it chooses the offsets.
 
 A use with NO quote is still writable, and is reported as carrying no evidence. Whether prepare
 should hold such a use is an open question with two coherent answers and it is Kam's
@@ -70,6 +74,91 @@ def work_by(conn, *, key=None, doi=None, work_id=None):
     return {"work_id": r[0], "key": r[1], "title": r[2], "year": r[3]} if r else None
 
 
+def locate_in_text(text, quote):
+    """Where `quote` sits in `text` -> `(char_start, char_end)` into TEXT'S OWN characters, or None.
+
+    THE ONE PYTHON LOCATOR. `mcp/server.py::_record_use` and `locate_quote` below both call it, so
+    the MCP path and the CLI path cannot come to different answers about where a quote is — which
+    they did until 2026-09-20, when each had its own `find`.
+
+    The comparison is on CANONICAL LINE ENDINGS (`textnorm.canonical_newlines`), the rule the
+    grader already applied to both sides of its own comparison and the recording path did not.
+    MEASURED on the 2026-09-19 corpus: 48.9 % of current-run blocks store `\\r\\n` and 7 of the 8
+    verified spans the project holds cross one, while the writer is an LLM emitting JSON — the
+    transport carries `\\r\\n` perfectly well (json.dumps/loads round-trips it), but no LLM has
+    been observed producing a raw CR, so every quote that reached this path was LF-only and every
+    quote crossing a stored CRLF was refused as "not in that block". The operational proving run
+    (2026-09-20) therefore recorded single-line FRAGMENTS — the longest newline-free run inside a
+    real verified span is 33 characters — and an adversarial reviewer found half the resulting
+    sentences overreaching them.
+
+    THE OFFSETS RETURNED ARE RAW. `[char_start, char_end)` indexes `text` exactly as stored, so
+    `substring(b.text …)` in migration 0026's trigger cuts the same characters, the D-7 bound is
+    still `length(b.text)`, and the 8 existing verified rows keep both their offsets and their
+    meaning. Canonicalisation decides WHETHER the quote is there; it never moves a byte.
+
+    THE REVERSE GUARANTEE. `canonical_newlines` rewrites line ENDINGS and nothing else: every
+    non-newline character, their order, and the NUMBER of breaks survive. So a match here means
+    the quote and that span agree on every character and every break POSITION, and differ only in
+    how a break is written. One changed character, one dropped word, one blank line dropped to
+    join two paragraphs — each still returns None, and `qc/test_litkb_first_use.py` holds a row
+    for each.
+
+    A quote whose canonical form BEGINS OR ENDS with a break is refused outright: see the guard
+    below for why its offsets would not be unique.
+    """
+    from litkb.textnorm import canonical_newlines
+
+    if text is None or not quote:
+        return None
+    canon_text, canon_quote = canonical_newlines(text), canonical_newlines(quote)
+    # BEGIN guard: the quote does not begin or end with a line break, so its offsets are unique
+    # Canonicalising the equality pins a span's CONTENT and, for a quote whose first and last
+    # characters are ordinary, its OFFSETS too: each has exactly one raw index. A break at either
+    # END breaks that, because `\r\n` is two raw characters and one canonical one, so the span may
+    # start after the `\r` or before it. MEASURED on `abc\r\ndef` (migration 0026's header): the
+    # quote `abc\n` satisfies the database's comparison at raw [0,4) AND at raw [0,5), while the
+    # interior `bc\nde` satisfies it at [1,7) only. The offsets are what says WHICH words anyone
+    # checked, so an ambiguous pair is a hole; refusing costs a quoter nothing, since a quote that
+    # opens or closes on a line break carries no word at that end. The 0026 trigger refuses the
+    # same shape, for the caller that supplies char_start/char_end itself and never comes here.
+    if canon_quote.startswith("\n") or canon_quote.endswith("\n"):
+        return None
+    # END guard: the quote does not begin or end with a line break, so its offsets are unique
+    # BEGIN guard: a quote is located on canonical line endings, at the stored text's own offsets
+    i = canon_text.find(canon_quote)
+    if i < 0:
+        return None
+    # raw_at[k] is where canonical character k begins in `text`; a `\r\n` is ONE canonical
+    # character and TWO stored ones, which is the whole of the arithmetic. The final entry is
+    # len(text), so a span ending at the last character needs no special case.
+    raw_at, j = [], 0
+    while j < len(text):
+        raw_at.append(j)
+        j += 2 if text.startswith("\r\n", j) else 1
+    raw_at.append(len(text))
+    start, end = raw_at[i], raw_at[i + len(canon_quote)]
+    # END guard: a quote is located on canonical line endings, at the stored text's own offsets
+    if canonical_newlines(text[start:end]) != canon_quote:      # pragma: no cover - arithmetic bug
+        raise AssertionError(f"litkb: newline offset mapping is wrong at [{start}, {end})")
+    return start, end
+
+
+def newline_canon_available(conn):
+    """True when this database has migration 0026's `litkb.canonical_newlines(text)`.
+
+    Asked rather than assumed for the reason `_bad_feeds` asks about `litkb._feeds_token_ok`: a
+    client can run against a database whose migrations are older than its code, and the honest
+    answer there is a REFUSAL naming the missing migration. It matters more here than for feeds,
+    because the failure would otherwise be silent in the worst direction: with the new locator and
+    the OLD trigger, a quote that crosses a stored CRLF would be LOCATED and then written with
+    `quote_verified = false` — an unverified row where the old code refused cleanly, which is
+    strictly worse than the defect being fixed.
+    """
+    return bool(conn.execute(
+        "SELECT to_regprocedure('litkb.canonical_newlines(text)') IS NOT NULL").fetchone()[0])
+
+
 def locate_quote(conn, work_id, quote, page=None, ws=None):
     """Where the quote sits in the work's extracted text -> list of candidate anchors.
 
@@ -77,10 +166,13 @@ def locate_quote(conn, work_id, quote, page=None, ws=None):
     the same reason `use_evidence_status.promotable` compares against it: evidence recorded against a
     superseded run is evidence about text that is no longer the file's answer.
 
-    Matching is exact on the block text. A quote that is right but reflowed differently from the
-    extraction is NOT silently accepted here — the caller is told nothing matched, and what the
-    database would verify is the extraction's own characters, so an approximate match would produce
-    `quote_verified = false` rows and call them evidence.
+    Matching is exact on the block text, up to the ENCODING of a line ending and nothing else
+    (`locate_in_text` above, and `litkb.canonical_newlines` on the block side — migration 0026, the
+    same function the verify trigger uses, so this cannot find a quote the database would then
+    refuse to verify). A quote that is right but REFLOWED differently from the extraction is still
+    NOT accepted: the caller is told nothing matched, because what the database verifies is the
+    extraction's own characters and an approximate match would produce `quote_verified = false`
+    rows and call them evidence.
 
     `ws` is the caller's open workstream, or None (decisions.yaml litkb-web-source-gate). With it,
     a file THIS workstream proposed is searched as well as main's — the same widening
@@ -88,21 +180,30 @@ def locate_quote(conn, work_id, quote, page=None, ws=None):
     the CLI cannot end up able to find a quote the MCP path cannot or the other way round.
     """
     from litkb import visibility
+    from litkb.textnorm import canonical_newlines, sql_canonical_newlines
 
+    if not newline_canon_available(conn):
+        raise RuntimeError(
+            "litkb: this database has no litkb.canonical_newlines — migration 0026 has not been "
+            "applied, so a quote cannot be located by the same rule the verify trigger uses. "
+            "Apply the migrations (py -3.12 -m litkb.db.migrate --db <db>) before recording uses.")
     sql = ("SELECT b.id, b.run_id, b.page_no, b.text FROM litkb.blocks b "
            "  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id "
            + visibility.FILE_JOIN +
            " WHERE fv.work_id = %(work_id)s AND fv.status = 'active' "
-           "   AND b.text IS NOT NULL AND position(%(quote)s in b.text) > 0")
-    args = {"work_id": work_id, "quote": quote, "ws": ws}
+           "   AND b.text IS NOT NULL AND position(%(quote)s in "
+           + sql_canonical_newlines("b.text") + ") > 0")
+    args = {"work_id": work_id, "quote": canonical_newlines(quote), "ws": ws}
     if page is not None:
         sql += " AND b.page_no = %(page)s"
         args["page"] = page
     out = []
     for bid, run, pno, text in conn.execute(sql + " ORDER BY b.page_no, b.reading_order NULLS LAST", args).fetchall():
-        start = text.index(quote)
-        out.append({"block_id": bid, "run_id": run, "page": pno, "char_start": start,
-                    "char_end": start + len(quote)})
+        span = locate_in_text(text, quote)
+        if span is None:                                        # pragma: no cover - SQL said yes
+            continue
+        out.append({"block_id": bid, "run_id": run, "page": pno, "char_start": span[0],
+                    "char_end": span[1]})
     return out
 
 

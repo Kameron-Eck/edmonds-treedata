@@ -2079,7 +2079,15 @@ _EXPECTED_EXECUTE = {
     # else — it is how a READ tool presents the workstream token without any role reading
     # litkb.workstream_tokens (referee F-1). The other two are the search normaliser and the
     # any-term query builder: pure functions of their argument, no table in either.
-    "litkb_reader": {"norm_identifier", "check_ws_token", "norm_search_text", "any_term_query"},
+    # canonical_newlines: migration 0026's line-ending rule. `review_check._BLOCK_SQL` runs on the
+    # READER connection and `use.locate_quote` on the WRITER's, and both compare a quote with a
+    # block through it. Pure function of its argument, IMMUTABLE, reads no table — the same shape
+    # as norm_search_text, granted to the same three roles by one line and for the same reason
+    # (0001:25 revokes EXECUTE on a new function from PUBLIC, so an ungranted one is dead to every
+    # agent role). THIS MATRIX IS WHY THE GRANT IS DECLARED AND NOT JUST WRITTEN: the grant
+    # shipped, and this row is where it had to be admitted.
+    "litkb_reader": {"norm_identifier", "check_ws_token", "norm_search_text", "any_term_query",
+                     "canonical_newlines"},
     # admit, approve_admission, attach_file: P2 admission (migration 0013, qc/test_litkb_p2.py)
     "litkb_writer": {"norm_identifier", "open_workstream", "abandon_workstream", "write_fact", "write_proposal",
                      "admit", "approve_admission", "attach_file",
@@ -2104,7 +2112,9 @@ _EXPECTED_EXECUTE = {
                      # the writer reaches the same three 0018 functions as the reader: the MCP
                      # server's write tools run on the writer connection and litkb_search's
                      # normaliser must behave identically whichever login asks
-                     "check_ws_token", "norm_search_text", "any_term_query"},
+                     "check_ws_token", "norm_search_text", "any_term_query",
+                     # canonical_newlines: `use.locate_quote` runs on the writer connection
+                     "canonical_newlines"},
     # promotion_chains: the promoter's SECURITY DEFINER read of _ws_chains, so `promote prepare` can
     # write the promotion report (migration 0018, referee F-5). No agent role holds it.
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon",
@@ -2124,7 +2134,11 @@ _EXPECTED_EXECUTE = {
                      "add_reference", "add_citation_mention", "add_citation_edge", "add_citation_candidate",
                      # norm_search_text: 0018's expression index on blocks calls it, and an index
                      # expression is evaluated as the role doing the INSERT. Ingest writes blocks.
-                     "norm_search_text"},
+                     "norm_search_text",
+                     # canonical_newlines: 0026 grants the three roles in one line, ingest
+                     # included, so the rule a block is later matched by is not defined
+                     # differently for the role that wrote the block
+                     "canonical_newlines"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

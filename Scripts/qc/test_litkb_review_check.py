@@ -412,6 +412,58 @@ def test_m5_a_correct_review_passes(pg):
 
 
 @pg_only
+def test_a_database_without_migration_0026_is_named_not_raised_as_a_driver_error(pg, monkeypatch):
+    """AUDITOR-5. `_BLOCK_SQL` calls `litkb.canonical_newlines`, which migration 0026 creates, and
+    against a database that has not had it applied -- which live is, between this branch's merge
+    and the migration -- psycopg raised a bare `UndefinedFunction: function
+    litkb.canonical_newlines(text) does not exist`. That names a symbol, not a thing to do, while
+    `use.locate_quote` already refused the same absence with a sentence; the two halves of one
+    change must fail the same way. The absence is simulated by pointing the query at a function
+    that does not exist, which is exactly the error an older schema raises."""
+    from litkb import review_check as rc
+
+    w = _world(pg)
+    monkeypatch.setattr(rc, "_BLOCK_SQL",
+                        rc._BLOCK_SQL.replace("litkb.canonical_newlines(", "litkb.no_such_fn_0026("))
+    with pytest.raises(rc.ReviewGrammarError, match="migration 0026"):
+        rc.check(pg.conn, _review(w), is_text=True)
+
+
+@pg_only
+def test_a_review_quoting_a_use_recorded_across_a_stored_crlf_passes(pg):
+    """THE END-TO-END ROW for the 2026-09-20 record-use fix: a use RECORDED through the ordinary
+    path from an LF quote that crosses a stored `\\r\\n`, then cited in a review that (like every
+    file a writer's Write tool produces) holds no CR at all.
+
+    Before migration 0026 this document could not exist: `use.locate_quote` refused the LF quote,
+    so there was no verified span to cite, and the writer of the proving run quoted single LINES
+    instead. What makes the row worth having is that BOTH ends are exercised -- the recording path
+    chose the offsets and the database verified them, and the grader then found the same words
+    through `_BLOCK_SQL` and `_verified_span_findings` -- so a fix to one end alone fails here.
+
+    The control below is the same review with one word changed: the relaxation is of the line
+    break's ENCODING and of nothing else."""
+    from litkb import use as _use
+
+    w = _world(pg)
+    crlf = ("Seasonal difference enters as label error, not as scattered noise.\r\n"
+            "Every label in the archive comes from one April flight.\r\n")
+    span = "as label error, not as scattered noise.\r\nEvery label in the archive"
+    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], crlf))[0]
+    lf = span.replace("\r\n", "\n")
+    hit = next(h for h in _use.locate_quote(pg.conn, w["work"], lf) if h["block_id"] == block)
+    assert (hit["char_start"], hit["char_end"]) == (crlf.index(span), crlf.index(span) + len(span))
+    ev = _use.attach_quote(pg.conn, w["ws"], pg.token(w["ws"]), w["uv"], hit, lf)
+    assert ev["quote_verified"] is True, ev
+    assert _codes(pg, _review(w, block_id=block, quote=lf)) == []
+    altered = lf.replace("scattered", "sporadic")
+    assert altered != lf, "the control changes no word"
+    codes = _codes(pg, _review(w, block_id=block, quote=altered))
+    assert "quote-not-verbatim" in codes, codes
+
+
+@pg_only
 def test_m1_a_block_id_that_does_not_exist_fails(pg):
     w = _world(pg)
     codes = _codes(pg, _review(w, block_id=uuid.uuid4()))
@@ -643,9 +695,12 @@ def test_crlf_one_changed_character_in_that_span_still_fails(pg, tmp_path):
 
 @pg_only
 def test_the_sql_and_python_newline_canonicalisations_agree(pg):
-    """`canonical_newlines` has no litkb.* twin: its database half is written inline in
-    `_BLOCK_SQL` (`_CANON_TEXT`). THIS TEST IS THE ONLY THING BINDING THE TWO -- there is no
-    migration to share, so if one is changed and this passes, the other was changed too."""
+    """`canonical_newlines`'s database half is `litkb.canonical_newlines(text)` (migration 0026),
+    reached from Python only through `textnorm.sql_canonical_newlines` -- which is what
+    `_CANON_TEXT` is built from, so this drives the very expression `_BLOCK_SQL` uses AND the
+    function the 0026 verify trigger calls. THIS TEST IS THE ONLY THING BINDING THE TWO: a regex
+    and a SQL function cannot share a definition, so if one is changed and this passes, the other
+    was changed too."""
     from litkb import review_check as rc
     from litkb.textnorm import canonical_newlines
 

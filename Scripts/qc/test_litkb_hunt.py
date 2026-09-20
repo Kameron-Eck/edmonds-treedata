@@ -647,7 +647,7 @@ def test_the_drop_offs_own_scheme_wins_and_a_disagreeing_one_is_refused(env):
 @pg_only
 def test_the_mcp_drop_off_names_an_unknown_scheme_instead_of_raising_the_database_at_the_caller(
         env, monkeypatch):
-    """Row HS7. Until 2026-09-20 an unrecognised `ref_scheme` reached the table's CHECK and came
+    """Row HS8. Until 2026-09-20 an unrecognised `ref_scheme` reached the table's CHECK and came
     back as the ordinary `error` shape carrying a raw PL/pgSQL constraint sentence — which an
     unattended scout cannot act on, and which does not say what the vocabulary IS.
 
@@ -663,12 +663,15 @@ def test_the_mcp_drop_off_names_an_unknown_scheme_instead_of_raising_the_databas
     assert "title" in res["message"] and "doi" in res["message"], res
     ok = json.loads(S._hunt_request_add(ref="A Title", ref_scheme="title", expected_claim="c",
                                         why_relevant="w"))
-    assert ok.get("refused") != "unknown-ref-scheme", ok
+    # `ok is True`, not merely "not refused for THIS reason": the weaker assertion would pass on
+    # any other refusal, a database error included, and would be green for the wrong reason
+    assert ok["ok"] is True, ok
+    assert ok["resolution_state"] == "open", ok
 
 
 @pg_only
 def test_the_cli_drop_off_names_an_unknown_scheme_before_it_writes(env):
-    """Row HS8, the other entry point. `commands.main` is driven with a `_NoConn`, so the refusal
+    """Row HS9, the other entry point. `commands.main` is driven with a `_NoConn`, so the refusal
     must land before anything touches the connection — a scheme that reached `_hr.record` would
     raise RuntimeError from that stub instead of SystemExit."""
     from litkb import commands as C

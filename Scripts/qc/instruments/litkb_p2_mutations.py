@@ -1648,6 +1648,22 @@ def _register_s2():
 _register_s2()
 
 
+def _register_s3a2():
+    """S3 phase 1: the `absent` split, litkb_acquire's detail, the staging reaper
+    (qc/instruments/litkb_s3a2_mutations.py). Its own file for the reason the S2 leg has one —
+    the rows belong in this ONE ledger, and two builders on the same stage must not both be
+    appending to the end of this file."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_s3a2_mutations", Path(__file__).resolve().parent / "litkb_s3a2_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_s3a2()
+
+
 # ── the first real use of the KB (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8, migration 0020) ────
 # These kills are asserted in qc/test_litkb_first_use.py, which is NOT in TESTS, so every row names its
 # own set — `tests` REPLACES the default, it does not extend it, and a row that forgot this would run
@@ -2027,6 +2043,16 @@ SINK_ALLOW = {
     "litkb/commands.py::cmd_ws::print": (1,
         "The workstream id, slug, branch and the PATH the token was written to — the line itself says '(never "
         "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
+    "litkb/commands.py::cmd_reap::print": (3,
+        "The staging census (S3, 2026-09-21). Three calls: the table lines litkb.ops.reaper.table() builds, the "
+        "counters line, and the mode/run_id/root line. Every interpolated value is a fact about a FILE or about "
+        "this run — a relpath under the literature root, a verdict word from the fixed vocabulary "
+        "owned/young/orphan/error, an age in hours, a byte count, the rule sentence the reaper composed from "
+        "those, a uuid4 the run made for itself, and the root path the caller typed. The reaper opens no socket "
+        "and holds no credential: its connection is the READER login, whose password libpq reads from the "
+        "passfile and Python never sees, and it never reads a token file. Same reason as "
+        "extract/inventory.py::report_new above, and the same shape — the call site is written to be VISIBLE to "
+        "this checker rather than hidden behind a bound stream."),
     # Stage 3 (Docling), added at the P4 merge 2026-09-15. The docling branch forked before this
     # sink checker existed, so these two sites reach it for the first time here.
     "litkb/extract/colab_formula_worker.py::main::print": (6,

@@ -256,7 +256,10 @@ _SCANNED_DIRS = ("acquire", "admit")          # the globs test_acquisition_and_a
 #: bytes that are not a whole PDF — every one of those through the Store, and every one of them a place the
 #: next `rm -f` could go. A file here is scanned; a file that reaches the store and is in NEITHER list fails
 #: the census below, which is what makes this a gate rather than a habit.
-_SCANNED_FILES = ("hunt.py",)
+#: `ops/reaper.py` (S3, 2026-09-21) is the module whose whole PURPOSE is to act on files in staging that no
+#: database row accounts for — the one place a delete would look most reasonable and be most final. It moves
+#: them through Store.to_quarantine and writes a .reason.json, and it is scanned here so that stays true.
+_SCANNED_FILES = ("hunt.py", "ops/reaper.py")
 _STORE_READ_ONLY = {
     "migrate_legacy/sources.py":
         "imports LITERATURE_ROOT to BUILD READ paths under the topic folders (<topic>/manifest.csv, "

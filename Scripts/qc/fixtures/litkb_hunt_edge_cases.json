@@ -1,0 +1,490 @@
+{
+ "kind": "litkb-hunt-edge-cases",
+ "_what": "The EDGE-CASE REGISTER (S3): every class of reference the corpus actually holds, the terminal (state, reason) a hunt must end it in, and why. Every `ref` is a REAL row — a work, an admission, an acquisition attempt or a held-queue line that exists today — and each row cites where it came from in `source`. Driven by qc/instruments/litkb_edge_run.py (live, in the workstream the manifest names) and by the same driver's `--replay` (a worker database, every route stubbed, no network). Graded by `qc/instruments/litkb_acceptance.py edges`.",
+ "_columns": {
+  "id": "the row name; it is also the CSV's `row_id` and the `--only` selector",
+  "class": "the edge class this row carries. One real carrier per class; where the corpus holds no carrier the row says so rather than inventing one",
+  "ref": "the reference exactly as a caller would give it",
+  "ref_scheme": "what the caller DECLARES it is; null means the scheme is inferred from the shape",
+  "source": "where this row came from — a survey section, a report line, or the read-only SELECT that found it",
+  "expected": "the (state, reason) pair `litkb.hunt.hunt` must answer. Absent on a held_for_ruling row: the expected state IS the ruling",
+  "adjudication": "why that pair, from code file:line plus the attempts history. The auditor adds its own key beside the builder's",
+  "live": "mode (execute | waits-on-migration | replay-only | not-a-hunt), why, and whether the live run may spend. `waits-on-migration` is never written here: a row that NEEDS a migration carries `needs_migration` and the mode is decided at freeze by measuring db_migration_tip",
+  "replay": "seed + stubs for the deterministic re-run: `inputs` (hunt kwargs), `seed`, `registry`, `fetch`, `routes`, `extract`, and an optional `expected` that OVERRIDES the row's when the replay database cannot hold the live precondition",
+  "asserts": "extra checks beyond the pair — in_main, admission_state, new_admissions, attempt_status",
+  "held_for_ruling": "question + evidence, for a row whose expected state only Kam can settle"
+ },
+ "_replay_stub_kinds": {
+  "registry": "none (404 to everything, a TERMINAL miss) · status:<n> (one status to everything) · record (a Crossref record for this row's DOI, so admission lands in main) · title_gate (the frozen Crossref search body of qc/fixtures/litkb_title_gate_wrong_work.json)",
+  "fetch": "explode (any call fails the row) · pdf (200 + the bytes fixture) · html (200 + a sign-in page) · status:<n> (that status, no bytes)",
+  "routes": "none (acquisition must not be reached) · acquirer (a synthetic acquire() return built from `outcome` + `route_detail`) · real-oa-raises (the REAL acquire() ladder restricted to open access, with litkb.acquire.open_access.fetch_open_access raising)",
+  "extract": "off (extract=False) · stub (extract_and_ingest returns a fixed artifact pair; `tei`/`docling` pick the reason) · raise:<ExceptionClass>"
+ },
+ "vocabulary": {
+  "_note": "copied from litkb.hunt at write time (2026-09-21, branch work/20260921-litkb-s3-c). qc/test_litkb_edges.py::test_the_register_vocabulary_is_hunts_own pins it against the module, so a state or a reason added to hunt.py without this file fails the suite.",
+  "states": ["extracted", "bound-unextracted", "held", "refused", "api-error", "blocked", "crashed"],
+  "reasons": {
+   "extracted": ["fresh", "already-extracted", "docling-only", "grobid-only"],
+   "bound-unextracted": ["fresh-bound", "already-bound"],
+   "held": ["no-spend", "no-file", "not-acquired", "duplicate-held", "not-in-main"],
+   "refused": ["malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme", "ref-scheme-mismatch", "unresolved-title", "ambiguous-title", "admission-refused", "bad-workstream-file", "fetch-failed", "file-missing", "incomplete-record", "no-artifact", "no-labels", "no-workstream", "not-a-pdf", "truncated-pdf"],
+   "api-error": ["registry-transient", "route-raised", "fetch-transient", "empty-response"],
+   "blocked": ["403", "challenge", "quota-stop"],
+   "crashed": []
+  }
+ },
+ "rows": [
+  {
+   "id": "E01",
+   "class": "oa-doi",
+   "ref": "10.5194/isprs-annals-v-2-2022-275-2022",
+   "ref_scheme": "doi",
+   "source": "litkb_reader SELECT 2026-09-21: work Maiti_2022_effect-label-noise-semantic, 1 main_files row, 113 blocks, acquisition_attempts open_access/ok. The S2 first-work subject (Reports/LITKB_FIRST_WORK_2026-09-21.md).",
+   "expected": {"state": "extracted", "reason": "already-extracted"},
+   "adjudication": {"builder": "look_up (hunt.py:481) reads the ladder through the workstream's view and returns `extracted` for a work with a bound file and a current run; _hunt answers `extracted/already-extracted` and fetches nothing (hunt.py:798 region, the cached return). The control row: if a strict DOI shape or a normaliser change broke the cache short-circuit this row would go red first."},
+   "live": {"mode": "execute", "why": "a cached lookup: no network, no spend, no write", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": {"scheme": "doi", "value": "10.5194/isprs-annals-v-2-2022-275-2022", "state": "extracted"},
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E02",
+   "class": "paywalled-doi-obtained-via-the-archive",
+   "ref": "10.1016/j.isprsjprs.2013.10.007",
+   "ref_scheme": "doi",
+   "source": "litkb_reader SELECT 2026-09-21: work Chen_2014_assessment-image-misregistration-effects, acquisition_attempts open_access/no-oa-copy AND annas/ok, 1 main_files row, 582 blocks.",
+   "expected": {"state": "extracted", "reason": "already-extracted"},
+   "adjudication": {"builder": "SAME terminal state as E01 and that is the point: the class lives in the attempts HISTORY (open_access/no-oa-copy then annas/ok), not in the hunt's answer. A vocabulary that answered differently here would be reporting how the file arrived, which `state` does not carry and `acquisition_attempts` does."},
+   "live": {"mode": "execute", "why": "a cached lookup", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": {"scheme": "doi", "value": "10.1016/j.isprsjprs.2013.10.007", "state": "extracted"},
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E03",
+   "class": "unobtainable-doi",
+   "ref": "10.1007/978-3-030-32248-9_57",
+   "ref_scheme": "doi",
+   "source": "held-queue `manifest:Kats_2019b_soft-staple-algorithm-combined` (Reports/held_queue_results.csv, survey-data §10 'unobtainable DOI'); litkb_reader SELECT 2026-09-21: work Kats_2019_soft-staple-algorithm-combined, 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + browser/manual-step.",
+   "expected": {"state": "held", "reason": "not-acquired"},
+   "adjudication": {"builder": "DEVIATION FROM THE BRIEF'S PROPOSAL, measured: no work in the corpus has all THREE routes dead. `DEAD_STATUSES['scihub']` is `{'not-in-archive'}` (acquire/run.py:42) and `scihub/not-in-archive` has ZERO rows live (survey-data §0's route/status census; re-measured 2026-09-21). So open_access and annas are dead-skipped (run.py:382-387) and Sci-Hub IS attempted — this row DOES spend. With no route landing a file, `_acquisition_stop` (hunt.py:797) finds no quota-stop, no blocked and no api-error in `route_detail` and falls through to `held/not-acquired`."},
+   "live": {"mode": "execute", "why": "two routes are dead-skipped; Sci-Hub is really attempted", "spend": true},
+   "replay": {
+    "inputs": {"spend": true},
+    "seed": null,
+    "registry": {"kind": "record"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "acquirer", "outcome": "not-acquired",
+               "route_detail": [{"route": "open_access", "status": "no-oa-copy", "codes": [], "exception": ""},
+                                {"route": "annas", "status": "not-in-archive", "codes": [], "exception": ""},
+                                {"route": "scihub", "status": "not-in-archive", "codes": [], "exception": ""}]},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {}
+  },
+  {
+   "id": "E04",
+   "class": "held-in-another-open-workstream",
+   "ref": "https://raw.githubusercontent.com/omarelhedaby/CNN-FPGA/master/Hardware%20Documentation.pdf",
+   "ref_scheme": "url",
+   "source": "litkb_reader SELECT 2026-09-21: admission 01a0ad55-ebc2-79c1-892b-6485eb34c776, work Abdulkader_2020_cnn-fpga-implementation-hardware, workstream `hunt-test-1` state=open, admission state=proposed, url identifier as given, 0 rows in main_works. survey-data §3.",
+   "expected": {"state": "refused", "reason": "admission-refused"},
+   "adjudication": {"builder": "THE BRIEF'S CARRIER IS DEAD: `10.5194/isprs-annals-v-2-2022-275-2022` (Maiti_2022) HAS a main_identifiers row today (measured 2026-09-21, count 1, 1 file, 113 blocks) — S2's promotion landed — so it is E01's carrier, not this one. Abdulkader_2020 is the surviving carrier. Hunted from `edges-1`: look_up reads `ws_identifiers` per view (hunt.py:481-535), so hunt-test-1's identifier is invisible and main holds nothing; the hunt fetches and calls `admit_web`. Check 2's identifier lookup is GLOBAL and explicitly matches `iv.state = 'proposed'` (0013_admission.sql:312-323) — no workstream predicate — so it returns outcome `duplicate`, which is neither `admitted` nor `proposed`, and hunt raises HuntRefused('admission-refused') at its admit_web boundary. The MCP pre-check `litkb_work` answers `absent` with `absent_kind=in-another-workstream` (A2); the HUNT cannot borrow that word — `absent` is not a hunt state (hunt.py:64 note)."},
+   "live": {"mode": "execute", "why": "one URL fetch of a public raw.githubusercontent file; the admission refuses before any spend", "spend": false},
+   "replay": {
+    "inputs": {"spend": false, "extract": false, "title": "CNN-FPGA hardware documentation", "author": "Abdulkader", "year": 2020},
+    "seed": null,
+    "pre_hunt": {"expect_state": "bound-unextracted"},
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "pdf"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"},
+    "_why": "A PROPOSAL CANNOT BE SEEDED. `_write_version('fact', ...)` writes a PROMOTED row every view can see — the opposite of this row's subject — so the replay makes the other workstream's holding the way the corpus made its own: it hunts the same URL in a second worktree first (which must reach `bound-unextracted`, i.e. a real proposal), and then grades the hunt from this one. Check 2's identifier lookup is global and matches `iv.state='proposed'`, so the graded hunt is refused exactly as the live one will be."
+   },
+   "asserts": {"new_admissions": 1}
+  },
+  {
+   "id": "E05",
+   "class": "url-pdf",
+   "ref": "https://www.ifla.org/wp-content/uploads/2019/05/assets/cataloguing/frbr-lrm/ifla-lrm-august-2017_rev201712.pdf",
+   "ref_scheme": "url",
+   "source": "admission 01a0a7c4-9f49-7c81-a1b8-f482f479858c, work Riva_2017_ifla-library-reference-model, workstream `linkage-review`, checks.manual_source is this URL verbatim (survey-data §3; re-read 2026-09-21).",
+   "expected": {"state": "refused", "reason": "admission-refused"},
+   "adjudication": {"builder": "MEASURED, and it changes the brief's proposal: Riva_2017 carries NO identifier at all — `SELECT string_agg(scheme||':'||value) FROM litkb.ws_identifiers WHERE work_id=...` is empty for it — so check 2's identifier lookup misses. `admit_web` adds only a `url` identifier (admit/front.py:361-362), url is not in check 2's strong set (0013_admission.sql:327-328), so the TITLE-duplicate branch runs: `_title_duplicates` (0013_admission.sql:59-68) scans every `work_versions` row, including `state='proposed'`, at threshold 0.70, and Riva's stored title is `IFLA Library Reference Model: A Conceptual Model for Bibliographic Information` — which is what this PDF's own first page yields. Outcome `duplicate-review` -> not `admitted`/`proposed` -> HuntRefused('admission-refused'). UNCERTAINTY, stated: if the title `guess_fields` derives scores under 0.70 the answer is `extracted/fresh` instead. The live run settles it; the replay proves the FRESH branch (see replay.expected), because a freshly migrated database holds no Riva proposal to collide with."},
+   "live": {"mode": "execute", "why": "0028 is applied live (preflight migration_mismatch=0, 2026-09-21 00:07), so the hunt-url route is in the CHECK and the URL branch runs end to end", "spend": false, "needs_migration": 28},
+   "replay": {
+    "inputs": {"spend": false, "title": "IFLA Library Reference Model: A Conceptual Model for Bibliographic Information", "author": "Riva", "year": 2017},
+    "seed": null,
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "pdf"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "stub", "tei": true, "docling": true},
+    "expected": {"state": "extracted", "reason": "fresh"},
+    "_why": "the replay database has no Riva proposal, so this exercises the FRESH url-pdf proposal path the live row cannot reach twice. Title, author and year are passed because a web source has no registry to confirm it: without them the admission is refused `incomplete-record` (measured on litkb_test_w10, 2026-09-21), which is a different row's class. The extractor is stubbed: GROBID needs WSL and Docling needs a GPU, and neither may run inside the gate."
+   },
+   "asserts": {"in_main": false, "admission_state": "proposed"}
+  },
+  {
+   "id": "E06",
+   "class": "url-html-only",
+   "ref": "https://www.crossref.org/blog/how-good-is-your-matching/",
+   "ref_scheme": "url",
+   "source": "acquisition_attempts open_access/bad-file for Tkaczyk_2024, doi 10.13003/ief7aibi, detail `unpaywall is_oa=True oa_status=gold; no %PDF- from doi.org` (survey-data §7 'URL-HTML-only'); the landing page that DOI resolves to.",
+   "expected": {"state": "extracted", "reason": "fresh"},
+   "adjudication": {"builder": "BUILDER B'S PATH, AND IT DOES NOT EXIST ON THIS BRANCH. Today hunt fetches with `accept=application/pdf` and `land_download` raises `not-a-pdf` at hunt.py:589-623 before `admit_web` is ever called (survey-code §2.2), so on this branch the row answers `refused/not-a-pdf`. It is recorded with the state B's work must produce, and this row is EXPECTED to fail until B lands — it is not stubbed around. `proposed` is NOT a state (builder-A1.md §5.1): the proposal fact is carried by the asserts below, not by `state`."},
+   "live": {"mode": "execute", "why": "0028 applied live; blocked on builder B's HTML branch, not on a migration", "spend": false, "needs_migration": 28, "blocked_on": "builder-B: hunt's HTML branch + the text-snapshot ingest route"},
+   "replay": {
+    "inputs": {"spend": false, "title": "How good is your matching?", "author": "Tkaczyk", "year": 2024},
+    "seed": null,
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "html"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "stub", "tei": false, "docling": true},
+    "_why": "MEASURED ON litkb_test_w10, 2026-09-21: this replay answers `refused/not-a-pdf` today — `land_download` refuses the bytes before `admit_web` is reached. The HTML fixture and the text-snapshot ingest are builder B's to ship, and until they land this row is an OPEN MISMATCH. It is not stubbed around and its expectation is not softened."
+   },
+   "asserts": {"in_main": false, "admission_state": "proposed"}
+  },
+  {
+   "id": "E07",
+   "class": "grey-report-with-an-html-oa-link",
+   "ref": "10.17863/cam.133934",
+   "ref_scheme": "doi",
+   "source": "work AllenMatthew_2026_manual-labelling-artificially-inflates, tracker 165, 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + browser/manual-step; the fetched Apollo handle page is still at _litkb_staging/incoming/AllenMatthew_2026_manual-labelling.download, 486110 bytes of HTML (survey-data §5, §9).",
+   "expected": {"state": "held", "reason": "not-acquired"},
+   "adjudication": {"builder": "A LANDING PAGE IS NOT THE PAPER. open_access is dead-skipped (`no-oa-copy` is in DEAD_STATUSES, run.py:42), annas is dead-skipped (`not-in-archive`), Sci-Hub is attempted. No route status here is `quota-stop`, `blocked` or `api-error`, so `_acquisition_stop`'s precedence (hunt.py:797-822) falls through to `held/not-acquired` — the one answer that says `hand a file in` rather than `retry` or `ask Kam`."},
+   "live": {"mode": "execute", "why": "the Sci-Hub route is really attempted", "spend": true},
+   "replay": {
+    "inputs": {"spend": true},
+    "seed": null,
+    "registry": {"kind": "record"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "acquirer", "outcome": "not-acquired",
+               "route_detail": [{"route": "open_access", "status": "bad-file", "codes": [200], "exception": ""},
+                                {"route": "scihub", "status": "bad-file", "codes": [200], "exception": ""}]},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {}
+  },
+  {
+   "id": "E08",
+   "class": "scan",
+   "ref": "10.1214/aos/1176345876",
+   "ref_scheme": "doi",
+   "source": "work Hwang_1982_improving-upon-standard-estimators; file_versions.has_text_layer=false, 11 pages, Validation/Hwang_1982_improving-upon-standard-estimators.pdf; refused admission 01a0a4c3-2d04-7fed-bacc-80e9eaa16fc1 reads `no text layer on the first page and no PDF title match: waits for OCR` (survey-data §4). litkb_reader SELECT 2026-09-21: 1 main_files row, 0 blocks.",
+   "expected": {"state": "bound-unextracted", "reason": "already-bound"},
+   "adjudication": {"builder": "ADJUDICATED FROM CODE, and it needs `extract=False` to be a DETERMINABLE answer. The work is bound and unextracted (1 file, 0 blocks — measured), so look_up returns `bound-unextracted`; with extraction requested `_finish` (hunt.py:1322) would call GROBID and Docling on a page-image PDF and end in `extracted/docling-only`, `refused/no-artifact` or `crashed/extract:*` depending on what OCR produces — three outcomes no static read can choose between, and an OCR decision that belongs to S4. With `extract=False` the answer is the rung itself, and the reason says the database already held the file rather than this hunt landing it (REASONS['bound-unextracted'], hunt.py:206-207). FLAGGED FOR S4: what a scan's terminal state should be once OCR has a home."},
+   "live": {"mode": "execute", "why": "a cached lookup with extraction off; no OCR, no GPU", "spend": false},
+   "replay": {
+    "inputs": {"spend": false, "extract": false},
+    "seed": {"scheme": "doi", "value": "10.1214/aos/1176345876", "state": "bound-unextracted"},
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E09",
+   "class": "alias-one-work-two-dois",
+   "ref": "10.2307/2333009",
+   "ref_scheme": "doi",
+   "source": "work Page_1954_continuous-inspection-schemes, the ONLY work in the corpus carrying two DOIs (10.2307/2333009 JSTOR and 10.1093/biomet/41.1-2.100 Biometrika) — survey-data §7 'Same work under two DOIs'. litkb_reader SELECT 2026-09-21: 1 main_files row, 1389 blocks.",
+   "expected": {"state": "extracted", "reason": "already-extracted"},
+   "adjudication": {"builder": "DEVIATION FROM THE BRIEF'S PROPOSAL (`held/not-acquired`), measured: the work has a bound file and 1389 blocks, so either DOI resolves through look_up to the SAME work and the answer is the cache. That is the alias class's whole content at the hunt's front door — two identifiers, one work, one answer — and the two `annas/bad-file` attempts on the Biometrika DOI are history the state deliberately does not carry."},
+   "live": {"mode": "execute", "why": "a cached lookup", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": {"scheme": "doi", "value": "10.2307/2333009", "state": "extracted",
+             "also": [{"scheme": "doi", "value": "10.1093/biomet/41.1-2.100"}]},
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E10",
+   "class": "duplicate-admission",
+   "ref": "10.1016/j.rse.2024.114099",
+   "ref_scheme": "doi",
+   "source": "discrepancies field=duplicate_of, source_row 199 -> 94, work Wagner_2024_sub-meter-tree-height; candidates.state='duplicate', state_reason='identifier already admitted' (survey-data §7). litkb_reader SELECT 2026-09-21: 1 main_identifiers row, 0 main_files.",
+   "expected": {"state": "held", "reason": "no-spend"},
+   "adjudication": {"builder": "DEVIATION FROM THE BRIEF'S PROPOSAL (`extracted/already-extracted`), measured: Wagner_2024 is in main and has ZERO files, so the ladder rung is `held`, not `extracted`. The row's POINT is `new_admissions=0` — an identifier already in main is found by look_up and never re-admitted — and that point is made at whichever rung the work sits on. `spend=false` is deliberate so the pair is decided by the ladder rather than by three live route calls: `_spend_on_held` returns `held/no-spend` before any acquisition is attempted (hunt.py:1252-1257)."},
+   "live": {"mode": "execute", "why": "a cached lookup with the spend rule's deliberate exception", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": {"scheme": "doi", "value": "10.1016/j.rse.2024.114099", "state": "held"},
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E11",
+   "class": "registry-mismatch",
+   "ref": "10.3390/rs17112050",
+   "ref_scheme": "doi",
+   "source": "discrepancies 01a0a874-78fe-73ec-bb3a-31f916381aca, source=tracker, source_row=55, field=doi, detail `the stored DOI is confirmed by no registry (litkb admit, check 1); the replacement the search found, 10.3390/plants14111677, contradicts the row's first author, so nothing was admitted`, dead_at `crossref, openalex, semantic_scholar`. held-queue `refused-check1` (Reports/held_queue_results.csv). litkb_reader SELECT 2026-09-21: 0 main_identifiers rows.",
+   "expected": {"state": "refused", "reason": "admission-refused"},
+   "adjudication": {"builder": "THE (c) MUTATION TARGET. No registry holds this DOI: every registry ANSWERS and holds no such record, which `admit/registry.py`'s S3 classifier keeps TERMINAL — only 0/406/408/429/5xx are transient (builder-A1.md §3 row HV3a, and qc/test_litkb_hunt.py::test_a_registry_that_answers_404_stays_a_terminal_admission_refusal). Check 1 fails, `admit_registry` returns a non-`admitted` outcome and hunt raises HuntRefused('admission-refused'). It is the mutation target BECAUSE `extracted/already-extracted` is a perfectly VALID pair: mutating the expectation to it must still be caught, which proves the grader compares the pair and not merely its membership."},
+   "live": {"mode": "execute", "why": "three registry lookups, no spend, no write beyond the refused-admission row", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": null,
+    "registry": {"kind": "status:404"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"attempt_status": null}
+  },
+  {
+   "id": "E12",
+   "class": "registry-mismatch-title-gate",
+   "ref": "Recent Progress in Statistics: European Meeting of Statisticians, Budapest.",
+   "ref_scheme": "title",
+   "source": "qc/fixtures/litkb_title_gate_wrong_work.json — a FROZEN real Crossref search response whose top candidate scores 0.8333 against this title (expected.at_ratio_0_85.reason = `best=crossref:0.83:10.2307/2345225`).",
+   "expected": {"state": "refused", "reason": "ambiguous-title"},
+   "adjudication": {"builder": "Gate 0 FOUND a candidate and refused it on RESOLVE_TITLE_RATIO, which is a different fact from finding none: `unresolved-title` when `best=none`, `ambiguous-title` otherwise (hunt.py:352-406's title branch; the same split the ref-shapes fixture's `title-ambiguous` row already drives). Replay-only because the evidence IS a frozen response: hunting this title live would query Crossref today and grade a different response."},
+   "live": {"mode": "replay-only", "why": "the carrier is a frozen registry response, not a corpus row; a live hunt would re-query Crossref and grade a body nobody froze", "spend": false},
+   "replay": {
+    "inputs": {"spend": false, "author": "Plackett", "year": 1975},
+    "seed": null,
+    "registry": {"kind": "title_gate"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {}
+  },
+  {
+   "id": "E13",
+   "class": "403-or-challenge",
+   "ref": "10.1145/3534678.3539043",
+   "ref_scheme": "doi",
+   "source": "acquisition_attempts: open_access/blocked http_codes {403} twice AND scihub/blocked twice, work Pfitzmann_2022_doclaynet-large-human-annotated, workstream improve-review-1 (survey-data §7 '403 / challenge'). litkb_reader SELECT 2026-09-21: in main, 0 main_files.",
+   "expected": {"state": "blocked", "reason": "403"},
+   "adjudication": {"builder": "`blocked` is NOT in DEAD_STATUSES for any route (acquire/run.py:42), so both routes are attempted again. `_acquisition_stop`'s precedence (hunt.py:797-822): no `quota-stop`, then the first `blocked` wins, and 403 vs challenge is decided by whether that attempt's `http_codes` hold a 403 — this work's do. A1 added `route_detail` to acquire()'s return precisely so the codes reach this rule (builder-A1.md §5 item 8)."},
+   "live": {"mode": "execute", "why": "both routes really answer; the host is expected to refuse this client again", "spend": true},
+   "replay": {
+    "inputs": {"spend": true},
+    "seed": null,
+    "registry": {"kind": "record"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "acquirer", "outcome": "not-acquired",
+               "route_detail": [{"route": "open_access", "status": "blocked", "codes": [200, 200, 403, 403], "exception": ""},
+                                {"route": "scihub", "status": "blocked", "codes": [200, 200], "exception": ""}]},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {}
+  },
+  {
+   "id": "E14",
+   "class": "api-error-registry-transient",
+   "ref": "2412.05728",
+   "ref_scheme": "arxiv",
+   "source": "admissions 01a0c101-af27-756b-96f0-5bbb3575d999 and 01a0c102-870a-7c68-93b8-7dfe7796fc8c, workstream scout-1, checks.registry_calls = [{\"status\": 406, \"registry\": \"arxiv\", \"identifier\": \"2412.05728\"}], verdict fail; the same identifier admitted clean at 01a0c105-9c6c-789e-a1a4-70db69fc3963 four minutes seventeen seconds later (survey-data §7).",
+   "expected": {"state": "api-error", "reason": "registry-transient"},
+   "adjudication": {"builder": "THE INCIDENT THE STATE EXISTS FOR. A 406 is transient: `admit_registry` returns outcome `registry-transient` and writes NO admission row, and hunt raises HuntApiError('registry-transient') (builder-A1.md §3 rows HV3a/b/c; qc/test_litkb_hunt.py::test_a_registry_that_answers_406_is_api_error_and_writes_no_admission). Replay-only because the arXiv identifier IS in main today (A2's correction, survey-data §8 note) — a live hunt of it is E01's cached path, not a registry call, so the transient cannot be reached live at all without breaking arXiv on purpose."},
+   "live": {"mode": "replay-only", "why": "2412.05728 is already in main (A2, measured), so a live hunt never reaches the registry; the transient is unreachable live without stubbing the network", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": null,
+    "registry": {"kind": "status:406"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E15",
+   "class": "api-error-route-raised",
+   "ref": "10.1007/0-387-69505-2_13",
+   "ref_scheme": "doi",
+   "source": "work Herzog_2007_string-comparator-metrics-typographical, measured 2026-09-21: 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + browser/manual-step — a real HELD work. A different carrier from E03's deliberately: both rows admit their DOI through a registry-record stub into ONE replay database and `identifiers_active_scheme_value` is UNIQUE. The RAISE itself has no corpus row — `acquisition_attempts.status='api-error'` has zero rows live (survey-data §0 'Never observed in live data') — so the route is stubbed and the row says so.",
+   "expected": {"state": "api-error", "reason": "route-raised"},
+   "adjudication": {"builder": "The REAL acquire() ladder runs, restricted to open access, with `litkb.acquire.open_access.fetch_open_access` raising. The route boundary (acquire/run.py:411-470, guard `a route that RAISES is a recorded api-error attempt`) records an `api-error` ATTEMPT ROW and continues; `_acquisition_stop` then finds an `api-error` in route_detail with no quota-stop and no blocked ahead of it and answers `api-error/route-raised`. `attempt_status=api-error` is asserted because the row is the point: before S3 the exception propagated to hunt's boundary as `refused: \"error\"` and `acquisition_attempts` held no trace the route had been tried."},
+   "live": {"mode": "replay-only", "why": "a raising route cannot be produced on demand against a live host; the class has zero live rows", "spend": false},
+   "replay": {
+    "inputs": {"spend": true},
+    "seed": null,
+    "registry": {"kind": "record"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "real-oa-raises", "exception": "ConnectionResetError"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"attempt_status": "api-error"}
+  },
+  {
+   "id": "E16",
+   "class": "quota-stop",
+   "ref": "10.1016/j.rse.2021.112806",
+   "ref_scheme": "doi",
+   "source": "work Stehman_2022_incorporating-interpreter-variability, measured 2026-09-21: 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + scihub/blocked + browser/manual-step — a real HELD work with a real archive attempt (a different carrier from E07's, for the unique-identifier reason E15 gives). UNVALIDATED-live: `acquisition_attempts.status='quota-stop'` has ZERO rows in the corpus and the archive margin was never reached — 15 of 1000 used (LITKB_HELD_QUEUE_2026-09-15.md:39-46, survey-data §7). The archive stub answering `quota-stop` is the only way to reach it.",
+   "expected": {"state": "blocked", "reason": "quota-stop"},
+   "adjudication": {"builder": "UNVALIDATED-live, in those words. `_acquisition_stop`'s FIRST precedence clause is quota-stop (hunt.py:810-812) because it is the only one whose next move is Kam rather than a retry or another route. Reaching it live would mean spending 985 archive downloads."},
+   "live": {"mode": "replay-only", "why": "UNVALIDATED-live: no corpus row exists and reaching the margin would cost ~985 archive downloads", "spend": false},
+   "replay": {
+    "inputs": {"spend": true},
+    "seed": null,
+    "registry": {"kind": "record"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "acquirer", "outcome": "not-acquired",
+               "route_detail": [{"route": "open_access", "status": "no-oa-copy", "codes": [], "exception": ""},
+                                {"route": "annas", "status": "quota-stop", "codes": [], "exception": ""}]},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {}
+  },
+  {
+   "id": "E17",
+   "class": "mid-hunt-crash",
+   "ref": "10.1214/aoms/1177707039",
+   "ref_scheme": "doi",
+   "source": "work Anderson_1957_statistical-inference-about-markov — one of the five files with has_text_layer=false (survey-data §4), measured 2026-09-21 as 1 main_files row and 0 blocks: a real bound, unextracted SCAN, which is the realistic carrier for an extraction that dies. A DIFFERENT scan from E08's deliberately: both rows seed their DOI into one replay database and `identifiers_active_scheme_value` is UNIQUE, so sharing a carrier makes the second seed unrunnable (measured). No corpus row records a mid-hunt crash at all; the nearest real trace is workstream `scout-2026-09-20`, killed mid-run and still open (survey-data §7).",
+   "expected": {"state": "crashed", "reason": "extract:RuntimeError"},
+   "adjudication": {"builder": "`crashed`'s reason is a SHAPE, `<stage>:<ExceptionClass>`, validated by `_CRASH_REASON` (hunt.py:224) rather than enumerated — the exception class is the program's, not hunt's. A bound file plus a raising `extract_and_ingest` puts the stage marker at `extract` and the class at RuntimeError. The MESSAGE stays out of the reason on purpose: a reason carrying an exception's text is the traceback-in-a-result the vocabulary exists to stop (hunt.py's crash-boundary guard)."},
+   "live": {"mode": "replay-only", "why": "a crash cannot be produced live without breaking the extractor on the live database", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": {"scheme": "doi", "value": "10.1214/aoms/1177707039", "state": "bound-unextracted", "bytes_on_disk": true},
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "raise:RuntimeError"}
+   },
+   "asserts": {}
+  },
+  {
+   "id": "E18",
+   "class": "malformed-ref",
+   "ref": "not a reference",
+   "ref_scheme": null,
+   "source": "the shape class `qc/fixtures/litkb_ref_shapes.json`'s `garbage` row protects; the live population is the 48 `no_title_or_author (nothing to search on)` rows in litkb.references (survey-data §2), every one of which is a string no scheme matches.",
+   "expected": {"state": "refused", "reason": "malformed-ref"},
+   "adjudication": {"builder": "`ref_kind` INFERS and may fail (hunt.py:325-351): `title` is never inferred, because every string is a possible title and inferring it would make `malformed-ref` unreachable. No shape matches, so `validate_ref` raises `malformed-ref` at the validate stage — before any connection, any registry call and any fetch."},
+   "live": {"mode": "execute", "why": "refused at the validate stage; no network, no database write", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": null,
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E19",
+   "class": "unsupported-ref-scheme",
+   "ref": "12345678",
+   "ref_scheme": "pmid",
+   "source": "`pmid` is in `hunt_request.REF_SCHEMES` and not in `HUNTABLE` (hunt.py:110-113). Zero drop-offs have ever used it (survey-data §0: 28 doi, 4 arxiv, nothing else), which is exactly why the refusal must be a RESULT rather than a discovery.",
+   "expected": {"state": "refused", "reason": "unsupported-ref-scheme"},
+   "adjudication": {"builder": "Two different facts with two different codes: `unknown-ref-scheme` is `litkb has never heard of this`, `unsupported-ref-scheme` is `litkb RECORDS this and a hunt cannot chase it`. The second is what a scout dropping off a PMID gets, and the result carries `ref_scheme='pmid'` with `ref_kind=None` so the caller can tell them apart (hunt.py:225-229 raise sites; the ref-shapes `isbn` row is the same refusal through a different scheme)."},
+   "live": {"mode": "execute", "why": "refused at the validate stage; no network", "spend": false},
+   "replay": {
+    "inputs": {"spend": false},
+    "seed": null,
+    "registry": {"kind": "none"},
+    "fetch": {"kind": "explode"},
+    "routes": {"kind": "none"},
+    "extract": {"kind": "off"}
+   },
+   "asserts": {"new_admissions": 0}
+  },
+  {
+   "id": "E20",
+   "class": "book",
+   "ref": "10.1201/9781315374321",
+   "ref_scheme": "doi",
+   "held_for_ruling": {
+    "question": "What terminal state is correct for a DOI-only BOOK with no obtainable copy, and may a hunt SPEND on books at all (open access, the archive, Sci-Hub)?",
+    "evidence": "The corpus holds exactly one book: VanDenHout_2016_multi-state-survival-models, `Multi-State Survival Models for Interval-Censored Data`, Chapman and Hall/CRC, identifiers doi:10.1201/9781315374321 and tracker:443, work_versions.type='book'. Zero file_versions — admitted, nothing bound (survey-data §5; re-measured 2026-09-21: in main_identifiers, 0 main_files). No ISBN identifier exists anywhere in the corpus and `hunt_requests.ref_scheme` allows `isbn` with zero rows using it. There is NO pending book ruling in Scripts/decisions.yaml — survey-data §5 measured that the brief's premise about a decision id is false; `grep -in book decisions.yaml` hits only line 403, inside litkb-crossref-raw-proposer."
+   },
+   "live": {"mode": "held-for-ruling", "why": "the expected state IS the ruling", "spend": false}
+  },
+  {
+   "id": "E21",
+   "class": "sibling-edition",
+   "ref": "10.1101/357798",
+   "ref_scheme": "doi",
+   "held_for_ruling": {
+    "question": "Are the preprint and the published article ONE work or TWO? The expected state for the preprint DOI follows from the answer and from nothing else.",
+    "evidence": "tracker 303 -> work Valavi_2018_blockcv-r-package-generating, doi 10.1101/357798 (bioRxiv, type=preprint); tracker 60 -> work Valavi_2018_block-cv-r-package, doi 10.1111/2041-210x.13107 (type=article). TWO separate works today, with a `duplicate_of` discrepancy (source_row 303, claimed_value 60) recording the tracker's own belief. Linkage review P2 proposes fetching Crossref `relation` (isPreprintOf / hasPreprint / isVersionOf) as identifier-to-identifier edges rather than inferring the tie — PROPOSED, not decided (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §7; survey-data §2). This is the corpus's only clean sibling-edition pair; E09 (Page_1954) is the only clean ALIAS, and they are different classes."
+   },
+   "live": {"mode": "held-for-ruling", "why": "the expected state IS the ruling", "spend": false}
+  },
+  {
+   "id": "E22",
+   "class": "duplicate-review",
+   "ref": "Chrisman_1982_theory-cartographic-error-measurement",
+   "ref_scheme": "title",
+   "held_for_ruling": {
+    "question": "Which of the four admissions of `A theory of cartographic error and its measurement` IS the work, and which are duplicates?",
+    "evidence": "One PROPOSED manual admission (01a0a151-aaea-756f-9c01-25ed443e838b, workstream edge-pre1990, source `edge-pre1990 S4-176 (bibliography CSV)`, and it carries NO identifier — measured 2026-09-21), three REFUSED admissions, and three `candidates.state='duplicate-review'` rows all on the same title: 01a0a151-ab73-7291-9cba-00336af0fbd0 (edge-pre1990 S4-207), 01a0a4de-ff2e-7a17-b6b4-3625f5d81ade (manifest stem), 01a0a4d4-4477-7b3f-946b-9ed34da50fdb (tracker ID 370) (survey-data §7). It is the single best duplicate-admission fixture in the corpus and it has no right answer without Kam."
+   },
+   "live": {"mode": "held-for-ruling", "why": "the expected state IS the ruling", "spend": false}
+  },
+  {
+   "id": "E23",
+   "class": "held-queue-skipped-low",
+   "ref": "tracker:25,28,49,50,53,57,117,122,132,174,193,194,235,242,369",
+   "ref_scheme": "tracker",
+   "held_for_ruling": {
+    "question": "Attempt these fifteen, or leave them? No attempt was ever made, so no expected state can be derived from evidence.",
+    "evidence": "Reports/held_queue_results.csv `outcome = skipped-low`, 15 rows, confidence `low`, route `-`; tracker ids 25, 28, 49, 50, 53, 57, 117, 122, 132, 174, 193, 194, 235, 242, 369 (LITKB_HELD_QUEUE_2026-09-15.md:150; survey-data §1, §11 item 1). `tracker` is in REF_SCHEMES and not in HUNTABLE, so even the reference form would have to be resolved to a DOI before a hunt could follow one."
+   },
+   "live": {"mode": "held-for-ruling", "why": "the expected state IS the ruling", "spend": false}
+  },
+  {
+   "id": "E24",
+   "class": "held-queue-refused-check1",
+   "ref": "10.3390/rs15030765,10.1080/17538947.2023.2257636,10.1016/j.jag.2022.102909,10.5067/doc/ceoswgcv/lpv/lc.001,10.2139/ssrn.4979539,10.1016/j.rse.2010.07.008,10.1137/1.9781611978032.28,10.1175/aies-d-22-0055.1,10.1016/j.tfp.2025.100146,10.3390/rs5041397,10.1016/j.rse.2025.114632,10.48550/arxiv.2511.07976,10.3390/rs17112050",
+   "ref_scheme": "doi",
+   "held_for_ruling": {
+    "question": "For each of the 22 `refused-check1` rows the registry contradicts the tracker's claim and NO file exists to decide between them. Which side is right — the registry or the tracker?",
+    "evidence": "Reports/held_queue_results.csv `outcome = refused-check1`, 22 rows, all listed verbatim with the refusing check-1 field (first author / title ratio / year) at LITKB_HELD_QUEUE_2026-09-15.md:123-144. The `ref` above lists the thirteen the survey enumerated by DOI across its five sub-classes (MDPI 403/Cloudflare 39·55·67; T&F HTML challenge 10·20·46; URL served HTML 52·131·187·239·274·2; no OA url 22·48·66·154·177·178·186; degenerate bytes 33·293·24) plus the five dead stored DOIs; the remaining rows are in the CSV. LITKB_HELD_QUEUE_2026-09-15.md:119 says each needs a human. E11 is the one of these the register EXECUTES, because its discrepancy row already records the adjudication."
+   },
+   "live": {"mode": "held-for-ruling", "why": "the expected state IS the ruling", "spend": false}
+  },
+  {
+   "id": "E25",
+   "class": "quarantined-arxiv-pdfs",
+   "ref": "tracker:151,291",
+   "ref_scheme": "tracker",
+   "held_for_ruling": {
+    "question": "Is the expected state `bound` (check 3's title-region gate is WRONG here) or `binding-failed` (the gate is right and the file is refused)?",
+    "evidence": "Both are the RIGHT paper and both were quarantined on a title-region ratio under 0.85: tracker 151 matched `arXiv:2007.01434v1 [cs.LG] 2 Jul 2020 In Search of Lost Domain Generalization`, ratio 0.6842; tracker 291 matched `https://pypi.org/project/uncertainty-calibration`, ratio 0.641, now at _quarantine/Kumar_2019_verified-uncertainty-calibration__binding-failed__cc4e4bde39f5.pdf (LITKB_HELD_QUEUE_2026-09-15.md:110-111; survey-data §1). AND THE STATE DOES NOT EXIST IN THE DATABASE: litkb.file_versions has ZERO rows with status='quarantined' (survey-data §1) — the quarantine is a directory on disk only, so a register row expecting a `quarantined` DB state would expect something nothing can produce."
+   },
+   "live": {"mode": "held-for-ruling", "why": "the expected state IS the ruling", "spend": false}
+  },
+  {
+   "id": "E26",
+   "class": "scout-api-error",
+   "ref": "10.5194/isprs-annals-v-2-2022-275-2022,10.3390/rs70201565,10.3390/rs11111388,10.3390/rs12061034",
+   "ref_scheme": "doi",
+   "source": "Reports/LITKB_FIRST_WORK_2026-09-21.md:87-89 — paper-search `search_unpaywall` returned EMPTY for every DOI, including known gold-OA controls; the S2 scout used OpenAlex `pdf_url` instead and said so in every drop-off. The four DOIs are the four drop-offs that run made: hunt_requests 01a0c1cb-1ef7-7fe1-b521-e9beaf105eec, -1f83-7c27-aeb5-28ce15d9cb6b, -1fe7-75cf-9328-c5a20a926f38, -20ab-7ecd-ad62-4fa9a9126cc4 (survey-data §7; the gold-OA control DOIs were never recorded anywhere and are INFERRED to be these four).",
+   "rule": "AN EMPTY REGISTRY ANSWER IS NOT A FINDING OF NON-OA. `search_unpaywall` returning nothing for a gold-OA DOI is a tool fault on the SCOUT side, recorded here so no later reader mistakes it for evidence that these works have no open-access copy.",
+   "adjudication": {"builder": "NOT A HUNT ROW. The fault is in `paper-search-mcp`'s Unpaywall connector, which litkb neither calls nor owns: `litkb.acquire.open_access` reaches Unpaywall through its own client, and no hunt state can carry a scout-side tool fault. Recorded with `live.mode='not-a-hunt'` and EXCLUDED from `executed` so the register keeps the instance without pretending the hunt vocabulary covers it."},
+   "live": {"mode": "not-a-hunt", "why": "a scout-side tool fault, outside the hunt's vocabulary; excluded from executed and from replay", "spend": false}
+  }
+ ]
+}

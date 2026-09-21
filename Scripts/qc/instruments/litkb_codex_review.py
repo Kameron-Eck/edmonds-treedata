@@ -60,6 +60,43 @@ PLACEHOLDERS = ("{REVIEW_PATH}", "{REVIEW_TEXT}", "{CONTEXT_PATH}", "{CONTEXT_TE
 #: that had no session.
 SESSION_KEYS = ("session_id", "thread_id", "conversation_id", "id")
 
+#: The report keys the WRAPPER writes (stamped over whatever the model says). They are not in the
+#: schema Codex is asked to satisfy: OpenAI strict structured output (measured live, codex-cli
+#: 0.155.1, 2026-09-20: `invalid_json_schema ... 'required' is required to be supplied and to be an
+#: array including every key in properties. Missing 'session_id'`) demands that EVERY property be
+#: required, so an optional stamped key is refused outright, and a required one would make the
+#: model invent a digest the wrapper then overwrites. The tracked schema stays the contract for
+#: the REPORT; `model_facing_schema` derives what the model is asked for.
+STAMPED_KEYS = ("review_sha256", "context_sha256", "session_id", "session_id_key")
+#: Validation-only keywords strict mode does not accept (or accepts unevenly across versions). The
+#: wrapper still validates the model's answer against the FULL tracked schema afterwards, so
+#: dropping them from the request loses nothing.
+MODEL_SCHEMA_DROP = ("pattern", "maxLength", "minLength", "minimum", "maximum", "$schema", "title")
+
+
+def model_facing_schema(schema_doc):
+    """The tracked schema minus the stamped keys, with every remaining property required at every
+    object level and the validation-only keywords removed — the shape strict structured output
+    accepts. Pure; the tracked file is never modified."""
+    import copy
+
+    def walk(node):
+        if isinstance(node, dict):
+            node = {k: walk(v) for k, v in node.items() if k not in MODEL_SCHEMA_DROP}
+            if node.get("type") == "object" and isinstance(node.get("properties"), dict):
+                node["required"] = list(node["properties"].keys())
+            return node
+        if isinstance(node, list):
+            return [walk(v) for v in node]
+        return node
+
+    doc = copy.deepcopy(schema_doc)
+    props = doc.get("properties") or {}
+    for k in STAMPED_KEYS:
+        props.pop(k, None)
+    doc["properties"] = props
+    return walk(doc)
+
 
 def sha256_file(path):
     """sha256 of a file's raw bytes -- `litkb.review_context.sha256_file`'s rule, restated here so
@@ -168,6 +205,11 @@ def measure_stdin_transport(prompt_path, *, runner=None):
             "received": hashlib.sha256(proc.stdout).hexdigest(),
             "match": hashlib.sha256(data).hexdigest() == hashlib.sha256(proc.stdout).hexdigest(),
             "bytes": len(data), "rc": proc.returncode}
+
+
+def out_path_for_stream(out):
+    """`<out>.stream.jsonl` — Codex's `--json` stream, kept beside the report."""
+    return Path(str(out) + ".stream.jsonl")
 
 
 def session_from_stream(stdout):
@@ -345,14 +387,25 @@ def run(review, context, out, *, schema=None, template=None, codex_cmd=None, cd=
     # and what a human can open to see what was asked are one file.
     with prompt_path.open("w", encoding="utf-8", newline="") as fh:
         fh.write(prompt)
-    argv = _launch_argv(codex_cmd, cd or Path(review).resolve().parent, schema_path, out,
+    # what Codex is asked for is DERIVED from the tracked schema, written beside the report so the
+    # request is inspectable; the report is validated against the tracked schema below
+    model_schema_path = Path(str(out) + ".model-schema.json")
+    model_schema_path.write_text(json.dumps(model_facing_schema(schema_doc), indent=1),
+                                 encoding="utf-8")
+    argv = _launch_argv(codex_cmd, cd or Path(review).resolve().parent, model_schema_path, out,
                         translate=translate)
     stdout, stderr, rc = run_codex(prompt_path.read_bytes(), argv, timeout=timeout)
+    # the `--json` stream is kept beside the report EVERY time: it carries the session id, and on
+    # a failure it carries the error — Codex 0.155.1 reports a refused request on STDOUT (the
+    # stream), not stderr, and the first live run (2026-09-20) lost its cause to a stderr-only print
+    stream_path = out_path_for_stream(out)
+    stream_path.write_bytes(stdout or b"")
     counters = {"codex_rc": rc, "schema_errors": 0, "citation_offences": 0}
     out_path = Path(out)
     if not out_path.exists():
-        print(f"codex wrote no report to {out_path} (rc={rc})", file=sys.stderr)
+        print(f"codex wrote no report to {out_path} (rc={rc}); stream at {stream_path}", file=sys.stderr)
         print((stderr or b"").decode("utf-8", "replace")[-2000:], file=sys.stderr)
+        print((stdout or b"").decode("utf-8", "replace")[-2000:], file=sys.stderr)
         counters["schema_errors"] = 1
         return 1, None, counters
     try:
@@ -375,6 +428,13 @@ def run(review, context, out, *, schema=None, template=None, codex_cmd=None, cd=
     report["session_id"] = sid
     report["session_id_key"] = key
     # END guard: the two digests and the session id are STAMPED, not trusted
+
+    # `quote_head` is a display aid — the quote it heads is in the review, byte for byte — and the
+    # model is not asked to count: the first live run (2026-09-20) returned 81 characters on five
+    # rows (80 + an ellipsis) and would have failed the stage for it. Truncate; nothing is lost.
+    for c in report.get("citations") or []:
+        if isinstance(c, dict) and isinstance(c.get("quote_head"), str):
+            c["quote_head"] = c["quote_head"][:80]
 
     errs = validate(report, schema_doc)
     offences = [] if errs else check_citation_set(report, review)

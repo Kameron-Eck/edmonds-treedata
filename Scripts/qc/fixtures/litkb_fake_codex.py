@@ -20,7 +20,8 @@ WHAT IT DOES NOT PROVE. Nothing about a model. Every verdict it returns comes fr
 it has no idea what the review says. The live proof that a real reviewer FLAGS a planted causation
 mutation is not made by any test that uses this file.
 
-`--behaviour` (default `supported`):
+`--behaviour` (default `supported`; `long-head` = an 81-char quote_head, 80 + ellipsis,
+what the real Codex returned live on 2026-09-20):
   supported       a SUPPORTED row per citation of the review it is shown
   flag-n:<n>      the same, with citation <n> returned OVERREACH
   drop-n:<n>      the same, with citation <n>'s row MISSING (the silent pass)
@@ -88,7 +89,8 @@ def main(argv=None):
         if args.behaviour == "bad-verdict" and i == 1:
             verdict = "PROBABLY FINE"
         rows.append({"n": i, "block_id": _block_id(raw, i),
-                     "quote_head": f"citation {i}"[:80], "verdict": verdict,
+                     "quote_head": ("q" * 80 + "…") if args.behaviour == "long-head"
+                     else f"citation {i}"[:80], "verdict": verdict,
                      "reason": f"stdin_sha256={digest}" if i == 1 else "fake reviewer"})
     if args.behaviour == "extra-row":
         rows.append({"n": n + 1, "block_id": ZERO[:8], "quote_head": "not in the review",

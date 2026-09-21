@@ -1,0 +1,121 @@
+{
+ "citations": [
+  {
+   "n": 1,
+   "block_id": "01a0abc8-d741-73e6-834b-3bf2bf3943ab",
+   "quote_head": "On the other hand, it has\nbeen observed that they are rather robust against nois",
+   "verdict": "SUPPORTED",
+   "reason": "The block identifies CNNs as the subject and explicitly records an existing observation of robustness to training-label noise."
+  },
+  {
+   "n": 2,
+   "block_id": "01a0abc8-d741-73e6-834b-3bf2bf3943ab",
+   "quote_head": "We report our results\nthat indicate that satisfying performance can be obtained",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence accurately attributes reduced manual annotation effort using large-scale noisy data to this study."
+  },
+  {
+   "n": 3,
+   "block_id": "01a0abc8-d74d-72b2-a931-9f7761645ce5",
+   "quote_head": "We find in this study that training on noisy labels does\nwork well, but only",
+   "verdict": "SUPPORTED",
+   "reason": "The quote explicitly conditions successful training with noisy labels on substantially larger training sets."
+  },
+  {
+   "n": 4,
+   "block_id": "01a0abc8-d83a-749a-87a5-1917eebe40fa",
+   "quote_head": "Indeed, pre-training with\nlarge-scale OSM labels can replace the vast majority",
+   "verdict": "SUPPORTED",
+   "reason": "Within the review's stated study scope, the sentence reproduces the authors' conclusion about replacing most manual labels through large-scale OSM pre-training."
+  },
+  {
+   "n": 5,
+   "block_id": "01a0abc8-d7fc-7fe4-a723-d1bd2a186912",
+   "quote_head": "Performance\nincreases by 7 percent points to 0.837 over baseline Ia, where",
+   "verdict": "OVERREACH",
+   "reason": "Causation: 'Because of this' makes the preceding ability to replace manual labels the cause of the gain. The block reports the gain for a specific pre-training and fine-tuning experiment; it does not establish that replacement ability caused it."
+  },
+  {
+   "n": 6,
+   "block_id": "01a0abc8-d74d-72b2-a931-9f7761645ce5",
+   "quote_head": "Whereas with small training sets (≈ 2 km2\n) it does not reach",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence preserves the small-training-set condition and the comparison with hand-labelled, pixel-accurate training data."
+  },
+  {
+   "n": 7,
+   "block_id": "01a0abc8-d7f3-7886-9b1c-de0274f44335",
+   "quote_head": "Compared to baseline II, i.e. training with equally large\nquantities",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence retains both the stated 10-percentage-point drop and the equally large pixel-accurate training baseline."
+  },
+  {
+   "n": 8,
+   "block_id": "01a0abc8-d83a-749a-87a5-1917eebe40fa",
+   "quote_head": "Semantic segmentation of overhead images can indeed\nbe learned from OSM maps",
+   "verdict": "SUPPORTED",
+   "reason": "The quote explicitly pairs eliminating manual labeling effort with reduced segmentation accuracy."
+  },
+  {
+   "n": 9,
+   "block_id": "01a0abcc-65d4-796c-846f-f351d1e52756",
+   "quote_head": "We study the multi-modal cadaster map\nalignment problem for which available",
+   "verdict": "SUPPORTED",
+   "reason": "The authors explicitly describe misaligned annotation polygons as resulting in noisy supervision."
+  },
+  {
+   "n": 10,
+   "block_id": "01a0abcc-65d4-796c-846f-f351d1e52756",
+   "quote_head": "We show that it is possible to\nreduce the noise of the dataset by iteratively",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence accurately reports the study's iterative alignment correction method and its reported reduction of dataset noise."
+  },
+  {
+   "n": 11,
+   "block_id": "01a0abc9-8093-708e-83f9-d91948970017",
+   "quote_head": "This automated\napproach created a draft Tree Canopy class whose accuracy",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence correctly assigns the accuracy result to the draft Tree Canopy class produced by the automated approach."
+  },
+  {
+   "n": 12,
+   "block_id": "01a0abc9-8093-708e-83f9-d91948970017",
+   "quote_head": "Indeed, tree-canopy mapping in shadowed areas would have been impossible without",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence preserves the authors' study-specific assessment of imagery-only limitations and the necessity of lidar in shadowed areas."
+  },
+  {
+   "n": 13,
+   "block_id": "01a0abc6-ebfc-7e73-b59a-86e476ee3035",
+   "quote_head": "Even for a given specific problem the data comparison may be\nnotably challenging",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence accurately introduces the authors' stated complications expected when image samples are separated by a large time lag."
+  }
+ ],
+ "editorial": [
+  {
+   "where": "Canopy reference products and imagery that spans dates",
+   "finding": "The heading grants the canopy mapping product reference-product status, which the section does not establish. The later disclosure explicitly acknowledges that this part of the expected claim has no recorded supporting use."
+  },
+  {
+   "where": "Expectations not supported — Kaiser OUTPERFORMS expectation",
+   "finding": "The categorical CONTRADICTED disclosure reports losses but omits the same page-9 block's result that OSM-label training beat baseline Ia by 1.5 percentage points. The outcome depends on the baseline; the disclosure should include this favorable comparison alongside the losses."
+  },
+  {
+   "where": "Scope",
+   "finding": "Claims about the search and sourcing history—expectations registered before reading, resolution through full-text search, exclusive use of the brief, and no abstract or outside reading—are not backed by the supplied citations. The blocks cannot verify that procedural history."
+  },
+  {
+   "where": "Scope",
+   "finding": "The assertion that no Edmonds canopy-accuracy measurement exists in the knowledge base exceeds the supplied evidence. These excerpts establish only that no such measurement is presented here."
+  },
+  {
+   "where": "Expectations not supported",
+   "finding": "The reported ledger statuses, recorded uses, repeated full-text searches, and claims that nothing ingested confirms or refutes the Benedek expectation lack supporting ledger or search evidence in the supplied material. The cited Benedek passage establishes challenges, not an exhaustive absence of relevant findings."
+  }
+ ],
+ "review_sha256": "8ec3a5c1b193e41bd4d5ac88ae31c9faa2a726ccf32d48ff8be1204430f77cee",
+ "context_sha256": "103795cfe5fb692df1a2bdab9a333a68916316b9f76209d11e67e526a1cc1015",
+ "session_id": "01a0c1a1-35cb-7371-bed8-77d277159a01",
+ "session_id_key": "thread_id"
+}

@@ -259,6 +259,41 @@ def test_the_schema_is_the_file_the_wrapper_and_the_gate_both_name():
             == list(A.CODEX_VERDICTS))
 
 
+def test_the_model_facing_schema_is_what_strict_structured_output_accepts():
+    """Measured live 2026-09-20 (codex-cli 0.155.1): the tracked schema was refused with
+    `invalid_json_schema ... 'required' ... Missing 'session_id'` — strict mode requires EVERY
+    property to be required, so the stamped keys cannot be optional and must not be asked for.
+    The derived schema drops them, requires everything remaining at every object level, and
+    strips the validation-only keywords; the REPORT is still validated against the tracked file."""
+    doc = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    m = W.model_facing_schema(doc)
+    for k in W.STAMPED_KEYS:
+        assert k not in m["properties"] and k not in m["required"]
+    assert m["required"] == list(m["properties"].keys())
+    items = m["properties"]["citations"]["items"]
+    assert items["required"] == list(items["properties"].keys())
+    dumped = json.dumps(m)
+    for kw in W.MODEL_SCHEMA_DROP:
+        assert f'"{kw}"' not in dumped, kw
+    # the tracked file is untouched by the derivation
+    assert "session_id" in doc["properties"] or "review_sha256" in doc["properties"]
+    assert doc["properties"]["citations"]["items"]["properties"]["quote_head"]["maxLength"] == 80
+
+
+def test_the_stream_is_kept_beside_the_report_and_quote_head_is_normalised(tmp_path):
+    """Live run 1 lost Codex's refusal (it is on the `--json` STDOUT stream, not stderr); live run
+    3 failed the stage on five 81-character quote_heads (80 + an ellipsis). Both are wrapper
+    defects, not reviewer defects."""
+    assert W.out_path_for_stream("x/report.json").name == "report.json.stream.jsonl"
+
+
+def test_an_81_char_quote_head_from_the_model_is_truncated_not_refused(bundle):
+    rc, report, counters = _run(bundle, "--behaviour", "long-head")
+    assert rc == 0 and counters["schema_errors"] == 0, counters
+    assert all(len(c["quote_head"]) == 80 for c in report["citations"])
+    assert W.out_path_for_stream(bundle["out"]).is_file()
+
+
 # ── the prompt ─────────────────────────────────────────────────────────────────────────────
 
 

@@ -144,6 +144,12 @@ desktop.ini
 # exactly the wrong one to hide, so the directory is whitelisted and it tracks normally.
 !/Reports/gold/
 
+# Reports/codex: the Codex review stage's JSON reports (qc/instruments/litkb_codex_review.py) and
+# the mutated reviews its gate was proven on. Evidence that a gate FIRED (CLAUDE.md 3.4c) is work
+# product: each report carries the sha256 of the review it judged and the Codex session id, and a
+# session that cannot see them cannot check the claim. Small. Added 2026-09-20.
+!/Reports/codex/
+
 # Reports/sources: the retrieved public record, added 2026-09-09. The lidar-acquisition
 # investigation could not reach any city or county host from the sandboxed session, so
 # Scripts/qc/fetch_city_records.py retrieves them from an unrestricted network and lands

@@ -69,9 +69,21 @@ def known_shas(conn):
 
 def known_rel_paths(conn):
     """Every `file_versions.rel_path`, any version, any state — the leg that catches a download a
-    hunt has already bound and is still working on, whose bytes no `files.sha256` matches yet."""
-    return {r[0] for r in conn.execute(
+    hunt has already bound and is still working on, whose bytes no `files.sha256` matches yet —
+    PLUS every path an admission's checks name (`checks->'web'->>'snapshot'` / `->>'document'`).
+
+    The second leg was missing on the first live dry run (2026-09-21, run f856325a): the FPGA
+    proposal's web snapshot `_litkb_staging/web/Abdulkader_2020_….txt` has no `files` row and no
+    `file_versions.rel_path` — it is the EVIDENCE the admission's checks point at, not a bound
+    file — and the census called it an orphan. Quarantining it would strand a live proposal's
+    evidence one second-session approval away from main."""
+    rels = {r[0] for r in conn.execute(
         "SELECT DISTINCT rel_path FROM litkb.file_versions WHERE rel_path IS NOT NULL").fetchall()}
+    rels |= {r[0] for r in conn.execute(
+        "SELECT DISTINCT p FROM litkb.admissions a, "
+        "  LATERAL (VALUES (a.checks->'web'->>'snapshot'), (a.checks->'web'->>'document')) v(p) "
+        " WHERE a.checks ? 'web' AND p IS NOT NULL").fetchall()}
+    return rels
 
 
 def _candidates(store):
@@ -125,7 +137,8 @@ def classify(path, *, store, shas, rels, min_age_hours, now):
         row["verdict"], row["rule"] = "owned", "sha256 is a litkb.files row"
         return row
     if rel in rels:
-        row["verdict"], row["rule"] = "owned", "a file_versions.rel_path names this path"
+        row["verdict"], row["rule"] = "owned", ("a file_versions.rel_path, or an admission's "
+                                                "checks (web snapshot/document), names this path")
         return row
     # END guard: a file the database accounts for by sha or by path is never reaped
     # BEGIN guard: a file younger than the age window, or held open, is never reaped

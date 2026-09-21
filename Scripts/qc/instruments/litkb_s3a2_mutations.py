@@ -2,7 +2,7 @@
 guard FIRE (CLAUDE.md 3.4c).
 
     PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_w8 py -3.12 \
-        qc/instruments/litkb_p2_mutations.py --only S3A1,S3A2,S3A3,S3A4,S3R1,S3R2,S3R3
+        qc/instruments/litkb_p2_mutations.py --only S3A1,S3A2,S3A2b,S3A3,S3A4,S3R1,S3R2,S3R3,S3R4
 
 Same machinery and the same table as the P6 / S2 legs (`litkb_p6_mutations.py`,
 `litkb_s2_mutations.py`): the rows are appended to the ONE shared ledger at import, because the
@@ -43,7 +43,7 @@ WHAT EACH ROW IS FOR:
 PKG = "pipeline/litkb"
 TESTS_S3A = ["qc/test_litkb_s3_server.py"]
 TESTS_S3R = ["qc/test_litkb_reaper.py"]
-IDS = ["S3A1", "S3A2", "S3A2b", "S3A3", "S3A4", "S3R1", "S3R2", "S3R3"]
+IDS = ["S3A1", "S3A2", "S3A2b", "S3A3", "S3A4", "S3R1", "S3R2", "S3R3", "S3R4"]
 
 
 def register(block, replace, site):
@@ -97,3 +97,10 @@ def register(block, replace, site):
     block("S3R3", f"{PKG}/ops/reaper.py", "guard: a dry run moves nothing",
           "--dry-run stops being a dry run: the default invocation quarantines, and the census a "
           "caller ran to LOOK at staging is the call that emptied it", tests=TESTS_S3R)
+    replace("S3R4", f"{PKG}/ops/reaper.py",
+            "\" WHERE a.checks ? 'web' AND p IS NOT NULL\").fetchall()}",
+            "\" WHERE a.checks ? 'web' AND p IS NOT NULL\").fetchall()} & set()",
+            "the admissions-checks ownership leg is gone: a web snapshot that is the EVIDENCE of a "
+            "PDF-bound proposal (no files row, no file_versions.rel_path — the live FPGA case, dry "
+            "run f856325a) is an orphan again and `--apply` strands the proposal one approval from "
+            "main", tests=TESTS_S3R)

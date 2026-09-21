@@ -92,12 +92,16 @@ def _hunt_once(hunt, row, *, db, worktree, agent, session, spend):
     if not isinstance(res, dict):
         return False, "error", f"hunt returned {type(res).__name__}, not a dict", secs
     ok = bool(res.get("ok"))
-    state = res.get("state") or res.get("refused") or ""
-    # a no-spend stop comes back as state `held` + outcome `held-no-spend`; the ledger records the
-    # DELIBERATE stop, not the rung it happens to be standing on (first run: nine `held` rows that
-    # were all no-spend stops, indistinguishable from a hunt that spent and found nothing)
-    if res.get("outcome") == "held-no-spend":
-        state = "held-no-spend"
+    # BEGIN call site: the ledger word is the hunt's own, never derived a second time here
+    # This function used to hold half the rule (`state or refused`, plus the `held-no-spend`
+    # override) and `litkb_acceptance.CLOSED_STATES` held the other half — the list it is checked
+    # against. Since S3 every result carries a `state` from a closed set, and `state` ALONE would
+    # record seven refusals and four transients as two words; which one is the CSV's whole
+    # diagnostic value. `litkb.hunt.ledger_word` is the one home for that choice, and the closed
+    # list is derived from the same constants (CLAUDE.md §3.3).
+    from litkb.hunt import ledger_word
+    state = ledger_word(res)
+    # END call site: the ledger word is the hunt's own, never derived a second time here
     message = str(res.get("message") or "")
     # a title refusal carries the resolver's own verdict (`best=<src>:<ratio>:<doi>`) in
     # `resolver_detail`, outside `message`; without it the ledger says only "refused" and a

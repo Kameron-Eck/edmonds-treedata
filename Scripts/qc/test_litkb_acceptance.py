@@ -798,17 +798,24 @@ def test_an_unparseable_line_does_not_stop_the_count(mod, tmp_path):
 # ── scout: the vocabulary and the field set are the module's, not the manifest's ───────────
 
 def test_the_closed_vocabulary_matches_hunts_own(mod):
-    """`CLOSED_STATES` stays pinned to `litkb.hunt.STATES`. If hunt gained a ladder state and this
-    constant did not, every run carrying it would be refused as `unknown_states`."""
+    """`CLOSED_STATES` stays pinned to `litkb.hunt`'s own vocabulary — every state, and every
+    enumerable reason of every state. If hunt gained one and this constant did not, every run
+    carrying it would be scored `unknown_states`."""
     pytest.importorskip("litkb", reason="litkb imports only with PYTHONPATH=pipeline")
-    from litkb.hunt import HUNT_REFUSALS, REF_REFUSALS, STATES
+    from litkb.hunt import HUNT_REFUSALS, REASONS, REF_REFUSALS, STATES
     assert mod.CLOSED_STATES[:len(STATES)] == tuple(STATES)
-    assert "error" not in mod.CLOSED_STATES
+    # `error` is gone from the module (the boundary answers `crashed` at a named stage) and was
+    # never here; `absent` left both with S3 — it is `litkb_work`'s miss rung, never a hunt result.
+    assert "error" not in mod.CLOSED_STATES and "absent" not in mod.CLOSED_STATES
     # pinned to hunt's own closed tuples, not to a list retyped here: the merge of the two S1
     # builders found this constant one code short (`unknown-ref-scheme`), and the first scout
     # run found it ten short (every pre-S1 code, e.g. `admission-refused`)
-    assert set(mod.CLOSED_STATES) - set(STATES) == {"held-no-spend", *REF_REFUSALS, *HUNT_REFUSALS}
-    assert len(mod.CLOSED_STATES) == len(STATES) + 1 + len(REF_REFUSALS) + len(HUNT_REFUSALS)
+    every_reason = {r for state in STATES for r in REASONS[state]}
+    assert set(mod.CLOSED_STATES) - set(STATES) == {"held-no-spend", *every_reason}
+    assert set(REF_REFUSALS) | set(HUNT_REFUSALS) == set(REASONS["refused"])
+    # `crashed` contributes no reason: its own is a SHAPE no closed list can hold
+    assert REASONS["crashed"] == () and "crashed" in mod.CLOSED_STATES
+    assert len(mod.CLOSED_STATES) == len(set(mod.CLOSED_STATES))
 
 
 def test_the_required_field_set_is_the_eight_the_skill_names(mod):

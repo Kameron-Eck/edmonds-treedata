@@ -468,25 +468,40 @@ REQUIRED_FIELDS = ("ref", "ref_scheme", "claimed_title", "claimed_authors", "cla
 #: follows a drop-off can resolve; the rest come back `unsupported-ref-scheme`.
 ALLOWED_SCHEMES = ("doi", "arxiv", "url", "title")
 
-#: Every value `hunt_state_or_refusal` may take: the ladder states (`litkb.hunt.STATES`), the
-#: deliberate no-spend stop, and the six refusal codes the ref-validating `ref_kind` introduces
-#: (`litkb.hunt.REF_REFUSALS`). `error` is NOT here, on purpose — see the module docstring.
-#: `test_the_closed_vocabulary_matches_hunts_own` pins this against `litkb.hunt.STATES` and
-#: `litkb.hunt.REF_REFUSALS` so this constant cannot drift away from the module it describes —
-#: it already had, once: the builders worked in parallel and the sixth code (`unknown-ref-scheme`)
-#: was added after this list was written.
-#: The third group is `litkb.hunt.HUNT_REFUSALS`: the codes hunt could ALREADY refuse with before
-#: S1. The first scout run (2026-09-20) scored a real `admission-refused` — arXiv answered a
-#: transient 406 and check 1 called it terminal — as `unknown_states`, because this list knew
-#: only the six S1 codes. Both tuples are pinned by the test, and hunt.py's own test AST-scans
-#: its source so no code can be raised without being listed.
-CLOSED_STATES = ("absent", "held", "bound-unextracted", "extracted",
-                 "held-no-spend",
-                 "malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme",
-                 "ref-scheme-mismatch", "unresolved-title", "ambiguous-title",
-                 "admission-refused", "bad-workstream-file", "fetch-failed", "file-missing",
-                 "incomplete-record", "no-artifact", "no-labels", "no-workstream",
-                 "not-a-pdf", "truncated-pdf")
+#: Every value `hunt_state_or_refusal` may take — the word `litkb.hunt.ledger_word` writes for a
+#: result. Since S3 it is DERIVED from the hunt's own vocabulary rather than retyped here:
+#: `litkb.hunt.STATES` (the three ladder rungs plus the four ways a hunt stops short of one) and
+#: every enumerable member of `litkb.hunt.REASONS`, which is where `REF_REFUSALS` and
+#: `HUNT_REFUSALS` now live, as the reason classes of the `refused` state.
+#:
+#: `held-no-spend` is the one word that is neither: a deliberate no-spend stop is recorded as the
+#: STOP, not as the rung it happens to be standing on, and the ledgers already written carry it.
+#: `crashed` needs no reason added — its reason is a SHAPE (`<stage>:<ExceptionClass>`) that no
+#: closed list can hold, so `ledger_word` records the state itself for it.
+#: `absent` LEFT this list with S3: it is `litkb_work`'s miss rung and `hunt()` has never returned
+#: it, so a checker accepting it held a slot no run could fill. `error` was never here and no
+#: longer exists — the generic boundary answers `crashed` at a NAMED stage.
+#:
+#: `test_the_closed_vocabulary_matches_hunts_own` pins this against the module so it cannot drift.
+#: It already had, twice: the S1 builders worked in parallel and left it one code short
+#: (`unknown-ref-scheme`), and the first scout run (2026-09-20) found it ten short — every pre-S1
+#: code, e.g. the `admission-refused` that arXiv's transient 406 produced.
+def _closed_states():
+    from litkb.hunt import REASONS, STATES
+
+    words = list(STATES) + ["held-no-spend"]
+    for state in STATES:
+        words += [r for r in REASONS.get(state, ()) if r not in words]
+    return tuple(words)
+
+
+try:
+    CLOSED_STATES = _closed_states()
+except Exception:                   # noqa: BLE001 — importable without PYTHONPATH=pipeline
+    # Five of the six subcommands need no litkb import, and the doc tests import this module only
+    # to read its constants; a checker that refused to import would take those down with it. The
+    # scout checker itself cannot run without litkb on the path in any case.
+    CLOSED_STATES = ()
 
 #: The CSV the driver (qc/instruments/litkb_scout_run.py) writes, and this checker reads.
 RUN_CSV_COLUMNS = ("hr_id", "ref", "ref_scheme", "claimed_title", "claimed_year",

@@ -82,7 +82,10 @@ def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block.", state=
                    sha=None):
     """A work with an identifier, and — at `state="extracted"` — a bound file, an `ok` run and one
     block. `state="held"` stops after the identifier, which is the rung a DOI reaches when it is
-    admitted and no PDF has been found for it.
+    admitted and no PDF has been found for it; `state="bound-unextracted"` stops after the FILE,
+    the rung a hunt with `extract=False` leaves behind. That rung is seeded rather than reached by
+    clearing a run, because `litkb.set_current_run` refuses a NULL run on purpose — a file whose
+    current run was unset is not the same fact as a file that never had one.
 
     Written as FACTS through `_write_version`, the way `qc/test_litkb_p8.py::_seed_work_state`
     does: admission is one work per identifier across the whole knowledge base, and a test that
@@ -110,6 +113,8 @@ def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block.", state=
         (_jsonb({"sha256": sha or (uuid.uuid4().hex + uuid.uuid4().hex)}),
          _jsonb({"work_id": str(work_id), "status": "active", "rel_path": "Validation/seeded.pdf",
                  "bytes": 2048, "pages": 3}), ws_id)).fetchone()
+    if state == "bound-unextracted":
+        return {"key": key, "work_id": str(work_id), "file_id": str(file_id), "run_id": None}
     run_id = conn.execute(
         "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, params_hash, "
         "pipeline_version, host, status) VALUES (%s, '5-reconcile', 'hunt-seed', '0', %s, 'v0', "
@@ -125,6 +130,27 @@ def _runs(conn):
 
 
 # ── kill 1: bytes that are not a PDF ──────────────────────────────────────────────────────
+
+
+def _assert_named(res):
+    """EVERY hunt result this suite produces, asserted against the closed vocabulary (S3).
+
+    Not a list of the results somebody remembered to check: this runs on every row of the
+    ref-shapes table and on every known-bad below, so a state or a reason the module can emit and
+    the tables do not hold fails the suite at the call that emitted it. -> the (state, reason) pair,
+    so a test can also record what it exercised."""
+    from litkb import hunt as H
+
+    assert res["state"] in H.STATES, res
+    assert H.reason_ok(res["state"], res.get("reason")), res
+    assert res["outcome"] == H.outcome_of(res["state"], res["reason"]), res
+    assert res["ok"] is (res["state"] in ("extracted", "bound-unextracted", "held")), res
+    # the whole point of a named state: a caller reads a sentence, never a stack
+    assert "Traceback" not in str(res.get("message") or ""), res
+    for r in res.get("refusals") or []:
+        assert "Traceback" not in str(r.get("message") or ""), r
+    return (res["state"], res["reason"])
+
 
 @pg_only
 def test_a_url_that_serves_html_is_refused_and_the_bytes_are_quarantined(env):
@@ -755,17 +781,23 @@ def test_ref_shapes_each_end_in_a_named_result(env, row):
     want = row["expect"]
     assert res["ok"] is want["ok"], res
     assert res["ref_kind"] == want["ref_kind"], res
+    # S3: EVERY result, whichever end it reached, carries one state and one reason out of that
+    # state's own closed set, and `outcome` is derived from the pair rather than typed beside it.
+    _assert_named(res)
+    assert res["state"] == want["state"], res
     if want.get("filled"):
         assert res["from_hunt_request"]["filled"] == want["filled"], res
     if want.get("first_author"):
         assert res["from_hunt_request"]["first_author"] == want["first_author"], res
     if want["ok"]:
-        assert res["state"] == want["state"], res
+        assert res["reason"] == want["reason"], res
         assert res["outcome"] == want["outcome"], res
         if want.get("resolved_doi"):
             assert res["resolved"]["doi"] == want["resolved_doi"], res
     else:
         assert res["refused"] == want["refused"], res
+        # the refusal code IS the reason class of the `refused` state
+        assert res["reason"] == want["refused"], res
         assert res["message"], res
         if want.get("message_names"):
             assert want["message_names"] in res["message"], res
@@ -999,3 +1031,304 @@ def test_the_cli_drop_off_names_an_unknown_scheme_before_it_writes(env):
                 "--ref-scheme", "bibtex", "--expected-claim", "c", "--why-relevant", "w"],
                connect=lambda db: C._NoConn())
     assert "bibtex" in str(e.value) and "title" in str(e.value), str(e.value)
+
+
+# ── S3: the three ways a hunt used to end in something that was not a named state ──────────
+# Each is a KNOWN-BAD with its own mutation row (qc/instruments/litkb_p2_mutations.py, rows
+# HV1-HV5): a raising route, a registry that answered transiently, and the generic boundary.
+
+
+class _Status:
+    """A registry client that answers ONE status to everything, so a transient answer can be
+    exercised without a socket. `_NoNet` (404) is its terminal twin."""
+
+    base = ""
+
+    def __init__(self, status):
+        self.status, self.calls = status, []
+
+    def get(self, url, *a, **kw):
+        self.calls.append(url)
+        return self.status, {}, b""
+
+
+def _acquire_one_route(conn, ws_id, token, work, *, store, agent, session):
+    """The REAL `acquire()` ladder, restricted to open access. Restricted because the other two
+    routes are by DOI and would open a session against Anna's Archive: the guard under test is the
+    route BOUNDARY, and a test that reached the network would be measuring the network."""
+    from litkb.acquire.run import acquire
+
+    return acquire(conn, ws_id, token, work, store=store, agent=agent, session=session,
+                   routes=("open_access",), printer=lambda *a, **k: None)
+
+
+def _main_held_work(env, doi):
+    """A work admitted in MAIN with a DOI and no file — the rung `_spend_on_held` acquires from.
+
+    `seed_extracted(state='held')` writes the work as a workstream FACT, and `acquire()`'s
+    `work_record` reads `litkb.main_works`; a work only the workstream can see comes back None and
+    the hunt answers `held/no-file` before any route runs. So this admits for real, through the
+    registry stub, which is the same door `test_a_fresh_doi_admission_with_no_file_also_spends_by_
+    default` uses."""
+    p2 = _p2_module()
+    rec = dict(p2._synthetic()[2])
+    rec["DOI"] = doi
+    rec["title"] = [f"A synthetic work for {doi}"]
+    return p2.RegistryStub({doi: rec})
+
+
+@pg_only
+def test_a_route_that_raises_is_a_logged_api_error_attempt_and_never_a_traceback(env, monkeypatch):
+    """Known-bad (a), rows HV1/HV2. Until S3 an exception out of a route propagated to `hunt()`'s
+    generic boundary and came back `refused: "error"` with NO attempt row — the route had been
+    tried and `acquisition_attempts` said nothing about it, so `DEAD_STATUSES`, the held queue and
+    every later "what has this work been through" question read a work nobody had tried."""
+    from litkb.acquire import open_access as OA
+
+    doi = f"10.5555/raise-{uuid.uuid4().hex[:10]}"
+    stub = _main_held_work(env, doi)
+
+    def _boom(*a, **kw):
+        raise ConnectionResetError("the peer reset the connection mid-body")
+
+    monkeypatch.setattr(OA, "fetch_open_access", _boom)
+    n = lambda: env["conn"].execute(                                            # noqa: E731
+        "SELECT count(*) FROM litkb.acquisition_attempts WHERE status = 'api-error'").fetchone()[0]
+    before = n()
+    res = _hunt(env, doi, fetch=_explode, registry_client=stub, acquirer=_acquire_one_route)
+
+    assert _assert_named(res) == ("api-error", "route-raised"), res
+    assert res["ok"] is False and "refused" not in res, res
+    assert n() == before + 1, "a route that raised left no acquisition_attempts row"
+    row = env["conn"].execute(
+        "SELECT route, status, detail FROM litkb.acquisition_attempts "
+        " WHERE status = 'api-error' ORDER BY at DESC LIMIT 1").fetchone()
+    assert row[0] == "open_access" and row[1] == "api-error", row
+    assert row[2]["exception"] == "ConnectionResetError", row[2]
+    assert "reset the connection" in row[2]["message"], row[2]
+    assert "Traceback" not in json.dumps(row[2]), row[2]
+    assert [r["code"] for r in res["refusals"]] == ["not-acquired"], res
+    assert any(d["route"] == "open_access" and d["status"] == "api-error"
+               for d in res["acquisition"]["route_detail"]), res
+
+
+@pg_only
+def test_a_registry_that_answers_406_is_api_error_and_writes_no_admission(env):
+    """Known-bad (b), row HV3. The arXiv 406 of 2026-09-20 (workstream `scout-1`): two admissions
+    were REFUSED `admission-refused` — a verdict on the record — and the same identifier was
+    admitted clean 4m17s later. The 406 is now `api-error/registry-transient` and writes no
+    admission row at all."""
+    doi = f"10.5555/transient-{uuid.uuid4().hex[:10]}"
+    n = lambda: env["conn"].execute("SELECT count(*) FROM litkb.admissions").fetchone()[0]  # noqa: E731
+    before = n()
+    res = _hunt(env, doi, fetch=_explode, registry_client=_Status(406), spend=False)
+
+    assert _assert_named(res) == ("api-error", "registry-transient"), res
+    assert res["ok"] is False and "refused" not in res, res
+    assert n() == before, "a transient registry answer still wrote an admission row"
+    assert res["identifier"] == doi, res
+    assert [(c["registry"], c["status"]) for c in res["registry_calls"]] == \
+        [("crossref", 406), ("datacite", 406)], res
+    assert "406" in res["message"] and "crossref" in res["message"], res
+
+
+@pg_only
+def test_a_registry_that_answers_404_stays_a_terminal_admission_refusal(env):
+    """The other half of HV3, and the reason it is a guard rather than a rewrite: a registry that
+    ANSWERED and holds no such record is a verdict, and must stay `refused/admission-refused`. A
+    classifier that called every failure transient would make the refusal unreachable."""
+    doi = f"10.5555/absent-{uuid.uuid4().hex[:10]}"
+    n = lambda: env["conn"].execute("SELECT count(*) FROM litkb.admissions").fetchone()[0]  # noqa: E731
+    before = n()
+    res = _hunt(env, doi, fetch=_explode, registry_client=_Status(404), spend=False)
+
+    assert _assert_named(res) == ("refused", "admission-refused"), res
+    assert res["refused"] == "admission-refused", res
+    assert n() == before + 1, "a 404 registry answer wrote no refused admission row"
+
+
+@pg_only
+def test_an_unexpected_exception_is_crashed_at_a_named_stage(env, monkeypatch):
+    """Known-bad (c), rows HV4/HV5. The generic boundary used to answer `refused: "error"` — a word
+    outside every closed tuple, scored `unknown_states`, and identical for a crash before the first
+    connection and a crash three minutes into a GPU conversion. It is now `crashed` with the STAGE
+    that was running and the exception CLASS, and the message stays one line."""
+    from litkb import hunt as H
+
+    url = f"https://example.org/{uuid.uuid4().hex}/doc.pdf"
+    seed_extracted(env["conn"], env["ws_id"], "url", url, state="bound-unextracted")
+    # real bytes where the seeded row says they are, so the hunt reaches EXTRACTION rather than
+    # the `file-missing` refusal one line above it
+    (env["root"] / "Validation" / "seeded.pdf").write_bytes(
+        b"%PDF-1.4\n% seeded\n%%EOF\n")
+
+    def _boom(*a, **kw):
+        raise RuntimeError("docling died\nwith a second line nobody should read in a result")
+
+    monkeypatch.setattr(H, "extract_and_ingest", _boom)
+    res = _hunt(env, url, fetch=_explode, registry_client=_NoNet())
+
+    assert _assert_named(res) == ("crashed", "extract:RuntimeError"), res
+    assert res["ok"] is False and "refused" not in res, res
+    assert res["stage"] == "extract", res
+    assert "\n" not in res["message"] and res["message"].startswith("RuntimeError:"), res
+    assert "second line" not in res["message"], res
+
+
+def test_the_crash_reason_is_validated_by_shape_not_trusted():
+    """`crashed` is the one state whose reason cannot be a closed list — the exception class is the
+    program's, not this module's. So it is validated: a stage outside STAGES, or a reason carrying
+    the exception's MESSAGE, is not a reason."""
+    from litkb import hunt as H
+
+    assert H.reason_ok("crashed", "extract:RuntimeError")
+    assert H.reason_ok("crashed", "validate:ValueError")
+    assert not H.reason_ok("crashed", "nosuchstage:RuntimeError")
+    assert not H.reason_ok("crashed", "extract:RuntimeError: docling died")
+    assert not H.reason_ok("crashed", "RuntimeError")
+    assert not H.reason_ok("crashed", "")
+
+
+def test_every_state_and_reason_this_module_emits_is_listed():
+    """The vocabulary is enforced against the SOURCE, the way the refusal codes already are: every
+    string literal hunt.py assigns to a `state`/`reason` key, or hands to HuntRefused / HuntApiError
+    / HuntBlocked / `_result`, is a member of STATES and of that state's own REASONS tuple.
+
+    A `grep` over the module rather than a list retyped here, because the list retyped here is
+    exactly what drifted: `held-spend-exhausted`, `already-extracted` and `bound` were outcome
+    words no constant in this module held."""
+    import ast
+    import pathlib
+
+    from litkb import hunt as H
+
+    src = pathlib.Path(H.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    states, reasons, pairs = set(), set(), set()
+    for n in ast.walk(tree):
+        # `_result(out, "<state>", "<reason>", ...)` — the one composer every ok return goes through
+        if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_result" and len(n.args) >= 3:
+            a, b = n.args[1], n.args[2]
+            if isinstance(a, ast.Constant) and isinstance(b, ast.Constant):
+                pairs.add((a.value, b.value))
+        # HuntApiError("<reason>", ...) / HuntBlocked("<reason>", ...)
+        if isinstance(n, ast.Call) and getattr(n.func, "id", None) in ("HuntApiError", "HuntBlocked") \
+                and n.args and isinstance(n.args[0], ast.Constant):
+            state = "api-error" if n.func.id == "HuntApiError" else "blocked"
+            pairs.add((state, n.args[0].value))
+        # and any dict literal that types a state or a reason directly
+        if isinstance(n, ast.Dict):
+            for k, v in zip(n.keys, n.values):
+                if isinstance(k, ast.Constant) and isinstance(v, ast.Constant) and \
+                        isinstance(v.value, str):
+                    if k.value == "state":
+                        states.add(v.value)
+                    elif k.value == "reason":
+                        reasons.add(v.value)
+    assert pairs, "the AST walk found no (state, reason) pair at all: the composer was renamed"
+    for state, reason in sorted(pairs):
+        assert state in H.STATES, (state, reason)
+        assert H.reason_ok(state, reason), (state, reason)
+    # the two states the boundary types into a dict literal, plus `bound-unextracted` on the
+    # internal `held` dict that is NOT a result (it is look_up's shape) — all must still be states
+    assert states <= set(H.STATES), sorted(states - set(H.STATES))
+    # every literal reason typed in a dict belongs to SOME state
+    for r in reasons:
+        assert any(r in H.REASONS[s] for s in H.STATES), r
+    # and the tables are not aspirational: every reason tuple is non-empty except `crashed`'s
+    for state in H.STATES:
+        assert bool(H.REASONS[state]) is (state != "crashed"), state
+
+
+def test_the_fetch_classifier_separates_a_wrong_url_from_a_bad_minute():
+    """403 is a host refusing this client, a 5xx/429/timeout is a host having a bad minute, a 200
+    with no bytes is a transfer that did not happen — and 404 is the only one of the four that is a
+    verdict on the REFERENCE. Before S3 all four were `fetch-failed`, which told a scout to fix a
+    reference that had nothing wrong with it."""
+    from litkb import hunt as H
+
+    def kind(status, data=b"%PDF-1.4"):
+        try:
+            H._classify_fetch(status, data, "https://example.org/x.pdf")
+        except H.HuntBlocked as e:
+            return ("blocked", e.reason)
+        except H.HuntApiError as e:
+            return ("api-error", e.reason)
+        except H.HuntRefused as e:
+            return ("refused", e.code)
+        return None
+
+    assert kind(200) is None
+    assert kind(403) == ("blocked", "403")
+    assert kind(503) == ("api-error", "fetch-transient")
+    assert kind(429) == ("api-error", "fetch-transient")
+    assert kind(0) == ("api-error", "fetch-transient")
+    assert kind(200, b"") == ("api-error", "empty-response")
+    assert kind(404) == ("refused", "fetch-failed")
+    assert kind(451) == ("refused", "fetch-failed")
+    for state, reason in (kind(403), kind(503), kind(200, b""), kind(404)):
+        assert H.reason_ok(state, reason), (state, reason)
+
+
+def test_the_acquisition_precedence_names_the_most_actionable_stop():
+    """The order is the rule: a spend that STOPPED outranks a host that refused, which outranks a
+    route that never answered, which outranks "every route was tried". Each is a different next
+    move, and `held-spend-exhausted` said all four."""
+    from litkb import hunt as H
+
+    def stop(*rows, outcome="not-acquired"):
+        return H._acquisition_stop({"outcome": outcome, "route_detail": list(rows)})
+
+    oa = lambda st, codes=(): {"route": "open_access", "status": st, "codes": list(codes)}  # noqa: E731
+    assert stop() == ("held", "not-acquired")
+    assert stop(oa("no-oa-copy")) == ("held", "not-acquired")
+    assert stop(oa("api-error")) == ("api-error", "route-raised")
+    assert stop(oa("blocked", [200, 403])) == ("blocked", "403")
+    assert stop(oa("blocked", [200, 200])) == ("blocked", "challenge")
+    assert stop(oa("api-error"), oa("blocked", [403])) == ("blocked", "403")
+    assert stop(oa("blocked", [403]), {"route": "annas", "status": "quota-stop", "codes": []}) == \
+        ("blocked", "quota-stop")
+    assert stop(oa("ok"), outcome="duplicate-held") == ("held", "duplicate-held")
+    for state, reason in (stop(), stop(oa("api-error")), stop(oa("blocked", [403]))):
+        assert H.reason_ok(state, reason), (state, reason)
+
+
+# ── S3: the Sci-Hub mirrors come from config ──────────────────────────────────────────────
+
+def test_the_scihub_mirrors_are_the_four_kams_note_names_and_the_env_overrides_them(monkeypatch):
+    """Row HV6. The route hardcoded TWO of the four (`sci-hub.ru`, `.ren`) and `acquire/run.py`
+    passed no `mirrors=` at all, so the caller that decides the route order could not decide the
+    mirror order. An EMPTY override is the default, never an empty loop: a Sci-Hub route that
+    iterates zero times answers `not-in-archive` for every DOI, which reads in
+    `acquisition_attempts` as "Sci-Hub does not hold it" for a work nobody asked Sci-Hub about."""
+    from litkb import config as C
+
+    assert C.SCIHUB_MIRRORS_DEFAULT == ("https://sci-hub.ru", "https://sci-hub.ren",
+                                        "https://sci-hub.box", "https://sci-hub.wf")
+    assert C.scihub_mirrors({}) == C.SCIHUB_MIRRORS_DEFAULT
+    assert C.scihub_mirrors({"LITKB_SCIHUB_MIRRORS": ""}) == C.SCIHUB_MIRRORS_DEFAULT
+    assert C.scihub_mirrors({"LITKB_SCIHUB_MIRRORS": "  ,   ,"}) == C.SCIHUB_MIRRORS_DEFAULT
+    assert C.scihub_mirrors({"LITKB_SCIHUB_MIRRORS": "https://b.example, https://a.example "}) == \
+        ("https://b.example", "https://a.example")
+
+
+def test_the_mirror_order_is_the_order_the_route_tries(monkeypatch):
+    """The config value is not decoration: the failover loop visits the mirrors in that order and
+    `acquire.run` hands them to it explicitly."""
+    from litkb.acquire import scihub as SH
+
+    seen = []
+
+    class _Client:
+        def get(self, url, accept="", timeout=0, **kw):
+            seen.append(url)
+            return 404, {}, b""
+
+    r = SH.fetch_scihub("10.1/x", None, client=_Client(),
+                        mirrors=("https://m2.example", "https://m1.example"))
+    assert [u.split("/10.1")[0] for u in seen] == ["https://m2.example", "https://m1.example"], seen
+    assert r["status"] == "bad-file", r
+    seen.clear()
+    SH.fetch_scihub("10.1/x", None, client=_Client())
+    assert [u.split("/10.1")[0] for u in seen] == list(SH.MIRRORS), seen
+    assert SH.MIRRORS == __import__("litkb.config", fromlist=["x"]).SCIHUB_MIRRORS

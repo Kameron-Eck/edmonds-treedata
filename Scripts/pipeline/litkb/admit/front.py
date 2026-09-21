@@ -9,6 +9,13 @@ Every call binds the token as a query parameter, never in the SQL text (workstre
 litkb.admit() in the database does checks 1-5 in one transaction and records a refusal as a refused
 admission row; this module never pre-decides a duplicate or a refusal on the database's behalf.
 
+THE ONE EXCEPTION, and it decides nothing (S3): when every registry call for the identifier
+answered TRANSIENTLY (`registry.is_transient` — a timeout, 406, 408, 429, 5xx) and no record came
+back, `admit_registry` returns `outcome='registry-transient'` without calling litkb.admit() at all.
+That is not a verdict pre-empted; it is a verdict the database could only get wrong, because check
+1 cannot see the difference between "no registry holds this identifier" and "the registry was down
+for four minutes" and would write the first as a terminal refusal.
+
 A file admitted IN PLACE (an existing corpus file under the literature root) is only read: its binding is
 measured, its path recorded. Nothing here moves, renames or writes a file.
 """
@@ -181,6 +188,28 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
         identifiers.append({"scheme": "arxiv", "value": arxiv.strip(), "verified_by": "arxiv" if r else None,
                             "evidence": _registry.evidence(r, claimed) if r else {"registry_calls": [("arxiv", st)]}})
         rec = rec or r
+    # BEGIN guard: a registry that answered transiently is a RETRY, not a refused admission
+    # Check 1 confirms the identifier against its registry, and with no record it refuses: "no doi,
+    # arxiv or isbn identifier was confirmed by a registry". That sentence is TRUE of a DOI no
+    # registry holds and equally true of a registry that was down for four minutes, and the
+    # admission row it writes is terminal either way — 2026-09-20, arXiv 2412.05728, refused twice
+    # on a 406 and admitted on the third call 4m17s later. The two are told apart by the STATUS the
+    # registry answered with (`registry.is_transient`), which is the only evidence there is, and
+    # the transient one writes NOTHING: no admission row, no refusal, no candidate consumed. The
+    # caller is handed a result whose outcome names it, so every existing caller (hunt, the CLI,
+    # the migrate passes) reads it exactly where it already reads a non-`admitted` outcome.
+    if rec is None and (doi or arxiv):
+        transient = [c for c in checks["registry_calls"] if _registry.is_transient(c["status"])]
+        if transient:
+            return {"outcome": "registry-transient", "registry_calls": checks["registry_calls"],
+                    "transient": transient, "retryable": True,
+                    "identifier": str(doi or arxiv),
+                    "message": ("the registry answered "
+                                + ", ".join(f"{c['registry']} {c['status']}" for c in transient)
+                                + f" for {doi or arxiv} — a transient answer, not a verdict on the "
+                                  "record. Nothing was admitted and nothing was written; hunt the "
+                                  "reference again.")}
+    # END guard: a registry that answered transiently is a RETRY, not a refused admission
     if registry_only:
         for i in identifiers:
             if i.get("verified_by"):

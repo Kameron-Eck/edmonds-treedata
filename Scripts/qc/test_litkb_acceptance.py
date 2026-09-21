@@ -1127,3 +1127,106 @@ def test_an_unreadable_migration_tip_is_blank_not_the_on_disk_tip(soak):
     """"what the repository holds" and "what the database has applied" are different facts, and
     S7 compares them. Substituting one for the other would make that comparison always pass."""
     assert soak.migration_tip("no_such_database_at_all") == ""
+
+
+# ── preflight: each check mutated in isolation ────────────────────────────────────────────
+
+SOAK_HEADER = ("ts_utc,host,repo_head,migration_tip,search_ok,search_ms,search_hits,hunt_ok,"
+               "hunt_ms,hunt_state,hunt_key,doctor_ok,doctor_detail,error")
+
+
+def _preflight_repo(tmp_path, monkeypatch, mod, *, soak_ts="2026-09-21T03:17:00Z",
+                    search_ok="true", hunt_ok="true", servers=("litkb", "paper-search-mcp"),
+                    repo_tip=27, db_tip=27, parity=True, token=False):
+    """A fake repository root with every input the preflight reads, all healthy by default."""
+    repo = tmp_path / "repo"
+    (repo / "Reports").mkdir(parents=True)
+    (repo / ".mcp.json").write_text(json.dumps({"mcpServers": {s: {} for s in servers}}),
+                                    encoding="utf-8")
+    (repo / "Reports" / "LITKB_SOAK.csv").write_text(
+        SOAK_HEADER + f"\n{soak_ts},h,abc,27,{search_ok},3,5,{hunt_ok},9,extracted,K,,,\n",
+        encoding="utf-8")
+    if token:
+        (repo / ".litkb-workstream").write_bytes(TOKEN_BYTES)
+    monkeypatch.setattr(mod, "repo_migration_tip", lambda: repo_tip)
+    monkeypatch.setattr(mod, "db_migration_tip", lambda db, passfile=None: (db_tip, None))
+    monkeypatch.setattr(mod, "_rev_parse",
+                        lambda r, ref: "aaaa" if (ref != "github/main" or parity) else "bbbb")
+    return repo
+
+
+NOW = "2026-09-21T09:00:00+00:00"
+
+
+def _pf(mod, repo):
+    import datetime as dt
+    return mod.check_preflight(repo, now=dt.datetime.fromisoformat(NOW))
+
+
+def test_a_healthy_tree_passes_preflight(mod, tmp_path, monkeypatch):
+    counters, _ = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod))
+    assert counters == {"stray_tokens": 0, "migration_mismatch": 0, "mcp_servers_missing": 0,
+                        "main_not_at_parity": 0, "soak_stale": 0}
+
+
+def test_a_token_in_the_tree_root_is_a_stray(mod, tmp_path, monkeypatch):
+    """S1 attempt 1 left one there; every later hunt from that tree would have used it."""
+    counters, detail = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod, token=True))
+    assert counters["stray_tokens"] == 1 and sum(counters.values()) == 1
+    assert any("stray token" in d for d in detail)
+
+
+def test_a_migration_on_disk_but_not_applied_fires(mod, tmp_path, monkeypatch):
+    counters, _ = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod, repo_tip=28, db_tip=27))
+    assert counters["migration_mismatch"] == 1 and sum(counters.values()) == 1
+
+
+def test_an_unreadable_db_tip_is_a_mismatch_not_a_pass(mod, tmp_path, monkeypatch):
+    counters, _ = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod, db_tip=None))
+    assert counters["migration_mismatch"] == 1
+
+
+def test_a_missing_mcp_server_fires(mod, tmp_path, monkeypatch):
+    counters, detail = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod, servers=("litkb",)))
+    assert counters["mcp_servers_missing"] == 1 and sum(counters.values()) == 1
+    assert any("paper-search-mcp" in d for d in detail)
+
+
+def test_main_not_at_parity_fires(mod, tmp_path, monkeypatch):
+    counters, _ = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod, parity=False))
+    assert counters["main_not_at_parity"] == 1 and sum(counters.values()) == 1
+
+
+def test_a_soak_row_older_than_a_missed_night_is_stale(mod, tmp_path, monkeypatch):
+    counters, _ = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod, soak_ts="2026-09-19T03:17:00Z"))
+    assert counters["soak_stale"] == 1 and sum(counters.values()) == 1
+
+
+def test_a_fresh_but_red_soak_row_is_stale(mod, tmp_path, monkeypatch):
+    """Fresh is not enough: a night that ran and failed is the finding S7 exists to catch."""
+    counters, detail = _pf(mod, _preflight_repo(tmp_path, monkeypatch, mod, hunt_ok="false"))
+    assert counters["soak_stale"] == 1
+    assert any(d.startswith("SOAK STALE") for d in detail)
+
+
+def test_no_soak_file_is_stale(mod, tmp_path, monkeypatch):
+    repo = _preflight_repo(tmp_path, monkeypatch, mod)
+    (repo / "Reports" / "LITKB_SOAK.csv").unlink()
+    counters, _ = _pf(mod, repo)
+    assert counters["soak_stale"] == 1
+
+
+def test_preflight_exits_one_on_any_counter(mod, capsys, tmp_path, monkeypatch):
+    repo = _preflight_repo(tmp_path, monkeypatch, mod, token=True)
+    code, out, err = run(mod, capsys, ["preflight", "--repo", str(repo), "--db", "unused"])
+    assert code == 1 and "stray_tokens=1" in out and "stray token" in err
+
+
+def test_a_bom_prefixed_scout_log_is_still_read(mod, tmp_path):
+    """PowerShell's `>` writes a UTF-8 BOM; the first line must not be silently skipped."""
+    log = tmp_path / "scout.jsonl"
+    body = ('{"type":"system","subtype":"init"}\n'
+            '{"type":"result","subtype":"success","permission_denials":[],'
+            '"result":"SCOUT-STOP: n=0 reason=x"}\n')
+    log.write_bytes(b"\xef\xbb\xbf" + body.encode("utf-8"))
+    assert mod.read_log(log) == (0, 1, [])

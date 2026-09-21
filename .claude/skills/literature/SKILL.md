@@ -102,6 +102,10 @@ against text already in hand. Skipping it discards the prior.
 
 Stop at the FIRST of these:
 
+- **No topic.** If the launch prompt carries no `TOPIC:` line, or the line is empty, stop
+  BEFORE opening a workstream: `SCOUT-STOP: n=0 reason=no-topic`. Never choose a topic — the
+  first real run received a prompt cut short by the launching shell, improvised a topic from
+  the project's files, and wrote nine drop-offs nobody had asked for.
 - **15 drop-offs.** A cap, not a target.
 - **Two consecutive queries add nothing new** — no candidate the earlier queries had not already
   surfaced.
@@ -112,7 +116,7 @@ Stop at the FIRST of these:
 Then say so, on the first line of the last message, in this exact shape:
 
 ```
-SCOUT-STOP: n=<drop-offs recorded> reason=<cap|no-new-results|nothing-relevant|refused:<code>>
+SCOUT-STOP: n=<drop-offs recorded> reason=<cap|no-new-results|nothing-relevant|no-topic|refused:<code>>
 ```
 
 Under it: every drop-off's `hunt_request_id`, `ref` and confidence; what was searched; what was

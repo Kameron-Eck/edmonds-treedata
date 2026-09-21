@@ -1410,10 +1410,16 @@ def _web_snapshot(conn, ws_id, token, url, data, out, timing, refusals, *, store
     # PDF's first page goes through (`web_snapshot_evidence`); a sign-in page, a consent wall or a
     # 404 body does not bind a paper's title and never becomes the work.
     if res.get("outcome") != "proposed":
+        outcome = res.get("outcome")
+        if outcome in ("duplicate", "duplicate-review"):
+            why = ("Check 2 found the identifier, or a title within the duplicate threshold, "
+                   "already held — in main or as another workstream's proposal; `litkb_work` "
+                   "says which, and admitting it again changes nothing.")
+        else:
+            why = ("Check 3 binds the claimed title against the text that landed, so a sign-in "
+                   "page or a consent wall refuses here rather than becoming the work.")
         raise HuntRefused("admission-refused",
-                          "the web page was not admitted; the checks say why. Check 3 binds the "
-                          "claimed title against the text that landed, so a sign-in page or a "
-                          "consent wall refuses here rather than becoming the work.",
+                          f"the web page was not admitted ({outcome}); the checks say why. {why}",
                           admission=_thin(res), snapshot=store.rel(path))
     # END guard: a page that does not bind its claimed title is refused, never snapshotted in
     out["admission"] = _thin(res)

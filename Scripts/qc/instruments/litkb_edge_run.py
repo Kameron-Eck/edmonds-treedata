@@ -329,10 +329,6 @@ def _pdf_bytes(title, author, salt="edge"):
     return out
 
 
-HTML_BYTES = (b"<!DOCTYPE html>\n<html><head><title>Sign in</title></head>"
-              b"<body>You must sign in to download this file.</body></html>\n" + b"x" * 400)
-
-
 class _StatusRegistry:
     """A registry client that answers ONE status to everything — `qc/test_litkb_hunt.py`'s
     `_Status`, and `_NoNet` is its 404 twin."""

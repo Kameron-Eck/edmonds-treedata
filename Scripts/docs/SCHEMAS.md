@@ -1919,7 +1919,10 @@ bind the claimed title is `refused` / `admission-refused`.
 
 **The staging reaper (S3).** `litkb reap` (`pipeline/litkb/ops/reaper.py`) walks
 `_litkb_staging/{incoming,filed,web}` and gives every file ONE verdict from `owned` (its sha256 is
-a `litkb.files` row, OR a `file_versions.rel_path` names its path) · `young` (a sibling lock
+a `litkb.files` row, OR a `file_versions.rel_path` names its path, OR an admission's checks name
+it — `checks->'web'->>'snapshot'` / `->>'document'`, the evidence of a proposal that has no file
+row of its own; the first live dry run called the FPGA proposal's snapshot an orphan,
+2026-09-21) · `young` (a sibling lock
 suffix holds it open, or its mtime is under `--min-age-hours`, default 72) · `orphan` (neither).
 Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a reason file
 (`Store.to_quarantine` + `write_reason`) — the reaper never deletes and never writes the database.

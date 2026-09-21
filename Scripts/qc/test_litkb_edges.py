@@ -392,13 +392,21 @@ def test_the_register_replays_on_a_worker_database(A, E, register, tmp_path, lit
 
     This is the proof the register is adjudicated rather than asserted: each row's expected pair
     is produced by the real `litkb.hunt.hunt` with the world replaced at the seams the hunt suite
-    already uses. E06 is EXPECTED to mismatch until builder B lands hunt's HTML branch — its
-    register row says so in those words, and this test states the same rather than excusing it.
+    already uses. Every row must match — E06 included, since builder B's HTML branch landed.
 
     THE FIXTURE'S CONNECTION IS PASSED IN, and it has to be: `litkb_pg_base` holds the suite's
     advisory lock for the whole pytest session, so a replay that opened its own connection would
     wait on it forever (`run_replay`'s docstring records the measurement). The fixture has already
-    reset and migrated this database, so nothing is reset here."""
+    reset and migrated this database before the replay.
+
+    AND THE DATABASE IS RESET AGAIN AFTERWARDS. The replay admits real works — E06 admits the
+    Crossref article under its plain title — into the session-shared worker database, and
+    `litkb._title_duplicates` is GLOBAL over every work_versions row (any workstream, any state,
+    0.70). `qc/test_litkb_hunt.py`'s page hunts admit the same page under a suffixed title and
+    went `duplicate-review` → `refused/admission-refused` whenever this module ran first (the
+    S3 phase-2 audit: 4 red with `edges,hunt`, 85 passed reversed). A test whose result depends
+    on collection order is not a test; the reset puts the database back the way the fixture
+    hands it to everyone else."""
     import os
 
     db = os.environ.get("LITKB_TEST_DB") or "litkb_test"
@@ -406,17 +414,22 @@ def test_the_register_replays_on_a_worker_database(A, E, register, tmp_path, lit
         pytest.skip("LITKB_TEST_DB is the live database")
     _psycopg, conn, _ran = litkb_pg_base
     out = tmp_path / "replay.csv"
-    E.run_replay(register, out, db=db, tmp=str(tmp_path), conn=conn)
+    try:
+        E.run_replay(register, out, db=db, tmp=str(tmp_path), conn=conn)
+    finally:
+        from litkb.db import migrate
+
+        migrate.reset(conn)
+        migrate.apply(conn)
     manifest = {"kind": "litkb-edges", "db": db, "db_migration_tip": 28,
                 "fixture": str(FIXTURE), "fixture_sha256": A._sha256(FIXTURE),
                 "rows": [{"id": r["id"], "mode": E.resolve_mode(r, 28)}
                          for r in E.rows_of(register)],
                 "run_csv": str(out), "replay_csv": str(out)}
     counters, offences = A.check_edges(manifest, csv_path=str(out), replay=True)
-    blocked_on_b = {"E06"}
-    bad = sorted({o.split(":", 1)[0] for o in offences}) if offences else []
     assert counters["tracebacks"] == 0, offences
     assert counters["skipped"] == 0, offences
-    assert set(bad) <= blocked_on_b, offences
+    assert counters["state_or_reason_mismatches"] == 0, offences
+    assert offences == [], offences
     assert counters["executed"] == len(
         [r for r in E.rows_of(register) if E.is_hunt_row(r)]), counters

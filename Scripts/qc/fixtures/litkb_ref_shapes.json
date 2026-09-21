@@ -8,7 +8,7 @@
   "seed": "a work seeded into the database before the hunt (scheme/value/state), or null. Seeding is how a row reaches a ladder rung without admitting anything: admission is tested by qc/test_litkb_p2.py, this file tests the front door",
   "fetch": "what the injected fetch does: explode (any call fails the test), html (200 + an HTML sign-in page), pdf (200 + a synthetic one-page PDF)",
   "registry": "none (a client that answers 404 to everything) or title_gate (the frozen Crossref search body of qc/fixtures/litkb_title_gate_wrong_work.json, served for api.crossref.org/works? and 404 for everything else)",
-  "expect": "the result: ok + state + outcome, or ok=false + the refusal code",
+  "expect": "the result: ok + state + reason (+ the outcome derived from the pair), or ok=false + state `refused` + the refusal code, which is also its reason. Every pair is a member of litkb.hunt.STATES x litkb.hunt.REASONS (S3)",
   "why": "what this row is protecting"
  },
  "rows": [
@@ -20,7 +20,7 @@
    "seed": {"scheme": "doi", "value": "10.9999/refshape.doi", "state": "extracted"},
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": true, "ref_kind": "doi", "state": "extracted", "outcome": "already-extracted"},
+   "expect": {"ok": true, "ref_kind": "doi", "state": "extracted", "reason": "already-extracted", "outcome": "already-extracted"},
    "why": "the shape that always worked, kept as the control: a strict DOI regex that rejected real DOIs would show up here first."
   },
   {
@@ -31,7 +31,7 @@
    "seed": {"scheme": "arxiv", "value": "2106.15928", "state": "extracted"},
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": true, "ref_kind": "arxiv", "state": "extracted", "outcome": "already-extracted"},
+   "expect": {"ok": true, "ref_kind": "arxiv", "state": "extracted", "reason": "already-extracted", "outcome": "already-extracted"},
    "why": "an arXiv id is its OWN scheme, not a DOI. The hunted form carries the `arXiv:` prefix and a `v2` the stored identifier does not, so this also proves hunt's normaliser and litkb.norm_identifier('arxiv', ...) agree — a reference that normalised differently would miss the work and be admitted a second time."
   },
   {
@@ -42,7 +42,7 @@
    "seed": null,
    "fetch": "pdf",
    "registry": "none",
-   "expect": {"ok": true, "ref_kind": "url", "state": "bound-unextracted", "outcome": "bound"},
+   "expect": {"ok": true, "ref_kind": "url", "state": "bound-unextracted", "reason": "fresh-bound", "outcome": "bound"},
    "why": "the web-source path, end to end minus the GPU: fetched, shape-checked, filed under the work key and admitted as a manual PROPOSAL. extract=false stops before GROBID/Docling, which no unit test may run."
   },
   {
@@ -53,7 +53,7 @@
    "seed": null,
    "fetch": "html",
    "registry": "none",
-   "expect": {"ok": false, "ref_kind": "url", "refused": "not-a-pdf"},
+   "expect": {"ok": false, "state": "refused", "ref_kind": "url", "refused": "not-a-pdf"},
    "why": "a URL whose shape is fine and whose BYTES are not. The reference validation must not swallow this: it is a different refusal, made later, on the bytes (the 2026-09-15 incident, row H1)."
   },
   {
@@ -64,7 +64,7 @@
    "seed": {"scheme": "doi", "value": "10.2307/2345225", "state": "extracted"},
    "fetch": "explode",
    "registry": "title_gate",
-   "expect": {"ok": true, "ref_kind": "title", "state": "extracted", "outcome": "already-extracted",
+   "expect": {"ok": true, "ref_kind": "title", "state": "extracted", "reason": "already-extracted", "outcome": "already-extracted",
               "resolved_doi": "10.2307/2345225"},
    "why": "the new scheme, and the handoff that makes it work: the title goes through gate 0 (resolve_doi -> RESOLVE_TITLE_RATIO -> first-author family -> year) and the DOI it returns is what the ladder looks up. `ref_kind` stays 'title' -- that is what the REFERENCE is -- and the DOI appears under `resolved`. This row quotes the frozen candidate's title EXACTLY, so its ratio is 1.00 and RESOLVE_TITLE_RATIO is untouched; the same frozen response with a NEAR title (ratio 0.83) is refused by test_a_wrong_work_scoring_just_under_the_ratio_is_refused. One response, both sides of the gate."
   },
@@ -76,7 +76,7 @@
    "seed": null,
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": false, "ref_kind": "title", "refused": "malformed-ref", "message_names": "--author"},
+   "expect": {"ok": false, "state": "refused", "ref_kind": "title", "refused": "malformed-ref", "message_names": "--author"},
    "why": "gate 0 judges on title AND first-author family AND year. Without the surname every candidate is refused for a reason that has nothing to do with the title, and the hunt would report `ambiguous-title` for a reference that was never resolvable. The refusal NAMES the missing flag instead."
   },
   {
@@ -87,7 +87,7 @@
    "seed": null,
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": false, "ref_kind": "title", "refused": "malformed-ref", "message_names": "--year"},
+   "expect": {"ok": false, "state": "refused", "ref_kind": "title", "refused": "malformed-ref", "message_names": "--year"},
    "why": "the other half. A title with no year accepts a sibling edition as readily as the work, and litkb does not guess a year."
   },
   {
@@ -100,7 +100,7 @@
    "seed": {"scheme": "doi", "value": "10.2307/2345225", "state": "extracted"},
    "fetch": "explode",
    "registry": "title_gate",
-   "expect": {"ok": true, "ref_kind": "title", "state": "extracted", "outcome": "already-extracted",
+   "expect": {"ok": true, "ref_kind": "title", "state": "extracted", "reason": "already-extracted", "outcome": "already-extracted",
               "resolved_doi": "10.2307/2345225", "filled": ["author", "year"],
               "first_author": "Plackett"},
    "why": "THE DRIVER'S PATH. A scout drops off a title with claimed_authors and claimed_year, and a driver hunts it by id ALONE -- no ref_scheme, no --author, no --year. The row supplies all three. Without this the scheme resolves to `title`, author and year stay None, and the missing-field guard refuses a hunt for fields the database was holding two columns away. `Plackett, R. L. and Barnard, G. A.` also exercises the surname rule: split on ' and ', first entry, the part before the comma -> `Plackett`, which is the family name the resolver's candidate carries."
@@ -114,7 +114,7 @@
    "seed": null,
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": false, "ref_kind": "title", "refused": "malformed-ref",
+   "expect": {"ok": false, "state": "refused", "ref_kind": "title", "refused": "malformed-ref",
               "message_names": "claimed_authors"},
    "why": "the other half: the row itself is silent, so the guard still fires -- filling from the record is not guessing, and a blank column is not a value. The message names the COLUMN rather than `--author`, because a driver hunting by id has no flag to reach for and being told to pass one it cannot pass is what an unattended loop stalls on."
   },
@@ -126,7 +126,7 @@
    "seed": null,
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": false, "ref_kind": "title", "refused": "unresolved-title"},
+   "expect": {"ok": false, "state": "refused", "ref_kind": "title", "refused": "unresolved-title"},
    "why": "gate 0 saw NO candidate at all (every registry answered 404). That is a different problem from a candidate the gate refused, and the next move is a better title -- so it gets its own code rather than being folded into `ambiguous-title`."
   },
   {
@@ -137,7 +137,7 @@
    "seed": null,
    "fetch": "explode",
    "registry": "title_gate",
-   "expect": {"ok": false, "ref_kind": "title", "refused": "ambiguous-title"},
+   "expect": {"ok": false, "state": "refused", "ref_kind": "title", "refused": "ambiguous-title"},
    "why": "the SAME frozen response as the `title` row, queried with a near-title instead of the exact one: the candidate scores 0.83, gate 0 refuses it, and the hunt says a candidate was found and refused rather than pretending none existed. This is the identity gate seen from inside hunt() -- test_a_wrong_work_scoring_just_under_the_ratio_is_refused is the same refusal seen at resolve_doi."
   },
   {
@@ -148,7 +148,7 @@
    "seed": null,
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": false, "ref_kind": null, "refused": "unsupported-ref-scheme", "ref_scheme": "isbn"},
+   "expect": {"ok": false, "state": "refused", "ref_kind": null, "refused": "unsupported-ref-scheme", "ref_scheme": "isbn"},
    "why": "(c) item 2. A scheme litkb RECORDS and a hunt cannot follow is a RESULT that says so and names who owns it (S3) -- never a traceback, and never an attempt to confirm an ISBN at Crossref as if it were a DOI. `ref_kind` is null because nothing was validated as huntable; the scheme that WAS recognised comes back as `ref_scheme`, so a caller can tell 'litkb has no route for this' from 'litkb has never heard of this'."
   },
   {
@@ -159,7 +159,7 @@
    "seed": null,
    "fetch": "explode",
    "registry": "none",
-   "expect": {"ok": false, "ref_kind": null, "refused": "malformed-ref"},
+   "expect": {"ok": false, "state": "refused", "ref_kind": null, "refused": "malformed-ref"},
    "why": "(c) item 1, and the whole reason ref_kind stopped classifying. This string used to be called a DOI, handed to admit_registry and killed with AdmissionError('... is not a DOI'). It is now a named refusal, and `ref_kind` is null rather than a guess."
   }
  ]

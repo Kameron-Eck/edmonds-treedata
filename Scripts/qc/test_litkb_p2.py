@@ -715,10 +715,15 @@ def test_make_key_is_the_same_whatever_case_the_registry_prints_the_surname_in(r
 
 
 def test_scihub_challenge_is_recorded_blocked_and_not_bypassed():
+    """`mirrors=` is passed EXPLICITLY since S3: the list moved to `litkb.config` and is four long
+    (Kam's operating note names all four), and this row is about what the route DOES with a 403 and
+    a captcha — one GET each, no retry with extra headers — not about how many mirrors exist. The
+    list itself is covered by qc/test_litkb_hunt.py, `..._four_kams_note_names_and_the_env_...`."""
     from litkb.acquire import scihub
     stub = RouteStub({"sci-hub.ru": (403, {}, b"<html><title>Just a moment...</title></html>"),
                       "sci-hub.ren": (200, {}, b"<html><title>Verification</title>captcha</html>")})
-    r = scihub.fetch_scihub("10.1/x", _nopace(), client=stub)
+    r = scihub.fetch_scihub("10.1/x", _nopace(), client=stub,
+                            mirrors=("https://sci-hub.ru", "https://sci-hub.ren"))
     assert r["status"] == "blocked" and r["pdf"] is None
     assert len(stub.calls) == 2, stub.calls          # one GET per mirror, no retry with extra headers
 

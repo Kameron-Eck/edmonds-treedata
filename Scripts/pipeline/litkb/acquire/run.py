@@ -34,6 +34,7 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from litkb import config as _config
 from litkb.acquire.store import QUARANTINE, STAGING, Store, file_facts, pdf_shape
 from litkb.admit import binding as _binding
 from litkb.netutil import Pacer, add_secret, redact
@@ -344,8 +345,14 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
     clients = clients or {}
     pacer = pacer or Pacer(interval=3.0)
     attempts = []
+    #: `attempts` is the (route, status) pair callers already read and its shape does not change.
+    #: `route_detail` is the same list with what the CALLER needs to classify a ladder that landed
+    #: nothing: the HTTP codes (403 is a host refusing, a challenge is not) and the exception class
+    #: when the route raised. `litkb.hunt` reads it for the precedence rule that decides between
+    #: `blocked`, `api-error` and `held` (docs/SCHEMAS.md, the hunt's terminal states).
+    route_detail = []
     if work["held_files"] and from_file is None:
-        return {"outcome": "already-held", "attempts": attempts}
+        return {"outcome": "already-held", "attempts": attempts, "route_detail": route_detail}
     index = store.disk_index()
     dedupe = index                  # (the whole index, if the line below is ever removed: see index_of_held)
     # BEGIN guard: the dedupe asks what the corpus HOLDS, and staging and quarantine hold nothing
@@ -374,7 +381,8 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
                                                  index=dedupe, agent=agent, session=session)
         record_attempt(conn, ws, token, wid, "browser", work.get("doi") or work.get("arxiv"), status, detail)
         attempts.append(("browser", status))
-        return {"outcome": status, "attempts": attempts}
+        route_detail.append({"route": "browser", "status": status, "codes": [], "exception": ""})
+        return {"outcome": status, "attempts": attempts, "route_detail": route_detail}
 
     prior = prior_attempts(conn, wid)
     for route in routes:
@@ -389,44 +397,71 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             printer(f"  {route}: skipped, by DOI only and the work has no DOI")
             continue
         codes = []
-        if route == "open_access":
-            r = _oa.fetch_open_access(work.get("doi"), work.get("arxiv"), pacer, client=clients.get("open_access"))
-        elif route == "scihub":
-            r = _sh.fetch_scihub(work["doi"], pacer, client=clients.get("scihub"))
-        elif route == "annas":
-            # BEGIN guard: the archive route stops at the quota margin or the run cap
-            if budget.stopped or budget.used >= budget.max_archive_downloads:
-                reason = budget.stopped or f"this run's cap of {budget.max_archive_downloads} archive downloads is used"
-                record_attempt(conn, ws, token, wid, "annas", ident, "quota-stop", {"reason": reason})
-                attempts.append(("annas", "quota-stop"))
-                continue
-            # END guard: the archive route stops at the quota margin or the run cap
-            if annas_session is None:
-                annas_session = _annas.open_session()
-            aclient, key = annas_session
-            add_secret(key)             # an injected session's key is redacted like open_session()'s
-            if aclient is None:
-                record_attempt(conn, ws, token, wid, "annas", ident, "api-error", {"reason": "login failed"})
-                attempts.append(("annas", "api-error"))
-                continue
-            r = _annas.fetch_for_litkb(aclient, key, work["doi"], annas_pacer or Pacer(), known_md5=index["md5"].keys(),
-                                       quota_margin=budget.quota_margin)
-            if r.get("quota"):
-                budget.counter.append(r["quota"])
-            if r["status"] == "quota-stop":
-                budget.stopped = r["detail"]
-            if r["downloads_left"] not in ("", None):
-                budget.downloads_left.append(r["downloads_left"])
-                if str(r["downloads_left"]).isdigit() and int(r["downloads_left"]) <= budget.quota_margin:
-                    budget.stopped = (f"downloads_left {r['downloads_left']} is at or below the safety margin "
-                                      f"{budget.quota_margin}")
-            # BEGIN guard: an issued download URL spends the run cap
-            # the archive counts a download when it issues the URL, so a partner 404 or a bad file spends one too
-            if r.get("url_issued"):
-                budget.used += 1
-            # END guard: an issued download URL spends the run cap
-        else:
+        if route not in ("open_access", "annas", "scihub"):
             raise ValueError(f"unknown route {route!r}")
+        # BEGIN guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
+        # Until S3 an exception out of any of the three route calls below — a socket reset the
+        # client did not model, a parser that met a shape it did not expect, an archive page that
+        # changed — propagated out of acquire(), out of hunt._spend_on_held, and into hunt()'s
+        # generic boundary, which answered `refused: "error"`. TWO things were lost there: the
+        # attempt row (record_attempt is at the bottom of this loop and was never reached, so
+        # `acquisition_attempts` holds no trace that the route was ever tried), and the ladder —
+        # one route raising ended the other two. The row is the point: it is what DEAD_STATUSES,
+        # the held queue and every later "what has this work been through" question read.
+        try:
+            if route == "open_access":
+                r = _oa.fetch_open_access(work.get("doi"), work.get("arxiv"), pacer,
+                                          client=clients.get("open_access"))
+            elif route == "scihub":
+                r = _sh.fetch_scihub(work["doi"], pacer, client=clients.get("scihub"),
+                                     mirrors=_config.SCIHUB_MIRRORS)
+            else:
+                # BEGIN guard: the archive route stops at the quota margin or the run cap
+                if budget.stopped or budget.used >= budget.max_archive_downloads:
+                    reason = budget.stopped or f"this run's cap of {budget.max_archive_downloads} archive downloads is used"
+                    record_attempt(conn, ws, token, wid, "annas", ident, "quota-stop", {"reason": reason})
+                    attempts.append(("annas", "quota-stop"))
+                    route_detail.append({"route": "annas", "status": "quota-stop", "codes": [], "exception": ""})
+                    continue
+                # END guard: the archive route stops at the quota margin or the run cap
+                if annas_session is None:
+                    annas_session = _annas.open_session()
+                aclient, key = annas_session
+                add_secret(key)             # an injected session's key is redacted like open_session()'s
+                if aclient is None:
+                    record_attempt(conn, ws, token, wid, "annas", ident, "api-error", {"reason": "login failed"})
+                    attempts.append(("annas", "api-error"))
+                    route_detail.append({"route": "annas", "status": "api-error", "codes": [], "exception": ""})
+                    continue
+                r = _annas.fetch_for_litkb(aclient, key, work["doi"], annas_pacer or Pacer(), known_md5=index["md5"].keys(),
+                                           quota_margin=budget.quota_margin)
+                if r.get("quota"):
+                    budget.counter.append(r["quota"])
+                if r["status"] == "quota-stop":
+                    budget.stopped = r["detail"]
+                if r["downloads_left"] not in ("", None):
+                    budget.downloads_left.append(r["downloads_left"])
+                    if str(r["downloads_left"]).isdigit() and int(r["downloads_left"]) <= budget.quota_margin:
+                        budget.stopped = (f"downloads_left {r['downloads_left']} is at or below the safety margin "
+                                          f"{budget.quota_margin}")
+                # BEGIN guard: an issued download URL spends the run cap
+                # the archive counts a download when it issues the URL, so a partner 404 or a bad file spends one too
+                if r.get("url_issued"):
+                    budget.used += 1
+                # END guard: an issued download URL spends the run cap
+        except Exception as e:                  # noqa: BLE001 — the route boundary is the point
+            # `detail` through the SAME record_attempt every other status uses, so the row is
+            # redacted (run._redacted) like every other row and needs no second redaction site.
+            # 200 characters of the message: the class name is what says WHAT went wrong, and a
+            # stack-shaped repr in a jsonb column is the traceback this whole change removes.
+            record_attempt(conn, ws, token, wid, route, ident, "api-error",
+                           {"exception": type(e).__name__, "message": str(e)[:200]})
+            attempts.append((route, "api-error"))
+            route_detail.append({"route": route, "status": "api-error", "codes": [],
+                                 "exception": type(e).__name__})
+            printer(f"  {route}: api-error ({type(e).__name__})")
+            continue
+        # END guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
         codes = r.get("http_codes") or []
         detail = {k: r.get(k) for k in ("detail", "tried", "via", "md5", "record_doi", "title_best",
                                         "downloads_left", "rec_size", "quota") if r.get(k) not in (None, "", [])}
@@ -452,17 +487,20 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             status = r["status"]
         record_attempt(conn, ws, token, wid, route, ident, status, detail, codes)
         attempts.append((route, status))
+        route_detail.append({"route": route, "status": status, "codes": [int(c) for c in codes],
+                             "exception": ""})
         printer(f"  {route}: {status}")
         if status == "ok":
-            return {"outcome": "ok", "attempts": attempts, "detail": detail}
+            return {"outcome": "ok", "attempts": attempts, "detail": detail, "route_detail": route_detail}
         if status == "duplicate-held":
-            return {"outcome": "duplicate-held", "attempts": attempts, "detail": detail}
+            return {"outcome": "duplicate-held", "attempts": attempts, "detail": detail,
+                    "route_detail": route_detail}
     if not any(p[0] == "browser" and p[1] == "manual-step" for p in prior) or retry_dead:
         record_attempt(conn, ws, token, wid, "browser", work.get("doi"), "manual-step",
                        {"instruction": "no automated route landed a file; fetch it in one browser session, then "
                                        f"py -3.12 -m litkb acquire --key {work['key']} --from-file <path>"})
         attempts.append(("browser", "manual-step"))
-    return {"outcome": "not-acquired", "attempts": attempts}
+    return {"outcome": "not-acquired", "attempts": attempts, "route_detail": route_detail}
 
 
 def file_from_path_facts(path):

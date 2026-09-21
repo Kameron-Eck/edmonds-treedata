@@ -1574,7 +1574,7 @@ def _edge_rows(fixture_path):
     return json.loads(read_text(fixture_path))
 
 
-def _asserts_offences(row, csv_row):
+def _asserts_offences(row, csv_row, *, replay=False):
     """The register's extra `asserts`, checked against the CSV row. -> [offence lines].
 
     These are the facts `state` deliberately does NOT carry — whether the work reached main,
@@ -1583,6 +1583,12 @@ def _asserts_offences(row, csv_row):
     passed."""
     out = []
     a = row.get("asserts") or {}
+    if replay and "asserts" in (row.get("replay") or {}):
+        # the replay's twin of `replay.expected`: a freshly migrated database and the live corpus
+        # can give one row two right answers (E06: a held work in main makes the page a
+        # duplicate live; the empty replay database makes it a proposal with blocks), and the
+        # facts `state` does not carry differ with them
+        a = row["replay"]["asserts"] or {}
     rid = row["id"]
     try:
         report = json.loads(csv_row.get("report") or "{}")
@@ -1685,7 +1691,7 @@ def check_edges(manifest, *, rows=None, csv_path=None, replay=False, fixture_sha
         # END guard: the pair is compared, and membership alone cannot pass
         if got_state not in CLOSED_STATES:
             row_offences.append(f"{rid}: state {got_state!r} outside the closed vocabulary")
-        row_offences += _asserts_offences(row, hit)
+        row_offences += _asserts_offences(row, hit, replay=replay)
         if row_offences:
             mismatches += 1
             offences += row_offences

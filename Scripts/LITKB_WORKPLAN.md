@@ -22,22 +22,29 @@ Conventions this file obeys, so it does not become a fifth "living state":
 Update this block only. Everything else in the file changes when a session lands.
 
 - **Finish line:** `litkb-finish-line` — topic → graded review → synthesis, unattended.
-- **Current session:** S2 landed 2026-09-21 (`work/20260920-litkb-s2` merged as `0dd8886`;
-  run branch `work/20260920-litkb-s2-run`). One unseeded OA work crossed the whole loop:
-  `first-work` graded `new_works=1 bound=1 extracted=1 searchable=1 verified_uses=3
-  claims_ungraded=0 operator_interventions=0`, Codex 3/3 SUPPORTED, replay known-bad exit 1.
-  Report: `Reports/LITKB_FIRST_WORK_2026-09-21.md` (six bounded outcomes, said plainly).
-- **Next:** S3 (every hunt ends in a named, adjudicated state). Entry conditions, both Kam's:
-  migration **0028 applied live** (`py -3.12 -m litkb.db.migrate --db litkb`; the S2 run
-  happened one migration ahead of the DB) and the agent-hook path fix in
-  `Reports/LITKB_AGENT_HOOK_PATH_2026-09-21.md` (until then `review-writer`/`librarian` cannot Read from a
-  `Scripts\` session; carry documents inline). Carry-ins for S3's register, each with a live
-  instance: arXiv transient 406 → terminal `admission-refused` (S1); paper-search
-  `search_unpaywall` empty for every DOI incl. gold-OA controls (S2); `k2-never-fired` is
-  unreachable for a one-work run unless the work itself contradicts (S2 §3). For S4: Docling
-  produced no artifact on a native Copernicus PDF, GROBID carried it (S2 §4). Session rule
-  since S2: each session integrates its lessons into the project, then launches the next as a
-  new headless session (Fable orchestrating, bash + prompt file), which ends the old one.
+- **Current session:** S3 landed 2026-09-21 (phase 1 `work/20260921-litkb-s3-p1` → `7b806c7`,
+  phase 2 `work/20260921-litkb-s3-p2` → `568988b`). Every hunt ends in a named state: `edges`
+  graded live `executed=14 skipped=0 state_or_reason_mismatches=0 tracebacks=0 held_for_ruling=6
+  waits_on_migration=0` and `--replay` `executed=19 … mismatches=0 tracebacks=0` against one
+  manifest frozen before the run; both (c) known-bads fired live. Report:
+  `Reports/LITKB_EDGES_2026-09-21.md` (eight bounded outcomes, said plainly). Entry conditions
+  were met at 00:07 (0028 applied; hook fix `fd40a74`).
+- **Next:** S4 (everything acquired is readable or classified). Kam-side entry conditions: none
+  new (0028 is live; the agent-hook fix is on main). Kam's rulings pending, each a register row
+  with its question: E20 book · E21 sibling edition · E22 Chrisman_1982 · E23 fifteen
+  `skipped-low` · E24 twenty-two `refused-check1` · E25 the two quarantined arXiv PDFs; the
+  thirteen tracker-era manual proposals (survey question 8). Carry-ins: for S4 — Docling produced
+  no artifact on a native Copernicus PDF, GROBID carried it (S2 §4); E08 (`Hwang_1982`, "waits for
+  OCR") is `bound-unextracted/already-bound` with `extract=False` and is S4's first scan row;
+  `binding.TITLE_REGION_LINES = 45` is a PDF-page rule and a ceiling on web pages; a refused page
+  hunt leaves its snapshot in `_litkb_staging/web/` with no row (an orphan in 72 h — reap or
+  own it at refusal). For S5 — a DB home for hunt outcomes (the edge-run CSV is S3's home); a
+  live HTML-only hunt of a work NOT in the base (every S3 carrier was already held → check 2
+  duplicate); a `blocked` back-off (E13 spent 505 s retrying hosts that answer 403 — `blocked` is
+  in no route's `DEAD_STATUSES`). Session rule since S2: each session integrates its lessons,
+  then launches the next as a new session — since S3, in a NEW terminal window (`wt.exe` + bash
+  script + prompt file, `_derived/s4/launch-s4.sh`), not headless-to-a-log: S3 had to be moved
+  mid-run and its background builder died with the process.
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided (no seeding); S7 soak = seven nights
   started in S1. Kam re-registers the nightly-dump scheduled task (Windows task name
   litkb-nightly-dump) against the merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
@@ -438,7 +445,6 @@ lands, delete its rows.
 | item | owner |
 |---|---|
 | unknown-work handoff never exercised end to end; two acquisition provenance shapes | S2 |
-| terminal-state vocabulary not closed; HTML-only, two-DOI works, staging orphans, `absent` ambiguity, `litkb_acquire` strips `detail` (the MCP wrapper drops the whole dict), the approve path never run, Kam's held-row rulings; files still bound at `_litkb_staging/incoming/*.download` paths (the 2026-09-16 CSVs list sixteen; refile/rebind path needed — a retry returns `duplicate-held`) | S3 |
 | no extraction queue, no fail-closed page cap, zero-content/multi-file works, cross-page `page_no`, metrics in JSONL, superseded run sets, the book; the L4 formula re-crop of Reynolds_2000 and Montgomery_1991 never ran | S4 |
 | Codex cannot read block context; run-2 review fails the tightened grader; no run protocol | S5 |
 | no synthesis grammar or K3 | S6 |
@@ -446,7 +452,7 @@ lands, delete its rows.
 
 Adjudicated 2026-09-20 (S0, read-only against code): of the survey's twelve POSSIBLY-STALE items
 CLOSED R4 A5 B7 E6 E11 O9 O11 (A5 had misnamed the ref — `::b10` is Hall_1985, Burnicki's two
-cases are already pinned; O6 had misnamed the test); OPEN B5 → S3, E13 → S3, E10 → S4, O6 → S7,
+cases are already pinned; O6 had misnamed the test); OPEN B5 and E13 landed in S3, E10 → S4, O6 → S7,
 O8 → S7, rows above.
 
 ---

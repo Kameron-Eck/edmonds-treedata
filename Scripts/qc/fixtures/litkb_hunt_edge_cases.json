@@ -177,16 +177,22 @@
    "ref_scheme": "doi",
    "source": "held-queue `manifest:Kats_2019b_soft-staple-algorithm-combined` (Reports/held_queue_results.csv, survey-data §10 'unobtainable DOI'); litkb_reader SELECT 2026-09-21: work Kats_2019_soft-staple-algorithm-combined, 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + browser/manual-step.",
    "expected": {
-    "state": "held",
-    "reason": "not-acquired"
+    "state": "blocked",
+    "reason": "403"
    },
    "adjudication": {
-    "builder": "DEVIATION FROM THE BRIEF'S PROPOSAL, measured: no work in the corpus has all THREE routes dead. `DEAD_STATUSES['scihub']` is `{'not-in-archive'}` (acquire/run.py:42) and `scihub/not-in-archive` has ZERO rows live (survey-data §0's route/status census; re-measured 2026-09-21). So open_access and annas are dead-skipped (run.py:382-387) and Sci-Hub IS attempted — this row DOES spend. With no route landing a file, `_acquisition_stop` (hunt.py:797) finds no quota-stop, no blocked and no api-error in `route_detail` and falls through to `held/not-acquired`."
+    "builder": "DEVIATION FROM THE BRIEF'S PROPOSAL, measured: no work in the corpus has all THREE routes dead. `DEAD_STATUSES['scihub']` is `{'not-in-archive'}` (acquire/run.py:42) and `scihub/not-in-archive` has ZERO rows live (survey-data §0's route/status census; re-measured 2026-09-21). So open_access and annas are dead-skipped (run.py:382-387) and Sci-Hub IS attempted — this row DOES spend. With no route landing a file, `_acquisition_stop` (hunt.py:797) finds no quota-stop, no blocked and no api-error in `route_detail` and falls through to `held/not-acquired`.",
+    "orchestrator_2026-09-21": "LIVE 2026-09-21 (manifest frozen 10:09:12Z, head 568988b): OA and annas were dead-skipped as adjudicated, and Sci-Hub was really called through the four mirrors from config — sci-hub.ru 200=blocked, sci-hub.ren 200=blocked, sci-hub.box 403=blocked, sci-hub.wf 200=no-pdf-link — so the attempt is `blocked` and the precedence rule names `blocked/403` over `held/not-acquired`. The first expectation was a PREDICTION about a remote host (flagged by the phase-2 audit before the run) and it did not hold on the day. The pair recorded here is the one the code produces for what the host answered; the UNOBTAINABLE class (a Sci-Hub `not-in-archive`) is demonstrated in replay only — no corpus work has ever received that answer."
    },
    "live": {
     "mode": "execute",
     "why": "two routes are dead-skipped; Sci-Hub is really attempted",
-    "spend": true
+    "spend": true,
+    "prediction": true,
+    "first_expected": {
+     "state": "held",
+     "reason": "not-acquired"
+    }
    },
    "replay": {
     "inputs": {
@@ -225,7 +231,12 @@
     },
     "extract": {
      "kind": "off"
-    }
+    },
+    "expected": {
+     "state": "held",
+     "reason": "not-acquired"
+    },
+    "_why": "the replay stubs Sci-Hub to answer like a route with no copy, which is the unobtainable class; live, the host decides"
    },
    "asserts": {}
   },
@@ -347,15 +358,16 @@
    "ref_scheme": "url",
    "source": "acquisition_attempts open_access/bad-file for Tkaczyk_2024, doi 10.13003/ief7aibi, detail `unpaywall is_oa=True oa_status=gold; no %PDF- from doi.org` (survey-data §7 'URL-HTML-only'); the landing page that DOI resolves to.",
    "expected": {
-    "state": "extracted",
-    "reason": "fresh"
+    "state": "refused",
+    "reason": "admission-refused"
    },
    "adjudication": {
-    "builder": "BUILDER B'S PATH, AND IT DOES NOT EXIST ON THIS BRANCH. Today hunt fetches with `accept=application/pdf` and `land_download` raises `not-a-pdf` at hunt.py:589-623 before `admit_web` is ever called (survey-code §2.2), so on this branch the row answers `refused/not-a-pdf`. It is recorded with the state B's work must produce, and this row is EXPECTED to fail until B lands — it is not stubbed around. `proposed` is NOT a state (builder-A1.md §5.1): the proposal fact is carried by the asserts below, not by `state`."
+    "builder": "BUILDER B'S PATH, AND IT DOES NOT EXIST ON THIS BRANCH. Today hunt fetches with `accept=application/pdf` and `land_download` raises `not-a-pdf` at hunt.py:589-623 before `admit_web` is ever called (survey-code §2.2), so on this branch the row answers `refused/not-a-pdf`. It is recorded with the state B's work must produce, and this row is EXPECTED to fail until B lands — it is not stubbed around. `proposed` is NOT a state (builder-A1.md §5.1): the proposal fact is carried by the asserts below, not by `state`.",
+    "orchestrator_2026-09-21": "LIVE 2026-09-21: `refused/admission-refused` with admission outcome `duplicate-review`. Tkaczyk_2024_how-good-your-matching is ALREADY a held work in main (0 files; the 2026-09-15 `bad-file` OA attempts are its history), and `litkb._title_duplicates` is global, so a page hunted under that title is check 2's duplicate — the same answer a PDF URL of a held work gets. Knowable before the run from `main_works`; C and the phase-2 auditor both adjudicated this row on a freshly migrated replay database and missed it. The url-html-only → searchable-blocks path is proven in REPLAY on the captured page (`replay.expected`) and by qc/test_litkb_hunt.py; a live HTML-only hunt of a work NOT in the base is an S5 carry-in (S5 discovers unknown works)."
    },
    "live": {
     "mode": "execute",
-    "why": "0028 applied live; builder B's HTML branch and the text-snapshot ingest route landed (work/20260921-litkb-s3-b, 6799021); replay green on the phase-2 candidate",
+    "why": "the real carrier is a held work in main, so live this row demonstrates the duplicate refusal on the HTML route; the to-blocks path is the replay's",
     "spend": false,
     "needs_migration": 28,
     "inputs": {
@@ -363,7 +375,12 @@
      "author": "Tkaczyk",
      "year": 2024
     },
-    "inputs_why": "the live path passes exactly these to hunt(); without them the row is unreachable - E04/E06 refuse `incomplete-record` (a page has no /Info; the FPGA PDF has no /Author), E08 goes into extraction (S3 phase-2 audit, DEFECT 2)"
+    "inputs_why": "the live path passes exactly these to hunt(); without them the row is unreachable - E04/E06 refuse `incomplete-record` (a page has no /Info; the FPGA PDF has no /Author), E08 goes into extraction (S3 phase-2 audit, DEFECT 2)",
+    "prediction": false,
+    "first_expected": {
+     "state": "extracted",
+     "reason": "fresh"
+    }
    },
    "replay": {
     "inputs": {
@@ -387,11 +404,19 @@
      "tei": false,
      "docling": true
     },
-    "_why": "MEASURED on the phase-2 merge candidate (2026-09-21, litkb_test_w10 and w3): `extracted/fresh` once the driver's html stub declares `text/html` and hands ingest the worker login. Before B landed this row answered `refused/not-a-pdf` and was recorded as an open mismatch, never stubbed around."
+    "_why": "MEASURED on the phase-2 merge candidate (2026-09-21, litkb_test_w10 and w3): `extracted/fresh` once the driver's html stub declares `text/html` and hands ingest the worker login. Before B landed this row answered `refused/not-a-pdf` and was recorded as an open mismatch, never stubbed around. a freshly migrated database holds no Tkaczyk_2024, so the page becomes a proposal with searchable blocks — builder B's path",
+    "expected": {
+     "state": "extracted",
+     "reason": "fresh"
+    },
+    "asserts": {
+     "in_main": false,
+     "admission_state": "proposed"
+    }
    },
    "asserts": {
-    "in_main": false,
-    "admission_state": "proposed"
+    "admission_state": "duplicate-review",
+    "new_admissions": 1
    }
   },
   {
@@ -401,16 +426,22 @@
    "ref_scheme": "doi",
    "source": "work AllenMatthew_2026_manual-labelling-artificially-inflates, tracker 165, 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + browser/manual-step; the fetched Apollo handle page is still at _litkb_staging/incoming/AllenMatthew_2026_manual-labelling.download, 486110 bytes of HTML (survey-data §5, §9).",
    "expected": {
-    "state": "held",
-    "reason": "not-acquired"
+    "state": "blocked",
+    "reason": "403"
    },
    "adjudication": {
-    "builder": "A LANDING PAGE IS NOT THE PAPER. open_access is dead-skipped (`no-oa-copy` is in DEAD_STATUSES, run.py:42), annas is dead-skipped (`not-in-archive`), Sci-Hub is attempted. No route status here is `quota-stop`, `blocked` or `api-error`, so `_acquisition_stop`'s precedence (hunt.py:797-822) falls through to `held/not-acquired` — the one answer that says `hand a file in` rather than `retry` or `ask Kam`."
+    "builder": "A LANDING PAGE IS NOT THE PAPER. open_access is dead-skipped (`no-oa-copy` is in DEAD_STATUSES, run.py:42), annas is dead-skipped (`not-in-archive`), Sci-Hub is attempted. No route status here is `quota-stop`, `blocked` or `api-error`, so `_acquisition_stop`'s precedence (hunt.py:797-822) falls through to `held/not-acquired` — the one answer that says `hand a file in` rather than `retry` or `ask Kam`.",
+    "orchestrator_2026-09-21": "LIVE 2026-09-21 (manifest frozen 10:09:12Z, head 568988b): OA and annas were dead-skipped as adjudicated, and Sci-Hub was really called through the four mirrors from config — sci-hub.ru 200=blocked, sci-hub.ren 200=blocked, sci-hub.box 403=blocked, sci-hub.wf 200=no-pdf-link — so the attempt is `blocked` and the precedence rule names `blocked/403` over `held/not-acquired`. The first expectation was a PREDICTION about a remote host (flagged by the phase-2 audit before the run) and it did not hold on the day. The pair recorded here is the one the code produces for what the host answered; the UNOBTAINABLE class (a Sci-Hub `not-in-archive`) is demonstrated in replay only — no corpus work has ever received that answer."
    },
    "live": {
     "mode": "execute",
     "why": "the Sci-Hub route is really attempted",
-    "spend": true
+    "spend": true,
+    "prediction": true,
+    "first_expected": {
+     "state": "held",
+     "reason": "not-acquired"
+    }
    },
    "replay": {
     "inputs": {
@@ -447,7 +478,12 @@
     },
     "extract": {
      "kind": "off"
-    }
+    },
+    "expected": {
+     "state": "held",
+     "reason": "not-acquired"
+    },
+    "_why": "the replay stubs Sci-Hub to answer like a route with no copy, which is the unobtainable class; live, the host decides"
    },
    "asserts": {}
   },

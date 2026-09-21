@@ -287,6 +287,33 @@ def test_an_assert_the_grader_cannot_evaluate_is_named_never_silently_passed(A, 
     assert any("not checkable from the edge-run CSV" in o for o in offences), offences
 
 
+def test_replay_asserts_are_read_in_replay_mode_and_the_live_ones_otherwise(A, E, tmp_path):
+    """`replay.asserts` is the twin of `replay.expected` (S3 live run, E06): a held work in main
+    makes the page a `duplicate-review` refusal live, while the empty replay database makes it a
+    proposal with blocks. Each mode grades its own asserts; the grader reading the wrong set is
+    exactly the mismatch this test plants — and with the override removed, it fails."""
+    row = _row("X1")
+    row["expected"] = {"state": "refused", "reason": "admission-refused"}
+    row["asserts"] = {"admission_state": "duplicate-review"}
+    row["replay"] = {"expected": {"state": "extracted", "reason": "fresh"},
+                     "asserts": {"admission_state": "proposed"}}
+    live = _observed("X1", "refused", "admission-refused", ok="false",
+                     report=json.dumps({"admission_state": "duplicate-review"}))
+    path = _csv(E, tmp_path / "run.csv", [live])
+    manifest, _p = _manifest(tmp_path, [row], path)
+    counters, offences = A.check_edges(manifest, rows=[row], csv_path=path)
+    assert counters["state_or_reason_mismatches"] == 0, offences
+
+    rep = _observed("X1", "extracted", "fresh",
+                    report=json.dumps({"admission_state": "proposed", "in_main": False}))
+    rpath = _csv(E, tmp_path / "replay.csv", [rep])
+    manifest, _p = _manifest(tmp_path, [row], path, replay_csv=rpath)
+    counters, offences = A.check_edges(manifest, rows=[row], csv_path=rpath, replay=True)
+    assert counters["state_or_reason_mismatches"] == 0, offences
+    # and the live asserts against the replay's facts would NOT pass — the override is load-bearing
+    assert A._asserts_offences(row, rep) != [], "the live asserts must disagree with the replay row"
+
+
 def test_a_held_for_ruling_row_is_counted_and_never_executed(A, E, tmp_path):
     """D2: a row whose expected state needs Kam is NOT a manifest row. It is counted so the
     register's own coverage is visible, and it is never hunted."""

@@ -2016,3 +2016,76 @@ schema uses and REFUSING any keyword it does not implement — `jsonschema` is i
 machine but is in neither requirements file, and the same-commit rule forbids a runtime dependency
 that a bootstrap does not install. `qc/test_litkb_codex_stage.py` cross-checks the two on every
 accept and reject case and skips where `jsonschema` is absent.
+
+## `litkb.extraction_jobs` (litkb, migration 0029 — the extraction queue, S4)
+
+One row per (file, stage, tool, tool_version, params_hash, pipeline_version, page range): the unit
+of extraction work, and the only place that says WHY an acquired file produced no text. Written
+only by `litkb.queue` (`sweep`, `run`, `status`) through six SECURITY DEFINER functions that
+`litkb_ingest` alone may EXECUTE; the table grants INSERT/UPDATE/DELETE to nobody, so their checks
+are on every path. No `workstream_id`: it hangs below `files`, a main-owned identity table (design
+§4.7).
+
+| column | what it is |
+|---|---|
+| `id` | uuidv7 |
+| `file_id` | → `litkb.files` |
+| `stage`, `tool`, `tool_version`, `params_hash`, `pipeline_version` | the RUN KEY, byte-identical to the one `litkb.extract.ingest.run_key` builds. `litkb.queue.run_key_fields` reads it from the package; it is never restated |
+| `page_start`, `page_end` | NULL/NULL = the whole file. Present for design §12.5's page-range split; nothing splits a file today |
+| `state` | `queued` · `leased` · `done` · `dead` · `classified` |
+| `attempts` | incremented by the CLAIM, not by the failure |
+| `lease_owner`, `lease_token` (uuid), `lease_expires_at` | the lease. A CHECK keeps it whole: `leased` iff there is a token, a token iff there is an expiry, never a token with no owner |
+| `residue_class` | `scan-needs-ocr` · `over-page-cap` · `zero-content` · `bad-file`, and a CHECK ties it to `state = 'classified'` in both directions |
+| `last_error`, `artifact_path`, `artifact_sha256`, `run_id` | the record of the attempt; `run_id` → `extraction_runs` |
+| `pages` | the ORDERING key, copied from `file_versions.pages` at enqueue. NULL sorts last |
+| `enqueued_at`, `finished_at` | |
+
+**The ownership gate.** `litkb._job_lease_held(job, token)` raises SQLSTATE 42501 unless the row is
+`leased`, its `lease_token` equals the token presented, and `lease_expires_at > now()`. All four
+mutating functions — `renew_lease`, `finish_job`, `fail_job`, `classify_job` — call it first.
+`claim_jobs(worker, n, lease_seconds)` is the only place a token is ever handed out, which is what
+makes holding one the evidence of ownership. It takes `queued` rows, and `leased` rows whose lease
+has expired, under `FOR UPDATE SKIP LOCKED`, shortest file first; the same ORDER BY is spelled a
+second time outside the UPDATE because `RETURNING` has no row order of its own. Without the gate a
+worker whose lease ran out finishes the job a second worker now holds, and the two write one
+file's rows under two runs — the race `open_extraction_run` makes idempotent but not exclusive.
+Shown to fire: `qc/instruments/litkb_s4_mutations.py` rows S4Q1G0 (the gate's body) and S4Q1L1-L4
+(one per call site).
+
+**One transaction.** `litkb.queue.Worker._convert_and_ingest` calls
+`litkb.extract.ingest.ingest_file(..., commit=False)` and then `finish_job` (or `classify_job` for
+`zero-content`) on the SAME connection, and commits once. A kill therefore leaves either a
+finished unit — run row, pages, blocks, current-run pointer and a `done` job — or no rows at all
+(design §12.4). `ingest_file(commit=False)` REFUSES an autocommit connection: on one, every INSERT
+would commit on its own and the rule would be gone with no error.
+
+**How "done" is recognised for work that predates the queue.** `enqueue_extraction` looks for an
+`ok` `extraction_runs` row at exactly this run key and, when it finds one, inserts the job already
+`done` with `run_id` pointing at it — §12.4's "a claimed job whose run key already has an `ok` run
+is marked done without running the tool", applied one pass earlier. The ledger is then complete
+(every active file has a row) and the queue is not full of claims that do nothing. A `failed` run
+at the key does NOT count: that is the record of an attempt, not of an extraction. Measured on the
+2026-09-21 live dump restored into `litkb_test_w7`: `files=251 new_queued=18 new_done=233
+existing=0`, and a second sweep `new_queued=0 new_done=0 existing=251`.
+
+**The population is `file_versions`, not `main_files`.** `main_files` is `files` joined to the
+PROMOTED head, so a file a workstream has proposed and no second session has approved is invisible
+to it — 13 of the 251 active versions, every one with no extraction run. `litkb.queue.active_files`
+takes the latest ACTIVE version of each file, promoted or proposed.
+
+**Residue classes → hunt reasons** (S4 decision D1). A residue class is a fact about a FILE; the
+`hunt` vocabulary is about a WORK. `scan-needs-ocr`, `over-page-cap`, `zero-content` and `bad-file`
+are reasons of state `bound-unextracted` — a file is bound, no canonical blocks exist, and here is
+why — beside `fresh-bound`, `already-bound` and `partial`. `no-file-any-route` is a reason of
+`held` and has no job row, because there is no file to make one for. Widening `hunt.REASONS` is
+the S4 completeness builder's change, not this migration's; this table is where the per-file fact
+that feeds it lives.
+
+**`zero-content` and the current-run pointer.** A reconciliation that produced no canonical block
+is finished as a `failed` run and `set_current_run` is NOT called, so the file keeps whatever
+pointer it had; the job is `classified/zero-content`. The guard is in
+`litkb.extract.ingest.ingest_file` (`zero_blocks="raise"` by default, `"failed-run"` for the
+queue). Migration 0017's `finish_extraction_run` already refuses to mark a `5-reconcile` run `ok`
+with no blocks — it can refuse the bad run, it cannot say what happened to the file, which is what
+this class adds. Before S4 no `failed` extraction run had ever been recorded in `litkb` (926 of
+926 `ok`).

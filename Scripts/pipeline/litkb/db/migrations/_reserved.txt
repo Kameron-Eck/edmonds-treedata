@@ -19,7 +19,6 @@
 # NNNN  why
 
 0024  RETIRED — reserved 2026-09-20 for work/20260920-web-source-gate, merged without a migration; the number is retired, never reuse it
-0029  IN FLIGHT — reserved 2026-09-21 by litkb S4 (LITKB_WORKPLAN.md §S4) for extraction_jobs (the lease+resume queue, design §12.3); checked first: `git log --all --diff-filter=A --name-only` over this directory lists 0028 as the highest on any local or remote ref. Delete this line in the merge that lands the file.
 #
 # 0027 is no longer reserved: it landed on work/20260920-litkb-s1a as
 # 0027_hunt_request_title_scheme.sql (hunt_requests.ref_scheme gains 'title'; LITKB_WORKPLAN.md

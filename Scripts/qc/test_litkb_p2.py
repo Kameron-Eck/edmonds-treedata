@@ -265,6 +265,12 @@ _STORE_READ_ONLY = {
         "imports LITERATURE_ROOT to BUILD READ paths under the topic folders (<topic>/manifest.csv, "
         "<topic>/<stem>.pdf) for the legacy loader. It opens nothing for writing and _delete_offenders reports no "
         "call in it at all, so no delete path can hide there.",
+    "queue.py":
+        "imports LITERATURE_ROOT to BUILD ONE READ path per job — the bound PDF it hands to GROBID and "
+        "Docling (Worker._literature_root / Worker._path_of). Everything it WRITES goes under "
+        "litkb.queue.derived_root() (LITKB_QUEUE_DERIVED, else <LITKB_DERIVED>/queue), which is outside the "
+        "literature tree by construction, and its only filesystem mutations are os.makedirs, an open(…, 'wb') "
+        "on a .partial and the os.replace that renames it. _delete_offenders reports no call in it.",
 }
 
 

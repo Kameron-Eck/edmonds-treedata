@@ -87,6 +87,19 @@ TEXT_PARAMS = {"parser": "html.parser", "kinds": "heading+paragraph", "skip": "S
 TEXT_EXTRACTOR = "text-snapshot"
 
 
+class ZeroCanonicalBlocks(RuntimeError):
+    """A reconciliation produced no canonical block, and the caller did not ask for that case.
+
+    Raised by :func:`ingest_file` under its default ``zero_blocks="raise"``. It carries the
+    ``run_id`` of the run that was open when it fired, for a caller that wants to say which — the
+    transaction is rolled back around it, so that run does not survive.
+    """
+
+    def __init__(self, message, run_id=None):
+        super().__init__(message)
+        self.run_id = run_id
+
+
 def _tool_version():
     from litkb.extract import reconcile
 
@@ -165,11 +178,31 @@ def _clear_run(conn, run_id):
 
 def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
                 artifact_path=None, host="local", pipeline_version=None, params=None,
-                make_current=True, commit=True, _after_blocks=None):
+                make_current=True, commit=True, zero_blocks="raise", _after_blocks=None):
     """-> {"run_id": …, "inserted": bool, "blocks": n, "disagreements": n}.
 
     ``pages`` is an iterable of dicts with page_no, width, height, rotation, text_layer_chars,
     needs_ocr, page_class, native_chars, covered_chars, coverage_share.
+
+    ``zero_blocks`` says what to do when the reconciliation produced NO canonical block — the
+    outcome S4 names ``zero-content``. Two values, and the difference matters:
+
+      ``"raise"``        the default, and what every caller got before S4. :class:`ZeroCanonicalBlocks`
+                         is raised, the transaction is rolled back, and no run row survives. Today
+                         that case already failed, one step later and less legibly: migration
+                         0017's ``finish_extraction_run`` refuses to mark a ``5-reconcile`` run
+                         ``ok`` with no blocks, so the caller got a psycopg error about a
+                         constraint instead of a word for what happened.
+      ``"failed-run"``   the queue's value (:mod:`litkb.queue`). The run is finished ``failed`` and
+                         KEPT, ``set_current_run`` is not called, and the result carries
+                         ``blocks: 0`` with ``zero_content: True`` so the caller can classify the
+                         job. The row is the evidence: before this, no failed extraction run had
+                         ever been recorded in `litkb` (926 of 926 ``ok``), which is why "the
+                         converter ran and found nothing" and "nobody ran it" looked identical.
+
+    In BOTH cases the file's ``current_run_id`` is untouched. That is the guard: a run with no
+    canonical block must never become the file's answer, because every reader that narrows blocks
+    to the current run would then read the file as extracted and empty.
 
     ``_after_blocks`` is a test hook: a callable invoked after the blocks are inserted and
     before the transaction commits, which is where the simulated mid-file kill is raised.
@@ -186,8 +219,24 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
                     "SELECT count(*) FROM litkb.extraction_disagreements WHERE run_id = %s",
                     (existing,)).fetchone()[0]}
 
-    was_autocommit = conn.autocommit
-    conn.autocommit = False
+    # WHO OWNS THE TRANSACTION. With ``commit=True`` (every caller before S4) this function opens
+    # one and closes it, and restoring ``autocommit`` afterwards is safe because the connection is
+    # back to IDLE. With ``commit=False`` the CALLER owns it — `litkb.queue` commits the ingest and
+    # `finish_job` together (design §12.4) — so nothing here may touch ``autocommit`` at all: the
+    # connection is still INTRANS when this function returns, and psycopg refuses to set the flag
+    # there even to the value it already has ("can't change 'autocommit' now: connection in
+    # transaction status INTRANS"). That is why `commit=False` REQUIRES a connection the caller
+    # opened with autocommit off, and is refused rather than silently run in autocommit mode,
+    # which would commit each INSERT on its own and destroy the one rule this module has.
+    restore_autocommit = False
+    if conn.autocommit:
+        if not commit:
+            raise ValueError(
+                "ingest_file(commit=False) needs a connection opened with autocommit=False: the "
+                "caller owns the transaction, and on an autocommit connection every INSERT below "
+                "would commit on its own")
+        conn.autocommit = False
+        restore_autocommit = True
     try:
         run_id = conn.execute(
             "SELECT litkb.open_extraction_run(%(file_id)s, %(stage)s, %(tool)s, %(tool_version)s, "
@@ -251,6 +300,19 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
                  list(d.bbox) if d.bbox else None,
                  d.grobid_kind, d.grobid_text, d.docling_kind, d.docling_text))
 
+        # BEGIN guard: a run with no canonical block never becomes the file's current run
+        if not ids:
+            if zero_blocks != "failed-run":
+                raise ZeroCanonicalBlocks(
+                    f"litkb: the reconciliation of file {file_id} produced no canonical block; "
+                    "run " + str(run_id) + " is not an extraction", run_id=run_id)
+            conn.execute("SELECT litkb.finish_extraction_run(%s, 'failed', %s)",
+                         (run_id, Jsonb(stats or {})))
+            if commit:
+                conn.commit()
+            return {"run_id": run_id, "inserted": True, "blocks": 0,
+                    "disagreements": len(disagreements), "zero_content": True}
+        # END guard: a run with no canonical block never becomes the file's current run
         conn.execute("SELECT litkb.finish_extraction_run(%s, 'ok', %s)", (run_id, Jsonb(stats or {})))
         if make_current:
             current = conn.execute("SELECT current_run_id FROM litkb.files WHERE id = %s",
@@ -264,7 +326,8 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
         conn.rollback()
         raise
     finally:
-        conn.autocommit = was_autocommit
+        if restore_autocommit:
+            conn.autocommit = True
 
 
 def ingest_text_snapshot(conn, file_id, blocks, *, artifact_path=None, host="local",

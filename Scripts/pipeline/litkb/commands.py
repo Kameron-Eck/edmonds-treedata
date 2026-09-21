@@ -26,6 +26,9 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb review-context <review.md> --out <context.md>   (exit 1 on a block it cannot show)
     py -3.12 -m litkb reap [--min-age-hours 72] [--apply] [--out census.json] [--json]
                           (the staging census; --dry-run is the default and moves nothing)
+    py -3.12 -m litkb queue sweep | status
+    py -3.12 -m litkb queue run --worker ID [--max N] [--ocr on|off] [--device cpu|cuda]
+                          (the extraction queue: design §12.3, migration 0029)
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -614,6 +617,20 @@ def cmd_review_context(args, conn):
     return 1 if report["missing"] else 0
 
 
+def cmd_queue(args, conn):
+    """`litkb queue sweep|run|status` (litkb/queue.py, migration 0029).
+
+    A thin forwarder: the queue opens the ingest login itself for every call, so `conn` here is
+    the `_NoConn` sentinel and is deliberately unused. The body lives in the module because the
+    worker loop, the readiness policy and the artifact rules are one thing and splitting the CLI
+    half of them into this file would put half the queue's rules in a file nobody reads for them.
+    """
+    del conn
+    from litkb import queue as _queue
+
+    return _queue.cmd_queue(args)
+
+
 def cmd_reap(args, conn):
     """The staging census, and — with --apply — the quarantine move for each orphan
     (litkb/ops/reaper.py).
@@ -890,6 +907,15 @@ def build_parser():
                     help="the read login (default: LITKB_READER_ROLE, else litkb_reader). Worker "
                          "databases litkb_test_wN admit ONLY litkb_test (provision_workers), so a "
                          "run against one passes --role litkb_test; the same variable hunt.py reads")
+
+    # ── the extraction queue, S4 (litkb/queue.py, migration 0029) ──────────────────────────
+    # Registered BY the module that implements it rather than spelled out here: the flags and the
+    # subcommand names are read by litkb.queue's own worker, and a second copy of them in this
+    # file is the drift CLAUDE.md §3.3 forbids. The import is deferred into add_parser for the
+    # same reason every other heavy import in this module is.
+    from litkb import queue as _queue
+
+    _queue.add_parser(sub)
     return ap
 
 
@@ -919,7 +945,11 @@ class _NoConn:
 #: `reap`: it reads litkb.files and litkb.file_versions on the READER login and writes no row at
 #: all, so the writer main() would hand it is a credential it never uses — and a worker database's
 #: pgpass has no litkb_writer line, which would make the command test-only.
-_OWN_LOGINS = ("promote", "hunt", "review-context", "reap")
+#: `queue`: every one of its calls is the ingest login (claim_jobs, the four terminal functions,
+#: open/finish_extraction_run and the block INSERTs), opened per connection in litkb.queue — a
+#: control connection, one transaction per job, and the heartbeat's own. A shared writer would be
+#: a credential it never uses.
+_OWN_LOGINS = ("promote", "hunt", "review-context", "reap", "queue")
 
 
 def main(argv=None, connect=None):
@@ -931,7 +961,7 @@ def main(argv=None, connect=None):
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt, "reap": cmd_reap,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
                 "review-check": cmd_review_check, "review-context": cmd_review_context,
-                "promote": cmd_promote}[args.cmd](args, conn)
+                "promote": cmd_promote, "queue": cmd_queue}[args.cmd](args, conn)
     finally:
         conn.close()
 

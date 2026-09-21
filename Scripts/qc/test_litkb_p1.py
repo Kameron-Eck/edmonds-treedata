@@ -2138,7 +2138,16 @@ _EXPECTED_EXECUTE = {
                      # canonical_newlines: 0026 grants the three roles in one line, ingest
                      # included, so the rule a block is later matched by is not defined
                      # differently for the role that wrote the block
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # enqueue_extraction .. classify_job: the extraction queue (migration 0029,
+                     # qc/test_litkb_queue.py). The 0017 shape again — `extraction_jobs` grants
+                     # INSERT/UPDATE/DELETE to nobody, so these six are its only writers and the
+                     # ownership gate in them (a mutating call presents the lease token
+                     # `claim_jobs` returned, or it raises) cannot be walked around.
+                     # `_job_lease_held` is the gate itself and is granted to NO role: it is
+                     # reached only from inside the six, which run as this schema's owner.
+                     "enqueue_extraction", "claim_jobs", "renew_lease", "finish_job", "fail_job",
+                     "classify_job"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

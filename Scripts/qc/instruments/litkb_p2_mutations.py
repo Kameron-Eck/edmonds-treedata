@@ -1703,6 +1703,22 @@ def _register_s3a2():
 _register_s3a2()
 
 
+def _register_s4():
+    """S4 phase 1: the extraction queue's lease, cap, OCR refusal and zero-block guard
+    (qc/instruments/litkb_s4_mutations.py). Its own file for the reason the S2 and S3 legs have
+    one — the rows belong in this ONE ledger, and S4's three builders must not all be appending
+    to the end of this file."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_s4_mutations", Path(__file__).resolve().parent / "litkb_s4_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_s4()
+
+
 # ── the first real use of the KB (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8, migration 0020) ────
 # These kills are asserted in qc/test_litkb_first_use.py, which is NOT in TESTS, so every row names its
 # own set — `tests` REPLACES the default, it does not extend it, and a row that forgot this would run
@@ -2111,6 +2127,16 @@ SINK_ALLOW = {
     "litkb/commands.py::cmd_ws::print": (1,
         "The workstream id, slug, branch and the PATH the token was written to — the line itself says '(never "
         "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
+    "litkb/queue.py::cmd_queue::print": (4,
+        "The extraction queue's three one-line summaries (S4, 2026-09-21) and, behind --json, the "
+        "run's counters/residue/events. Every value in the three lines is a counter (an int), a "
+        "state or residue word from a CHECK'd vocabulary, or the stage/tool of the run key, which "
+        "the package owns. The --json payload adds per-job `detail` strings: a path under the "
+        "literature root, and a tool's own error text. No credential is in scope anywhere in this "
+        "module — it opens exactly one kind of connection, the ingest login, whose password libpq "
+        "reads from a passfile that Python never sees, and it reads no token file and no key. Same "
+        "reason and same shape as cmd_reap below: the calls are written to be VISIBLE to this "
+        "checker rather than hidden behind a bound stream."),
     "litkb/commands.py::cmd_reap::print": (3,
         "The staging census (S3, 2026-09-21). Three calls: the table lines litkb.ops.reaper.table() builds, the "
         "counters line, and the mode/run_id/root line. Every interpolated value is a fact about a FILE or about "

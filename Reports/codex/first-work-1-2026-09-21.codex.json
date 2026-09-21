@@ -1,0 +1,39 @@
+{
+ "citations": [
+  {
+   "n": 1,
+   "block_id": "01a0c263-3a57-71a0-99db-53d78f24af5f",
+   "quote_head": "Among all three types of label errors, the errors caused by relative shift affec",
+   "verdict": "SUPPORTED",
+   "reason": "The block explicitly gives the paper's overall ordering: relative shift, segment errors, then random label noise."
+  },
+  {
+   "n": 2,
+   "block_id": "01a0c263-3a21-7d1f-8acf-b44f2f8368fc",
+   "quote_head": "Regarding tree class, the models are fairly stable\nagainst label errors induced ",
+   "verdict": "SUPPORTED",
+   "reason": "The whole block contrasts stability against relative shift with comparatively poor performance against the other two modes for trees. This supports the comparison within the study."
+  },
+  {
+   "n": 3,
+   "block_id": "01a0c263-3a21-7d1f-8acf-b44f2f8368fc",
+   "quote_head": "Regarding tree class, the models are fairly stable\nagainst label errors induced ",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence explains the reversal as relative shift being less damaging than segment errors and random noise for trees, which the block supports. It does not explicitly rank segment errors against random noise."
+  }
+ ],
+ "editorial": [
+  {
+   "where": "Scope",
+   "finding": "The assertions that every citation names a VERIFIED brief entry, that only one work was read, and that no non-English work was read are sourcing-history claims not established by the supplied citations or block context."
+  },
+  {
+   "where": "Expectations not supported",
+   "finding": "The hunt-request statuses, linkage history, and assertions about what was hunted this session are not substantiated by the supplied evidence. The passages support the substantive aggregate/tree contrast, but do not establish the recorded CONTRADICTED or OPEN statuses."
+  }
+ ],
+ "review_sha256": "7f6f94c86f59c671f72e6daa1971bb1572fed5486cd1e9a2d193df9598417181",
+ "context_sha256": "0d3c04e9df0d2ad2e36a2cb20313c4cb0de24197899e0d75b9ee93a7d8aa1d8b",
+ "session_id": "01a0c271-712e-78f1-8599-231b0a6171b1",
+ "session_id_key": "thread_id"
+}

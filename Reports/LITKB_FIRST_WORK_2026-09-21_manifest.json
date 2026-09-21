@@ -1,0 +1,41 @@
+{
+ "kind": "litkb-first-work",
+ "frozen_at": "2026-09-21T05:12:37.763019+00:00",
+ "frozen_at_source": "db",
+ "repo": "D:\\edmonds-pipeline\\treedata",
+ "repo_head": "0dd88866be6c31fa65f4624e791d58c5e2231add",
+ "db": "litkb",
+ "reader_role": "litkb_reader",
+ "repo_migration_tip": 28,
+ "db_migration_tip": 27,
+ "db_migration_tip_note": null,
+ "workstream_slug": "first-work-1",
+ "workstream_id": "01a0c1c6-6549-710e-a70c-98e3a0bfe173",
+ "hunt_request_id": "01a0c1cb-1ef7-7fe1-b521-e9beaf105eec",
+ "log": null,
+ "review": null,
+ "codex_report": null,
+ "baseline": {
+  "works": 447,
+  "files": 235,
+  "file_versions": 0,
+  "blocks": 86583,
+  "uses": 0,
+  "hunt_requests": 4
+ },
+ "queries": {
+  "works": "SELECT count(*) FROM litkb.ws_works WHERE view_workstream_id = %(ws)s",
+  "files": "SELECT count(*) FROM litkb.ws_files WHERE view_workstream_id = %(ws)s",
+  "file_versions": "SELECT count(*) FROM litkb.file_versions WHERE workstream_id = %(ws)s",
+  "blocks": "SELECT count(*) FROM litkb.blocks b   JOIN litkb.ws_files f ON f.file_id = b.file_id AND f.current_run_id = b.run_id  WHERE f.view_workstream_id = %(ws)s",
+  "uses": "SELECT count(*) FROM litkb.use_versions WHERE workstream_id = %(ws)s",
+  "hunt_requests": "SELECT count(*) FROM litkb.hunt_requests WHERE workstream_id = %(ws)s"
+ },
+ "manual_attempt_routes": [
+  "browser"
+ ],
+ "manual_file_routes": [
+  "browser",
+  "held-in-place"
+ ]
+}

@@ -24,6 +24,8 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb brief [workstream-id-or-slug] [--out PATH]
     py -3.12 -m litkb review-check <review.md>          (exit 1 on any K1/K2 failure)
     py -3.12 -m litkb review-context <review.md> --out <context.md>   (exit 1 on a block it cannot show)
+    py -3.12 -m litkb reap [--min-age-hours 72] [--apply] [--out census.json] [--json]
+                          (the staging census; --dry-run is the default and moves nothing)
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -612,6 +614,43 @@ def cmd_review_context(args, conn):
     return 1 if report["missing"] else 0
 
 
+def cmd_reap(args, conn):
+    """The staging census, and — with --apply — the quarantine move for each orphan
+    (litkb/ops/reaper.py).
+
+    It opens its OWN READER login, like `review-context`: the reaper reads `litkb.files` and
+    `litkb.file_versions` and writes no database row at all, so a writer credential would be one
+    it never uses, and a reader is also what lets the command run against a worker database, where
+    the shared pgpass holds no `litkb_writer` line.
+
+    --dry-run is the DEFAULT and moves nothing: the census is the product, and quarantining is a
+    second, explicit call. Exit 1 when any file could not be read or moved — a census with a hole
+    in it must not read as a clean one.
+    """
+    from litkb.db import connect as _c
+    from litkb.ops import reaper as _r
+
+    conn = _c.connect(args.db, args.role)
+    try:
+        out = _r.reap(conn, root=args.root or os.environ.get("LITKB_LITERATURE_ROOT") or None,
+                      min_age_hours=args.min_age_hours, apply=bool(args.apply))
+    finally:
+        conn.close()
+    doc = _r.as_json(out)
+    if args.json:
+        _print(doc)
+    else:
+        for line in _r.table(out):
+            print(line)
+        print(" ".join(f"{k}={v}" for k, v in out["counters"].items()))
+        print(f"mode={'apply' if out['applied'] else 'dry-run'} run_id={out['run_id']} "
+              f"root={out['root']}")
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=1, default=str, ensure_ascii=False)
+    return 1 if out["errors"] else 0
+
+
 def cmd_hunt(args, conn):
     """The whole hunt protocol in one call (litkb/hunt.py).
 
@@ -749,6 +788,26 @@ def build_parser():
     i.add_argument("--census", help="default: <repo>/phase4/qc/litkb_inventory_census.sha256")
     i.add_argument("--json", action="store_true")
 
+    # ── the staging reaper, S3 (litkb/ops/reaper.py) ────────────────────────────────────────
+    rp = sub.add_parser("reap", help="census the staging directories: which files the database "
+                                     "accounts for, which are too young to judge, and which are "
+                                     "orphans. Quarantines an orphan only with --apply; nothing "
+                                     "is ever deleted")
+    rp.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT)")
+    rp.add_argument("--min-age-hours", dest="min_age_hours", type=float, default=72.0,
+                    help="a file younger than this is reported `young` and left alone (default 72)")
+    g = rp.add_mutually_exclusive_group()
+    g.add_argument("--dry-run", dest="apply", action="store_false", default=False,
+                   help="the default: print the census and move nothing")
+    g.add_argument("--apply", dest="apply", action="store_true",
+                   help="quarantine each orphan, with a .reason.json beside it")
+    rp.add_argument("--out", help="write the census as JSON to this path")
+    rp.add_argument("--json", action="store_true", help="print the census as JSON, not a table")
+    rp.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
+                    help="the read login (default: LITKB_READER_ROLE, else litkb_reader). Worker "
+                         "databases litkb_test_wN admit ONLY litkb_test, so a run against one "
+                         "passes --role litkb_test")
+
     # ── the one-shot entry point, 2026-09-16 (litkb/hunt.py) ────────────────────────────────
     h = sub.add_parser("hunt", help="one call: resolve a DOI or URL, admit it, bind the PDF, "
                                     "extract it and ingest it")
@@ -857,7 +916,10 @@ class _NoConn:
 #: the ingest login, each for the part that needs it, so the one opened here would be a fourth
 #: connection nothing reads. Against a throwaway database, where only the test login has a
 #: password, it is also a connection that cannot even be made.
-_OWN_LOGINS = ("promote", "hunt", "review-context")
+#: `reap`: it reads litkb.files and litkb.file_versions on the READER login and writes no row at
+#: all, so the writer main() would hand it is a credential it never uses — and a worker database's
+#: pgpass has no litkb_writer line, which would make the command test-only.
+_OWN_LOGINS = ("promote", "hunt", "review-context", "reap")
 
 
 def main(argv=None, connect=None):
@@ -866,7 +928,7 @@ def main(argv=None, connect=None):
     try:
         return {"ws": cmd_ws, "admit": cmd_admit, "approve": cmd_approve,
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
-                "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt,
+                "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt, "reap": cmd_reap,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
                 "review-check": cmd_review_check, "review-context": cmd_review_context,
                 "promote": cmd_promote}[args.cmd](args, conn)

@@ -169,8 +169,12 @@ class Store:
         pdf = self.write_new(dst, data)
         return pdf, self.extract(pdf), self.write_reason(pdf, reason)
 
-    def to_quarantine(self, pdf, txt, stem, status, sha):
-        dst = self.free_name(self.quarantine, f"{stem}__{status}__{sha[:12]}")
+    def to_quarantine(self, pdf, txt, stem, status, sha, suffix=None):
+        """`suffix` (default `.pdf`, which is every acquisition caller) keeps a quarantined file's
+        own extension: the staging reaper moves `.download`, `.html` and `.txt` bytes, and naming
+        an HTML error page `.pdf` in _quarantine/ is the exact mislabelling this module's docstring
+        is about (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9)."""
+        dst = self.free_name(self.quarantine, f"{stem}__{status}__{sha[:12]}", suffix or ".pdf")
         out = self.move_new(pdf, dst)
         tout = self.move_new(txt, dst.with_suffix(".txt")) if txt else None
         return out, tout

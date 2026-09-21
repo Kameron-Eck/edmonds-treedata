@@ -60,7 +60,8 @@ found:   Kam moved session headless -> interactive 00:07; builder A1 died with p
          (p1: absent bucket filtered w.state='open' vs check 2 global; p2: edges replay test poisoned shared DB via global `_title_duplicates` -> 4 red order-dependent; live.inputs missing; E06 allowance). First reaper dry run called FPGA snapshot orphan (admissions.checks leg added).
          `gate | tail; $?` masked mismatches=3 once. `py -m litkb` from worktree runs MAIN install. E13 505 s (blocked never dead-skipped).
 decided: `proposed` not a state (web-source gate: blocks searchable from own ws). No migration in S3. Held rows E20-E25 + 13 tracker proposals -> Kam. S4 launched in NEW terminal window (wt.exe + bash script), not headless-to-log.
-next:    S4 (readability) launched from this session: `_derived/s4/launch-s4.sh`. Kam: rulings E20-E25; the 13 proposals.
+killed:  S4 instance #1 (session 29720c90, opened readability-1 01a0c398-3441…, committed 0029 reservation ecee36c) — killed by S3 orchestrator 03:56 by MISTAKE: verified by transcript jsonl (interactive sessions flush late), read absent file as stuck. Relaunched 03:57 with recovery note; #2 verified by EFFECT (STATE.md "Kill and restart", one ws row). Rule: verify a session by effects, never by a transcript file.
+next:    S4 (readability) running in its own window (PID 74112, `_derived/s4/launch-s4.sh` via Git Bash — `wt.exe … bash` resolves to WSL bash; name Git's bash.exe). Kam: rulings E20-E25; the 13 proposals.
 
 ## 2026-09-21  litkb S2 — one unseeded OA work crossed whole loop; `first-work` gate + acquisition-event contract
 goal:    S2: freeze manifest BEFORE hunt, prove absent, ONE spending hunt -> block -> verified use -> review -> review-check -> review-context -> Codex -> acceptance. Build acquisition-event contract + test.

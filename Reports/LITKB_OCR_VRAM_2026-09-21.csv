@@ -1,0 +1,10 @@
+run,file,pages_total,device,chunk,n_chunks,status,baseline_mib,peak_mib,peak_over_baseline_mib,total_mib,peak_pct,samples,convert_seconds,wall_seconds,pages_done,pages_per_s,converter_build_s,page_batch_size,artifacts
+hwang-cuda-c4,Hwang_1982_improving-upon-standard-estimators.pdf,11,cuda,4,3,ok,750,2670,1920,4096,65.2,87,36.01,47.01,11,0.3055,9.53,4,D:\edmonds-pipeline\litkb_derived\s4q2\hwang-cuda-c4
+hwang-cuda-c8,Hwang_1982_improving-upon-standard-estimators.pdf,11,cuda,8,2,ok,696,2690,1994,4096,65.7,83,34.14,44.08,11,0.3222,8.44,4,D:\edmonds-pipeline\litkb_derived\s4q2\hwang-cuda-c8
+hwang-cuda-c11,Hwang_1982_improving-upon-standard-estimators.pdf,11,cuda,11,1,ok,696,2686,1990,4096,65.6,80,32.3,43.22,11,0.3405,9.418,4,D:\edmonds-pipeline\litkb_derived\s4q2\hwang-cuda-c11
+anderson-cuda-c4,Anderson_1957_statistical-inference-about-markov.pdf,22,cuda,4,6,ok,696,2476,1780,4096,60.4,109,48.96,59.23,22,0.4493,8.772,4,D:\edmonds-pipeline\litkb_derived\s4q2\anderson-cuda-c4
+anderson-cuda-c8,Anderson_1957_statistical-inference-about-markov.pdf,22,cuda,8,3,ok,696,2186,1490,4096,53.4,101,43.99,54.17,22,0.5001,8.735,4,D:\edmonds-pipeline\litkb_derived\s4q2\anderson-cuda-c8
+anderson-cuda-c22,Anderson_1957_statistical-inference-about-markov.pdf,22,cuda,22,1,ok,641,2058,1417,4096,50.2,94,40.92,50.36,22,0.5376,8.001,4,D:\edmonds-pipeline\litkb_derived\s4q2\anderson-cuda-c22
+hwang-cpu-c4,Hwang_1982_improving-upon-standard-estimators.pdf,11,cpu,4,3,ok,641,641,0,4096,15.6,279,145.45,155.55,11,0.0756,8.887,4,D:\edmonds-pipeline\litkb_derived\s4q2\hwang-cpu-c4
+hwang-cpu-c4-r1,Hwang_1982_improving-upon-standard-estimators.pdf,11,cpu,4,3,ok,641,653,12,4096,15.9,268,140.64,149.91,11,0.0782,8.124,4,D:\edmonds-pipeline\litkb_derived\s4q2\hwang-cpu-c4-r1
+hwang-cpu-c4-r2,Hwang_1982_improving-upon-standard-estimators.pdf,11,cpu,4,3,ok,653,653,0,4096,15.9,273,143.71,152.73,11,0.0765,7.791,4,D:\edmonds-pipeline\litkb_derived\s4q2\hwang-cpu-c4-r2

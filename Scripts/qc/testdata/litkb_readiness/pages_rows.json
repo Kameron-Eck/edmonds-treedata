@@ -1,0 +1,933 @@
+{
+ "_source": {
+  "db_rows": "litkb.pages of the CURRENT run, read-only 2026-09-21: SELECT w.key, p.page_no, p.page_class, p.coverage_share FROM litkb.pages p JOIN litkb.files f ON f.id=p.file_id AND p.run_id=f.current_run_id JOIN litkb.file_versions v ON v.file_id=f.id JOIN litkb.works w ON w.id=v.work_id WHERE w.key IN ('Abdulkader_2020_cnn-fpga-implementation-hardware','Crowder_2017_introduction-bernoulli-cusum') ORDER BY w.key, p.page_no",
+  "stage0": "litkb.extract.inventory.probe_file(<Literture/Validation/...pdf>) run 2026-09-21; page_class is that record's page_detail[].scan, coverage_share is null because no extraction run exists for these four files (survey-data section 1.4: runs 0, blocks 0)"
+ },
+ "files": {
+  "Abdulkader_2020_cnn-fpga-implementation-hardware": {
+   "has_text_layer": false,
+   "pages": [
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 1
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 2
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 3
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 4
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 5
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 6
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 7
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 8
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 9
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 10
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 11
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 12
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 13
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 14
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 15
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 16
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 17
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 18
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 19
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 20
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 21
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "image-only",
+     "page_no": 22
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 23
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 24
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 25
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 26
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 27
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 28
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 29
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 30
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 31
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 32
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 33
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 34
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 35
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 36
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 37
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 38
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 39
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 40
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "image-only",
+     "page_no": 41
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 42
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 43
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 44
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 45
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 46
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 47
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "image-only",
+     "page_no": 48
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "image-only",
+     "page_no": 49
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "partial",
+     "page_no": 50
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 51
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "image-only",
+     "page_no": 52
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 53
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 54
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 55
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 56
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 57
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 58
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 59
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 60
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 61
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 62
+    }
+   ],
+   "source": "db"
+  },
+  "Anderson_1957_statistical-inference-about-markov": {
+   "has_text_layer": false,
+   "pages": [
+    {
+     "coverage_share": null,
+     "page_class": "partial",
+     "page_no": 1
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 2
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 3
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 4
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 5
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 6
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 7
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 8
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 9
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 10
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 11
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 12
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 13
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 14
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 15
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 16
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 17
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 18
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 19
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 20
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 21
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 22
+    }
+   ],
+   "route": "scan",
+   "source": "stage0"
+  },
+  "Crowder_2017_introduction-bernoulli-cusum": {
+   "has_text_layer": false,
+   "pages": [
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 1
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 2
+    },
+    {
+     "coverage_share": 0.9885714285714285,
+     "page_class": "text",
+     "page_no": 3
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 4
+    },
+    {
+     "coverage_share": 0.9943502824858758,
+     "page_class": "text",
+     "page_no": 5
+    },
+    {
+     "coverage_share": 0.9946666666666667,
+     "page_class": "text",
+     "page_no": 6
+    },
+    {
+     "coverage_share": 0.9878542510121457,
+     "page_class": "text",
+     "page_no": 7
+    },
+    {
+     "coverage_share": 0.9696969696969697,
+     "page_class": "text",
+     "page_no": 8
+    },
+    {
+     "coverage_share": 0.9888641425389755,
+     "page_class": "text",
+     "page_no": 9
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 10
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 11
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 12
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 13
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 14
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 15
+    },
+    {
+     "coverage_share": 0.9625468164794008,
+     "page_class": "text",
+     "page_no": 16
+    },
+    {
+     "coverage_share": 0.989247311827957,
+     "page_class": "text",
+     "page_no": 17
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 18
+    },
+    {
+     "coverage_share": 0.9848484848484849,
+     "page_class": "text",
+     "page_no": 19
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 20
+    },
+    {
+     "coverage_share": 0.9842105263157894,
+     "page_class": "text",
+     "page_no": 21
+    },
+    {
+     "coverage_share": 0.9849246231155779,
+     "page_class": "text",
+     "page_no": 22
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 23
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 24
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 25
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 26
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 27
+    },
+    {
+     "coverage_share": 0.9879154078549849,
+     "page_class": "text",
+     "page_no": 28
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 29
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 30
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 31
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 32
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 33
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 34
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 35
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 36
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 37
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 38
+    },
+    {
+     "coverage_share": 0.96875,
+     "page_class": "text",
+     "page_no": 39
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 40
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 41
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 42
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 43
+    },
+    {
+     "coverage_share": 1.0,
+     "page_class": "text",
+     "page_no": 44
+    },
+    {
+     "coverage_share": 0.9875,
+     "page_class": "text",
+     "page_no": 45
+    },
+    {
+     "coverage_share": 0.9754098360655737,
+     "page_class": "text",
+     "page_no": 46
+    }
+   ],
+   "source": "db"
+  },
+  "Hudson_1978_natural-identity-exponential-families": {
+   "has_text_layer": false,
+   "pages": [
+    {
+     "coverage_share": null,
+     "page_class": "partial",
+     "page_no": 1
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 2
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 3
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 4
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 5
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 6
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 7
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 8
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 9
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 10
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 11
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 12
+    }
+   ],
+   "route": "scan",
+   "source": "stage0"
+  },
+  "Hwang_1982_improving-upon-standard-estimators": {
+   "has_text_layer": false,
+   "pages": [
+    {
+     "coverage_share": null,
+     "page_class": "partial",
+     "page_no": 1
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 2
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 3
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 4
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 5
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 6
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 7
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 8
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 9
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 10
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 11
+    }
+   ],
+   "route": "scan",
+   "source": "stage0"
+  },
+  "Ogata_1998_space-time-point-process": {
+   "has_text_layer": false,
+   "pages": [
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 1
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 2
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 3
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 4
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 5
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 6
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 7
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 8
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 9
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 10
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 11
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 12
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 13
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 14
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 15
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 16
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 17
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 18
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 19
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 20
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 21
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 22
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 23
+    },
+    {
+     "coverage_share": null,
+     "page_class": "image-only",
+     "page_no": 24
+    }
+   ],
+   "route": "scan",
+   "source": "stage0"
+  }
+ }
+}

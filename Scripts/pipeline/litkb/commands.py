@@ -23,6 +23,7 @@ editable install is re-run from a tree that contains litkb:
                           [--hunt-request ID]
     py -3.12 -m litkb brief [workstream-id-or-slug] [--out PATH]
     py -3.12 -m litkb review-check <review.md>          (exit 1 on any K1/K2 failure)
+    py -3.12 -m litkb review-context <review.md> --out <context.md>   (exit 1 on a block it cannot show)
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -579,6 +580,34 @@ def cmd_review_check(args, conn):
     return 1 if bad else 0
 
 
+def cmd_review_context(args, conn):
+    """The FULL BLOCK behind every citation of a review, as markdown (litkb/review_context.py).
+
+    It opens its OWN reader login rather than using the writer `main()` would hand it: this
+    command only reads blocks, and the review stage that consumes its output is the one part of
+    the pipeline that hands a file to a model outside this machine. A read-only credential is the
+    honest one for it, and it is also what lets the command run against a worker database, where
+    the shared pgpass holds no `litkb_writer` line (LITKB_REVIEW_GRAMMAR.md §8 records the same
+    limit for `review-check`).
+
+    Exit 1 when any cited block is not visible to the workstream. The context file still gets
+    written, with `BLOCK NOT VISIBLE` in that block's section -- a reviewer must be able to see
+    the hole, and a caller must not be able to miss it.
+    """
+    from litkb.db import connect as _c
+    from litkb import review_context as _rx
+
+    conn = _c.connect(args.db, "litkb_reader")
+    try:
+        out = args.out or str(Path(args.review).with_suffix(".context.md"))
+        report = _rx.write(conn, args.review, out)
+    finally:
+        conn.close()
+    _print({"review": str(args.review), **report,
+            "missing": [str(m) for m in report["missing"]]})
+    return 1 if report["missing"] else 0
+
+
 def cmd_hunt(args, conn):
     """The whole hunt protocol in one call (litkb/hunt.py).
 
@@ -786,6 +815,14 @@ def build_parser():
                                          "workstream this review is, and is refused when the "
                                          "review's own header declares another. It never "
                                          "redirects the grade")
+
+    # ── the adversarial reader's INPUT, 2026-09-20 (litkb/review_context.py) ────────────────
+    rx = sub.add_parser("review-context",
+                        help="the FULL BLOCK behind every citation of a review, as markdown: the "
+                             "file an adversarial reader needs to tell a faithful sentence from "
+                             "one the quote does not carry. Exits 1 on a block it cannot show")
+    rx.add_argument("review", help="path to the review .md (it names its own workstream)")
+    rx.add_argument("--out", help="output path (default: <review>.context.md)")
     return ap
 
 
@@ -804,12 +841,15 @@ class _NoConn:
 
 
 #: Commands that open every login they need for themselves, and must NOT be handed a writer.
+#: `review-context`: it reads blocks and nothing else, and the file it writes is handed to a model
+#: outside this machine, so it opens `litkb_reader` itself rather than hold a writer for the
+#: length of that read.
 #: `promote`: promote_prepare and promote_commit may be executed only by litkb_promoter
 #: (design §4.7), and cmd_promote opens that login itself. `hunt`: it uses a reader, a writer AND
 #: the ingest login, each for the part that needs it, so the one opened here would be a fourth
 #: connection nothing reads. Against a throwaway database, where only the test login has a
 #: password, it is also a connection that cannot even be made.
-_OWN_LOGINS = ("promote", "hunt")
+_OWN_LOGINS = ("promote", "hunt", "review-context")
 
 
 def main(argv=None, connect=None):
@@ -820,7 +860,7 @@ def main(argv=None, connect=None):
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
-                "review-check": cmd_review_check,
+                "review-check": cmd_review_check, "review-context": cmd_review_context,
                 "promote": cmd_promote}[args.cmd](args, conn)
     finally:
         conn.close()

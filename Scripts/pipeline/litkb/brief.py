@@ -52,6 +52,11 @@ class BriefInvariantError(RuntimeError):
     """The marking gate refused: a VERIFIED line with no location, or an EXPECTED line dropped."""
 
 
+#: Both statements below bind `ws` and are therefore visibility widenings, and this comment is
+#: what makes this module visible to the `--sites` census of qc/instruments/litkb_p2_mutations.py
+#: (VIS_LEDGER rows `litkb/brief.py::expected_lines` and `::verified_lines`). The census opens a
+#: module only when its text names FILE_JOIN or visibility, so before 2026-09-20 these two binds
+#: sat outside a gate built to enumerate every one of them.
 _EXPECTED_SQL = """
 SELECT id, ref, ref_scheme, claimed_title, claimed_authors, claimed_year, expected_claim,
        why_relevant, abstract_passage, work_id, resolution_state, n_confirming, n_contradicting,

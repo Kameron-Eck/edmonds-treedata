@@ -776,6 +776,11 @@ def _malformed_findings(text, strict):
 #: which now drives the function itself.
 _CANON_TEXT = sql_canonical_newlines("b.text")
 
+#: Its `ws_files` clause is a file-visibility widening, and this comment is what makes this module
+#: visible to the `--sites` census of qc/instruments/litkb_p2_mutations.py (VIS_LEDGER row
+#: `litkb/review_check.py::_block_row`). The census opens a module only when its text names
+#: FILE_JOIN or visibility, so before 2026-09-20 this bind sat outside a gate built to enumerate
+#: every one of them -- found by review_context.py, which mentioned the word in prose.
 _BLOCK_SQL = f"""
 SELECT b.page_no, wk.key, coalesce(position(%(q)s in {_CANON_TEXT}) > 0, false)
   FROM litkb.blocks b

@@ -1,0 +1,121 @@
+{
+ "citations": [
+  {
+   "n": 1,
+   "block_id": "01a0abc8-d741-73e6-834b-3bf2bf3943ab",
+   "quote_head": "On the other hand, it has\nbeen observed that they are rather robust against nois",
+   "verdict": "SUPPORTED",
+   "reason": "The block identifies CNNs as the subject and explicitly records the observation of robustness to training-label noise."
+  },
+  {
+   "n": 2,
+   "block_id": "01a0abc8-d741-73e6-834b-3bf2bf3943ab",
+   "quote_head": "We report our results\nthat indicate that satisfying performance can be obtained",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence accurately attributes reduced manual annotation effort through noisy large-scale training data to this study."
+  },
+  {
+   "n": 3,
+   "block_id": "01a0abc8-d74d-72b2-a931-9f7761645ce5",
+   "quote_head": "We find in this study that training on noisy labels does\nwork well, but only wit",
+   "verdict": "SUPPORTED",
+   "reason": "The quote explicitly makes training-set size a condition of the study's favorable result."
+  },
+  {
+   "n": 4,
+   "block_id": "01a0abc8-d83a-749a-87a5-1917eebe40fa",
+   "quote_head": "Indeed, pre-training with\nlarge-scale OSM labels can replace the vast majority o",
+   "verdict": "SUPPORTED",
+   "reason": "Within the review's stated study scope, the sentence matches the block's claim that large-scale OSM pre-training can replace most manual labels."
+  },
+  {
+   "n": 5,
+   "block_id": "01a0abc8-d7fc-7fe4-a723-d1bd2a186912",
+   "quote_head": "Performance\nincreases by 7 percent points to 0.837 over baseline Ia, where\nthe m",
+   "verdict": "SUPPORTED",
+   "reason": "The magnitude, endpoint, and baseline match experiment VI's reported result."
+  },
+  {
+   "n": 6,
+   "block_id": "01a0abc8-d74d-72b2-a931-9f7761645ce5",
+   "quote_head": "Whereas with small training sets (≈ 2 km2\n) it does not reach\nthe performance of",
+   "verdict": "SUPPORTED",
+   "reason": "The preceding sentence establishes noisy-label training as the antecedent, and the quote supports the small-training-set comparison."
+  },
+  {
+   "n": 7,
+   "block_id": "01a0abc8-d7f3-7886-9b1c-de0274f44335",
+   "quote_head": "Compared to baseline II, i.e. training with equally large\nquantities of pixel-",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence preserves both the 10-percentage-point drop and the equally large pixel-accurate training baseline."
+  },
+  {
+   "n": 8,
+   "block_id": "01a0abc8-d83a-749a-87a5-1917eebe40fa",
+   "quote_head": "Semantic segmentation of overhead images can indeed\nbe learned from OSM maps",
+   "verdict": "SUPPORTED",
+   "reason": "The quote explicitly pairs elimination of manual labeling effort with reduced segmentation accuracy."
+  },
+  {
+   "n": 9,
+   "block_id": "01a0abcc-65d4-796c-846f-f351d1e52756",
+   "quote_head": "We study the multi-modal cadaster map\nalignment problem for which available",
+   "verdict": "SUPPORTED",
+   "reason": "The source itself describes misaligned polygons as resulting in noisy supervision; the causal wording is supported."
+  },
+  {
+   "n": 10,
+   "block_id": "01a0abcc-65d4-796c-846f-f351d1e52756",
+   "quote_head": "We show that it is possible to\nreduce the noise of the dataset by iteratively",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence accurately reports the iterative alignment correction and dataset-noise reduction described in the block."
+  },
+  {
+   "n": 11,
+   "block_id": "01a0abc9-8093-708e-83f9-d91948970017",
+   "quote_head": "This automated\napproach created a draft Tree Canopy class whose accuracy exceede",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence preserves the draft-class qualification, and the block identifies the automated approach as OBIA fusing lidar with other data."
+  },
+  {
+   "n": 12,
+   "block_id": "01a0abc9-8093-708e-83f9-d91948970017",
+   "quote_head": "Indeed, tree-canopy mapping in shadowed areas would have been impossible without",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence retains the study's conditional limitations for imagery-only canopy mapping and shadowed areas without lidar."
+  },
+  {
+   "n": 13,
+   "block_id": "01a0abc6-ebfc-7e73-b59a-86e476ee3035",
+   "quote_head": "Even for a given specific problem the data comparison may be\nnotably challenging",
+   "verdict": "SUPPORTED",
+   "reason": "The sentence introduces the conditions the authors say to expect across a large time lag without claiming their method resolves them."
+  }
+ ],
+ "editorial": [
+  {
+   "where": "Canopy reference products and imagery that spans dates",
+   "finding": "The heading grants reference-product status that the body does not establish. The later disclosure explicitly acknowledges that no use was recorded supporting that status."
+  },
+  {
+   "where": "Scope",
+   "finding": "The claim that nothing was read from an abstract conflicts with the supplied Kaiser p.1 block, which is explicitly labeled Abstract and supplies two citations."
+  },
+  {
+   "where": "Scope",
+   "finding": "Claims about the search history, exclusive sourcing from the workstream brief, and absence of any Edmonds accuracy measurement from the knowledge base are not established by the supplied citations. The excerpts cannot verify those broader sourcing and absence claims."
+  },
+  {
+   "where": "Expectations not supported — Kaiser CONTRADICTED entry",
+   "finding": "The disclosure presents the losses as contradicting the expected outperformance but omits the same p.9 block's result that OSM-label training beats baseline Ia by 1.5 percentage points. That block reports a win against a smaller accurate-label baseline alongside losses against other baselines, so the unqualified contradiction is misleading."
+  },
+  {
+   "where": "Expectations not supported",
+   "finding": "The recorded hunt statuses, counts of verified uses, and claims of repeated full-text searches are not backed by the supplied citations or ledger evidence. In particular, the Benedek excerpt establishes challenges across dates, not that nothing ingested confirms or refutes the expected method capability."
+  }
+ ],
+ "review_sha256": "f2f41dba069fde339cc1999f5364c14b091cc300f2b23414b37896e6331f0348",
+ "context_sha256": "103795cfe5fb692df1a2bdab9a333a68916316b9f76209d11e67e526a1cc1015",
+ "session_id": "01a0c19f-d1cd-7ed1-8cfa-7290ea269c3d",
+ "session_id_key": "thread_id"
+}

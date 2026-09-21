@@ -1787,3 +1787,42 @@ huntable), `ref-scheme-mismatch` (the caller's scheme disagrees with the request
 `unresolved-title` (no registry candidate), `ambiguous-title` (a candidate the confirm gate
 refused). Each is a RESULT in the hunt's return dict, never a traceback; until S3 gives them a
 table, the scout-run CSV above is their only home.
+
+## litkb Codex report JSON (`qc/fixtures/litkb_codex_report.schema.json`, GENERATED per review)
+
+The Codex review stage's output, and the one thing the stage's gate reads. Written by
+`qc/instruments/litkb_codex_review.py` (which launches Codex with that file as
+`--output-schema`), graded by `qc/instruments/litkb_acceptance.py codex`. JSON Schema
+2020-12, `additionalProperties: false` at every level.
+
+Top level: `review_sha256`, `context_sha256` (64 lower-case hex each), `citations` (array),
+`editorial` (array), and the optional `session_id` / `session_id_key`. A `citations` row is
+`{n, block_id, quote_head, verdict, reason}`; an `editorial` row is `{where, finding}`. `verdict`
+is one of `SUPPORTED`, `OVERREACH`, `UNSUPPORTED` — the same three strings as
+`litkb_acceptance.CODEX_VERDICTS`, held equal by
+`qc/test_litkb_codex_stage.py::test_the_schema_is_the_file_the_wrapper_and_the_gate_both_name`.
+
+**`n` counts OCCURRENCES, not blocks.** It is the 1-based index of the citation in document
+order, as `litkb.review_check.citations` enumerates them — the proving run's review carried 13
+citations over 6 distinct blocks, and a report keyed by block would leave 7 sentences ungraded
+while looking complete. The distinct-block collapse belongs to the CONTEXT file
+(`py -3.12 -m litkb review-context`), which prints each block once, and to nothing else.
+
+**The two digests are STAMPED, never trusted.** The wrapper overwrites whatever the model wrote
+with sha256 of the RAW BYTES of the two files it actually read, and the gate recomputes the same
+two and counts `hash_mismatch`. Raw bytes, not canonicalised text: this checkout carries CRLF
+where the repository stores LF (`.gitattributes`, deliberately), and the question these digests
+answer is "is this the report for THIS file on THIS machine", not "is this the same document as
+in the repository". Do not canonicalise them into agreement with a cross-platform pin.
+
+`session_id` is the Codex session, stamped from the `--json` event stream so a follow-up can
+resume the same worker; `session_id_key` records WHICH key it was read from, because `codex exec
+--help` (codex-cli 0.155.1) documents `--json` only as "Print events to stdout as JSONL" and says
+nothing about the event shape. A hardcoded key that stopped matching would stamp `session_id:
+null`, which reads exactly like a run that had no session.
+
+Validation is `litkb_codex_review.validate`, a stdlib validator covering exactly the keywords this
+schema uses and REFUSING any keyword it does not implement — `jsonschema` is installed on this
+machine but is in neither requirements file, and the same-commit rule forbids a runtime dependency
+that a bootstrap does not install. `qc/test_litkb_codex_stage.py` cross-checks the two on every
+accept and reject case and skips where `jsonschema` is absent.

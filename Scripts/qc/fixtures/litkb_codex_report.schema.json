@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "litkb Codex review report",
+  "description": "The fixed shape of the Codex review stage's output (docs/SCHEMAS.md). One row per CITATION OCCURRENCE of the review under test, numbered 1-based in document order, plus editorial findings that are not citation defects. Produced by Codex under `codex exec --output-schema`, validated and hash-stamped by qc/instruments/litkb_codex_review.py, graded by qc/instruments/litkb_acceptance.py codex.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["review_sha256", "context_sha256", "citations", "editorial"],
+  "properties": {
+    "review_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 of the review file's RAW BYTES. The wrapper overwrites whatever the model wrote here, so the report can never disagree with the file it was produced from."
+    },
+    "context_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 of the context file's RAW BYTES, stamped by the wrapper for the same reason."
+    },
+    "citations": {
+      "type": "array",
+      "description": "One entry per citation OCCURRENCE, not per distinct block: the run-2 review carried 13 occurrences over 6 blocks, and collapsing them would make `n` mean nothing.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "block_id", "quote_head", "verdict", "reason"],
+        "properties": {
+          "n": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based index of this citation in document order, as review_check.citations() enumerates them."
+          },
+          "block_id": {
+            "type": "string",
+            "description": "The block uuid the citation names, copied from the citation token."
+          },
+          "quote_head": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The first <=80 characters of the quote, so a reader can see which span was graded without the report carrying the paper."
+          },
+          "verdict": {
+            "enum": ["SUPPORTED", "OVERREACH", "UNSUPPORTED"],
+            "description": "SUPPORTED: the sentence asserts no more than the quote, read with its whole block, supports. OVERREACH: the quote supports something, and the sentence asserts more (added magnitude, causation, comparison, or a supplied antecedent). UNSUPPORTED: the quote does not support the sentence at all."
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why, in one or two sentences. Naming the added element for an OVERREACH."
+          }
+        }
+      }
+    },
+    "editorial": {
+      "type": "array",
+      "description": "Findings that are not per-citation: section titles, Scope, incomplete disclosure. May be empty, and an empty array is a statement, not an omission.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["where", "finding"],
+        "properties": {
+          "where": {
+            "type": "string",
+            "description": "Where in the review: a section heading, a line, or `Scope`."
+          },
+          "finding": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "description": "The Codex session/thread id, stamped by the wrapper from the --json event stream so a follow-up can resume the same worker. Absent when the stream carried none."
+    },
+    "session_id_key": {
+      "type": ["string", "null"],
+      "description": "Which key of the --json stream the session id was read from. Wrapper-stamped, and recorded because the event shape is not documented in `codex exec --help`."
+    }
+  }
+}

@@ -1878,6 +1878,26 @@ is derived from `STATES` + every enumerable member of `REASONS` (plus `held-no-s
 ledgers carry), and `qc/test_litkb_acceptance.py` holds the two equal. A DATABASE home for a hunt
 outcome is S5's carry-in.
 
+**`litkb_work`'s miss, split three ways (S3).** When `main_*` does not hold the work the tool
+answers `state: absent` with `absent_kind` from the closed set in `_ABSENT_KINDS`
+(`pipeline/litkb/mcp/server.py`): `never-admitted` (nothing in main, nothing in the caller's own
+workstream view — the only kind where fetching is the right move) · `in-this-workstream` (the
+caller's own unapproved proposal; `ws_state` is its rung, `ws_files` its bound-file count) ·
+`in-another-workstream` (some OTHER workstream holds a `proposed` version of the identifier;
+`holder_state` is that workstream's state — `open`, `merged`, `abandoned`; nothing else of it is
+readable here). The third bucket reads the same rows admission's check 2 refuses on
+(`iv.state = 'proposed'`, blind to the holder's state), so the tool never invites an admission
+check 2 would refuse.
+
+**The staging reaper (S3).** `litkb reap` (`pipeline/litkb/ops/reaper.py`) walks
+`_litkb_staging/{incoming,filed,web}` and gives every file ONE verdict from `owned` (its sha256 is
+a `litkb.files` row, OR a `file_versions.rel_path` names its path) · `young` (a sibling lock
+suffix holds it open, or its mtime is under `--min-age-hours`, default 72) · `orphan` (neither).
+Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a reason file
+(`Store.to_quarantine` + `write_reason`) — the reaper never deletes and never writes the database.
+`--dry-run` is the default. Counters, one line: `scanned owned young orphans quarantined
+skipped_errors`.
+
 ## litkb Codex report JSON (`qc/fixtures/litkb_codex_report.schema.json`, GENERATED per review)
 
 The Codex review stage's output, and the one thing the stage's gate reads. Written by

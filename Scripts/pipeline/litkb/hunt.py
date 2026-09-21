@@ -751,9 +751,12 @@ def _result(out, state, reason, refusals, timing, **extra):
     Every `ok: True` return goes through here, so `state`, `reason`, the derived `outcome` and
     `ok` cannot be typed inconsistently at nine return sites — which is how `held-spend-exhausted`,
     `already-extracted` and `bound` came to be outside every constant in the module that produced
-    them. The pair is CHECKED here, not trusted: a reason that is not in its state's tuple is a
-    programming error in this module and is raised as one, where the crash boundary above turns it
-    into `crashed` rather than shipping a vocabulary violation to a caller."""
+    them. The pair is CHECKED here for every `ok: True` result: a reason that is not in its state's
+    tuple is a programming error in this module and is raised as one, where the crash boundary
+    above turns it into `crashed` rather than shipping a vocabulary violation to a caller. The
+    four `ok: False` states (`refused`, `api-error`, `blocked`, `crashed`) are composed at their
+    own sites and are held to the vocabulary by the AST literal scan in `qc/test_litkb_hunt.py`
+    (a static check, and said to be one)."""
     if not reason_ok(state, reason):
         raise ValueError(f"hunt: {reason!r} is not a reason for state {state!r} (REASONS)")
     return out | {"ok": state in ("extracted", "bound-unextracted", "held"), "state": state,

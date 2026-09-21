@@ -249,3 +249,35 @@ def test_the_attempt_rows_returned_are_this_calls_own(env, monkeypatch):
     res = _call("_acquire", key=seeded["key"])
     assert [a["route"] for a in res["attempts_detail"]] == ["scihub"], res
     assert res["ok"] is False and res["outcome"] == "not-acquired", res
+
+
+@pg_only
+def test_an_abandoned_holder_is_still_in_another_workstream(env):
+    """Found by the S3 phase-1 audit: with `w.state = 'open'` in the third-bucket query, an
+    identifier held `proposed` by an ABANDONED workstream answered `never-admitted` — "the only
+    kind where fetching is the right move" — while admission's check 2
+    (0014_referee_p2_fixes.sql, "check 2 identifier lookup") refuses that admission as a
+    duplicate on any `iv.state = 'proposed'` row, blind to the holder's state. The tool and the
+    gate it advises about must read the same rows: the kind stays `in-another-workstream`, and
+    `holder_state` names the state the caller cannot see any other way."""
+    conn = env["conn"]
+    ws_x = _become(conn, env["wt"], f"s3-ab-{uuid.uuid4().hex[:6]}")
+    doi = f"10.5555/s3ab-{uuid.uuid4().hex[:10]}"
+    seeded = _seed(conn, ws_x, "proposal", doi=doi, bind=False)
+    conn.execute("UPDATE litkb.workstreams SET state = 'abandoned', closed_at = now() "
+                 "WHERE id = %s", (ws_x,))
+
+    _become(conn, env["wt"], f"s3-ab-y-{uuid.uuid4().hex[:6]}")
+    res = _call("_work", doi=doi)
+    assert res["absent_kind"] == "in-another-workstream", res
+    assert res["holder_state"] == "abandoned", res
+    assert "stranded" in res["what_next"], res
+    # and check 2 agrees: the identifier row is still a live `proposed` one
+    row = conn.execute(
+        "SELECT 1 FROM litkb.identifier_versions iv JOIN litkb.identifiers i ON i.id = iv.identifier_id "
+        " WHERE i.scheme = 'doi' AND i.value_norm = litkb.norm_identifier('doi', %s) "
+        "   AND iv.status = 'active' AND iv.state = 'proposed'", (doi,)).fetchone()
+    assert row is not None, "the seed did not leave the proposed row check 2 reads"
+    by_key = _call("_work", key=seeded["key"])
+    assert by_key["absent_kind"] == "in-another-workstream", by_key
+    assert by_key["holder_state"] == "abandoned", by_key

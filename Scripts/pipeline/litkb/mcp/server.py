@@ -622,8 +622,11 @@ _ABSENT_KINDS = {
     "in-another-workstream":
         "another workstream holds this identifier; not visible here until Kam merges its "
         "promotion. Nothing of it is readable from this worktree — not its key, not its files, "
-        "not its blocks — and admitting it here would be refused as a duplicate identifier. Wait "
-        "for that promotion, or ask Kam which branch is carrying it.",
+        "not its blocks — and admitting it here would be refused as a duplicate identifier "
+        "whatever that workstream's state (check 2 is blind to it). `holder_state` is the "
+        "holding workstream's state: `open` → wait for that promotion or ask Kam which branch "
+        "carries it; anything else (abandoned, merged without promotion) → the proposal is "
+        "stranded and only Kam can promote or retire it.",
 }
 
 #: The caller's OWN workstream view, by each selector. Same view and same `status = 'active'`
@@ -645,17 +648,25 @@ _WS_FILES = ("SELECT current_run_id FROM litkb.ws_files "
 #: `litkb_reader=r/litkb_owner` on identifier_versions, work_versions, identifiers, works and
 #: workstreams, and none of them has row-level security), so no grant is missing and the honest
 #: wording is the literal one.
-_OTHER_WS_BY_DOI = ("SELECT 1 FROM litkb.identifier_versions v "
+#: The holder's workstream STATE is read, not filtered on. Admission's check 2
+#: (0014_referee_p2_fixes.sql, "check 2 identifier lookup") refuses a re-admission on ANY
+#: `iv.state = 'proposed'` row, blind to whether the holding workstream is open, merged or
+#: abandoned — so a tool that answered `never-admitted` for an abandoned holder would send the
+#: caller to an admission that then refuses it as a duplicate (found by the S3 phase-1 audit).
+#: The kind therefore matches check 2 exactly, and `holder_state` says whose problem it is.
+_OTHER_WS_BY_DOI = ("SELECT w.state FROM litkb.identifier_versions v "
                     "  JOIN litkb.identifiers i ON i.id = v.identifier_id "
                     "  JOIN litkb.workstreams w ON w.id = v.workstream_id "
                     " WHERE i.scheme = 'doi' AND i.value_norm = litkb.norm_identifier('doi', %s) "
-                    "   AND v.state = 'proposed' AND w.state = 'open' "
-                    "   AND (%s::uuid IS NULL OR v.workstream_id <> %s::uuid) LIMIT 1")
-_OTHER_WS_BY_KEY = ("SELECT 1 FROM litkb.work_versions v "
+                    "   AND v.state = 'proposed' AND v.status = 'active' "
+                    "   AND (%s::uuid IS NULL OR v.workstream_id <> %s::uuid) "
+                    " ORDER BY (w.state = 'open') DESC LIMIT 1")
+_OTHER_WS_BY_KEY = ("SELECT w.state FROM litkb.work_versions v "
                     "  JOIN litkb.works k ON k.id = v.work_id "
                     "  JOIN litkb.workstreams w ON w.id = v.workstream_id "
-                    " WHERE k.key = %s AND v.state = 'proposed' AND w.state = 'open' "
-                    "   AND (%s::uuid IS NULL OR v.workstream_id <> %s::uuid) LIMIT 1")
+                    " WHERE k.key = %s AND v.state = 'proposed' "
+                    "   AND (%s::uuid IS NULL OR v.workstream_id <> %s::uuid) "
+                    " ORDER BY (w.state = 'open') DESC LIMIT 1")
 
 
 def _absent_kind(conn, doi=None, key=None):
@@ -686,12 +697,12 @@ def _absent_kind(conn, doi=None, key=None):
                         else "extracted")
             return "in-this-workstream", {"ws_state": ws_state, "ws_files": len(files)}
     # END guard: a work the caller's OWN workstream holds is in-this-workstream
-    # BEGIN guard: an identifier another OPEN workstream holds is in-another-workstream
+    # BEGIN guard: an identifier another workstream holds is in-another-workstream
     other = (conn.execute(_OTHER_WS_BY_DOI, (doi, ws_id, ws_id)).fetchone() if doi
              else conn.execute(_OTHER_WS_BY_KEY, (key, ws_id, ws_id)).fetchone())
     if other:
-        return "in-another-workstream", {}
-    # END guard: an identifier another OPEN workstream holds is in-another-workstream
+        return "in-another-workstream", {"holder_state": other[0]}
+    # END guard: an identifier another workstream holds is in-another-workstream
     return "never-admitted", {}
 
 

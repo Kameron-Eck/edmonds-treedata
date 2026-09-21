@@ -43,7 +43,7 @@ WHAT EACH ROW IS FOR:
 PKG = "pipeline/litkb"
 TESTS_S3A = ["qc/test_litkb_s3_server.py"]
 TESTS_S3R = ["qc/test_litkb_reaper.py"]
-IDS = ["S3A1", "S3A2", "S3A3", "S3A4", "S3R1", "S3R2", "S3R3"]
+IDS = ["S3A1", "S3A2", "S3A2b", "S3A3", "S3A4", "S3R1", "S3R2", "S3R3"]
 
 
 def register(block, replace, site):
@@ -58,11 +58,18 @@ def register(block, replace, site):
           "work. `ws_state` disappears with it, so the rung the work HAS reached is unreadable",
           tests=TESTS_S3A)
     block("S3A2", f"{PKG}/mcp/server.py",
-          "guard: an identifier another OPEN workstream holds is in-another-workstream",
+          "guard: an identifier another workstream holds is in-another-workstream",
           "THE kill this split exists for: a work admitted in workstream X, asked from workstream "
           "Y, is `never-admitted` again — the one answer that is certainly wrong, because the "
           "admission it invites is refused as a duplicate and no read from this worktree can show "
           "why", tests=TESTS_S3A)
+    replace("S3A2b", f"{PKG}/mcp/server.py",
+            "\"   AND v.state = 'proposed' AND v.status = 'active' \"",
+            "\"   AND v.state = 'proposed' AND v.status = 'active' AND w.state = 'open' \"",
+            "the third bucket filters on the holder's state again (the S3 phase-1 audit's defect): an "
+            "identifier a workstream ABANDONED while holding it `proposed` answers `never-admitted`, "
+            "inviting the admission check 2 refuses as a duplicate — the tool and the gate read "
+            "different rows", tests=TESTS_S3A)
     replace("S3A3", f"{PKG}/mcp/server.py",
             '    return _out({"ok": out.get("outcome") in ("ok", "already-held"), "key": work["key"],',
             '    out = {k: v for k, v in out.items() if k != "detail"}\n'

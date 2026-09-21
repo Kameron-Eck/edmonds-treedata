@@ -93,9 +93,9 @@ json`), not assumed. `stated_reason` is 1 when the log's final text carries a `S
 it is NOT a bound for a real run — the nonsense-topic run is what reads it, because that run's
 whole result is `n=0` with a reason.
 
-A generic `error` refusal is deliberately OUTSIDE `CLOSED_STATES`. hunt() returns `refused:
-"error"` for any unexpected exception, so a driver that crashed on every row would otherwise
-report a full set of "known" states and pass.
+Since S3 an unexpected exception is `state: "crashed"` with `reason: "<stage>:<Exception>"` —
+a NAMED state, so it is inside `CLOSED_STATES`; the `edges` grader counts it under `tracebacks`
+rather than `unknown_states`, so a driver that crashed on every row still cannot pass.
 
 WHAT `first-work` COUNTS (S2), and every choice inside it. S2's claim is that ONE genuinely
 unknown work crossed admission, acquisition, extraction, workstream visibility, recording and

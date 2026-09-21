@@ -248,3 +248,28 @@ def test_the_reaper_writes_no_database_row(env):
     out = _reap(env, min_age_hours=72, apply=True)
     assert out["counters"]["quarantined"] == 1, out["counters"]
     assert counts() == before, "the reaper wrote to the database"
+
+
+@pg_only
+def test_a_snapshot_an_admissions_checks_name_is_owned_without_any_file_row(env):
+    """The live case the first dry run got wrong (2026-09-21, run f856325a): the FPGA proposal was
+    admitted with a PDF as its BOUND file and the web snapshot as EVIDENCE — the snapshot's path
+    lives only in `admissions.checks->'web'->>'snapshot'`, with no `files` row and no
+    `file_versions.rel_path`. The sha leg and the rel_path leg both miss it, and the census called
+    a live proposal's evidence an orphan. The ownership read now includes the paths an admission's
+    checks name, and this test goes red when that leg is removed."""
+    _plant(env, "web", "evidence.txt", b"the page the proposal was read from\n", age_hours=500.0)
+    conn, ws = env["conn"], env["ws"]
+    conn.execute(
+        "INSERT INTO litkb.admissions (route, admitter_agent, admitter_session, state, checks, "
+        "workstream_id) VALUES ('manual', 'reap-test', 'reap-test', 'proposed', %s, %s)",
+        (_jsonb({"web": {"url": "https://example.org/x.pdf",
+                         "document": "_litkb_staging/filed/example.pdf",
+                         "snapshot": "_litkb_staging/web/evidence.txt",
+                         "retrieved": "2026-09-21", "snapshot_binding": "bound"}}), ws))
+    out = _reap(env, min_age_hours=72, apply=True)
+    row = _row(out, "evidence.txt")
+    assert row["verdict"] == "owned", row
+    assert "admission" in row["rule"], row
+    assert out["counters"]["quarantined"] == 0, out["counters"]
+    assert (env["root"] / "_litkb_staging" / "web" / "evidence.txt").exists()

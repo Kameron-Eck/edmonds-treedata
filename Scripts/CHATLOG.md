@@ -46,6 +46,15 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-21  litkb S4 overnight output PARKED untrusted; checkouts removed
+goal:    Kam: "Delete S4 work tree ... happened over night. Can't trust it."
+did:     WIP-committed the dirty trees (q2: 5 mod + 7 new incl. Reports/LITKB_OCR_VRAM_2026-09-21.csv; r: 5 mod + 1 new), pushed all three as
+         github/archive/2026-09-21-litkb-s4-{q1,q2,r}-untrusted (parity 0/0), `git worktree remove` (no --force) wt-s4-q1/q2/r. Local work/ branches kept (no delete).
+found:   live DB has NO extraction_jobs table -> 0029 never applied (reservation only, ecee36c). Workstream readability-1 still `open` (03:52, path treedata; token in main tree).
+         S4 PID 74112 not running. NOT checked: other DB rows S4 may have written under readability-1.
+decided: nothing from S4 merges. S4 reruns from main when Kam says; the archive branches are reference only, audited before any reuse.
+next:    Kam: rerun S4 or not; close/vault readability-1. Rulings E20-E25; the 13 proposals.
+
 ## 2026-09-21  litkb S3 — every hunt ends in named state; edges graded live 14/0/0/0 + replay 19/0/0/0; second session approved 2
 goal:    S3: closed hunt vocabulary + reason classes; register from REAL rows; gaps (HTML-only to blocks, reaper, mirrors from config, SKILL, absent split, acquire detail); second-session approve; `edges --replay`; (c) fires.
 did:     4 Opus builders (own worktrees, w7-w10) + 2 Opus auditors. Phase 1 -> main `7b806c7`: STATES extracted/bound-unextracted/held/refused/api-error/blocked/crashed + REASONS + STAGES (`proposed` NOT a state, `absent` out),

@@ -29,7 +29,11 @@ Update this block only. Everything else in the file changes when a session lands
   manifest frozen before the run; both (c) known-bads fired live. Report:
   `Reports/LITKB_EDGES_2026-09-21.md` (eight bounded outcomes, said plainly). Entry conditions
   were met at 00:07 (0028 applied; hook fix `fd40a74`).
-- **Next:** S4 (everything acquired is readable or classified). Kam-side entry conditions: none
+- **Next:** S4 (everything acquired is readable or classified). **S4's first (overnight
+  2026-09-21) attempt is PARKED untrusted, not landed** — Kam's call; its builder output sits on
+  `github/archive/2026-09-21-litkb-s4-{q1,q2,r}-untrusted`, reference only, audit before any reuse;
+  0029 was never applied to the live DB; workstream `readability-1` is still open (close/vault
+  before the rerun). Kam-side entry conditions: none
   new (0028 is live; the agent-hook fix is on main). Kam's rulings pending, each a register row
   with its question: E20 book · E21 sibling edition · E22 Chrisman_1982 · E23 fifteen
   `skipped-low` · E24 twenty-two `refused-check1` · E25 the two quarantined arXiv PDFs; the

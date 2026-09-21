@@ -46,6 +46,22 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-21  litkb S3 — every hunt ends in named state; edges graded live 14/0/0/0 + replay 19/0/0/0; second session approved 2
+goal:    S3: closed hunt vocabulary + reason classes; register from REAL rows; gaps (HTML-only to blocks, reaper, mirrors from config, SKILL, absent split, acquire detail); second-session approve; `edges --replay`; (c) fires.
+did:     4 Opus builders (own worktrees, w7-w10) + 2 Opus auditors. Phase 1 -> main `7b806c7`: STATES extracted/bound-unextracted/held/refused/api-error/blocked/crashed + REASONS + STAGES (`proposed` NOT a state, `absent` out),
+         SCHEMAS table, transients retryable (route raise -> api-error + attempt row; registry 406 -> api-error, no admission row; boundary -> crashed/<stage>:<Exc>), `config.py` LITKB_SCIHUB_MIRRORS (4),
+         `absent_kind` 3-way + `holder_state`, `litkb_acquire` detail + attempts_detail, `litkb reap` (sha/rel_path/admissions.checks ownership, 72 h, dry-run default), SKILL "manual --from-file last".
+         Phase 2 -> main `568988b`: HTML page -> text snapshot -> proposed admission -> blocks (extractor text-snapshot); register 26 rows (14 execute / 5 replay-only / 6 held_for_ruling / 1 not-a-hunt);
+         `litkb_edge_run.py` + `edges --freeze/--manifest/--replay`; 27 mutation rows fired (HV1-6 S3A1-4+2b S3R1-4 HW1-4 S3E1-6). Live: manifest 10:23:01Z -> `executed=14 skipped=0 state_or_reason_mismatches=0 tracebacks=0 held_for_ruling=6 waits_on_migration=0`;
+         replay on w10 `executed=19 ... 0/0`; (c) live: edited register refused on sha256; re-frozen valid-but-wrong E11 -> mismatches=1 exit 1. Second headless session (own ws `approve-1`, session s3-approve-1) APPROVED Riva_2017 + Abdulkader_2020 (URL-source proposals since 09-16/17) -> promoted.
+         Reaper apply run fb2a1e0f: 27 quarantined (11 incoming 09-15 downloads, 16 stub PDFs leaked test seeds). Report Reports/LITKB_EDGES_2026-09-21.md (8 bounded outcomes); ids in it.
+found:   Kam moved session headless -> interactive 00:07; builder A1 died with process, resumed from transcript. First live grade mismatches=3: E03/E07 Sci-Hub answered blocked on all 4 mirrors (prediction about host; re-adjudicated, replay keeps unobtainable class);
+         E06 Tkaczyk_2024 already HELD in main -> check 2 duplicate-review (C + auditor adjudicated on fresh replay DB, missed it) -> HTML-to-blocks proven replay-only. Live run created NO proposals. Both merge candidates refused by auditors first
+         (p1: absent bucket filtered w.state='open' vs check 2 global; p2: edges replay test poisoned shared DB via global `_title_duplicates` -> 4 red order-dependent; live.inputs missing; E06 allowance). First reaper dry run called FPGA snapshot orphan (admissions.checks leg added).
+         `gate | tail; $?` masked mismatches=3 once. `py -m litkb` from worktree runs MAIN install. E13 505 s (blocked never dead-skipped).
+decided: `proposed` not a state (web-source gate: blocks searchable from own ws). No migration in S3. Held rows E20-E25 + 13 tracker proposals -> Kam. S4 launched in NEW terminal window (wt.exe + bash script), not headless-to-log.
+next:    S4 (readability) launched from this session: `_derived/s4/launch-s4.sh`. Kam: rulings E20-E25; the 13 proposals.
+
 ## 2026-09-21  litkb S2 — one unseeded OA work crossed whole loop; `first-work` gate + acquisition-event contract
 goal:    S2: freeze manifest BEFORE hunt, prove absent, ONE spending hunt -> block -> verified use -> review -> review-check -> review-context -> Codex -> acceptance. Build acquisition-event contract + test.
 did:     Opus builder (own worktree): `first-work --freeze/--manifest` (7 counters), URL hunt path records `acquisition_attempts` via same SQL fn as route path (route `hunt-url`, migration 0028),

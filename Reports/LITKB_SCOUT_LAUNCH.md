@@ -114,29 +114,50 @@ Paths are the MAIN tree's throughout. The worktree this was built in
 (`D:\edmonds-pipeline\wt-s1b`) is disposed of after the merge, and a tracked recipe naming a
 checkout that no longer exists is worse than no recipe.
 
-```
-cd D:\edmonds-pipeline\treedata
+**The shell is bash, and the prompt is a FILE.** The first real run (attempt 1, 2026-09-20)
+was launched from PowerShell 5.1 as `claude -p $prompt`. PowerShell quotes each native argument
+but does not escape the quotes INSIDE it, so the CLI received the template cut at its first
+inner quote (`"Stage 1 - discover"`): one sentence, no topic, no slug. The scout improvised a
+topic, opened its own workstream in the main tree root and wrote nine stray drop-offs before it
+was killed (`Reports/LITKB_SCOUT_RUN_2026-09-20.md`, "Attempt 1"). Bash's `"$(cat file)"`
+passes the bytes exactly, and bash's `>` writes no BOM (PowerShell's does; the log reader now
+strips one, but the recipe does not depend on that).
 
-py -3.12 Scripts\qc\instruments\litkb_acceptance.py scout --freeze ^
-    --workstream scout-1 ^
-    --topic "<TOPIC>" ^
-    --launch-cmd "<the claude command below, verbatim>" ^
-    --log D:\edmonds-pipeline\treedata\_derived\scout\scout-1.jsonl ^
-    --out D:\edmonds-pipeline\treedata\_derived\scout\scout-1-manifest.json
+```bash
+cd /d/edmonds-pipeline/treedata
+py -3.12 Scripts/qc/instruments/litkb_acceptance.py preflight          # every counter 0 first
 
-claude -p "<the template in Scripts\docs\LITKB_SCOUT_PROMPT.md, TOPIC and SLUG substituted>" ^
-    --agent lit-scout ^
-    --model sonnet ^
-    --mcp-config Scripts\qc\fixtures\mcp_scout.json --strict-mcp-config ^
-    --output-format stream-json --verbose ^
-    --max-turns 60 ^
-    > D:\edmonds-pipeline\treedata\_derived\scout\scout-1.jsonl
+# 1. the prompt file: the template with TOPIC and SLUG substituted, nothing else
+#    (Scripts/docs/LITKB_SCOUT_PROMPT.md; the test on that file keeps it free of any work)
+mkdir -p _derived/scout
+# ... write _derived/scout/scout-1-prompt.txt ...
 
-py -3.12 Scripts\qc\instruments\litkb_scout_run.py ^
-    --manifest D:\edmonds-pipeline\treedata\_derived\scout\scout-1-manifest.json
+# 2. freeze BEFORE the launch
+py -3.12 Scripts/qc/instruments/litkb_acceptance.py scout --freeze \
+    --workstream scout-1 --topic "<TOPIC>" \
+    --launch-cmd "<the claude line below, verbatim>" \
+    --log /d/edmonds-pipeline/treedata/_derived/scout/scout-1.jsonl \
+    --out /d/edmonds-pipeline/treedata/_derived/scout/scout-1-manifest.json
 
-py -3.12 Scripts\qc\instruments\litkb_acceptance.py scout ^
-    --manifest D:\edmonds-pipeline\treedata\_derived\scout\scout-1-manifest.json
+# 3. the run (background it; it is ~10-15 min)
+claude -p "$(cat _derived/scout/scout-1-prompt.txt)" \
+    --agent lit-scout --model sonnet \
+    --mcp-config Scripts/qc/fixtures/mcp_scout.json --strict-mcp-config \
+    --output-format stream-json --verbose --max-turns 60 \
+    > _derived/scout/scout-1.jsonl 2> _derived/scout/scout-1.stderr
+
+# 4. WITHIN THE FIRST MINUTE: the first tool call must be litkb_ws_open with THIS slug.
+#    Any other slug means the prompt did not arrive — kill the `claude` PROCESS (not just the
+#    shell; TaskStop leaves the child running), vault the token it wrote, and relaunch.
+grep -o '"name":"mcp__litkb__litkb_ws_open"[^}]*' _derived/scout/scout-1.jsonl | head -1
+
+# 5. follow up every drop-off (no spend), then grade
+py -3.12 Scripts/qc/instruments/litkb_scout_run.py --manifest _derived/scout/scout-1-manifest.json
+py -3.12 Scripts/qc/instruments/litkb_acceptance.py scout --manifest _derived/scout/scout-1-manifest.json
+
+# 6. the scout's token is in the tree root now: vault it, then remove it
+#    (D:\edmonds-pipeline\secrets\litkb-tokens\<slug>\.litkb-workstream); preflight refuses a
+#    tree root that still holds one
 ```
 
 The `--freeze` writes `_derived\scout\` before the redirect needs it, so the order above is the

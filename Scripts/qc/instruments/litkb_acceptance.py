@@ -531,7 +531,10 @@ def read_log(path):
     if not p.is_file():
         return 1, 0, [f"scout log missing: {p}"]
     events, stated, offences, saw_result = 0, 0, [], False
-    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+    # utf-8-sig: a log redirected by PowerShell's `>` starts with a BOM, which made the FIRST line
+    # (the `system/init` message) unparseable and was silently skipped (S1, 2026-09-20). The
+    # launch recipe now says bash, but the reader must not depend on it.
+    for line in p.read_text(encoding="utf-8-sig", errors="replace").splitlines():
         line = line.strip()
         if not line:
             continue
@@ -698,6 +701,96 @@ def _scout_freeze(args):
     return 0
 
 
+# ── preflight: the checks a session runs BEFORE its first hunt ────────────────────────────
+#
+# Every one of these was a chat-prompt "tip" after S1 (2026-09-20) — and a tip in a prompt is
+# a fact with no home. Each became a counter here because each was a real hazard that day:
+#   stray_tokens        a scout opened its workstream IN THE MAIN TREE ROOT; a standing token there
+#                       widens every later hunt from that tree to the wrong workstream
+#   migration_mismatch  the MCP server runs main's code; a migration on disk but not applied
+#                       refuses the first drop-off that needs it (0027 / `title`)
+#   mcp_servers_missing a headless run under --strict-mcp-config sees ONLY what .mcp.json names
+#   main_not_at_parity  a session starting from a main that github does not have
+#   soak_stale          the seven-night clock: a night that did not run, or ran red, is found
+#                       the next morning, not at S7
+# The MCP server of an OPEN session is stale after any merge until `/mcp` reconnect; that is
+# not measurable from here, so preflight prints the HEAD it checked and says so.
+
+SOAK_MAX_AGE_H = 26            # a nightly task at 03:17; one missed night is > 24 h
+MCP_REQUIRED = ("litkb", "paper-search-mcp")
+
+
+def _soak_last_row(csv_path):
+    """The last row of the soak CSV, or None."""
+    p = Path(csv_path)
+    if not p.is_file():
+        return None
+    import csv as _csv
+    rows = list(_csv.DictReader(p.read_text(encoding="utf-8-sig").splitlines()))
+    return rows[-1] if rows else None
+
+
+def check_preflight(repo, *, db="litkb", passfile=None, now=None, soak_csv=None, mcp_json=None):
+    """-> (counters dict, [detail lines]). Pure over its inputs except the DB tip read."""
+    repo = Path(repo)
+    now = now or _utc_now()
+    counters, detail = {}, []
+
+    tokens = sorted(p.name for p in repo.glob(".litkb-workstream*"))
+    counters["stray_tokens"] = len(tokens)
+    for t in tokens:
+        detail.append(f"stray token in the tree root: {t} — vault it, then remove it")
+
+    r_tip = repo_migration_tip()
+    d_tip, note = db_migration_tip(db, passfile)
+    counters["migration_mismatch"] = 0 if (r_tip is not None and r_tip == d_tip) else 1
+    if counters["migration_mismatch"]:
+        detail.append(f"migration tip: repo={r_tip} db={d_tip} ({note or 'mismatch'}) — Kam applies")
+
+    mcp = Path(mcp_json or repo / ".mcp.json")
+    try:
+        servers = set((json.loads(mcp.read_text(encoding="utf-8")).get("mcpServers") or {}).keys())
+    except (OSError, ValueError):
+        servers = set()
+    missing = [s for s in MCP_REQUIRED if s not in servers]
+    counters["mcp_servers_missing"] = len(missing)
+    for s in missing:
+        detail.append(f".mcp.json does not name {s}: a --strict-mcp-config run will not see it")
+
+    local, remote = _rev_parse(repo, "main"), _rev_parse(repo, "github/main")
+    counters["main_not_at_parity"] = 0 if (local and local == remote) else 1
+    if counters["main_not_at_parity"]:
+        detail.append(f"main {str(local)[:12]} != github/main {str(remote)[:12]} (fetch first?)")
+
+    row = _soak_last_row(soak_csv or repo / "Reports" / "LITKB_SOAK.csv")
+    stale, why = 1, "no soak row at all"
+    if row:
+        try:
+            age_h = (now - _parse_utc(row.get("ts_utc", ""))).total_seconds() / 3600
+            ok = (row.get("search_ok") == "true" and row.get("hunt_ok") == "true")
+            stale = 0 if (age_h <= SOAK_MAX_AGE_H and ok) else 1
+            why = (f"last soak row {row.get('ts_utc')} ({age_h:.1f} h old) search_ok="
+                   f"{row.get('search_ok')} hunt_ok={row.get('hunt_ok')} error={row.get('error') or '-'}")
+        except (ValueError, TypeError):
+            why = f"last soak row has an unreadable ts_utc: {row.get('ts_utc')!r}"
+    counters["soak_stale"] = stale
+    detail.append(("SOAK STALE: " if stale else "soak ok: ") + why)
+
+    detail.append(f"checked HEAD {_repo_head(repo)[:12]}; an OPEN session's MCP server is stale "
+                  f"after a merge until `/mcp` reconnect — not measurable here")
+    return counters, detail
+
+
+def cmd_preflight(args):
+    repo = Path(args.repo or _repo_root())
+    counters, detail = check_preflight(repo, db=args.db, passfile=args.passfile,
+                                       soak_csv=args.soak_csv, mcp_json=args.mcp_json)
+    for line in detail:
+        print(line, file=sys.stderr)
+    print(" ".join(f"{k}={v}" for k, v in counters.items()))
+    return 0 if not any(counters.values()) else 1
+
+
 # ── cli ───────────────────────────────────────────────────────────────────────────────────
 
 def build_parser():
@@ -737,6 +830,14 @@ def build_parser():
     s.add_argument("--worktree", help="the worktree the run and the driver use")
     s.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
     s.set_defaults(func=cmd_scout)
+
+    f = sub.add_parser("preflight", help="the checks a session runs BEFORE its first hunt")
+    f.add_argument("--db", default="litkb", help="the database (default: %(default)s)")
+    f.add_argument("--repo", help="repository root (default: this instrument's own)")
+    f.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
+    f.add_argument("--soak-csv", dest="soak_csv", help="(tests) a soak CSV other than Reports/LITKB_SOAK.csv")
+    f.add_argument("--mcp-json", dest="mcp_json", help="(tests) an .mcp.json other than the repo's")
+    f.set_defaults(func=cmd_preflight)
     return ap
 
 

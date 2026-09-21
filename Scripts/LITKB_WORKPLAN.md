@@ -26,11 +26,10 @@ Update this block only. Everything else in the file changes when a session lands
   met every machinery counter and stopped honestly at `dropoffs=9` against the bound of 10; Kam
   accepted the shortfall (`litkb-s1-dropoff-shortfall`). Report: `Reports/LITKB_SCOUT_RUN_2026-09-20.md`.
   The soak clock started: Windows task litkb-nightly-soak registered, first scheduled night 2026-09-21.
-- **Next:** S2 (the first unknown work). Entry condition: S1 landed. Carry-ins for S2/S3 from the
+- **Next:** S2 (the first unknown work). Entry condition: S1 landed. Carry-in for S3 from the
   run: arXiv answered a transient 406 that check 1 recorded as terminal `admission-refused`
-  (S3's `api-error` item, now with a live instance); the launch recipe must prescribe a prompt
-  FILE and a bash launch (PowerShell splits the argument at its first embedded quote); the
-  instrument's log reader must strip a BOM; a scout handed no topic must stop at `n=0`.
+  (S3's `api-error` item, now with a live instance). The other three carry-ins landed the same
+  night as the `preflight` subcommand + the launch recipe rewrite + the no-topic stop rule.
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided (no seeding); S7 soak = seven nights
   started in S1. Kam re-registers the nightly-dump scheduled task (Windows task name
   litkb-nightly-dump) against the merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
@@ -356,6 +355,14 @@ Done-state
 ---
 
 ## Per-session protocol
+
+**First command of every session**, before any hunt or launch:
+`py -3.12 qc/instruments/litkb_acceptance.py preflight` → every counter 0
+(`stray_tokens migration_mismatch mcp_servers_missing main_not_at_parity soak_stale`). A red
+counter is the session's first task, not a note. Then `/mcp` reconnect if the open session
+predates the last merge (not measurable by the instrument; it prints the HEAD it checked).
+Headless launches: `Reports/LITKB_SCOUT_LAUNCH.md` §4 — bash, a prompt FILE, the first
+`ws_open` slug checked within the minute.
 
 Orchestrator = the chat session; ≤ 3 agents. Opus **builder** in its own worktree with its own
 `litkb_test_wN` (check it is free first) → Opus **auditor** re-runs every claim from source on a

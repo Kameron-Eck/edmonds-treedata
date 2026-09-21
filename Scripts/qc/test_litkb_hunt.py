@@ -1332,3 +1332,381 @@ def test_the_mirror_order_is_the_order_the_route_tries(monkeypatch):
     SH.fetch_scihub("10.1/x", None, client=_Client())
     assert [u.split("/10.1")[0] for u in seen] == list(SH.MIRRORS), seen
     assert SH.MIRRORS == __import__("litkb.config", fromlist=["x"]).SCIHUB_MIRRORS
+
+
+# ── S3 phase 2: an HTML-only URL goes through `hunt` to searchable blocks ──────────────────
+#
+# THE DEFECT, in one line: `hunt`'s URL branch asked every server for `application/pdf` and handed
+# whatever came back to `land_download`, which quarantined anything without a `%PDF-` header and
+# refused the hunt `not-a-pdf` — so the half of the convention's "web source" that IS a page (a
+# blog post, a documentation page, a standard) could not be hunted at all, while
+# `admit.front.admit_web`/`web_snapshot_evidence` had been able to bind one since P8. Six sources
+# the 2026-09-15 linkage review depends on have no KB record for exactly that reason.
+#
+# THE 2026-09-15 GUARD IS NOT RELAXED BY ANY OF THIS, and two tests say so:
+# `test_a_url_that_serves_html_is_refused_and_the_bytes_are_quarantined` above (unchanged, row H1 —
+# its stub returns a two-tuple, so the body is UNLABELLED and still quarantines) and
+# `test_an_unlabelled_html_body_still_quarantines_as_not_a_pdf` below, which states that as the
+# rule rather than leaving it as a property of a stub's shape.
+
+#: The Crossref blog article of `10.13003/ief7aibi` (survey-data §7), saved once from
+#: https://www.crossref.org/blog/how-good-is-your-matching/ on 2026-09-21, 56,598 bytes. A real
+#: gold-OA work published as HTML — which is the case this whole path exists for. NOTHING in this
+#: suite fetches it: the bytes are the fixture and the `fetch` stub returns them.
+WEB_FIXTURE = "litkb_web_snapshot_crossref_blog.html"
+#: A sentence from the article's own body (not its menu, not its footer), used to prove the blocks
+#: are reachable by the visibility predicate and not merely present in a count.
+WEB_SENTENCE = "Before we decide to integrate a matching strategy"
+
+#: A page that is NOT the work: the shape of the 2026-09-15 incident, served with an honest
+#: `text/html` this time.
+SIGNIN = (b"<!DOCTYPE html><html><head><title>Sign in to continue</title></head>"
+          b"<body><h1>Sign in to continue</h1><p>You must sign in to download this file.</p>"
+          b"</body></html>")
+
+
+def _web_bytes():
+    return (Path(__file__).with_name("fixtures") / WEB_FIXTURE).read_bytes()
+
+
+def _html_fetch(data=None, ctype="text/html; charset=UTF-8"):
+    """A fetch that answers with a page. THREE-tuple: the server's own content type is what the
+    routing decision is made on, and a stub that omitted it would be exercising the other branch."""
+    body = _web_bytes() if data is None else data
+    return lambda u, timeout=180: (200, body, ctype)
+
+
+#: The article's own title, as the page prints it.
+WEB_TITLE = "How good is your matching?"
+
+
+def _page_hunt(env, *, data=None, ctype="text/html; charset=UTF-8", title=None,
+               author="Tkaczyk", year=2024, **kw):
+    """One page hunt of the fixture, with the article's title MADE UNIQUE in the page AND in the
+    claim. -> (url, title, the bytes served, result)
+
+    Why both: `litkb_test_wN` is reset once per pytest SESSION and every test in this module shares
+    it, so two tests admitting "How good is your matching?" by Tkaczyk in 2024 are the same work
+    and admission's check 2 answers the second one `duplicate-review`. Varying only the CLAIM
+    would break check 3 instead (it binds the claim against the text that landed, at 0.85), so the
+    suffix goes into the page's own title as well: the served page and the claim about it agree,
+    which is the state a real hunt is in."""
+    tag = uuid.uuid4().hex[:8]
+    title = title or f"{WEB_TITLE[:-1]} in {tag}?"
+    if data is None:
+        data = _web_bytes().replace(WEB_TITLE.encode(), title.encode())
+    url = kw.pop("url", None) or f"https://www.crossref.org/blog/{uuid.uuid4().hex}/"
+    kw.setdefault("key", f"Tkaczyk_2024_matching-{tag}")
+    res = _hunt(env, url, ref_scheme="url", fetch=_html_fetch(data, ctype), title=title,
+                author=author, year=year, registry_client=_NoNet(),
+                ingest_role="litkb_test", **kw)
+    return url, title, data, res
+
+
+def _land(store, stem, data, **kw):
+    from litkb import hunt as H
+
+    return H.land_web_snapshot(store, stem, data, **kw)
+
+
+def _visible_blocks(conn, ws_id, needle):
+    """Every block holding `needle` that a caller in `ws_id` may READ — through
+    `litkb.visibility.FILE_JOIN`, the one definition `litkb_search`, `_record_use` and
+    `use.locate_quote` all bind. Asking the predicate directly rather than driving the MCP search
+    tool keeps this test about the SNAPSHOT's blocks: whether the predicate itself is right is
+    `qc/test_litkb_web_gate.py`'s subject and mutation rows W1-W6's."""
+    from litkb import visibility
+
+    sql = ("SELECT b.id::text, b.type, b.text FROM litkb.blocks b "
+           "JOIN litkb.files f ON f.id = b.file_id " + visibility.FILE_JOIN +
+           " WHERE b.run_id = f.current_run_id AND b.text LIKE %(needle)s")
+    return conn.execute(sql, {"ws": ws_id, "needle": f"%{needle}%"}).fetchall()
+
+
+@pg_only
+def test_an_html_page_is_snapshotted_admitted_and_ingested_as_searchable_blocks(env):
+    """THE GOAL. `hunt(ref=<an HTML URL>, ref_scheme='url')` ends `extracted/fresh` with the page's
+    text landed, the proposal admitted, the acquisition event recorded and the blocks ingested.
+
+    `extracted`, and NOT a `proposed` state: S3 ruled that out (builder-A1.md §5.1) because the
+    web-source gate of 2026-09-20 makes a proposal's blocks searchable from the workstream that
+    made them, so `state` goes on saying whether blocks exist. The proposal fact is asserted where
+    it lives — `in_main: false` and `admission.outcome == 'proposed'`."""
+    from litkb.extract import ingest as ing
+
+    url, _title, served, res = _page_hunt(env)
+    assert _assert_named(res) == ("extracted", "fresh"), res
+    assert res["ok"] is True, res
+
+    # 1. the proposal fact, in the two places that carry it
+    assert res["in_main"] is False, res
+    assert res["admission"]["outcome"] == "proposed", res["admission"]
+    assert "SECOND session approves" in res["what_next"], res["what_next"]
+    assert res["visible_to_search"] is True, res
+
+    # 2. the snapshot on disk, and its record beside it
+    web = env["root"] / "_litkb_staging" / "web"
+    txt = list(web.glob("*.txt"))
+    assert len(txt) == 1, sorted(p.name for p in web.glob("*"))
+    body = txt[0].read_text(encoding="utf-8")
+    assert WEB_SENTENCE in body, body[:400]
+    assert "<html" not in body and "<script" not in body, body[:400]
+    facts = json.loads(Path(str(txt[0]) + ".snapshot.json").read_text(encoding="utf-8"))
+    assert facts["source_url"] == url and facts["content_type"].startswith("text/html"), facts
+    assert facts["retrieved"] == res["snapshot"]["retrieved"], facts
+    assert re.fullmatch(r"[0-9a-f]{64}", facts["sha256_raw"]), facts
+    assert re.fullmatch(r"[0-9a-f]{64}", facts["sha256_text"]), facts
+    assert facts["sha256_raw"] != facts["sha256_text"], "the raw bytes and the text hashed alike"
+    assert facts["bytes_raw"] == len(served), facts
+
+    # 3. ONE run, under the snapshot's own key and never the reconciliation's
+    run = env["conn"].execute(
+        "SELECT stage, tool, tool_version, pipeline_version, status FROM litkb.extraction_runs "
+        " WHERE id = %s", (res["extraction"]["run_id"],)).fetchone()
+    assert run == (ing.TEXT_STAGE, ing.TEXT_TOOL, ing.TEXT_VERSION, ing.TEXT_VERSION, "ok"), run
+
+    # 4. the blocks: headings as headings, paragraphs as paragraphs, all on page 1
+    kinds = dict(env["conn"].execute(
+        "SELECT type, count(*) FROM litkb.blocks WHERE run_id = %s GROUP BY 1",
+        (res["extraction"]["run_id"],)).fetchall())
+    assert kinds.get("heading", 0) > 0 and kinds.get("paragraph", 0) > 0, kinds
+    assert set(kinds) == {"heading", "paragraph"}, kinds
+    assert env["conn"].execute(
+        "SELECT count(*) FROM litkb.blocks WHERE run_id = %s AND (page_no <> 1 "
+        "OR bbox IS NOT NULL OR extractor <> %s OR text_source <> 'native' "
+        "OR source IS NOT NULL OR NOT canonical)",
+        (res["extraction"]["run_id"], ing.TEXT_EXTRACTOR)).fetchone()[0] == 0
+
+    # 5. and the file's CURRENT run is that run, which is what makes the blocks readable at all
+    assert env["conn"].execute(
+        "SELECT current_run_id::text FROM litkb.files WHERE id = %s",
+        (res["admission"]["file_id"],)).fetchone()[0] == res["extraction"]["run_id"]
+
+
+@pg_only
+def test_the_snapshot_blocks_are_reachable_from_this_workstream_and_from_no_other(env):
+    """THE GATE, read through the snapshot's own blocks. `litkb.visibility.FILE_JOIN` reaches an
+    unapproved proposal from the workstream that made it and from nowhere else
+    (decisions.yaml `litkb-web-source-gate`) — and a path that ingested blocks nobody could read
+    would be a path that did nothing.
+
+    The predicate is NOT re-tested here and this adds no mutation row: it is one string with three
+    call sites, covered by rows W1-W6 and by `qc/test_litkb_web_gate.py`. What is new is that a
+    TEXT-SNAPSHOT run's blocks flow through it like any other file's."""
+    from litkb import workstream
+
+    _url, _title, _served, res = _page_hunt(env)
+    mine = _visible_blocks(env["conn"], env["ws_id"], WEB_SENTENCE)
+    assert len(mine) == 1, mine
+    assert mine[0][1] == "paragraph", mine
+
+    other_wt = env["tmp"] / "other-worktree"
+    other_wt.mkdir()
+    other = str(workstream.open_workstream(env["conn"], f"other-{uuid.uuid4().hex[:8]}", "test",
+                                           "a second workstream on the same database",
+                                           directory=other_wt))
+    assert _visible_blocks(env["conn"], other, WEB_SENTENCE) == [], "a proposal leaked"
+    assert _visible_blocks(env["conn"], None, WEB_SENTENCE) == [], "a proposal leaked to main"
+    assert res["in_main"] is False, res
+
+
+@pg_only
+def test_the_snapshot_acquisition_event_names_the_content_type_and_says_snapshot(env):
+    """Requirement 3. One provenance shape for every bound file, whichever door it came in by —
+    route `hunt-url`, the six detail keys a PDF landing writes, and the two that say which of the
+    two landed."""
+    from litkb.acquire import events
+
+    since = _db_now(env["conn"])
+    url, _title, served, res = _page_hunt(env)
+    assert res["acquisition_event"]["ok"] is True, res["acquisition_event"]
+    route, identifier, status, detail, codes = env["conn"].execute(
+        "SELECT route, identifier_used, status, detail, http_codes FROM "
+        "litkb.acquisition_attempts WHERE id = %s",
+        (res["acquisition_event"]["attempt_id"],)).fetchone()
+    assert (route, status, codes) == (events.ROUTE, "ok", [200]), (route, status, codes)
+    assert identifier == url, identifier
+    assert set(events.DETAIL_KEYS) <= set(detail), sorted(detail)
+    assert set(events.SNAPSHOT_DETAIL_KEYS) <= set(detail), sorted(detail)
+    assert detail["snapshot"] is True, detail
+    assert detail["content_type"].startswith("text/html"), detail
+    # the BOUND bytes are the snapshot text, and that is the hash the verifier joins on
+    assert detail["sha256"] == res["snapshot"]["sha256_text"], detail
+    assert detail["sha256_raw"] == res["snapshot"]["sha256_raw"], detail
+    assert detail["sha256"] != detail["sha256_raw"], detail
+    assert detail["bytes_raw"] == len(served), detail
+    assert detail["filed"] == res["snapshot"]["rel_path"], detail
+    assert events.bound_without_event(env["conn"], env["ws_id"], since) == []
+
+
+@pg_only
+def test_a_snapshot_whose_event_cannot_be_written_still_reaches_extracted(env, monkeypatch):
+    """The contract the PDF path already has, UNCHANGED on this one: a database that has not
+    applied migration 0028 does not crash the hunt. It ends in its normal state with
+    `acquisition-event-failed` in `refusals[]` — never a silent `ok: True` with an empty list."""
+    from litkb.acquire import run as _run
+
+    def _explode_write(*a, **kw):
+        raise RuntimeError('violates check constraint "acquisition_attempts_route_check"')
+
+    monkeypatch.setattr(_run, "record_attempt", _explode_write)
+    _url, _title, _served, res = _page_hunt(env)
+    assert _assert_named(res) == ("extracted", "fresh"), res
+    codes = [r["code"] for r in res["refusals"]]
+    assert codes == ["acquisition-event-failed"], res["refusals"]
+    assert res["acquisition_event"]["ok"] is False, res["acquisition_event"]
+    assert res["extraction"]["blocks"] > 0, res["extraction"]
+
+
+@pg_only
+def test_a_page_with_no_claimed_author_is_incomplete_record_and_admits_nothing(env):
+    """Row HW2. A page has no `/Info` dictionary and no registry to ask, so the title, the author
+    and the year are the CALLER's claim. Two of the three is not a manual admission — and the
+    refusal names the snapshot it left on disk, because a caller who passes `--author` on the
+    second try should not have to fetch the page again."""
+    before = _runs(env["conn"])
+    # no --title either: the title then comes from the page, which is the only one of the three
+    # a page can supply, and the `from` map has to name that source honestly
+    res = _hunt(env, f"https://www.crossref.org/blog/{uuid.uuid4().hex}/", ref_scheme="url",
+                fetch=_html_fetch(), registry_client=_NoNet(), ingest_role="litkb_test",
+                key=f"Nameless_2026_{uuid.uuid4().hex[:8]}")
+    assert _assert_named(res) == ("refused", "incomplete-record"), res
+    assert res["fields"]["from"]["author"] == "NOT FOUND", res["fields"]
+    assert res["fields"]["from"]["year"] == "NOT FOUND", res["fields"]
+    # the label says where the text came from, and an HTML page has no page 1
+    assert res["fields"]["from"]["title"] == "the page's own text", res["fields"]
+    assert res["snapshot"].endswith(".txt"), res["snapshot"]
+    assert (env["root"] / Path(res["snapshot"])).exists(), res["snapshot"]
+    assert _runs(env["conn"]) == before, "a refused page was ingested"
+    assert "acquisition_event" not in res, res
+
+
+@pg_only
+def test_a_sign_in_page_does_not_bind_a_papers_title_and_is_refused(env):
+    """Row HW3 — the 2026-09-15 incident, on the NEW route. The bytes are an honest `text/html`
+    sign-in page and the caller claims a paper's title: check 3 binds the claimed title against
+    the text that landed, by the same binder and at the same 0.85 a PDF's first page goes through,
+    and refuses. The snapshot stays on disk under its own name; nothing is admitted and nothing is
+    ingested."""
+    before = _runs(env["conn"])
+    _url, _title, _served, res = _page_hunt(env, data=SIGNIN,
+                                   title=f"A Paper About Matching {uuid.uuid4().hex[:8]}")
+    assert _assert_named(res) == ("refused", "admission-refused"), res
+    assert res["admission"]["outcome"] != "proposed", res["admission"]
+    assert res["snapshot"].endswith(".txt"), res["snapshot"]
+    assert _runs(env["conn"]) == before, "a refused page was ingested"
+
+
+@pg_only
+def test_an_unlabelled_html_body_still_quarantines_as_not_a_pdf(env):
+    """Row HW4, and the half of the 2026-09-15 guard this change had to leave standing.
+
+    `classify` routes on what the SERVER declared. A response that declared NOTHING has told us
+    nothing, and "the bytes look like HTML" is precisely what the incident's bytes also looked
+    like — so an unlabelled body falls through to `land_download` and its quarantine exactly as it
+    did before today. The two-tuple fetch here IS the undeclared case, and it is asserted as the
+    rule rather than left as a property of one stub's shape."""
+    from litkb.extract import text_snapshot as TS
+
+    assert TS.classify(_web_bytes(), None)[0] == "not-html"
+    assert TS.classify(_web_bytes(), "text/html")[0] == "html"
+    assert TS.classify(b"%PDF-1.7\n...\n%%EOF", "text/html")[0] == "not-html"
+    assert TS.classify(_web_bytes(), "application/octet-stream")[0] == "html"
+    assert TS.classify(b"\x00\x01\x02binary", "application/octet-stream")[0] == "not-html"
+
+    res = _hunt(env, f"https://example.org/{uuid.uuid4().hex}.pdf", ref_scheme="url",
+                fetch=lambda u, timeout=180: (200, _web_bytes()),
+                key=f"Unlabelled_2026_{uuid.uuid4().hex[:8]}", registry_client=_NoNet())
+    assert _assert_named(res) == ("refused", "not-a-pdf"), res
+    assert res["quarantined"].startswith("_quarantine/"), res
+    assert not list((env["root"] / "_litkb_staging" / "web").glob("*")), "an unlabelled body landed"
+
+
+@pg_only
+def test_a_binary_body_labelled_octet_stream_is_refused_as_today(env):
+    """The other side of the same rule: a declared type that is neither HTML nor PDF is a page only
+    if the BYTES open like one. A binary blob is not, and stays `refused/not-a-pdf` with its bytes
+    kept in `_quarantine/`."""
+    res = _hunt(env, f"https://example.org/{uuid.uuid4().hex}.bin", ref_scheme="url",
+                fetch=lambda u, timeout=180: (200, b"\x00\x01\x02" + b"z" * 900,
+                                              "application/octet-stream"),
+                key=f"Binary_2026_{uuid.uuid4().hex[:8]}", registry_client=_NoNet())
+    assert _assert_named(res) == ("refused", "not-a-pdf"), res
+    assert res["quarantined"].startswith("_quarantine/"), res
+
+
+@pg_only
+def test_a_doi_whose_route_serves_html_ends_held_and_never_snapshots_a_landing_page(env):
+    """A LANDING PAGE IS NOT THE PAPER. The snapshot route belongs to the `url` scheme alone: a DOI
+    resolves to a work whose document is a PDF, and HTML from one of its acquisition routes is a
+    publisher's landing page, a consent wall or a paywall. Those stay an acquisition `bad-file` and
+    the hunt ends `held`.
+
+    The route path reaches `pdf_shape` through `acquire.run.land_and_attach` and never touches
+    `text_snapshot.classify`. `_web_snapshot` is replaced by a raiser here, so a DOI hunt that
+    found its way into the page route fails this test instead of quietly admitting a landing
+    page."""
+    from litkb import hunt as H
+
+    doi = f"10.9999/html-landing-{uuid.uuid4().hex[:8]}"
+    seed_extracted(env["conn"], env["ws_id"], "doi", doi, state="held")
+    calls = []
+
+    def _acquire_serving_html(conn, ws_id, token, work, *, store, agent, session):
+        # what `land_and_attach` records when a route's bytes are not a whole PDF
+        calls.append(work)
+        return {"outcome": "not-acquired", "attempts": [("open_access", "bad-file")],
+                "route_detail": [{"route": "open_access", "status": "bad-file", "codes": [200],
+                                  "exception": None}]}
+
+    def _never(*a, **kw):
+        raise AssertionError("a DOI hunt reached the web-snapshot route")
+
+    orig = H._web_snapshot
+    H._web_snapshot = _never
+    try:
+        res = _hunt(env, doi, fetch=_explode, registry_client=_NoNet(),
+                    acquirer=_acquire_serving_html)
+    finally:
+        H._web_snapshot = orig
+    assert _assert_named(res) == ("held", "not-acquired"), res
+    assert calls, "acquisition was never attempted"
+    assert not list((env["root"] / "_litkb_staging" / "web").glob("*")), "a landing page landed"
+
+
+@pg_only
+def test_a_second_snapshot_of_the_same_page_never_overwrites_the_first(env):
+    """A snapshot is evidence that a page said something on a DATE. A second retrieval that
+    overwrote the first would destroy the only record that the page had changed under its own
+    citation, which is the reason the convention asks for a retrieval date at all.
+
+    The guard is `Store.guard_new`'s (`guard: store never overwrites`, mutation row B4); this adds
+    no row and asserts that the snapshot path goes THROUGH it rather than around it."""
+    from litkb.acquire.store import StoreRefused
+
+    store = _store(env)
+    data = _web_bytes()
+    p1, _t1, _b1, f1 = _land(store, "Same_2024_page", data, url="https://x.test/a",
+                             retrieved="2026-09-21", content_type="text/html")
+    p2, _t2, _b2, f2 = _land(store, "Same_2024_page", data, url="https://x.test/a",
+                             retrieved="2026-09-22", content_type="text/html")
+    assert p1 != p2 and p1.exists() and p2.exists(), (p1, p2)
+    assert p2.name == "Same_2024_page.2.txt", p2.name
+    assert f1["sha256_text"] == f2["sha256_text"], (f1, f2)
+    with pytest.raises(StoreRefused):
+        store.write_new(p1, b"clobbered")
+    assert p1.read_bytes().startswith(b"How good is your matching"), p1.read_bytes()[:60]
+
+
+def test_the_snapshot_path_emits_no_state_or_reason_outside_the_closed_vocabulary():
+    """The pairs this route can end in, pinned. Every one is already in `REASONS` /
+    `HUNT_REFUSALS`: S3 phase 2 adds a ROUTE, not a word."""
+    from litkb import hunt as H
+
+    for state, reason in (("extracted", "fresh"), ("bound-unextracted", "fresh-bound"),
+                          ("refused", "incomplete-record"), ("refused", "admission-refused"),
+                          ("refused", "not-a-pdf"), ("refused", "truncated-pdf"),
+                          ("refused", "fetch-failed"), ("refused", "no-labels"),
+                          ("api-error", "fetch-transient"), ("api-error", "empty-response"),
+                          ("blocked", "403")):
+        assert H.reason_ok(state, reason), (state, reason)

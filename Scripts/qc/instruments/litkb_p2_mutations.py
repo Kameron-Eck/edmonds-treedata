@@ -1597,6 +1597,45 @@ block("CX10", "qc/instruments/litkb_acceptance.py",
       "command whose purpose is to show the reviewer catches an overreach then passes a reviewer "
       "that called it SUPPORTED (X4)", tests=TESTS_CODEX)
 
+# ── S3E: the edge-case register, its driver and the `edges` grader (S3, 2026-09-21) ─────────
+# THE DIFFERENCE THIS STAGE ADDS is that a hunt must end in the RIGHT named state, not merely in
+# SOME named state. `scout`'s `unknown_states` asks membership; `edges` compares the PAIR the
+# register adjudicated. Every row below breaks one of the four things that makes that true — the
+# comparison itself, the asserts the pair deliberately does not carry, the binding between the
+# manifest and the register it graded, and the two boundaries in the driver (a hunt that raises
+# must still be a ROW, and a replay must never be pointed at the live database).
+TESTS_EDGES = ["qc/test_litkb_edges.py"]
+ACCEPT = "qc/instruments/litkb_acceptance.py"
+EDGERUN = "qc/instruments/litkb_edge_run.py"
+
+block("S3E1", ACCEPT, "guard: the pair is compared, and membership alone cannot pass",
+      "`edges` stops comparing the observed (state, reason) with the register's: every row whose "
+      "state is in the closed vocabulary passes, so E11's `refused/admission-refused` and "
+      "`extracted/already-extracted` — a perfectly VALID pair, and what E01 answers — grade the "
+      "same. That is precisely the gap scout's `unknown_states` already had", tests=TESTS_EDGES)
+block("S3E2", ACCEPT, "guard: an assert this grader cannot evaluate is named, never silently passed",
+      "an `asserts` key no column can answer is ignored instead of reported: E04's, E05's and "
+      "E06's proposal facts read as CHECKED while nothing looks at them — a gate that has never "
+      "fired, wearing the report of one that has (CLAUDE.md 3.4c)", tests=TESTS_EDGES)
+block("S3E3", ACCEPT, "guard: the register graded is the register frozen",
+      "the manifest's fixture sha256 stops being compared with the file: a register edited after "
+      "the freeze grades a different question, and the mutation that loosens an expectation is "
+      "then passed by the very command whose known-bad is that mutation", tests=TESTS_EDGES)
+replace("S3E4", ACCEPT,
+        "    return (counters[\"executed\"] == manifest_rows and counters[\"skipped\"] == 0\n"
+        "            and counters[\"state_or_reason_mismatches\"] == 0 and counters[\"tracebacks\"] == 0)",
+        "    return True",
+        "`edges` exits 0 whatever it counted: a run that hunted half the register, crashed on one "
+        "row and disagreed with two reports the same clean sheet as one that graded all of it",
+        tests=TESTS_EDGES)
+block("S3E5", EDGERUN, "guard: a hunt that raises is a written row, never a dead run",
+      "an exception out of `hunt()` ends the RUN instead of becoming a row: the ledger holds "
+      "nothing for the one reference that broke the promise S3 exists to keep, and the run reads "
+      "as incomplete rather than as failed", tests=TESTS_EDGES)
+block("S3E6", EDGERUN, "guard: the replay refuses the live database before it opens a connection",
+      "`--replay` accepts `litkb`. `migrate.reset` DROPS the schema, so the one thing between the "
+      "knowledge base and an operator's mistyped environment variable is removed", tests=TESTS_EDGES)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":
@@ -1985,6 +2024,35 @@ hu(block, "HV6", f"{PKG}/config.py",
    "records `not-in-archive` for every DOI, which reads in acquisition_attempts as 'Sci-Hub does "
    "not hold it' for a work nobody asked Sci-Hub about")
 
+# -- HW: an HTML-only URL is a web source, not a failed PDF download (S3 phase 2, 2026-09-21) --
+# `hunt`'s URL branch asked every server for application/pdf and handed the answer to
+# `land_download`, which quarantined anything without a %PDF- header. A blog post, a documentation
+# page or a standard IS the work for half the sources the convention calls web sources, and none of
+# them could be hunted at all. These four rows are the two halves of the change: the route that had
+# to be ADDED (HW1), and the three refusals that had to stay standing around it -- because a route
+# that admits any page under any claim is the 2026-09-15 incident with a text extractor in front of
+# it. One row per CALL SITE: the routing decision (hunt.py), the field check (hunt.py), the binding
+# check (hunt.py) and the media-type rule the routing decision reads (text_snapshot.py).
+hu(block, "HW1", f"{PKG}/hunt.py",
+   "guard: an HTML page is a web source in its own right, not a failed PDF download",
+   "an HTML page is quarantined `not-a-pdf` again: `litkb hunt` cannot reach a web source that is "
+   "a PAGE at all, nothing is admitted, no snapshot is written and a search for a sentence from "
+   "the page -- from inside the workstream that just hunted it -- returns nothing")
+hu(block, "HW2", f"{PKG}/hunt.py",
+   "guard: a web page is admitted on a claimed title, author and year, never on two of them",
+   "a page is admitted with a blank author or no year: a manual admission's whole evidence is the "
+   "claim, and a claim missing the field the approver compares is one a SECOND session cannot "
+   "check -- the hunt reaches admit_web with an empty author instead of naming what is missing")
+hu(block, "HW3", f"{PKG}/hunt.py",
+   "guard: a page that does not bind its claimed title is refused, never snapshotted in",
+   "the admission's verdict is ignored on the page route: a sign-in page, a consent wall or a 404 "
+   "body becomes the work it was claimed to be, with a refused admission underneath it -- the "
+   "2026-09-15 incident, through the door this phase opened")
+hu(block, "HW4", f"{PKG}/extract/text_snapshot.py",
+   "guard: a body the response did not label gets the PDF shape check it always got",
+   "a response that declared NO content type is routed by its bytes: an unlabelled sign-in page "
+   "-- which is the 2026-09-15 incident's own shape -- stops reaching `land_download` and its "
+   "quarantine, and the one guard this phase was written around is gone")
 
 hu(site, "RD19", "litkb/acquire/events.py::record_url_landing::redact", "{a0}",
    what="events.record_url_landing: acquisition_attempts.identifier_used is stored as the URL was "

@@ -86,14 +86,35 @@ def md5_of(data):
     return hashlib.md5(data).hexdigest()       # noqa: S324 -- a record key, never a credential
 
 
+#: The detail keys the SNAPSHOT half of this route adds (S3, 2026-09-21). An HTML page and a PDF
+#: both land through `hunt-url`, and the row has to say which arrived: `snapshot` is the boolean a
+#: reader filters on and `content_type` is what the server actually declared -- the fact the
+#: routing decision was made on (`litkb.extract.text_snapshot.classify`), kept beside the bytes it
+#: was made about. They are OPTIONAL: a PDF landing writes the six keys it always wrote and
+#: nothing else, so no row written before today needs re-reading.
+#:
+#: `sha256_raw` / `bytes_raw` ARE A SECOND PAIR OF HASHES, and that is the point. On this route the
+#: bound file is the page's TEXT, so `sha256` -- the key :data:`BOUND_WITHOUT_EVENT_SQL` joins on,
+#: and therefore the only one that can exonerate a binding -- has to be the text's. The HTML the
+#: server actually sent is a different string of bytes and its hash would exonerate nothing; it is
+#: recorded here, beside the text's, because it is the provenance of the extraction.
+SNAPSHOT_DETAIL_KEYS = ("content_type", "snapshot", "sha256_raw", "bytes_raw")
+
+
 def record_url_landing(conn, ws, token, work_id, *, url, sha256, md5, nbytes, http_status,
-                       filed):
+                       filed, content_type=None, snapshot=False, sha256_raw=None,
+                       bytes_raw=None):
     """One `ok` acquisition event for a file the URL path landed and bound. -> the attempt id.
 
     Goes through `litkb.acquire.run.record_attempt` -- the SAME function the route path uses, so
     the token is presented and the detail is redacted in one place. `conn` must be the connection
     that holds EXECUTE on `litkb.record_acquisition_attempt`, which migration 0011 grants to
     `litkb_writer` alone; the call site hands it the writer connection `admit_web` just used.
+
+    `snapshot` / `content_type` (S3, 2026-09-21): the bound file is a TEXT SNAPSHOT of an HTML page
+    rather than the document itself. Two keys and not one, because they answer different questions
+    -- what was bound, and what the server said it was serving -- and the second is the evidence
+    for the first.
     """
     from litkb.netutil import redact
 
@@ -101,6 +122,9 @@ def record_url_landing(conn, ws, token, work_id, *, url, sha256, md5, nbytes, ht
 
     detail = {"sha256": sha256, "md5": md5, "bytes": nbytes, "source_url": url,
               "filed": filed, "http_status": http_status}
+    if snapshot or content_type:
+        detail |= {"content_type": content_type, "snapshot": bool(snapshot),
+                   "sha256_raw": sha256_raw, "bytes_raw": bytes_raw}
     codes = [int(http_status)] if str(http_status).isdigit() else []
     return run.record_attempt(conn, ws, token, work_id, ROUTE, redact(url), "ok", detail, codes)
 

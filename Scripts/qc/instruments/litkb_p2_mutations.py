@@ -1985,6 +1985,35 @@ hu(block, "HV6", f"{PKG}/config.py",
    "records `not-in-archive` for every DOI, which reads in acquisition_attempts as 'Sci-Hub does "
    "not hold it' for a work nobody asked Sci-Hub about")
 
+# -- HW: an HTML-only URL is a web source, not a failed PDF download (S3 phase 2, 2026-09-21) --
+# `hunt`'s URL branch asked every server for application/pdf and handed the answer to
+# `land_download`, which quarantined anything without a %PDF- header. A blog post, a documentation
+# page or a standard IS the work for half the sources the convention calls web sources, and none of
+# them could be hunted at all. These four rows are the two halves of the change: the route that had
+# to be ADDED (HW1), and the three refusals that had to stay standing around it -- because a route
+# that admits any page under any claim is the 2026-09-15 incident with a text extractor in front of
+# it. One row per CALL SITE: the routing decision (hunt.py), the field check (hunt.py), the binding
+# check (hunt.py) and the media-type rule the routing decision reads (text_snapshot.py).
+hu(block, "HW1", f"{PKG}/hunt.py",
+   "guard: an HTML page is a web source in its own right, not a failed PDF download",
+   "an HTML page is quarantined `not-a-pdf` again: `litkb hunt` cannot reach a web source that is "
+   "a PAGE at all, nothing is admitted, no snapshot is written and a search for a sentence from "
+   "the page -- from inside the workstream that just hunted it -- returns nothing")
+hu(block, "HW2", f"{PKG}/hunt.py",
+   "guard: a web page is admitted on a claimed title, author and year, never on two of them",
+   "a page is admitted with a blank author or no year: a manual admission's whole evidence is the "
+   "claim, and a claim missing the field the approver compares is one a SECOND session cannot "
+   "check -- the hunt reaches admit_web with an empty author instead of naming what is missing")
+hu(block, "HW3", f"{PKG}/hunt.py",
+   "guard: a page that does not bind its claimed title is refused, never snapshotted in",
+   "the admission's verdict is ignored on the page route: a sign-in page, a consent wall or a 404 "
+   "body becomes the work it was claimed to be, with a refused admission underneath it -- the "
+   "2026-09-15 incident, through the door this phase opened")
+hu(block, "HW4", f"{PKG}/extract/text_snapshot.py",
+   "guard: a body the response did not label gets the PDF shape check it always got",
+   "a response that declared NO content type is routed by its bytes: an unlabelled sign-in page "
+   "-- which is the 2026-09-15 incident's own shape -- stops reaching `land_download` and its "
+   "quarantine, and the one guard this phase was written around is gone")
 
 hu(site, "RD19", "litkb/acquire/events.py::record_url_landing::redact", "{a0}",
    what="events.record_url_landing: acquisition_attempts.identifier_used is stored as the URL was "

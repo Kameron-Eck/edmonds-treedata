@@ -54,9 +54,16 @@ def pdf_shape(data):
     The two failures are told apart because their CAUSES differ - a wrong URL against a dropped connection - and
     whoever reads _quarantine/ should learn which without opening the file. The reason never quotes the bytes
     themselves: a served error page can echo a request URL, key and all, and this sentence is written to disk."""
+    from litkb.extract.text_snapshot import looks_like_html
+
     data = data or b""
     if not data.startswith(PDF_HEADER):
-        html = b"<html" in data[:512].lower() or b"<!doctype html" in data[:512].lower()
+        # ONE HOME for "do these bytes open as HTML" (CLAUDE.md §3.3). The same question decides
+        # whether hunt's URL branch snapshots a page instead of quarantining it
+        # (`litkb.extract.text_snapshot.classify`), and two copies of the marker scan would let
+        # the quarantine reason and the routing decision disagree about the same bytes. Imported
+        # inside the function: `acquire` must not import `extract` at module scope.
+        html = looks_like_html(data)
         return "not-a-pdf", (f"the {len(data)} bytes served do not begin with {PDF_HEADER.decode()}"
                              + ("; they look like HTML" if html else ""))
     if b"%%EOF" not in data[-EOF_WINDOW:]:

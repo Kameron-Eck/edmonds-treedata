@@ -900,9 +900,15 @@ def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, 
 
     ws_id, token = _session()
     a, s = _labels(agent, session)
-    if kind not in ("method", "theorem", "parameter", "empirical evidence", "negative result",
-                    "context", "contradiction"):
-        return _refuse("bad-kind", f"kind must be one of the seven use kinds, got {kind!r}")
+    kinds = ("method", "theorem", "parameter", "empirical evidence", "negative result",
+             "context", "contradiction")
+    if kind not in kinds:
+        # The set is NAMED in the refusal (S2, 2026-09-21): the first live record_use of the
+        # session was refused with "one of the seven use kinds" and had to go looking for the
+        # seven, while `bad-feeds` beside it lists its vocabulary. A refusal that names the set
+        # costs one line; one that does not costs a search.
+        return _refuse("bad-kind", f"kind must be one of the seven use kinds "
+                                   f"({', '.join(kinds)}), got {kind!r}")
     # BEGIN guard: the statement is a statement
     # R-5/R-6 of the operational referee: the statement is what a reader of the promotion report
     # sees, and it was completely ungated here. The database's own CHECK is `statement <> ''`, which

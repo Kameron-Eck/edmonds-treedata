@@ -46,6 +46,22 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-21  litkb S2 — one unseeded OA work crossed whole loop; `first-work` gate + acquisition-event contract
+goal:    S2: freeze manifest BEFORE hunt, prove absent, ONE spending hunt -> block -> verified use -> review -> review-check -> review-context -> Codex -> acceptance. Build acquisition-event contract + test.
+did:     Opus builder (own worktree): `first-work --freeze/--manifest` (7 counters), URL hunt path records `acquisition_attempts` via same SQL fn as route path (route `hunt-url`, migration 0028),
+         verifier `acquire/events.bound_without_event` feeds `operator_interventions`; 9 known-bads fire. Opus auditor: MERGE WITH FIXES (silent except branch; NOT EXISTS lacked work_id;
+         client-clock freeze) -> fixed 84873cb, each with firing test -> merged 0dd8886, full check.py green 713 s, pushed. Sonnet scout: 4 drop-offs (all absent, gold-OA).
+         Live: freeze 05:12:37Z (db clock) -> litkb_work absent -> CLI hunt Maiti 2022 (open_access ok, 113 blocks, 105 s, refusals []) -> 3 verified uses (supports / context / refutes)
+         -> review (Opus review-writer) PASS 0 findings -> Codex 3/3 SUPPORTED session 01a0c271-712e -> grade `new_works=1 bound=1 extracted=1 searchable=1 verified_uses=3 claims_ungraded=0 operator_interventions=0` exit 0;
+         replay manifest (frozen after) -> new_works=0 exit 1. Report Reports/LITKB_FIRST_WORK_2026-09-21.md; ids in it.
+found:   agent-frontmatter hook `${CLAUDE_PROJECT_DIR}/.claude/hooks/litkb_guard.py` resolves under Scripts\ (no file) -> `py` exit 2 = BLOCK -> review-writer/librarian lose Read/Grep/Glob
+         from every Scripts\ session; measured; tested locator fix in Reports/LITKB_AGENT_HOOK_PATH_2026-09-21.md (Kam's edit, classifier). review draft 1 failed at line 1 for it; draft 2 with grammar inline.
+         `k2-never-fired` unreachable for one-work run unless work contradicts itself (`open` does not count) -> tree-class sentence refutes expected ranking -> recorded `refutes`, request `contradicted` (1/1).
+         `search_unpaywall` empty for every DOI incl. gold-OA controls. Docling no artifact on native Copernicus PDF (GROBID carried). `gate | tail; $?` masks exit code (bit twice).
+decided: run proceeded one migration ahead of live DB (0028 unapplied, Kam's) after 60+10 min silence (away-mode rule); manifest records both tips; DOI/OA path untouched by 0028.
+         `record_use` bad-kind refusal now lists the seven kinds. Session rule (Kam): lessons -> project, launch next session headless (Fable), old session ends.
+next:    Kam: apply 0028; apply hook fix. S3 launched headless from this session (see next entry / Reports/LITKB_S3_LAUNCH...). Promotion of 3 uses on Kam's track.
+
 ## 2026-09-20  litkb post-S1 — preflight subcommand; Codex as a scripted, schema'd stage, gate proven LIVE
 goal:    Kam: integrate the next-session tips + the Codex improvements INTO the tree, finished tonight, no spill into S2.
 did:     `litkb_acceptance.py preflight` (stray_tokens migration_mismatch mcp_servers_missing main_not_at_parity

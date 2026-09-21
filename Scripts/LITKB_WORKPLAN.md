@@ -22,14 +22,22 @@ Conventions this file obeys, so it does not become a fifth "living state":
 Update this block only. Everything else in the file changes when a session lands.
 
 - **Finish line:** `litkb-finish-line` — topic → graded review → synthesis, unattended.
-- **Current session:** S1 landed 2026-09-20 (`work/20260920-litkb-s1` + `-s1-run`). The scout run
-  met every machinery counter and stopped honestly at `dropoffs=9` against the bound of 10; Kam
-  accepted the shortfall (`litkb-s1-dropoff-shortfall`). Report: `Reports/LITKB_SCOUT_RUN_2026-09-20.md`.
-  The soak clock started: Windows task litkb-nightly-soak registered, first scheduled night 2026-09-21.
-- **Next:** S2 (the first unknown work). Entry condition: S1 landed. Carry-in for S3 from the
-  run: arXiv answered a transient 406 that check 1 recorded as terminal `admission-refused`
-  (S3's `api-error` item, now with a live instance). The other three carry-ins landed the same
-  night as the `preflight` subcommand + the launch recipe rewrite + the no-topic stop rule.
+- **Current session:** S2 landed 2026-09-21 (`work/20260920-litkb-s2` merged as `0dd8886`;
+  run branch `work/20260920-litkb-s2-run`). One unseeded OA work crossed the whole loop:
+  `first-work` graded `new_works=1 bound=1 extracted=1 searchable=1 verified_uses=3
+  claims_ungraded=0 operator_interventions=0`, Codex 3/3 SUPPORTED, replay known-bad exit 1.
+  Report: `Reports/LITKB_FIRST_WORK_2026-09-21.md` (six bounded outcomes, said plainly).
+- **Next:** S3 (every hunt ends in a named, adjudicated state). Entry conditions, both Kam's:
+  migration **0028 applied live** (`py -3.12 -m litkb.db.migrate --db litkb`; the S2 run
+  happened one migration ahead of the DB) and the agent-hook path fix in
+  `Reports/LITKB_AGENT_HOOK_PATH_2026-09-21.md` (until then `review-writer`/`librarian` cannot Read from a
+  `Scripts\` session; carry documents inline). Carry-ins for S3's register, each with a live
+  instance: arXiv transient 406 → terminal `admission-refused` (S1); paper-search
+  `search_unpaywall` empty for every DOI incl. gold-OA controls (S2); `k2-never-fired` is
+  unreachable for a one-work run unless the work itself contradicts (S2 §3). For S4: Docling
+  produced no artifact on a native Copernicus PDF, GROBID carried it (S2 §4). Session rule
+  since S2: each session integrates its lessons into the project, then launches the next as a
+  new headless session (Fable orchestrating, bash + prompt file), which ends the old one.
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided (no seeding); S7 soak = seven nights
   started in S1. Kam re-registers the nightly-dump scheduled task (Windows task name
   litkb-nightly-dump) against the merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.

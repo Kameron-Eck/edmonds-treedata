@@ -419,6 +419,35 @@ def _sha256(path):
     return h.hexdigest()
 
 
+def _register_sha256(path):
+    """sha256 of the edge register's CONTENT: bytes with every CRLF folded to LF.
+
+    The register is an authored JSON file under `* text=auto`, so git hands a Windows checkout
+    CRLF bytes and a Linux checkout LF bytes for the same commit. S3's manifest froze the LF
+    hash; the first re-run after a fresh checkout (2026-09-21) was refused as "edited after the
+    freeze" with nothing edited — the byte guard could not tell an edit from a newline rewrite.
+    Folding CRLF before hashing makes the guard about what is graded (the parsed rows) and keeps
+    every manifest frozen on LF bytes valid. A real edit still changes the hash (test_litkb_edges
+    c3/c3b). NOT for the HTML fixtures: those are recorded bytes, marked `binary` in
+    .gitattributes, and hash as bytes on purpose."""
+    with open(path, "rb") as fh:
+        return hashlib.sha256(fh.read().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def _fixture_committed(repo, fixture):
+    """True when the register on disk equals HEAD's copy (git's own eol-normalised diff), False
+    when it carries uncommitted edits, None when git cannot say. S3 froze a re-adjudicated
+    register from the working tree fourteen minutes before it was committed, so `repo_head` in
+    that manifest names a commit whose register hashes differently; this flag says so at freeze."""
+    try:
+        rel = os.path.relpath(Path(fixture).resolve(), Path(repo).resolve())
+        rc = subprocess.run(["git", "-C", str(repo), "diff", "--quiet", "HEAD", "--", rel],
+                            capture_output=True).returncode
+    except (OSError, ValueError):
+        return None
+    return {0: True, 1: False}.get(rc)
+
+
 def vault_hashes(vault):
     """sha256 of every file in the vault. A missing vault is an EMPTY set, not an error: the
     guard fails closed, because "the vault is not there" and "the token is not in it" are the
@@ -1634,7 +1663,7 @@ def check_edges(manifest, *, rows=None, csv_path=None, replay=False, fixture_sha
     fixture = manifest.get("fixture")
     if rows is None:
         if fixture_sha is None:
-            fixture_sha = _sha256(fixture)
+            fixture_sha = _register_sha256(fixture)
         want = manifest.get("fixture_sha256")
         # BEGIN guard: the register graded is the register frozen
         if want and fixture_sha != want:
@@ -1779,7 +1808,8 @@ def _edges_freeze(args):
         "worktree": str(args.worktree or repo),
         "log": str(args.log) if args.log else None,
         "fixture": str(args.fixture),
-        "fixture_sha256": _sha256(args.fixture),
+        "fixture_sha256": _register_sha256(args.fixture),
+        "fixture_committed": _fixture_committed(repo, args.fixture),
         "rows": rows,
         "run_csv": args.csv or str(repo / "Reports" / f"{stem}.csv"),
         "replay_csv": args.replay_csv or str(repo / "Reports" / f"{stem}_replay.csv"),

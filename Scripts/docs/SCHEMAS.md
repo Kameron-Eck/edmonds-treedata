@@ -1969,7 +1969,16 @@ the expected one, an `asserts` entry failing, or an observed state outside
 `litkb_acceptance.CLOSED_STATES`; **membership alone cannot pass**, which is what separates this
 counter from the scout's `unknown_states`. The manifest freezes the register's sha256 and the
 grader refuses a register that changed since — the register is what the run is graded against, so
-a register edited afterwards grades a different question.
+a register edited afterwards grades a different question. **`fixture_sha256` is a hash of the
+register's CONTENT — its bytes with every CRLF folded to LF (`litkb_acceptance._register_sha256`)
+— not of the bytes on disk.** The register is `* text=auto`, so one commit is CRLF on a Windows
+checkout and LF on Linux; a byte hash refused S3's own frozen manifest on a fresh checkout
+(2026-09-21) with nothing edited. Every manifest frozen before the change hashed LF bytes and stays
+valid. The HTML fixtures are the opposite case — recorded bytes, `binary` in `.gitattributes`,
+hashed as bytes. `fixture_committed` (from the same date; absent in S3's manifest) is `git diff
+--quiet HEAD` on the register at freeze: `false` means the register was frozen from the working
+tree ahead of its commit, so `repo_head` is not the commit that holds it — S3's manifest names
+`568988b` for a register committed as `06c42f6`.
 
 `waits-on-migration` is MEASURED at freeze (`db_migration_tip` against a row's own
 `needs_migration`), never written into the register: 0028 was unapplied when S3 opened and applied

@@ -46,6 +46,21 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-21  litkb S3 independently re-verified; register hash guard fixed (content, not bytes)
+goal:    Kam: "Can S3 be trusted? I didn't monitor any of its work" -> re-run S3's gates myself, not read its report; wrap up what S3 left.
+did:     REPRODUCED on main: `edges --replay` w10 -> executed=19 mismatches=0 tracebacks=0 exit 0; pytest -k litkb 1579 passed/25 skipped/3 xfailed;
+         SKILL grep 0; DB: Riva_2017 + Abdulkader_2020 in main_works, edges-1 admissions refused x5 only, 14 scihub blocked rows; reaper 27
+         __staging-orphan__ reason files at 10:25Z match counters (6 older reason files = binding-time quarantines 09-17 + live run; none from S4).
+         FIX: `_register_sha256` folds CRLF->LF before hashing (guard refused S3's own manifest on a CRLF checkout, nothing edited); `fixture_committed`
+         recorded at freeze; test c3b (CRLF copy grades, one edited expectation refused) — RED under byte-hash mutation, GREEN intact; SCHEMAS
+         edge-run section amended. Replay gate re-run on the CRLF working copy vs S3's unchanged manifest -> exit 0.
+found:   S3's manifest names repo_head 568988b but its register sha only exists in 06c42f6 (frozen from the working tree 14 min before commit) — consistent, now
+         recorded. Acquisition on the day: 7 attempt rows (scihub blocked x5, open_access blocked x1, annas bad-file x1); annas dead-skipped for
+         E03/E07 on 09-15 `not-in-archive`; E13 annas `bad-file` three times on three dates (09-16 x2, 09-21). No new file was acquired live in S3.
+         First c3b draft PASSED under mutation (working copy already CRLF == "CRLF copy"); rewritten to freeze on an LF copy and grade a CRLF copy.
+decided: content hash for authored fixtures, byte hash for recorded HTML fixtures (the .gitattributes precedent). No `blocked` back-off (S5 carry-in stands).
+next:    Kam: rulings E20-E25; the 13 proposals; S4 rerun. S5: annas repeated bad-file on one DOI is a route question, not a host mood.
+
 ## 2026-09-21  litkb S4 overnight output PARKED untrusted; checkouts removed
 goal:    Kam: "Delete S4 work tree ... happened over night. Can't trust it."
 did:     WIP-committed the dirty trees (q2: 5 mod + 7 new incl. Reports/LITKB_OCR_VRAM_2026-09-21.csv; r: 5 mod + 1 new), pushed all three as

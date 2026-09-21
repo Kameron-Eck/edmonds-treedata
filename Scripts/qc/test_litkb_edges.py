@@ -245,9 +245,49 @@ def test_kill_a_register_edited_after_the_freeze_is_refused_before_anything_is_g
     assert "sha256" in str(e.value) and "Nothing was graded" in str(e.value), str(e.value)
 
     # and the same manifest with the file's REAL hash grades normally
-    good, _p2 = _manifest(tmp_path, [], path, fixture_sha256=A._sha256(FIXTURE))
+    good, _p2 = _manifest(tmp_path, [], path, fixture_sha256=A._register_sha256(FIXTURE))
     counters, _off = A.check_edges(good, csv_path=path)
     assert counters["held_for_ruling"] >= 1, counters
+
+
+def test_kill_the_register_hash_is_content_not_bytes_crlf_passes_one_edit_refuses(
+        A, E, tmp_path):
+    """KNOWN-BAD (c3b), the guard's blind spot found 2026-09-21: the register is `* text=auto`,
+    so the same commit is CRLF on a Windows checkout and LF on Linux. The byte hash refused S3's
+    own frozen manifest on a fresh checkout with NOTHING edited. The guard hashes CONTENT: a CRLF
+    rewrite of the register hashes the same and grades; a single edited expectation hashes
+    differently and is refused before anything is graded."""
+    # Independent of what git handed THIS checkout: the freeze happens on an LF copy (a Linux
+    # checkout), the grade on a CRLF copy (a Windows one). The first version of this test froze
+    # on the working copy and passed under mutation to a byte hash, because the working copy was
+    # already CRLF and so was byte-identical to the "CRLF copy".
+    lf = FIXTURE.read_bytes().replace(b"\r\n", b"\n")
+    assert b"\r\n" not in lf
+    lf_path = tmp_path / "register_lf.json"
+    lf_path.write_bytes(lf)
+    frozen = A._register_sha256(lf_path)
+    path = _csv(E, tmp_path / "run.csv", [])
+
+    crlf = tmp_path / "register_crlf.json"
+    crlf.write_bytes(lf.replace(b"\n", b"\r\n"))
+    assert crlf.read_bytes() != lf, "the CRLF copy must differ as bytes"
+    assert A._sha256(crlf) != A._sha256(lf_path), "the byte hashes must differ"
+    assert A._register_sha256(crlf) == frozen, "a newline rewrite is not an edit"
+    m, _p = _manifest(tmp_path, [], path, fixture=str(crlf), fixture_sha256=frozen)
+    counters, _off = A.check_edges(m, csv_path=path)
+    assert counters["held_for_ruling"] >= 1, counters
+
+    edited = tmp_path / "register_edited.json"
+    reg = json.loads(lf.decode("utf-8"))
+    target = next(r for r in reg["rows"] if r.get("expected"))
+    target["expected"]["state"] = "extracted"
+    target["expected"]["reason"] = "already-extracted"
+    edited.write_bytes(json.dumps(reg, indent=1).encode("utf-8"))
+    assert A._register_sha256(edited) != frozen, "one edited expectation must change the hash"
+    m2, _p2 = _manifest(tmp_path, [], path, fixture=str(edited), fixture_sha256=frozen)
+    with pytest.raises(SystemExit) as e:
+        A.check_edges(m2, csv_path=path)
+    assert "Nothing was graded" in str(e.value), str(e.value)
 
 
 def test_kill_a_replay_pointed_at_the_live_database_is_refused(E, tmp_path):
@@ -449,7 +489,7 @@ def test_the_register_replays_on_a_worker_database(A, E, register, tmp_path, lit
         migrate.reset(conn)
         migrate.apply(conn)
     manifest = {"kind": "litkb-edges", "db": db, "db_migration_tip": 28,
-                "fixture": str(FIXTURE), "fixture_sha256": A._sha256(FIXTURE),
+                "fixture": str(FIXTURE), "fixture_sha256": A._register_sha256(FIXTURE),
                 "rows": [{"id": r["id"], "mode": E.resolve_mode(r, 28)}
                          for r in E.rows_of(register)],
                 "run_csv": str(out), "replay_csv": str(out)}

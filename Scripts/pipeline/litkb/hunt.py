@@ -915,6 +915,17 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                               "the web source was not admitted; the checks say why.",
                               admission=_thin(res), landed=store.rel(pdf))
         out["admission"] = _thin(res)
+        # BEGIN call site: the URL path records its acquisition event
+        # The acquisition-event contract (litkb/acquire/events.py): one provenance shape for every
+        # bound file, whichever door it came in by.
+        # AFTER the admission, because the event needs a work_id and there is none before it: the
+        # table's own CHECK is `work_id IS NOT NULL OR candidate_id IS NOT NULL` and the candidate
+        # is created BY admit_web. Every earlier refusal on this path therefore leaves no event and
+        # no bound file, which is the contract rather than a gap — events.py names the four and
+        # says what each leaves instead.
+        _record_acquisition_event(writer, ws_id, token, res["work_id"], out, url=ref, sha256=sha,
+                                  data=data, http_status=status, filed=store.rel(pdf))
+        # END call site: the URL path records its acquisition event
         # BEGIN call site: hunt_request linked from a fresh web-source admission
         if hunt_request_id:
             _link_hunt_request(db, ws_id, token, hunt_request_id, res["work_id"], agent, session,
@@ -1132,6 +1143,36 @@ def _link_hunt_request(db, ws_id, token, hunt_request_id, work_id, agent, sessio
     finally:
         if own:
             conn.close()
+
+
+def _record_acquisition_event(conn, ws_id, token, work_id, out, *, url, sha256, data, http_status,
+                              filed):
+    """The URL path's `ok` acquisition attempt, through the SAME function the route path uses.
+
+    ONE PROVENANCE SHAPE (`litkb.acquire.events`): route `hunt-url`, the URL redacted as
+    `identifier_used`, and the detail keys `land_and_attach` writes plus `http_status`. The writer
+    connection is the one `admit_web` just used — migration 0011 grants EXECUTE on
+    `litkb.record_acquisition_attempt` to `litkb_writer` and to nobody else, and nothing here
+    widens that.
+
+    NEVER RAISES, for the reason `_link_hunt_request` never raises and one more: this call happens
+    AFTER the file is bound, so an exception here would turn a complete admission into a hunt that
+    reports failure while the work, the file and (below) its blocks are all in the database. The
+    failure is reported in `out['acquisition_event']` and the file then comes back from
+    `events.bound_without_event` — the verifier is the gate, not this write. A database that has
+    not yet applied migration 0028 lands exactly here.
+    """
+    from litkb.acquire import events
+
+    try:
+        attempt_id = events.record_url_landing(
+            conn, ws_id, token, work_id, url=url, sha256=sha256, md5=events.md5_of(data),
+            nbytes=len(data), http_status=http_status, filed=filed)
+        out["acquisition_event"] = {"ok": True, "route": events.ROUTE, "status": "ok",
+                                    "attempt_id": str(attempt_id)}
+    except Exception as e:                # noqa: BLE001 — the verifier is the gate, not this write
+        out["acquisition_event"] = {"ok": False, "route": events.ROUTE,
+                                    "error": f"{type(e).__name__}: {e}"}
 
 
 def _thin(res):

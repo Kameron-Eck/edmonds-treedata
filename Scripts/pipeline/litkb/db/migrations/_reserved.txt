@@ -48,6 +48,16 @@
 # the earlier two arrived in. Its header carries the reasoning and the live measurement of the
 # divergence. Reports/LITKB_P4_MERGE_2026-09-15.md, "P8 merged".
 #
+# 0028 was taken here 2026-09-20 with nothing to reserve, on the same rule as 0023 below: the file
+# lands in the SAME commit that would have claimed the number, and a number on disk must not also be
+# reserved (qc/test_litkb_p1.py::test_migration_files_are_named_and_numbered) — so reserving it and
+# deleting the line in one commit would only have made the two disagree for the length of that
+# commit. Checked rather than assumed: `git log --all --diff-filter=A --name-only` over this
+# directory lists every migration file ever added on any local or remote ref, and the highest is
+# 0027. 0028_acquisition_event_hunt_url.sql replaces one CHECK constraint
+# (acquisition_attempts_route_check) and no function body, so the two-branches-one-function hazard
+# above does not apply to it.
+#
 # 0023 (hunt_request) was taken here 2026-09-18 with nothing to reserve: `git branch -a` plus
 # `git ls-tree` on every open work/* and fix/* ref showed none held 0022 or above (the highest any
 # other branch carries is 0019, work/20260915-access-layer, already landed above). No line is

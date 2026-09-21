@@ -411,7 +411,14 @@ def _fetch_stub(spec, row):
                                  "the network at all")
         return _explode
     if kind == "html":
-        return lambda url, timeout=180: (200, HTML_BYTES)
+        # A three-tuple with the DECLARED type. Builder B routes a body to the text-snapshot
+        # path only when the response says `text/html` (a body with no declared type is the
+        # sign-in page, row H1, and still quarantines); a two-tuple here answered
+        # `refused/not-a-pdf` on the phase-2 merge candidate for exactly that reason. The bytes
+        # are B's real fixture, so the row exercises the same parser the hunt suite pins.
+        fx = (spec or {}).get("bytes_fixture") or "litkb_web_snapshot_crossref_blog.html"
+        data = (FIXTURES / fx).read_bytes()
+        return lambda url, timeout=180: (200, data, "text/html; charset=utf-8")
     if kind == "pdf":
         fx = (spec or {}).get("bytes_fixture")
         if fx:
@@ -570,6 +577,10 @@ def replay_row(row, *, conn, db, tmp, hunt=None):
               "db": db, "worktree": wt, "agent": "edge-replay",
               "session": f"edge-replay-{row['id']}",
               "reader_role": "litkb_test", "writer_role": "litkb_test",
+              # the text-snapshot path (builder B) ingests through its own connection; on a
+              # worker database that login is `litkb_test` too, or the row ends
+              # `crashed/ingest:OperationalError` (fe_sendauth) — measured on the phase-2 candidate
+              "ingest_role": "litkb_test",
               "store": Store(root=root, index_cache=Path(tmp) / f"index_{row['id']}.json"),
               "derived": str(Path(tmp) / f"derived_{row['id']}"),
               "registry_client": _registry_stub(rp.get("registry"), row),

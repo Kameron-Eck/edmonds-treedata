@@ -1,7 +1,8 @@
 """Sci-Hub route, by DOI only, one bare HTTP GET per request (design §10; the convention's route order puts it
 after open access and Anna's Archive; memory `scihub-fetch-method`, Kam 2026-09-12).
 
-First index `sci-hub.ru`, then `sci-hub.ren`: GET <mirror>/<doi>, read the landing page's citation_pdf_url
+Mirror by mirror, in `litkb.config.SCIHUB_MIRRORS` order (`LITKB_SCIHUB_MIRRORS` overrides): GET
+<mirror>/<doi>, read the landing page's citation_pdf_url
 (or the embedded PDF src), GET that URL. The response must start with %PDF-; binding follows in
 litkb.acquire.run like every other route. A bot challenge, a captcha page or a 403 is recorded as `blocked`
 and the route moves on: no header, cookie or solver is added to get past a protection. The browser route is
@@ -18,9 +19,13 @@ landing page is a page this route read, never a file it was offered.
 import re
 import urllib.parse
 
+from litkb.config import SCIHUB_MIRRORS
 from litkb.netutil import Client, redact
 
-MIRRORS = ("https://sci-hub.ru", "https://sci-hub.ren")
+#: The mirrors, from `litkb.config` (S3) — `LITKB_SCIHUB_MIRRORS` overrides the four Kam's
+#: operating note names. This module hardcoded two of them and `litkb.acquire.run` passed no
+#: `mirrors=` at all, so the order could only be changed by editing this line.
+MIRRORS = SCIHUB_MIRRORS
 _PDF_URL_RES = (re.compile(r'<meta[^>]+name=["\']citation_pdf_url["\'][^>]+content=["\']([^"\']+)["\']', re.I),
                 re.compile(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']citation_pdf_url["\']', re.I),
                 re.compile(r'<(?:embed|iframe)[^>]+src=["\']([^"\']+?\.pdf[^"\']*)["\']', re.I))

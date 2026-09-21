@@ -16,6 +16,33 @@ from litkb.admit.resolver import (ARXIV_ID_LIST, ATOM_NS, CROSSREF_WORK, _json, 
 
 DATACITE_WORK = "https://api.datacite.org/dois/{doi}"
 
+#: HTTP statuses from a registry that say "ask again later", not "there is no such record" (S3).
+#: `0` is what `resolver.registry_get` / `arxiv_get` return when the client never got a response at
+#: all — a timeout, a DNS failure, a reset connection. `429` is a rate limit the two getters have
+#: already backed off once for; `408` is the server's own timeout; `406` is what arXiv answered for
+#: two real admissions on 2026-09-20 (workstream `scout-1`, admissions 01a0c101-af27… and
+#: 01a0c102-870a…), which check 1 recorded as terminal `admission-refused` — the same id was
+#: admitted 4 minutes 17 seconds later. 5xx is the server saying so itself.
+#: NOT here, deliberately: `404` (the registry HAS answered — it holds no such record), and every
+#: other 4xx, which says the request was wrong rather than early.
+TRANSIENT_STATUSES = (0, 406, 408, 429)
+
+
+def is_transient(status):
+    """Does this registry status mean RETRY, rather than 'no such record'? (S3)
+
+    One reader for a fact two callers need — `litkb.admit.front.admit_registry`, which must not
+    write a refused admission row for it, and `litkb.hunt`, which reports it as the retryable
+    `api-error/registry-transient` rather than the terminal `refused/admission-refused`."""
+    try:
+        st = int(status)
+    except (TypeError, ValueError):
+        # a status nothing could parse is not evidence that the registry answered
+        return True
+    # BEGIN guard: a registry status that means 'ask again later' is never read as a refusal
+    return st in TRANSIENT_STATUSES or 500 <= st <= 599
+    # END guard: a registry status that means 'ask again later' is never read as a refusal
+
 _CROSSREF_TYPES = {"journal-article": "article", "proceedings-article": "proceedings", "book": "book",
                    "monograph": "book", "edited-book": "book", "reference-book": "book", "book-chapter": "chapter",
                    "book-section": "chapter", "book-part": "chapter", "report": "report", "dissertation": "thesis",

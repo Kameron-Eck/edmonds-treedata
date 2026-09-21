@@ -5,8 +5,10 @@
 
 WHAT IT IS. The five steps the convention's hunt protocol names — resolve, admit, acquire,
 extract, ingest — run end to end with no operator between them, and the result says which rung
-of the four-state ladder the work reached (``absent`` / ``held`` / ``bound-unextracted`` /
-``extracted``), what it cost per stage, and everything it REFUSED to do and why. Nothing here
+of the ladder the work reached (``held`` / ``bound-unextracted`` / ``extracted``) or which of the
+four ways it stopped short of one (``refused`` / ``api-error`` / ``blocked`` / ``crashed``) —
+:data:`STATES`, each carrying a ``reason`` out of that state's own closed tuple (:data:`REASONS`)
+— what it cost per stage, and everything it REFUSED to do and why. Nothing here
 is new machinery: every step is the function that already owns it (``admit.front``,
 ``acquire.store``, ``extract.grobid``, ``extract.docling``, ``extract.reconcile``,
 ``extract.ingest``). What is new is that a session no longer has to drive seven of them in
@@ -60,8 +62,31 @@ from litkb.hunt_request import REF_SCHEMES
 #: and nothing to contribute to that plan.
 DERIVED = os.environ.get("LITKB_HUNT_DERIVED", r"D:\edmonds-pipeline\litkb_derived\hunt")
 
-#: The four states a hunted reference can end in, in ladder order.
-STATES = ("absent", "held", "bound-unextracted", "extracted")
+#: EVERY state a hunt can end in, ladder rungs first (S3, 2026-09-21). One `state` per result and
+#: one `reason` out of that state's own closed tuple (:data:`REASONS`); the pair is the whole
+#: vocabulary, written up once in `Scripts/docs/SCHEMAS.md` under the hunt's terminal states.
+#:
+#: `absent` LEFT this tuple. It is `litkb_work`'s miss rung — the MCP ladder's word for "no such
+#: work" (`litkb/mcp/server.py`) — and `hunt()` has never returned it: every return below sets
+#: `held`, `bound-unextracted` or `extracted`. A state nothing emits is a state a reader looks for
+#: and never finds, which is the defect this tuple exists to remove, so it is named in the SCHEMAS
+#: table as NOT a hunt result rather than carried here.
+#:
+#: The last four are the S3 addition: before it, a transient registry answer was recorded as the
+#: terminal `admission-refused`, and a route that RAISED left `refused: "error"` with no attempt
+#: row — a traceback in a result dict, which is what this module's own refusal contract forbids.
+STATES = ("extracted", "bound-unextracted", "held", "refused", "api-error", "blocked", "crashed")
+
+#: The stages a hunt advances through, and the first half of a `crashed` reason
+#: (`<stage>:<ExceptionClass>`). Tracked in a local dict threaded down the call chain, never a
+#: module global: two hunts in one process would share a global and each would report the other's
+#: stage.
+#:
+#: `record` is NOT here. Both recording call sites (:func:`_record_acquisition_event`,
+#: :func:`_link_hunt_request`) catch their own exceptions by design — the file is already bound and
+#: the work already admitted by the time they run — so a failure there is a `refusals[]` entry and
+#: can never reach the crash boundary.
+STAGES = ("validate", "resolve", "admit", "download", "bind", "acquire", "extract", "ingest")
 
 #: Block types that read as a heading when the result shows what the document turned out to be.
 HEADING_KINDS = ("title", "heading")
@@ -92,11 +117,45 @@ SPEND_EXHAUSTED = ("hunt spent by default (open access, then the archive, then S
 
 class HuntRefused(Exception):
     """A refusal is a RESULT (mcp/server.py's rule): the caller must be able to read what was
-    refused, why, and what to do — never a traceback."""
+    refused, why, and what to do — never a traceback.
+
+    State `refused`, reason = `code`. The `refused` KEY of the result keeps carrying that code, so
+    `cmd_hunt`'s exit status and the scout driver's ledger word are what they were."""
 
     def __init__(self, code, message, **extra):
         super().__init__(message)
         self.code, self.message, self.extra = code, message, extra
+
+
+class HuntStopped(Exception):
+    """A hunt that stopped WITHOUT a verdict on the reference — the S3 addition.
+
+    A refusal says the reference, the record or the claim is wrong, and hunting it again changes
+    nothing. These say the opposite: the registry was down, the route raised, the host refused, the
+    quota is spent. The caller's move is to try again (or to try another route, or to ask Kam),
+    and a vocabulary that cannot say that records every one of them as a verdict on the paper.
+
+    `ok` is False, like a refusal, because the hunt did not do what it was asked. The `refused` KEY
+    is NOT set: a caller reading it gets a refusal code or nothing, never a transient dressed as
+    one."""
+
+    state = ""
+
+    def __init__(self, reason, message, **extra):
+        super().__init__(message)
+        self.reason, self.message, self.extra = reason, message, extra
+
+
+class HuntApiError(HuntStopped):
+    """State `api-error`: a registry or a route answered transiently, or raised. RETRY."""
+
+    state = "api-error"
+
+
+class HuntBlocked(HuntStopped):
+    """State `blocked`: a host refused this client (403, a bot challenge) or spending stopped."""
+
+    state = "blocked"
 
 
 def _now():
@@ -105,15 +164,18 @@ def _now():
 
 #: The schemes a HUNT can follow, out of `hunt_request.REF_SCHEMES` (the recordable vocabulary).
 #: Everything else in that vocabulary is recordable as a drop-off and refused here as
-#: `unsupported-ref-scheme` — S3 owns those routes. The two sets are deliberately different: a
-#: scout may drop off a PMID today and nothing should pretend a hunt can chase it.
+#: `unsupported-ref-scheme`. The two sets are deliberately different: a scout may drop off a PMID
+#: today and nothing should pretend a hunt can chase it.
 HUNTABLE = ("doi", "arxiv", "url", "title")
 
 #: The refusal codes the ref-VALIDATING path can answer with, closed (S1). A hunt that ends here
 #: ended in a NAMED state — never a traceback — and the scout instrument
 #: (qc/instruments/litkb_acceptance.py CLOSED_STATES) counts anything outside STATES +
-#: `held-no-spend` + this tuple as `unknown_states`; its test pins that constant to this one.
-#: S3 gives these a database home; until then the scout-run CSV is where they are recorded.
+#: `held-no-spend` + the reason tuples as `unknown_states`; its test pins that constant to these.
+#: Since S3 these are the reason classes of the `refused` STATE (:data:`REASONS`), written up in
+#: `Scripts/docs/SCHEMAS.md` under the hunt's terminal states. Their run-level home is still a CSV
+#: — the edge-run ledger S3 writes, and the scout-run ledger above it; a DATABASE home for a hunt
+#: outcome is S5's carry-in, and nothing in the schema holds one today.
 REF_REFUSALS = ("malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme",
                 "ref-scheme-mismatch", "unresolved-title", "ambiguous-title")
 
@@ -127,6 +189,94 @@ REF_REFUSALS = ("malformed-ref", "unknown-ref-scheme", "unsupported-ref-scheme",
 HUNT_REFUSALS = ("admission-refused", "bad-workstream-file", "fetch-failed", "file-missing",
                  "incomplete-record", "no-artifact", "no-labels", "no-workstream",
                  "not-a-pdf", "truncated-pdf")
+
+#: The `reason` each state may carry — one closed tuple per state, and `crashed`'s is a SHAPE
+#: (`<stage>:<ExceptionClass>`, :func:`reason_ok`) because the exception class is the program's,
+#: not this module's. Every pair is in the SCHEMAS table and
+#: `qc/test_litkb_hunt.py::test_every_state_and_reason_this_module_emits_is_listed` holds the two
+#: equal against the SOURCE, the way the refusal tuples are already held equal to every
+#: `HuntRefused(...)` literal.
+REASONS = {
+    # `fresh` — this hunt converted and ingested it. `docling-only` / `grobid-only` — one of the
+    # two tools produced nothing and the reconciliation ran on the other (the soft `grobid`
+    # refusals[] code folds in here; it said the same thing in a place with no closed vocabulary).
+    "extracted": ("fresh", "already-extracted", "docling-only", "grobid-only"),
+    # a hunt reaches this rung ONLY with extract=False: with extraction requested, a bound file is
+    # either extracted or refused `file-missing`/`no-artifact`. So the reason says where the file
+    # came FROM, which `state` cannot: this hunt landed it, or the database already held it.
+    "bound-unextracted": ("fresh-bound", "already-bound"),
+    "held": ("no-spend", "no-file", "not-acquired", "duplicate-held", "not-in-main"),
+    # exactly the two refusal tuples: the codes ARE the reason classes, and the AST test that
+    # already pins every HuntRefused literal to them pins this by construction.
+    "refused": REF_REFUSALS + HUNT_REFUSALS,
+    # RETRYABLE, every one. `route-raised` covers an acquisition route that raised and one that
+    # recorded `api-error` itself (the archive login) — the same fact for the caller: the route
+    # never answered. `empty-response` is a 200 carrying no bytes.
+    "api-error": ("registry-transient", "route-raised", "fetch-transient", "empty-response"),
+    "blocked": ("403", "challenge", "quota-stop"),
+    "crashed": (),          # shaped, not enumerated — see reason_ok
+}
+
+#: `<stage>:<ExceptionClass>`; the stage is one of :data:`STAGES` and the class is a Python
+#: identifier. Shape rather than membership, and validated rather than trusted: an unchecked
+#: reason would let `crashed` carry the exception's MESSAGE, which is the traceback-in-a-result
+#: this vocabulary exists to stop.
+_CRASH_REASON = re.compile(r"^(?:%s):[A-Za-z_][A-Za-z0-9_]*$" % "|".join(STAGES))
+
+#: The `outcome` word each (state, reason) derives to. `outcome` is KEPT for one session — the
+#: scout driver and the held-queue CSVs read it — but it is no longer typed at each return site:
+#: it is DERIVED here, so the two vocabularies cannot drift the way they had (`held-spend-
+#: exhausted`, `already-extracted` and `bound` were outside every constant and outside
+#: `litkb_acceptance.CLOSED_STATES`, surviving only because the scout driver reads `state` first).
+#: Anything not named here derives to the state itself.
+OUTCOMES = {
+    ("extracted", "already-extracted"): "already-extracted",
+    ("extracted", "fresh"): "extracted",
+    ("extracted", "docling-only"): "extracted",
+    ("extracted", "grobid-only"): "extracted",
+    ("bound-unextracted", "fresh-bound"): "bound",
+    ("bound-unextracted", "already-bound"): "bound",
+    ("held", "no-spend"): "held-no-spend",
+    ("held", "not-acquired"): "held-spend-exhausted",
+    ("held", "duplicate-held"): "held-spend-exhausted",
+    ("held", "no-file"): "held",
+    ("held", "not-in-main"): "held",
+}
+
+
+def reason_ok(state, reason):
+    """Is `reason` a member of `state`'s closed set (or, for `crashed`, of its shape)?"""
+    if state == "crashed":
+        return bool(_CRASH_REASON.match(str(reason or "")))
+    return reason in REASONS.get(state, ())
+
+
+def outcome_of(state, reason):
+    """The legacy `outcome` word for a (state, reason) pair — derived, never typed."""
+    return OUTCOMES.get((state, reason), state)
+
+
+def ledger_word(res):
+    """The ONE closed word a run ledger records for a hunt result (`hunt_state_or_refusal` in
+    `LITKB_SCOUT_RUN_<date>.csv`; `litkb_acceptance.CLOSED_STATES` is what it is checked against).
+
+    Two callers needed this rule and each had written its own half: the scout driver derived
+    `held-no-spend` from `outcome` and otherwise took `state or refused`, and the acceptance
+    checker held the closed list. Now every result carries a `state`, so `state` alone would record
+    seven refusals and four transients as the same two words — the CSV's whole diagnostic value is
+    WHICH one. So: the refusal code where there is one, the reason where the reason is a closed
+    word, and the state where it is not (`crashed`, whose reason is shaped)."""
+    if not res.get("ok"):
+        if res.get("refused"):
+            return str(res["refused"])
+        if res.get("state") == "crashed":
+            return "crashed"
+        return str(res.get("reason") or res.get("state") or "")
+    # `held-no-spend` predates this and lives in ledgers already written: a deliberate no-spend stop
+    # is recorded as the STOP, not as the rung it happens to be standing on.
+    if res.get("outcome") == "held-no-spend":
+        return "held-no-spend"
+    return str(res.get("state") or "")
 
 #: A DOI's registrant prefix is `10.` plus 4-9 digits, then a slash and a non-empty suffix. Checked
 #: AFTER `normalize_doi` has stripped the `https://doi.org/` / `doi:` wrapper, the invisible
@@ -489,7 +639,7 @@ def file_under_key(store, key, download):
 # ── steps 2-3: extract and ingest, the P5 per-file path ────────────────────────────────────
 
 def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="cuda",
-                       docling_python=None, grobid=True):
+                       docling_python=None, grobid=True, progress=None):
     """GROBID → Docling → reconcile → ingest → set current run, for ONE file.
 
     The same stages, the same order and the same run key as the bulk pass
@@ -561,6 +711,8 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
     pages = [{"page_no": p, "page_class": r["page_class"], "native_chars": r["chars"],
               "covered_chars": r["covered"], "coverage_share": r["share"]}
              for p, r in sorted(cov.items())]
+    if progress is not None:
+        progress["stage"] = "ingest"
     conn = ingest_login.connect(db)
     try:
         res = ing.ingest_file(conn, file_id, canonical, dis, stats, pages=pages,
@@ -591,6 +743,82 @@ def _coverage_summary(cov):
                              for k, v in sorted(R.coverage_by_page_type(cov).items())},
             "min_share": min(shares) if shares else None,
             "pages_below_floor": len(R.coverage_failures(cov)), "pages": len(cov)}
+
+
+def _result(out, state, reason, refusals, timing, **extra):
+    """The ONE composer for a hunt that reached a ladder rung.
+
+    Every `ok: True` return goes through here, so `state`, `reason`, the derived `outcome` and
+    `ok` cannot be typed inconsistently at nine return sites — which is how `held-spend-exhausted`,
+    `already-extracted` and `bound` came to be outside every constant in the module that produced
+    them. The pair is CHECKED here for every `ok: True` result: a reason that is not in its state's
+    tuple is a programming error in this module and is raised as one, where the crash boundary
+    above turns it into `crashed` rather than shipping a vocabulary violation to a caller. The
+    four `ok: False` states (`refused`, `api-error`, `blocked`, `crashed`) are composed at their
+    own sites and are held to the vocabulary by the AST literal scan in `qc/test_litkb_hunt.py`
+    (a static check, and said to be one)."""
+    if not reason_ok(state, reason):
+        raise ValueError(f"hunt: {reason!r} is not a reason for state {state!r} (REASONS)")
+    return out | {"ok": state in ("extracted", "bound-unextracted", "held"), "state": state,
+                  "reason": reason, "outcome": outcome_of(state, reason),
+                  "refusals": refusals, "seconds": timing} | extra
+
+
+def _classify_fetch(status, data, url):
+    """Raise the named stop for a URL fetch that did not deliver bytes; return None when it did.
+
+    403 is a host refusing this client (`blocked`); a timeout, a 429 or a 5xx is the host having a
+    bad minute (`api-error`, retryable); a 200 with no bytes is a transfer that did not happen. 404
+    and the other 4xx are the URL being WRONG — the only one of the four that is a verdict on the
+    reference, and the only one that stays `fetch-failed`. Before S3 all four were `fetch-failed`,
+    which told a scout to fix a reference that had nothing wrong with it."""
+    st = int(status or 0)
+    # BEGIN guard: a fetch that failed transiently is api-error or blocked, never fetch-failed
+    if st == 403:
+        raise HuntBlocked("403", f"the host answered 403 for {url}: it refused this client. No "
+                                 "header, cookie or solver is added to get past a protection - "
+                                 "fetch it in a browser session and hand it in with "
+                                 "`litkb acquire --key <key> --from-file <PDF>`.", status=st)
+    if st in (0, 408, 429) or 500 <= st <= 599:
+        raise HuntApiError("fetch-transient",
+                           f"the URL answered {st} - a transient answer, not a verdict on the "
+                           f"reference. Hunt it again.", status=st, retryable=True)
+    if st == 200 and not data:
+        raise HuntApiError("empty-response",
+                           "the URL answered 200 with no bytes at all, which is the shape of a "
+                           "refused or truncated transfer rather than of a document.", status=st,
+                           retryable=True)
+    # END guard: a fetch that failed transiently is api-error or blocked, never fetch-failed
+    if st != 200 or not data:
+        raise HuntRefused("fetch-failed",
+                          f"the URL answered {st} with {len(data or b'')} bytes", status=st)
+
+
+def _acquisition_stop(acq):
+    """-> (state, reason) for an acquisition ladder that ended with no file bound.
+
+    PRECEDENCE, most actionable first: a spend that STOPPED outranks a host that refused, which
+    outranks a route that never answered, which outranks the ordinary "every route was tried and
+    none of them holds it". Each says a different next move - ask Kam, try another route, retry,
+    hand a file in - and the old code said `held-spend-exhausted` to all four. Dead routes skipped
+    by `DEAD_STATUSES` never reach `route_detail`, so a skip is not an attempt. Written up in
+    `Scripts/docs/SCHEMAS.md` under the hunt's terminal states."""
+    # BEGIN guard: an acquisition that landed nothing is classified by precedence, not by default
+    detail = acq.get("route_detail") or []
+    if acq.get("outcome") == "duplicate-held":
+        return "held", "duplicate-held"
+    if any(d.get("status") == "quota-stop" for d in detail):
+        return "blocked", "quota-stop"
+    blocked = [d for d in detail if d.get("status") == "blocked"]
+    if blocked:
+        # 403 and a bot challenge are different moves for the operator: the first is a host that
+        # will refuse the same client tomorrow, the second is one that may not.
+        return "blocked", ("403" if any(403 in (d.get("codes") or []) for d in blocked)
+                           else "challenge")
+    if any(d.get("status") == "api-error" for d in detail):
+        return "api-error", "route-raised"
+    return "held", "not-acquired"
+    # END guard: an acquisition that landed nothing is classified by precedence, not by default
 
 
 # ── the hunt ───────────────────────────────────────────────────────────────────────────────
@@ -641,9 +869,18 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
     `unsupported-ref-scheme`, `ref-scheme-mismatch`, `unresolved-title`, `ambiguous-title` — which
     is the whole of the S1 change: a scout's drop-off ends in a named result or a state, never in
     a traceback and never in a misclassification.
+
+    EVERY result carries a ``state`` from :data:`STATES` and a ``reason`` from that state's tuple
+    in :data:`REASONS` (S3). ``ok`` is False for `refused`, `api-error`, `blocked` and `crashed`
+    and True for the three ladder rungs. ``outcome`` is kept and is DERIVED from the pair
+    (:func:`outcome_of`), so nothing that reads it has to change this session.
     """
     t_start = time.monotonic()
     timing, refusals = {}, []
+    #: The stage the hunt is in, for `crashed`'s reason. A one-key dict rather than a global: two
+    #: hunts in one process (the MCP server's, a driver's) would share a global and each would
+    #: report the other's stage.
+    progress = {"stage": STAGES[0]}
     # ref_kind is NOT computed here any more: validation can refuse, and a refusal raised outside
     # the try below would leave `hunt` raising for something its own docstring promises it reports.
     out = {"ref": ref, "ref_kind": None, "at": _now().isoformat()}
@@ -655,15 +892,34 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
                      extract=extract, device=device, docling_python=docling_python,
                      derived=derived, registry_client=registry_client, spend=spend,
                      acquirer=acquirer, hunt_request_id=hunt_request_id, ref_scheme=ref_scheme,
-                     pacer=pacer)
+                     pacer=pacer, progress=progress)
     except HuntRefused as e:
         refusals.append({"code": e.code, "message": e.message} | e.extra)
-        return out | {"ok": False, "refused": e.code, "message": e.message,
+        return out | {"ok": False, "state": "refused", "reason": e.code,
+                      "outcome": outcome_of("refused", e.code), "refused": e.code,
+                      "message": e.message, "refusals": refusals, "seconds": timing} | e.extra
+    except HuntStopped as e:
+        # api-error / blocked: NOT a verdict on the reference, so no `refused` key (see HuntStopped)
+        refusals.append({"code": e.reason, "message": e.message} | e.extra)
+        return out | {"ok": False, "state": e.state, "reason": e.reason,
+                      "outcome": outcome_of(e.state, e.reason), "message": e.message,
                       "refusals": refusals, "seconds": timing} | e.extra
     except Exception as e:                       # noqa: BLE001 — the boundary is the point
-        refusals.append({"code": "error", "message": f"{type(e).__name__}: {e}"})
-        return out | {"ok": False, "refused": "error", "message": f"{type(e).__name__}: {e}",
-                      "refusals": refusals, "seconds": timing}
+        # BEGIN guard: an unexpected exception is `crashed` at a NAMED stage, never a traceback
+        # It used to be `refused: "error"` — a word outside every closed tuple on purpose, which
+        # meant the instrument scored it `unknown_states` and the operator could not tell a hunt
+        # that crashed in extraction from one that crashed before it opened a connection. The
+        # stage says where; the class says what; the MESSAGE is one line and stays out of `reason`,
+        # because a reason carrying an exception's text is the traceback-in-a-result this
+        # vocabulary exists to stop.
+        reason = f"{progress['stage']}:{type(e).__name__}"
+        message = f"{type(e).__name__}: {e}".splitlines()[0][:300]
+        refusals.append({"code": "crashed", "message": message, "stage": progress["stage"],
+                         "exception": type(e).__name__})
+        return out | {"ok": False, "state": "crashed", "reason": reason,
+                      "outcome": outcome_of("crashed", reason), "stage": progress["stage"],
+                      "message": message, "refusals": refusals, "seconds": timing}
+        # END guard: an unexpected exception is `crashed` at a NAMED stage, never a traceback
     finally:
         timing["total"] = round(time.monotonic() - t_start, 2)
 
@@ -671,12 +927,13 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
 def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, author, year,
           source_note, key, work_type, retrieved, fetch, store, reader_role, writer_role,
           extract, device, docling_python, derived, registry_client, spend, acquirer,
-          hunt_request_id=None, ref_scheme=None, pacer=None):
+          hunt_request_id=None, ref_scheme=None, pacer=None, progress=None):
     from litkb.acquire.store import Store
     from litkb.admit import front
     from litkb.db import connect as c
     from litkb.textnorm import norm_label
 
+    progress = {"stage": STAGES[0]} if progress is None else progress
     db = db or os.environ.get("LITKB_DB") or c.DB_MAIN
     worktree = Path(worktree or os.environ.get("LITKB_WORKTREE") or os.getcwd()).resolve()
     # the ONE invisible-character normaliser (migration 0014, D7), applied where the write is
@@ -701,8 +958,10 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     # END guard: naming a hunt_request always requires labels, even on an otherwise cached hunt
 
     # ── the reference itself: validated, never classified (S1, 2026-09-20) ──────────────────
+    progress["stage"] = "validate"
     declared = ref_scheme
     if hunt_request_id:
+        progress["stage"] = "resolve"
         request = _request_row(db, hunt_request_id, reader_role)
         row_scheme = (request or {}).get("ref_scheme")
         # BEGIN guard: the drop-off's own scheme outranks an explicit one that disagrees with it
@@ -735,6 +994,7 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                 "author_string": author,
                 "first_author": first_author_of(author) if author else None}
         # END call site: the drop-off's claimed fields fill what the caller left empty
+    progress["stage"] = "validate"
     kind, ref = validate_ref(ref, declared)
     out["ref_kind"] = kind
     lookup_kind, lookup_ref = kind, ref
@@ -765,6 +1025,7 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                 ref_scheme="title", missing=[m.split()[0] for m in missing],
                 hunt_request=hunt_request_id)
         # END guard: a title reference carries an author surname and a year, or it is refused
+        progress["stage"] = "resolve"
         t0 = time.monotonic()
         doi, source, evidence = resolve_title(ref, author, year, client=registry_client,
                                               pacer=pacer)
@@ -776,6 +1037,7 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         lookup_kind, lookup_ref = "doi", doi
         title = title or ref
 
+    progress["stage"] = "resolve"
     t0 = time.monotonic()
     reader = _reader(db, reader_role)
     try:
@@ -795,10 +1057,9 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     # check 2 with a message about somebody else's work. `already_ingested` guards the run, but
     # only after the download and the admission have already happened.
     if held and held["state"] == "extracted":
-        return out | {"ok": True, "state": "extracted", "outcome": "already-extracted",
-                      "refusals": refusals, "seconds": timing,
-                      "note": "held and extracted already; nothing was fetched, converted or "
-                              "written."} | _report(db, ws_id, held, reader_role)
+        return _result(out, "extracted", "already-extracted", refusals, timing,
+                       note="held and extracted already; nothing was fetched, converted or "
+                            "written.") | _report(db, ws_id, held, reader_role)
     # `held` — admitted with no bound file — stops here for the same reason, and it is the rung
     # that is easiest to get wrong: falling through would re-admit a work this knowledge base
     # already holds, and check 2 would refuse it with a message about a DUPLICATE, so a second
@@ -809,19 +1070,21 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                               spend=spend, agent=agent, session=session, store=store,
                               reader_role=reader_role, writer_role=writer_role, extract=extract,
                               device=device, docling_python=docling_python, derived=derived,
-                              acquirer=acquirer, in_main=held.get("in_main"))
+                              acquirer=acquirer, in_main=held.get("in_main"), progress=progress)
     # END guard: hunt answers from the database before it fetches anything
 
     if held and held["state"] == "bound-unextracted" and extract:
         f = held["files"][0]
         return _finish(db, ws_id, held, f, out, timing, refusals, reader_role=reader_role,
                        device=device, docling_python=docling_python, derived=derived,
-                       root=(store.root if store else None))
+                       root=(store.root if store else None), progress=progress)
 
     if held and not extract:
-        return out | {"ok": True, "state": held["state"], "outcome": "held",
-                      "refusals": refusals, "seconds": timing} | _report(db, ws_id, held,
-                                                                        reader_role)
+        # the ONLY way to stop at `bound-unextracted`: the file was bound before this hunt ran and
+        # extraction was not asked for. (Its `outcome` reads `bound` since S3, derived from the
+        # pair; it used to say `held`, which named the rung the hunt did NOT stop at.)
+        return _result(out, held["state"], "already-bound", refusals, timing) | _report(
+            db, ws_id, held, reader_role)
 
     if not agent or not session:
         raise HuntRefused("no-labels",
@@ -837,6 +1100,7 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         # arXiv branch that called `arxiv_record` itself here would be a second copy of the
         # registry call the admission already makes, and a second place its result is judged.
         if lookup_kind in ("doi", "arxiv"):
+            progress["stage"] = "admit"
             t0 = time.monotonic()
             claimed = {k: v for k, v in (("title", title), ("authors", author),
                                          ("year", year)) if v}
@@ -847,6 +1111,18 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                        key=key, agent=agent, session=session,
                                        client=registry_client)
             timing["admit"] = round(time.monotonic() - t0, 2)
+            # BEGIN guard: a registry that answered transiently is api-error, never admission-refused
+            # `admit_registry` writes NO admission row for this case (litkb/admit/front.py) — the
+            # row it used to write said `admission-refused`, which is a verdict on the RECORD, and
+            # the arXiv 406 of 2026-09-20 proved how wrong that reads: the same id admitted clean
+            # 4m17s later, with two terminal refusals already on the work's history.
+            if res.get("outcome") == "registry-transient":
+                raise HuntApiError("registry-transient", res.get("message") or
+                                   "a registry answered transiently; nothing was admitted",
+                                   registry_calls=res.get("registry_calls") or [],
+                                   identifier=res.get("identifier") or lookup_ref,
+                                   retryable=True)
+            # END guard: a registry that answered transiently is api-error, never admission-refused
             if res.get("outcome") != "admitted":
                 raise HuntRefused("admission-refused",
                                   f"the {lookup_kind.upper()} was not admitted; the checks say "
@@ -867,15 +1143,15 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                   session=session, store=store, reader_role=reader_role,
                                   writer_role=writer_role, extract=extract, device=device,
                                   docling_python=docling_python, derived=derived, writer=writer,
-                                  acquirer=acquirer, in_main=True)
+                                  acquirer=acquirer, in_main=True, progress=progress)
 
         # ── a web source ───────────────────────────────────────────────────────────────────
+        progress["stage"] = "download"
         t0 = time.monotonic()
         status, data = (fetch or _default_fetch)(ref)
         timing["download"] = round(time.monotonic() - t0, 2)
-        if status != 200 or not data:
-            raise HuntRefused("fetch-failed",
-                              f"the URL answered {status} with {len(data)} bytes", status=status)
+        _classify_fetch(status, data, ref)
+        progress["stage"] = "bind"
         retrieved = retrieved or _now().date().isoformat()
         stem = key or f"hunt-{_now().strftime('%Y%m%dT%H%M%S')}"
         dl, sha = land_download(store, stem, data)
@@ -903,6 +1179,7 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         snap.write_text(  # store-scan: allow (outside the literature root; see above)
             text, encoding="utf-8", newline="\n")
 
+        progress["stage"] = "admit"
         t0 = time.monotonic()
         res = front.admit_web(writer, ws_id, token, title=t, authors=a, year=y, url=ref,
                               retrieved=retrieved, snapshot_path=str(snap),
@@ -937,13 +1214,12 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     held = {"work_id": str(res["work_id"]), "state": "bound-unextracted",
             "files": [{"file_id": str(res["file_id"])}]}
     if not extract:
-        return out | {"ok": True, "state": "bound-unextracted", "outcome": "bound",
-                      "refusals": refusals, "seconds": timing} | _report(db, ws_id, held,
-                                                                        reader_role)
+        return _result(out, "bound-unextracted", "fresh-bound", refusals, timing) | _report(
+            db, ws_id, held, reader_role)
     return _finish(db, ws_id, held, {"file_id": str(res["file_id"]), "rel_path": store.rel(pdf)},
                    out, timing, refusals, reader_role=reader_role, device=device,
                    docling_python=docling_python, derived=derived, root=store.root,
-                   pdf_path=str(pdf))
+                   pdf_path=str(pdf), progress=progress)
 
 
 def _default_acquire(conn, ws_id, token, work, *, store, agent, session):
@@ -957,7 +1233,7 @@ def _default_acquire(conn, ws_id, token, work, *, store, agent, session):
 
 def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, spend, agent,
                    session, store, reader_role, writer_role, extract, device, docling_python,
-                   derived, writer=None, acquirer=None, in_main=None):
+                   derived, writer=None, acquirer=None, in_main=None, progress=None):
     """The rung a hunt reaches when a work is admitted with no PDF bound — read through the DB
     lookup (``held`` from :func:`look_up`, carrying ``in_main``) or straight off a fresh DOI
     admission (``held={"work_id": ...}``, always in main: ``admit_registry`` lands there directly).
@@ -969,21 +1245,21 @@ def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, 
     (``held-spend-exhausted``) from both: every automated route was tried and none of it is
     ``held``'s fault.
     """
+    progress = {"stage": "acquire"} if progress is None else progress
     work_id = held["work_id"]
     if not spend:
         # BEGIN guard: spend=False stops a hunt at held before any acquisition is attempted
         refusals.append({"code": "no-spend", "message": NO_SPEND})
-        return out | {"ok": True, "state": "held", "outcome": "held-no-spend",
-                      "refusals": refusals, "seconds": timing} | _report(db, ws_id, held,
-                                                                         reader_role)
+        return _result(out, "held", "no-spend", refusals, timing) | _report(db, ws_id, held,
+                                                                            reader_role)
         # END guard: spend=False stops a hunt at held before any acquisition is attempted
     if in_main is False:
         # a proposal not yet in main has no litkb.main_works row: acquire()'s work_record() reads
-        # exactly that table, so spending here would be reading a work that is not there yet
+        # exactly that table, so spending here would be reading a work that is not there yet. The
+        # reason names WHICH of the two structural gaps this is; `no-file` below is the other.
         refusals.append({"code": "no-file", "message": NO_FILE})
-        return out | {"ok": True, "state": "held", "outcome": "held",
-                      "refusals": refusals, "seconds": timing} | _report(db, ws_id, held,
-                                                                         reader_role)
+        return _result(out, "held", "not-in-main", refusals, timing) | _report(db, ws_id, held,
+                                                                                reader_role)
     if not agent or not session:
         raise HuntRefused("no-labels",
                           "every write records which agent and which session made it: set "
@@ -997,21 +1273,23 @@ def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, 
     own_writer = writer is None
     conn = writer or c.connect(db, writer_role or _role("writer"), autocommit=True)
     try:
+        progress["stage"] = "acquire"
         t0 = time.monotonic()
         work = work_record(conn, work_id=work_id)
         if work is None:
             timing["acquire"] = round(time.monotonic() - t0, 2)
             refusals.append({"code": "no-file", "message": NO_FILE})
-            return out | {"ok": True, "state": "held", "outcome": "held",
-                          "refusals": refusals, "seconds": timing} | _report(
-                              db, ws_id, held, reader_role)
+            return _result(out, "held", "no-file", refusals, timing) | _report(
+                db, ws_id, held, reader_role)
         acq = acquire_fn(conn, ws_id, token, work, store=store, agent=agent, session=session)
         timing["acquire"] = round(time.monotonic() - t0, 2)
     finally:
         if own_writer:
             conn.close()
-    out["acquisition"] = {"outcome": acq.get("outcome"), "attempts": acq.get("attempts", [])}
+    out["acquisition"] = {"outcome": acq.get("outcome"), "attempts": acq.get("attempts", []),
+                          "route_detail": acq.get("route_detail", [])}
 
+    progress["stage"] = "resolve"
     reader = _reader(db, reader_role)
     try:
         fresh = look_up(reader, ws_id, ref, kind)
@@ -1019,36 +1297,42 @@ def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, 
         reader.close()
 
     if fresh and fresh["state"] == "extracted":
-        return out | {"ok": True, "state": "extracted", "outcome": "already-extracted",
-                      "refusals": refusals, "seconds": timing,
-                      "note": "the acquisition landed a file already extracted under another "
-                              "work's copy (sha256 dedupe)."} | _report(db, ws_id, fresh,
-                                                                        reader_role)
+        return _result(out, "extracted", "already-extracted", refusals, timing,
+                       note="the acquisition landed a file already extracted under another "
+                            "work's copy (sha256 dedupe).") | _report(db, ws_id, fresh,
+                                                                      reader_role)
     if fresh and fresh["state"] == "bound-unextracted":
         if not extract:
-            return out | {"ok": True, "state": "bound-unextracted", "outcome": "bound",
-                          "refusals": refusals, "seconds": timing} | _report(db, ws_id, fresh,
-                                                                             reader_role)
+            return _result(out, "bound-unextracted", "fresh-bound", refusals, timing) | _report(
+                db, ws_id, fresh, reader_role)
         return _finish(db, ws_id, fresh, fresh["files"][0], out, timing, refusals,
                        reader_role=reader_role, device=device, docling_python=docling_python,
-                       derived=derived, root=(store.root if store else None))
+                       derived=derived, root=(store.root if store else None), progress=progress)
 
+    # BEGIN call site: an acquisition that landed nothing is named by the precedence rule
+    # `not-acquired` (with SPEND_EXHAUSTED beside it) stays in `refusals` because that is what the
+    # caller reads for the next move; the STATE is now whichever of held/blocked/api-error the
+    # ladder actually ended in, which `held-spend-exhausted` could not say.
     refusals.append({"code": "not-acquired", "message": SPEND_EXHAUSTED})
-    return out | {"ok": True, "state": "held", "outcome": "held-spend-exhausted",
-                  "refusals": refusals, "seconds": timing} | _report(db, ws_id, held, reader_role)
+    state, reason = _acquisition_stop(acq)
+    return _result(out, state, reason, refusals, timing) | _report(db, ws_id, held, reader_role)
+    # END call site: an acquisition that landed nothing is named by the precedence rule
 
 
 def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, docling_python,
-            derived, root=None, pdf_path=None):
+            derived, root=None, pdf_path=None, progress=None):
     """Extract and ingest a bound file, then report the ladder rung it reached."""
     from litkb.acquire.store import LITERATURE_ROOT
 
+    progress = {"stage": "extract"} if progress is None else progress
     path = pdf_path or str(Path(root or LITERATURE_ROOT) / f["rel_path"].replace("/", os.sep))
     if not os.path.exists(path):
         raise HuntRefused("file-missing", f"the file bound to this work is not at {path}",
                           rel_path=f.get("rel_path"))
+    progress["stage"] = "extract"
     res, detail = extract_and_ingest(db, f["file_id"], path, timing=timing, derived=derived,
-                                     device=device, docling_python=docling_python)
+                                     device=device, docling_python=docling_python,
+                                     progress=progress)
     out["extraction"] = {"run_id": str(res["run_id"]), "inserted": res["inserted"],
                          "blocks": res["blocks"], "disagreements": res["disagreements"],
                          "grobid_tei": detail["tei"], "docling": detail["docling"],
@@ -1060,8 +1344,14 @@ def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, d
     if timing.get("grobid_error"):
         refusals.append({"code": "grobid", "message": timing["grobid_error"],
                          "effect": "the reconciliation ran on Docling alone"})
-    return out | {"ok": True, "state": "extracted", "outcome": "extracted",
-                  "refusals": refusals, "seconds": timing} | _report(db, ws_id, held, reader_role)
+    # WHICH tools produced the blocks, from the artifacts themselves rather than from a flag: a
+    # reconciliation that ran on one of the two is a weaker extraction and the caller could only
+    # learn it from the soft `grobid` refusals[] code, which named the tool that FAILED and had no
+    # closed vocabulary to be checked against.
+    reason = ("fresh" if detail["tei"] and detail["docling"] else
+              "docling-only" if detail["docling"] else "grobid-only")
+    return _result(out, "extracted", reason, refusals, timing) | _report(db, ws_id, held,
+                                                                        reader_role)
 
 
 def _request_row(db, hunt_request_id, reader_role=None):

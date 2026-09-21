@@ -1830,8 +1830,73 @@ A hunt that cannot follow a reference ends in one of `litkb.hunt.REF_REFUSALS` �
 `unknown-ref-scheme` (a scheme outside `REF_SCHEMES`), `unsupported-ref-scheme` (recordable, not
 huntable), `ref-scheme-mismatch` (the caller's scheme disagrees with the request row's),
 `unresolved-title` (no registry candidate), `ambiguous-title` (a candidate the confirm gate
-refused). Each is a RESULT in the hunt's return dict, never a traceback; until S3 gives them a
-table, the scout-run CSV above is their only home.
+refused). Each is a RESULT in the hunt's return dict, never a traceback; since S3 they are the
+reason classes of the `refused` state, and the table below is their home.
+
+## `litkb.hunt` terminal states (litkb, S3)
+
+Every `litkb.hunt.hunt()` result carries exactly one `state` from `litkb.hunt.STATES` and exactly
+one `reason` from that state's own closed tuple in `litkb.hunt.REASONS`. `ok` is True for the three
+ladder rungs and False for the four ways a hunt stops short of one. The legacy `outcome` key is
+kept for one session and is DERIVED from the pair (`litkb.hunt.outcome_of`), never typed at a
+return site — which is how `held-spend-exhausted`, `already-extracted` and `bound` came to be
+outcome words no constant in the module that produced them held.
+
+| state | `ok` | reason classes | meaning | who acts next |
+|---|---|---|---|---|
+| `extracted` | yes | `fresh` · `already-extracted` · `docling-only` · `grobid-only` | the work is in view, a file is bound and its blocks are searchable | the caller records uses |
+| `bound-unextracted` | yes | `fresh-bound` · `already-bound` | a file is bound and no blocks exist for it (only reachable with `extract=False`; the reason says whether this hunt landed the file or the database already held it) | the readability queue, or hunt again without `--no-extract` |
+| `held` | yes | `no-spend` · `no-file` · `not-acquired` · `duplicate-held` · `not-in-main` | the work is admitted and no file is bound | `litkb acquire --key <key>`, or `--from-file <PDF>` |
+| `refused` | no | `REF_REFUSALS` + `HUNT_REFUSALS` (the sixteen codes above and in `litkb.hunt`) | a terminal refusal: the reference, the record or the claim is wrong, and hunting it again changes nothing | the caller fixes the reference or the claim |
+| `api-error` | no | `registry-transient` · `route-raised` · `fetch-transient` · `empty-response` | a registry or a route answered transiently (0/406/408/429/5xx) or raised — NOT a verdict on the reference | retry after a back-off |
+| `blocked` | no | `403` · `challenge` · `quota-stop` | a host refused this client, or spending stopped | another route, a browser session and `--from-file`, or Kam |
+| `crashed` | no | `<stage>:<ExceptionClass>`, stage ∈ `litkb.hunt.STAGES` | an unexpected exception at a named stage | the operator; then retry |
+
+`crashed` is the one reason that is a SHAPE rather than a membership — the exception class belongs
+to the program, not to this vocabulary — and it is VALIDATED (`litkb.hunt.reason_ok`) so that the
+reason can never carry the exception's message. The message is one line, in `message`; there is
+never a traceback in a hunt result. `STAGES` is `validate resolve admit download bind acquire
+extract ingest`; `record` is not among them because both recording call sites catch their own
+exceptions by design, so a failure there is a `refusals[]` entry and never a state.
+
+**`absent` IS NOT A HUNT RESULT.** It is `litkb_work`'s miss rung — the MCP ladder's word for "no
+such work" — and `hunt()` has never returned it. It was in `STATES` until S3 and left with it.
+
+**PRECEDENCE, when acquisition ends with no file bound.** Most actionable first: any route that
+recorded `quota-stop` → `blocked/quota-stop`; else any route `blocked` → `blocked/403` when that
+attempt's `http_codes` hold a 403, otherwise `blocked/challenge`; else any route `api-error` →
+`api-error/route-raised`; else `held/not-acquired`. A route skipped by `DEAD_STATUSES` is not an
+attempt and does not enter the rule. `acquire()` hands the hunt the per-route `route_detail` this
+reads (`litkb.acquire.run`); `attempts` keeps its `(route, status)` shape.
+
+**WHERE AN OUTCOME LIVES.** Nowhere in the schema: no table holds a hunt outcome, and S3 adds no
+migration. The run-level homes are CSVs — the scout-run ledger above, and the S3 edge-run ledger
+(written by S3's builder C under Reports/) — and `litkb.hunt.ledger_word` is the ONE function that
+chooses the word either writes: the refusal code where there is one, the reason where the reason is
+a closed word, the state where it is not. `CLOSED_STATES` in `qc/instruments/litkb_acceptance.py`
+is derived from `STATES` + every enumerable member of `REASONS` (plus `held-no-spend`, which older
+ledgers carry), and `qc/test_litkb_acceptance.py` holds the two equal. A DATABASE home for a hunt
+outcome is S5's carry-in.
+
+**`litkb_work`'s miss, split three ways (S3).** When `main_*` does not hold the work the tool
+answers `state: absent` with `absent_kind` from the closed set in `_ABSENT_KINDS`
+(`pipeline/litkb/mcp/server.py`): `never-admitted` (nothing in main, nothing in the caller's own
+workstream view — the only kind where fetching is the right move) · `in-this-workstream` (the
+caller's own unapproved proposal; `ws_state` is its rung, `ws_files` its bound-file count) ·
+`in-another-workstream` (some OTHER workstream holds a `proposed` version of the identifier;
+`holder_state` is that workstream's state — `open`, `merged`, `abandoned`; nothing else of it is
+readable here). The third bucket reads the same rows admission's check 2 refuses on
+(`iv.state = 'proposed'`, blind to the holder's state), so the tool never invites an admission
+check 2 would refuse.
+
+**The staging reaper (S3).** `litkb reap` (`pipeline/litkb/ops/reaper.py`) walks
+`_litkb_staging/{incoming,filed,web}` and gives every file ONE verdict from `owned` (its sha256 is
+a `litkb.files` row, OR a `file_versions.rel_path` names its path) · `young` (a sibling lock
+suffix holds it open, or its mtime is under `--min-age-hours`, default 72) · `orphan` (neither).
+Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a reason file
+(`Store.to_quarantine` + `write_reason`) — the reaper never deletes and never writes the database.
+`--dry-run` is the default. Counters, one line: `scanned owned young orphans quarantined
+skipped_errors`.
 
 ## litkb Codex report JSON (`qc/fixtures/litkb_codex_report.schema.json`, GENERATED per review)
 

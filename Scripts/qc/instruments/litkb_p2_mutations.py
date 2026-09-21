@@ -1648,6 +1648,22 @@ def _register_s2():
 _register_s2()
 
 
+def _register_s3a2():
+    """S3 phase 1: the `absent` split, litkb_acquire's detail, the staging reaper
+    (qc/instruments/litkb_s3a2_mutations.py). Its own file for the reason the S2 leg has one —
+    the rows belong in this ONE ledger, and two builders on the same stage must not both be
+    appending to the end of this file."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_s3a2_mutations", Path(__file__).resolve().parent / "litkb_s3a2_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_s3a2()
+
+
 # ── the first real use of the KB (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8, migration 0020) ────
 # These kills are asserted in qc/test_litkb_first_use.py, which is NOT in TESTS, so every row names its
 # own set — `tests` REPLACES the default, it does not extend it, and a row that forgot this would run
@@ -1909,6 +1925,67 @@ hu(replace, "AE4", f"{PKG}/acquire/events.py",
    "the verifier exonerates by sha256 ALONE: any `ok` attempt ever recorded for those bytes — "
    "another work, another workstream, another year — accounts for a fresh binding, so the "
    "hand-placed file the verifier exists to name reads as accounted-for")
+# -- HV: the closed hunt vocabulary and the retryable states (S3, 2026-09-21) ---------------
+# Three ways a hunt used to end in something that was not a named state: a route that RAISED
+# (`refused: "error"`, and no attempt row at all), a registry that answered transiently (recorded
+# as the terminal `admission-refused`), and the generic boundary (one word, `error`, for a crash
+# before the first connection and a crash three minutes into a GPU conversion). One row per CALL
+# SITE: the classifier and the caller that acts on it are two places the guard can be removed, and
+# the registry one is written in THREE (the status classifier, the admission that must not write a
+# row, and the hunt that must not call it a refusal).
+hu(replace, "HV1", f"{PKG}/acquire/run.py",
+   "        except Exception as e:                  # noqa: BLE001 — the route boundary is the point",
+   "        except KeyboardInterrupt as e:",
+   "a route that raises propagates out of acquire() again: the hunt answers with a crash instead "
+   "of an api-error, the remaining routes are never tried, and `acquisition_attempts` holds NO "
+   "row saying the route was attempted at all - so DEAD_STATUSES, the held queue and every later "
+   "'what has this work been through' question read a work nobody had tried")
+hu(replace, "HV2", f"{PKG}/hunt.py",
+   '    if acq.get("outcome") == "duplicate-held":',
+   "    if True:",
+   "the precedence rule stops asking what the ladder actually ended in: every acquisition that "
+   "landed nothing is one word, so a quota that stopped, a host that refused and a route that "
+   "never answered are indistinguishable from 'every route was tried and none of them holds it' "
+   "- four different next moves reported as one")
+hu(block, "HV3a", f"{PKG}/admit/registry.py",
+   "guard: a registry status that means 'ask again later' is never read as a refusal",
+   "no registry status is transient any more: a 406, a 429, a 503 and a connection that never "
+   "answered are all read as 'this registry holds no such record', which is the exact reading "
+   "that recorded two terminal `admission-refused` rows for an arXiv id admitted 4m17s later")
+hu(block, "HV3b", f"{PKG}/admit/front.py",
+   "guard: a registry that answered transiently is a RETRY, not a refused admission",
+   "admit_registry calls litkb.admit() on a transient answer again: the database writes a REFUSED "
+   "admission row - a permanent verdict on the record - for a registry that was down for four "
+   "minutes, and the work carries it forever")
+hu(block, "HV3c", f"{PKG}/hunt.py",
+   "guard: a registry that answered transiently is api-error, never admission-refused",
+   "the hunt reads a transient registry answer as `refused/admission-refused`: the scout's ledger "
+   "records a verdict on the reference, `--retry` is the only way back, and an unattended loop "
+   "that trusts the ledger never hunts it again")
+hu(replace, "HV4", f"{PKG}/hunt.py",
+   "        reason = f\"{progress['stage']}:{type(e).__name__}\"",
+   '        reason = f"error:{type(e).__name__}"',
+   "the crash boundary stops naming the STAGE: every unexpected exception reports the same reason "
+   "whether it happened before the first connection or three minutes into a GPU conversion, and "
+   "the reason is outside the shape its own validator accepts")
+hu(replace, "HV4b", f"{PKG}/hunt.py",
+   '    progress["stage"] = "extract"\n    res, detail = extract_and_ingest(db, f["file_id"], path,',
+   '    res, detail = extract_and_ingest(db, f["file_id"], path,',
+   "the stage marker is never advanced into extraction: a crash in GROBID, Docling or the "
+   "reconciliation is reported at whichever stage last set the marker, which is the lookup - so "
+   "the one field that says WHERE a hunt died points at the wrong half of it")
+hu(block, "HV5", f"{PKG}/hunt.py",
+   "guard: a fetch that failed transiently is api-error or blocked, never fetch-failed",
+   "every non-200 on the URL path is `fetch-failed` again: a 503, a 429, a timeout and a 403 all "
+   "tell the caller to fix a reference that has nothing wrong with it, and nothing distinguishes "
+   "them from the 404 that means the URL really is wrong")
+hu(block, "HV6", f"{PKG}/config.py",
+   "guard: an empty or blank mirror override is the default, never an empty loop",
+   "LITKB_SCIHUB_MIRRORS='' yields no mirrors at all: the Sci-Hub route iterates zero times and "
+   "records `not-in-archive` for every DOI, which reads in acquisition_attempts as 'Sci-Hub does "
+   "not hold it' for a work nobody asked Sci-Hub about")
+
+
 hu(site, "RD19", "litkb/acquire/events.py::record_url_landing::redact", "{a0}",
    what="events.record_url_landing: acquisition_attempts.identifier_used is stored as the URL was "
         "fetched — a key in its query string is written to the row and printed by every later "
@@ -1966,6 +2043,16 @@ SINK_ALLOW = {
     "litkb/commands.py::cmd_ws::print": (1,
         "The workstream id, slug, branch and the PATH the token was written to — the line itself says '(never "
         "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
+    "litkb/commands.py::cmd_reap::print": (3,
+        "The staging census (S3, 2026-09-21). Three calls: the table lines litkb.ops.reaper.table() builds, the "
+        "counters line, and the mode/run_id/root line. Every interpolated value is a fact about a FILE or about "
+        "this run — a relpath under the literature root, a verdict word from the fixed vocabulary "
+        "owned/young/orphan/error, an age in hours, a byte count, the rule sentence the reaper composed from "
+        "those, a uuid4 the run made for itself, and the root path the caller typed. The reaper opens no socket "
+        "and holds no credential: its connection is the READER login, whose password libpq reads from the "
+        "passfile and Python never sees, and it never reads a token file. Same reason as "
+        "extract/inventory.py::report_new above, and the same shape — the call site is written to be VISIBLE to "
+        "this checker rather than hidden behind a bound stream."),
     # Stage 3 (Docling), added at the P4 merge 2026-09-15. The docling branch forked before this
     # sink checker existed, so these two sites reach it for the first time here.
     "litkb/extract/colab_formula_worker.py::main::print": (6,

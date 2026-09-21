@@ -585,9 +585,10 @@ def _search(query, limit, scope, kinds=""):
 #: The four states are the three live cases §4 of that referee found plus the miss, and each one has
 #: a DIFFERENT next move, which is the whole reason a session must be able to tell them apart.
 _WORK_STATES = {
-    "absent": "no work with that identifier is admitted in main's view. litkb_admit admits it "
-              "(title, authors and year with the DOI — a bare DOI is refused); a work admitted in "
-              "another OPEN workstream is invisible here until Kam merges its promotion.",
+    "absent": "no work with that identifier is admitted in main's view. Which KIND of absent is "
+              "`absent_kind` below — never-admitted, in-this-workstream or in-another-workstream — "
+              "and the three have three different next moves, so read that before acting: only the "
+              "first of them is a work litkb_admit or litkb_hunt should be given.",
     "held": "the work is admitted and NO file is bound to it, so there is nothing for search to "
             "reach and nothing for an extraction run to target. If the PDF is already on disk, "
             "litkb_acquire(key=…, from_file=…) binds it; otherwise litkb_acquire fetches it.",
@@ -597,6 +598,112 @@ _WORK_STATES = {
     "extracted": "the current extraction run's blocks are searchable: litkb_search will find them, "
                  "and a block_id from that search is what litkb_record_use quotes.",
 }
+
+
+#: `absent` was ONE answer to three different questions, and only one of them is answered by
+#: "admit it". A work this very worktree proposed an hour ago and a work nobody has ever heard of
+#: came back identically, because the miss rung was a single SELECT against `main_*` — and a
+#: session told to admit the first of those gets check 2's duplicate-identifier refusal, which
+#: reads as "that is somebody else's work". So the miss carries `absent_kind` from this closed set.
+#: The prose of the old `absent` text already NAMED the third case (S3 survey §3.1); what it could
+#: not do was say which of the three this call was.
+_ABSENT_KINDS = {
+    "never-admitted":
+        "no identifier like that is admitted in main's view, and this worktree's own workstream "
+        "does not hold it either. This is the only one of the three kinds where fetching is the "
+        "right move: litkb_admit admits it (title, authors and year with the DOI — a bare DOI is "
+        "refused), or litkb_hunt resolves, admits, binds and extracts it in one call.",
+    "in-this-workstream":
+        "THIS worktree's own workstream already holds it as an unapproved proposal, so main "
+        "cannot see it and a main-only ladder calls it absent. Do NOT admit or hunt it again — "
+        "admission's check 2 refuses the second one as a duplicate identifier. `ws_state` is the "
+        "rung it has reached inside this workstream (held, bound-unextracted or extracted); act "
+        "on that rung, and its blocks are reachable from litkb_search in this worktree.",
+    "in-another-workstream":
+        "another workstream holds this identifier; not visible here until Kam merges its "
+        "promotion. Nothing of it is readable from this worktree — not its key, not its files, "
+        "not its blocks — and admitting it here would be refused as a duplicate identifier "
+        "whatever that workstream's state (check 2 is blind to it). `holder_state` is the "
+        "holding workstream's state: `open` → wait for that promotion or ask Kam which branch "
+        "carries it; anything else (abandoned, merged without promotion) → the proposal is "
+        "stranded and only Kam can promote or retire it.",
+}
+
+#: The caller's OWN workstream view, by each selector. Same view and same `status = 'active'`
+#: predicate `litkb.hunt.look_up` reads, so the two entry points cannot drift on what "this
+#: workstream holds it" means; the ws id is `_caller_workstream`'s, never a caller's claim.
+_WS_BY_DOI = ("SELECT wi.work_id::text FROM litkb.ws_identifiers wi "
+              " WHERE wi.view_workstream_id = %s AND wi.scheme = 'doi' AND wi.status = 'active' "
+              "   AND wi.value_norm = litkb.norm_identifier('doi', %s) LIMIT 1")
+_WS_BY_KEY = ("SELECT work_id::text FROM litkb.ws_works "
+              " WHERE view_workstream_id = %s AND key = %s LIMIT 1")
+_WS_FILES = ("SELECT current_run_id FROM litkb.ws_files "
+             " WHERE view_workstream_id = %s AND work_id = %s AND status = 'active'")
+
+#: The third bucket, and the only read here that leaves the caller's view. It answers ONE bit —
+#: does some OTHER open workstream hold this identifier — and returns no slug, no key and no file:
+#: an unapproved proposal is invisible across workstreams by design (decision litkb-web-source-gate)
+#: and this must not become a back door to reading one. `litkb_reader` holds SELECT on both version
+#: tables and on `workstreams` (measured 2026-09-21 against the live cluster: `relacl` carries
+#: `litkb_reader=r/litkb_owner` on identifier_versions, work_versions, identifiers, works and
+#: workstreams, and none of them has row-level security), so no grant is missing and the honest
+#: wording is the literal one.
+#: The holder's workstream STATE is read, not filtered on. Admission's check 2
+#: (0014_referee_p2_fixes.sql, "check 2 identifier lookup") refuses a re-admission on ANY
+#: `iv.state = 'proposed'` row, blind to whether the holding workstream is open, merged or
+#: abandoned — so a tool that answered `never-admitted` for an abandoned holder would send the
+#: caller to an admission that then refuses it as a duplicate (found by the S3 phase-1 audit).
+#: The kind therefore matches check 2 exactly, and `holder_state` says whose problem it is.
+_OTHER_WS_BY_DOI = ("SELECT w.state FROM litkb.identifier_versions v "
+                    "  JOIN litkb.identifiers i ON i.id = v.identifier_id "
+                    "  JOIN litkb.workstreams w ON w.id = v.workstream_id "
+                    " WHERE i.scheme = 'doi' AND i.value_norm = litkb.norm_identifier('doi', %s) "
+                    "   AND v.state = 'proposed' AND v.status = 'active' "
+                    "   AND (%s::uuid IS NULL OR v.workstream_id <> %s::uuid) "
+                    " ORDER BY (w.state = 'open') DESC LIMIT 1")
+_OTHER_WS_BY_KEY = ("SELECT w.state FROM litkb.work_versions v "
+                    "  JOIN litkb.works k ON k.id = v.work_id "
+                    "  JOIN litkb.workstreams w ON w.id = v.workstream_id "
+                    " WHERE k.key = %s AND v.state = 'proposed' "
+                    "   AND (%s::uuid IS NULL OR v.workstream_id <> %s::uuid) "
+                    " ORDER BY (w.state = 'open') DESC LIMIT 1")
+
+
+def _absent_kind(conn, doi=None, key=None):
+    """-> (kind, extra fields) for a work `main_*` does not hold. One of `_ABSENT_KINDS`.
+
+    The caller's workstream is resolved by `_caller_workstream`, which presents the token and
+    refuses a forged one (row W5) and narrows a merged workstream to main. A REFUSAL there is
+    caught and read as "no view": this tool has never refused on a token and a read that widens
+    nothing must not start, but the caller's own proposals are not shown on a token that did not
+    check out either — a forged token then gets `in-another-workstream` at best, which discloses
+    the single bit the third bucket discloses anyway and nothing more.
+    """
+    try:
+        ws_id, _note = _caller_workstream(conn)
+    except Refusal:
+        ws_id = None
+    # BEGIN guard: a work the caller's OWN workstream holds is in-this-workstream
+    if ws_id:
+        row = (conn.execute(_WS_BY_DOI, (ws_id, doi)).fetchone() if doi
+               else conn.execute(_WS_BY_KEY, (ws_id, key)).fetchone())
+        if row:
+            files = conn.execute(_WS_FILES, (ws_id, row[0])).fetchall()
+            # the same three-branch rule as the main ladder below and as hunt.look_up: a file with
+            # a current run may still hold zero blocks, and "the extractor ran and found nothing"
+            # is not "the extractor never ran".
+            ws_state = ("held" if not files
+                        else "bound-unextracted" if not any(f[0] for f in files)
+                        else "extracted")
+            return "in-this-workstream", {"ws_state": ws_state, "ws_files": len(files)}
+    # END guard: a work the caller's OWN workstream holds is in-this-workstream
+    # BEGIN guard: an identifier another workstream holds is in-another-workstream
+    other = (conn.execute(_OTHER_WS_BY_DOI, (doi, ws_id, ws_id)).fetchone() if doi
+             else conn.execute(_OTHER_WS_BY_KEY, (key, ws_id, ws_id)).fetchone())
+    if other:
+        return "in-another-workstream", {"holder_state": other[0]}
+    # END guard: an identifier another workstream holds is in-another-workstream
+    return "never-admitted", {}
 
 
 def _work(doi=None, key=None):
@@ -617,11 +724,10 @@ def _work(doi=None, key=None):
         else:
             return _refuse("no-selector", "litkb_work takes a doi or a key")
         if not row:
-            return _ok(found=False, state="absent", doi=doi, key=key,
-                       what_next=_WORK_STATES["absent"],
-                       hint="the work is not admitted in main's view. litkb_admit admits it; a work "
-                            "admitted in another open workstream is not visible here until Kam merges "
-                            "its promotion.")
+            kind, extra = _absent_kind(conn, doi=doi, key=key)
+            return _ok(found=False, state="absent", absent_kind=kind, doi=doi, key=key,
+                       what_next=_ABSENT_KINDS[kind], state_note=_WORK_STATES["absent"],
+                       absent_kinds=sorted(_ABSENT_KINDS), **extra)
         key, work_id = row
         # `venue`, not `container`, and main_files' own columns rather than a join to litkb.files:
         # `litkb.main_files` already IS files JOIN file_versions (it carries sha256 and
@@ -860,12 +966,31 @@ def _acquire(key=None, doi=None, routes="open_access", from_file=None, max_archi
                            "no admitted work with that key or DOI. A PDF is never fetched for a work "
                            "the knowledge base does not hold: admit it first (litkb_admit).")
         budget = run.Budget(max_archive_downloads=max_archive_downloads)
+        # The database's own clock, not this process's: `at` is written by
+        # litkb.record_acquisition_attempt server-side, and a client clock a second fast would
+        # select none of the rows it is about to ask for (the S2 freeze lesson).
+        t0 = conn.execute("SELECT now()").fetchone()[0]
         out = run.acquire(conn, ws_id, token, work,
                           routes=tuple(r.strip() for r in routes.split(",") if r.strip()),
                           agent=a, session=s, budget=budget, from_file=from_file)
-    out = {k: v for k, v in out.items() if k != "detail"}
+        # BEGIN guard: litkb_acquire returns the per-route attempt detail the run recorded
+        # `out["attempts"]` is (route, status) pairs — acquire/run.py writes the per-attempt
+        # `detail` to litkb.acquisition_attempts and never returns it, so "acquisition.attempts
+        # names what each route answered" was route and status and nothing else. These are that
+        # work's own rows, in this workstream, written during this call; `_out`'s two redactors
+        # run over them exactly as they run over everything else this server returns.
+        rows = conn.execute(
+            "SELECT route, status, detail, at FROM litkb.acquisition_attempts "
+            " WHERE work_id = %s AND at >= %s ORDER BY at", (work["work_id"], t0)).fetchall()
+        # END guard: litkb_acquire returns the per-route attempt detail the run recorded
+    # `out` is returned WHOLE: the comprehension that used to sit here stripped `detail`, which
+    # run.acquire sets on exactly the two outcomes that have one (ok, duplicate-held), so the
+    # sha256, the byte count, the binding verdict, the source URL and the filed path — the whole
+    # landing record — were dropped on the two calls that landed a file (S3 survey §3.2).
     return _out({"ok": out.get("outcome") in ("ok", "already-held"), "key": work["key"],
-                 "archive_downloads_used": budget.used} | out)
+                 "archive_downloads_used": budget.used,
+                 "attempts_detail": [dict(zip(("route", "status", "detail", "at"), r))
+                                     for r in rows]} | out)
 
 
 def _record_use(statement, kind, quote, block_id, gap, work_key=None, doi=None, gap_question=None,
@@ -1319,7 +1444,11 @@ def build_server():
         "search cannot see it), or extracted (N blocks searchable). Also its registry-confirmed "
         "fields, identifiers, file stems, recorded uses and any registry discrepancies. Ask this "
         "before concluding a work is absent: 'litkb_search found nothing' means three "
-        "different things and only this tool tells them apart."))
+        "different things and only this tool tells them apart. `absent` is itself three answers, "
+        "and `absent_kind` says which: never-admitted (fetch it), in-this-workstream (this "
+        "worktree's own unapproved proposal already holds it — `ws_state` is the rung it reached; "
+        "admitting it again is refused as a duplicate), in-another-workstream (another workstream "
+        "holds this identifier; not visible here until Kam merges its promotion)."))
     def litkb_work(doi: str = "", key: str = "") -> str:
         return _guarded(_work)(doi=doi or None, key=key or None)
 

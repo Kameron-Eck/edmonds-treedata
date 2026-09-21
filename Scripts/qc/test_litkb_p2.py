@@ -256,7 +256,10 @@ _SCANNED_DIRS = ("acquire", "admit")          # the globs test_acquisition_and_a
 #: bytes that are not a whole PDF — every one of those through the Store, and every one of them a place the
 #: next `rm -f` could go. A file here is scanned; a file that reaches the store and is in NEITHER list fails
 #: the census below, which is what makes this a gate rather than a habit.
-_SCANNED_FILES = ("hunt.py",)
+#: `ops/reaper.py` (S3, 2026-09-21) is the module whose whole PURPOSE is to act on files in staging that no
+#: database row accounts for — the one place a delete would look most reasonable and be most final. It moves
+#: them through Store.to_quarantine and writes a .reason.json, and it is scanned here so that stays true.
+_SCANNED_FILES = ("hunt.py", "ops/reaper.py")
 _STORE_READ_ONLY = {
     "migrate_legacy/sources.py":
         "imports LITERATURE_ROOT to BUILD READ paths under the topic folders (<topic>/manifest.csv, "
@@ -715,10 +718,15 @@ def test_make_key_is_the_same_whatever_case_the_registry_prints_the_surname_in(r
 
 
 def test_scihub_challenge_is_recorded_blocked_and_not_bypassed():
+    """`mirrors=` is passed EXPLICITLY since S3: the list moved to `litkb.config` and is four long
+    (Kam's operating note names all four), and this row is about what the route DOES with a 403 and
+    a captcha — one GET each, no retry with extra headers — not about how many mirrors exist. The
+    list itself is covered by qc/test_litkb_hunt.py, `..._four_kams_note_names_and_the_env_...`."""
     from litkb.acquire import scihub
     stub = RouteStub({"sci-hub.ru": (403, {}, b"<html><title>Just a moment...</title></html>"),
                       "sci-hub.ren": (200, {}, b"<html><title>Verification</title>captcha</html>")})
-    r = scihub.fetch_scihub("10.1/x", _nopace(), client=stub)
+    r = scihub.fetch_scihub("10.1/x", _nopace(), client=stub,
+                            mirrors=("https://sci-hub.ru", "https://sci-hub.ren"))
     assert r["status"] == "blocked" and r["pdf"] is None
     assert len(stub.calls) == 2, stub.calls          # one GET per mirror, no retry with extra headers
 

@@ -258,7 +258,7 @@ completely different paper, and had done for months.
 
 ## 3. Acquire
 
-`litkb_acquire(key=…)` — open access first, then the archive, then Sci-Hub, a browser last.
+`litkb_acquire(key=…)` — open access first, then the archive, then Sci-Hub, manual `--from-file` last.
 `from_file=…` binds a PDF you already have.
 
 **Never fetch a PDF outside a workstream.** Every attempt is logged whether it succeeds or not, so a

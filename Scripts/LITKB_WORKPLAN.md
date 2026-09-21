@@ -373,9 +373,27 @@ reviews every grammar and is the last stage of every proving run. Worker reports
 numbers reserved in `pipeline/litkb/db/migrations/_reserved.txt` first. Concurrency and model
 rules: `litkb-p0-foundation`. Base brief: `docs/LITKB_AGENT_BASE_BRIEF.md`.
 
+**Codex stage** (the adversarial read, last stage of every proving run; built between S1 and S2).
+Three commands, not a conversation. `py -3.12 -m litkb review-context <review.md> --out <ctx.md>`
+writes the whole block behind every citation — the file that run 2 had by hand — and exits 1 on a
+block the workstream cannot see. `qc/instruments/litkb_codex_review.py --review --context --out
+<report.json>` builds the prompt from `docs/LITKB_CODEX_PROMPT.md`, runs Codex in WSL read-only
+with the prompt on STDIN (`-`, never a re-quoted argument) against
+`qc/fixtures/litkb_codex_report.schema.json`, and stamps both files' sha256 over whatever the
+model wrote. `py -3.12 qc/instruments/litkb_acceptance.py codex --review --context --report` then
+counts `citations_unreviewed verdict_outside_set hash_mismatch overreach unsupported`: the first
+three are gates, and `overreach` is a finding the orchestrator rules on, never a failure.
+`--mutate N` plants a causation claim on citation N with its quote byte-identical and requires the
+report to flag it (`mutation_not_flagged`). **That kill has been exercised only against an
+injected fake reviewer; no real Codex call has ever made it fire.** S2 is the first live run.
+Codex version measured at build time: codex-cli 0.155.1, `--output-schema` present.
+
 Inherited hazards: live migrations are Kam's to apply; the MCP server is stale after a merge
 until `/mcp` reconnect; agents stall on background jobs (brief foreground polling); usage quota
-is Kam's to read.
+is Kam's to read. `litkb review-context` opens `litkb_reader`, which the shared pgpass holds for
+`litkb` only — against a worker database it fails `no password supplied`, the same credentials
+limit `LITKB_REVIEW_GRAMMAR.md` §8 records for `review-check`, and the fix is a pgpass entry,
+which is Kam's.
 
 ---
 

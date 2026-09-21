@@ -7,6 +7,8 @@ r"""The acceptance instrument for the litkb work plan: a session's "done" is a C
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py scout --freeze --workstream scout-1 \
         --topic "…" --launch-cmd "…" --log <run.jsonl> --out <manifest.json>
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py scout --manifest <manifest.json>
+    PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py codex --review <md> --context <md> \
+        --report <report.json> [--mutate N]
 
 WHY THIS EXISTS. A multi-session plan whose sessions are graded by their own author's prose is
 not graded at all. Every subcommand here reads a document or a manifest FROZEN BEFORE the work,
@@ -20,7 +22,9 @@ the real fixtures, not assertions about the code.
 
 SUBCOMMANDS THAT EXIST TODAY. `plan` (does the work plan still grade itself) and `disposition`
 (did the worktree disposition actually happen), both landing with session S0; `scout` (did the
-discovery run actually discover), landing with S1. `first-work`, `edges`, `readability`, `run`,
+discovery run actually discover), landing with S1; `codex` (did the adversarial read actually
+read every citation), landing between S1 and S2 with the Codex stage it grades. `first-work`,
+`edges`, `readability`, `run`,
 `synthesis` and `soak` land with their own sessions and are deliberately absent until then — an
 acceptance command that cannot fail is worse than no command. `guard-checkout` is not a session
 gate: it is the safety interlock the owner runs BEFORE removing any checkout.
@@ -96,7 +100,11 @@ the module-level `_hunt_request_rows`, injected the same way.
 `scout --freeze` WRITES its manifest and `scout` READS the litkb database, so psycopg and the
 `litkb` package are imported lazily, inside the scout functions only: the other three subcommands
 still run on a machine with neither installed, which is what keeps them usable from CI and from a
-cold checkout. Nothing here ever writes to a database. It is not run on Colab, so it does not
+cold checkout. `codex` imports the `litkb` package too -- for the GRAMMAR's own citation parser,
+`review_check.citations`, because a second citation regex here would be a second grammar -- and
+imports it lazily for the same reason; it touches no database at all. `codex --mutate N` with no
+`--report` WRITES the mutated review beside the original and is the one subcommand that writes a
+file into a worktree. Nothing here ever writes to a database. It is not run on Colab, so it does not
 filter an injected `-f` argument (CLAUDE.md 3.10 applies to the Colab entry points).
 """
 import argparse
@@ -781,6 +789,223 @@ def check_preflight(repo, *, db="litkb", passfile=None, now=None, soak_csv=None,
     return counters, detail
 
 
+# ── codex: did the adversarial read actually read (the review stage's gate) ────────────────
+#
+# WHAT THIS GRADES, and what it deliberately does not. The Codex stage returns a JSON report with
+# one verdict per citation (qc/fixtures/litkb_codex_report.schema.json, written by
+# qc/instruments/litkb_codex_review.py). Three of its counters are GATES, because each names a way
+# the stage can look complete and be empty:
+#
+#   citations_unreviewed  a citation of the review with no row in the report. THE silent pass: a
+#                         reviewer that skipped what it could not decide returns a report whose
+#                         every row says SUPPORTED, and nothing in the prose would say otherwise.
+#   verdict_outside_set   a verdict outside SUPPORTED/OVERREACH/UNSUPPORTED. A free-text verdict
+#                         is one a counter cannot read, which is how run 1's prose came to say
+#                         7/12 over a table holding 6 (codex-review-proving-run.md).
+#   hash_mismatch         the report's stamped digests are not this review's and this context's.
+#                         A report and a review edited between them look exactly like a report
+#                         about the review.
+#
+# `overreach` and `unsupported` are FINDINGS, not failures. A review with an overreaching citation
+# is a review to fix; the stage did its job by finding it, and a gate that failed on a finding
+# would pay the reviewer to find nothing. The orchestrator decides.
+#
+# `--mutate n` IS THE KILL. A gate that has never been shown to fire is not known to work
+# (CLAUDE.md 3.4c), and what this stage must be shown to do is FLAG a claim its quote does not
+# carry. So: take citation n's sentence, rewrite it to assert CAUSATION while leaving its quote
+# byte-identical, and require the report for the MUTATED review to flag n. A run in which the
+# reviewer passed the planted overreach is `mutation_not_flagged=1`, and that IS a failure.
+#
+# THE MUTATION IS DETERMINISTIC AND IDEMPOTENT: the same review and the same n give the same
+# bytes, so the file the wrapper reviewed and the file this gate hashes are one file without
+# either command passing the other a path. Two rules, in this order, applied to the region of
+# citation n's sentence BEFORE its quote's opening delimiter:
+#
+#   1. `is associated with` -> `causes`  (first occurrence; only when that region holds no quote
+#      delimiter at all, so an EARLIER citation's quote in the same sentence cannot be touched)
+#   2. otherwise, insert `Because of this, ` at the start of the sentence
+#
+# and then the check that makes the rule safe rather than merely careful: every citation of the
+# mutated text must carry the same (work_key, page, block_id, quote) as the original's. A rewrite
+# that moved one byte of one quote is refused, not reported.
+
+#: The verdicts the report's schema allows. Restated here because this gate must be able to say
+#: "outside the set" about a report the schema validator never saw -- a hand-written one, or one
+#: from a future wrapper.
+CODEX_VERDICTS = ("SUPPORTED", "OVERREACH", "UNSUPPORTED")
+#: What `--mutate` writes when `--mutated-out` is not given: beside the review, never over it.
+MUTATED_SUFFIX = ".mutated.md"
+_ASSOC = "is associated with"
+_CAUSES = "causes"
+_BECAUSE = "Because of this, "
+#: The quote delimiters the grammar accepts (LITKB_REVIEW_GRAMMAR.md §2). A region holding one of
+#: these is a region rule 1 will not touch.
+_QUOTE_CHARS = '"“”'
+
+
+def _read_review(path):
+    """The review's text with NEWLINE TRANSLATION OFF -- `review_check._read`'s rule. A reader
+    that rewrote a CRLF would hash a file nobody has."""
+    with Path(path).open(encoding="utf-8", newline="") as fh:
+        return fh.read()
+
+
+def _citations(text):
+    """The grammar's citations, from the grammar's own parser. Imported, never re-implemented."""
+    from litkb.review_check import citations
+
+    return citations(text)
+
+
+def mutate_review(text, n):
+    """(mutated text, what was done) for citation `n` of a review, or raise SystemExit.
+
+    See the block comment above for the two rules and for why the quote-identity check below is
+    what makes them safe rather than merely careful.
+    """
+    from litkb.review_check import _SENTENCE_SPLIT
+
+    cits = _citations(text)
+    if not 1 <= n <= len(cits):
+        raise SystemExit(f"litkb_acceptance codex --mutate {n}: the review has "
+                         f"{len(cits)} citation(s)")
+    c = cits[n - 1]
+    # The opening delimiter of THIS citation's quote: back over spaces/tabs to the closing
+    # delimiter, then back to the opener. The same walk as `review_check._quote_before`.
+    j = c["start"] - 1
+    while j >= 0 and text[j] in " \t":
+        j -= 1
+    if j < 0 or text[j] not in _QUOTE_CHARS:
+        raise SystemExit(f"litkb_acceptance codex --mutate {n}: citation {n} carries no quote, so "
+                         "there is no sentence to rewrite around it")
+    k = j - 1
+    while k >= 0 and text[k] not in _QUOTE_CHARS:
+        k -= 1
+    q_open = k
+    # The sentence start: the latest of the last sentence break and the start of the line the
+    # quote opens on. `_SENTENCE_SPLIT` is the splitter K1 itself uses.
+    head = text[:q_open]
+    starts = [m.end() for m in _SENTENCE_SPLIT.finditer(head)]
+    s = max([0] + starts + [head.rfind("\n") + 1])
+    region = text[s:q_open]
+    if _ASSOC in region and not any(ch in region for ch in _QUOTE_CHARS):
+        new_region = region.replace(_ASSOC, _CAUSES, 1)
+        done = f"replaced {_ASSOC!r} with {_CAUSES!r}"
+    else:
+        new_region = _BECAUSE + region
+        done = f"prefixed {_BECAUSE!r}"
+    out = text[:s] + new_region + text[q_open:]
+
+    # BEGIN guard: the mutation leaves every citation and every quote byte-identical
+    before = [(x["work_key"], x["page"], x["block_id"], x["quote"]) for x in cits]
+    after = [(x["work_key"], x["page"], x["block_id"], x["quote"]) for x in _citations(out)]
+    if before != after:
+        raise SystemExit(
+            f"litkb_acceptance codex --mutate {n}: the rewrite changed a citation or a quote and "
+            "was not written. The planted claim must be the ONLY difference -- a mutated quote "
+            "would make the reviewer right to flag it and would prove nothing about the claim")
+    # END guard: the mutation leaves every citation and every quote byte-identical
+    return out, done
+
+
+def write_mutation(review, n, out_path=None):
+    """Write the mutated review beside the original; (path, what was done)."""
+    mutated, done = mutate_review(_read_review(review), n)
+    p = Path(out_path) if out_path else Path(str(review) + MUTATED_SUFFIX)
+    with p.open("w", encoding="utf-8", newline="") as fh:
+        fh.write(mutated)
+    return p, done
+
+
+def check_codex(review, context, report_path, *, mutate=None):
+    """(counters, offences) for one Codex report against the review it claims to be about."""
+    from litkb.review_context import sha256_file
+
+    report = json.loads(Path(report_path).read_text(encoding="utf-8"))
+    cits = _citations(_read_review(review))
+    counters = {"citations_unreviewed": 0, "verdict_outside_set": 0, "hash_mismatch": 0,
+                "overreach": 0, "unsupported": 0}
+    offences = []
+
+    rows, by_n = report.get("citations", []), {}
+    for r in rows:
+        if isinstance(r, dict):
+            by_n.setdefault(r.get("n"), r)
+    for i, c in enumerate(cits, start=1):
+        r = by_n.get(i)
+        if r is None:
+            counters["citations_unreviewed"] += 1
+            offences.append(f"citation {i} (#{c['block_id']}) has no verdict -- a missing row "
+                            "reads as a pass")
+        elif r.get("block_id") != c["block_id"]:
+            counters["citations_unreviewed"] += 1
+            offences.append(f"citation {i} names block {c['block_id']}, the report's row {i} "
+                            f"names {r.get('block_id')!r}")
+    for r in rows:
+        v = r.get("verdict") if isinstance(r, dict) else None
+        if v not in CODEX_VERDICTS:
+            counters["verdict_outside_set"] += 1
+            offences.append(f"row n={r.get('n') if isinstance(r, dict) else r!r}: verdict "
+                            f"{v!r} is outside {CODEX_VERDICTS}")
+        elif v == "OVERREACH":
+            counters["overreach"] += 1
+        elif v == "UNSUPPORTED":
+            counters["unsupported"] += 1
+
+    for name, path in (("review", review), ("context", context)):
+        want = sha256_file(path)
+        got = report.get(f"{name}_sha256")
+        if got != want:
+            counters["hash_mismatch"] += 1
+            offences.append(f"{name}_sha256 in the report is {got!r}; {Path(path).name} hashes "
+                            f"to {want}")
+
+    if mutate is not None:
+        r = by_n.get(mutate)
+        flagged = bool(r) and r.get("verdict") in CODEX_VERDICTS and r.get("verdict") != "SUPPORTED"
+        counters["mutation_not_flagged"] = 0 if flagged else 1
+        if not flagged:
+            offences.append(
+                f"citation {mutate} of the MUTATED review asserts a causation its quote does not "
+                f"carry, and the report returned {(r or {}).get('verdict')!r}. A reviewer that "
+                "passes a planted overreach has not been shown to catch a real one")
+    return counters, offences
+
+
+def codex_ok(counters):
+    """Exit 0 only when the three GATE counters are 0, and the mutation when one was planted.
+    `overreach` and `unsupported` are findings and never fail this command."""
+    return not any(counters.get(g, 0) for g in
+                   ("citations_unreviewed", "verdict_outside_set", "hash_mismatch",
+                    "mutation_not_flagged"))
+
+
+def cmd_codex(args):
+    if args.mutate is not None and not args.report:
+        # PREPARE MODE: write the mutated review for the wrapper to review, and nothing else.
+        # Deterministic and idempotent, so the file graded below is the file reviewed.
+        path, done = write_mutation(args.review, args.mutate, args.mutated_out)
+        print(f"mutated citation {args.mutate} of {args.review}: {done} -> {path}")
+        return 0
+    if not args.report:
+        print("litkb_acceptance codex needs --report (or --mutate N alone, to prepare the "
+              "mutated review)", file=sys.stderr)
+        return 2
+    review = args.review
+    if args.mutate is not None:
+        review = str(Path(args.mutated_out) if args.mutated_out
+                     else Path(str(args.review) + MUTATED_SUFFIX))
+        if not Path(review).exists():
+            print(f"litkb_acceptance codex --mutate {args.mutate}: {review} does not exist -- run "
+                  "this command with --mutate and no --report first", file=sys.stderr)
+            return 2
+    counters, offences = check_codex(review, args.context, args.report, mutate=args.mutate)
+    for line in offences:
+        print(line, file=sys.stderr)
+    print(" ".join(f"{k}={v}" for k, v in counters.items()))
+    return 0 if codex_ok(counters) else 1
+
+
 def cmd_preflight(args):
     repo = Path(args.repo or _repo_root())
     counters, detail = check_preflight(repo, db=args.db, passfile=args.passfile,
@@ -830,6 +1055,18 @@ def build_parser():
     s.add_argument("--worktree", help="the worktree the run and the driver use")
     s.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
     s.set_defaults(func=cmd_scout)
+
+    c = sub.add_parser("codex", help="did the adversarial read actually read every citation")
+    c.add_argument("--review", required=True, help="the review the report claims to be about")
+    c.add_argument("--context", required=True, help="the block context that was sent with it")
+    c.add_argument("--report", help="the wrapper's JSON report. Omit it, with --mutate N, to "
+                                    "PREPARE the mutated review instead of grading one")
+    c.add_argument("--mutate", type=int, metavar="N",
+                   help="plant a CAUSATION claim on citation N, leaving its quote byte-identical, "
+                        "and require the report for the mutated review to flag it")
+    c.add_argument("--mutated-out", dest="mutated_out",
+                   help=f"where the mutated review goes (default: <review>{MUTATED_SUFFIX})")
+    c.set_defaults(func=cmd_codex)
 
     f = sub.add_parser("preflight", help="the checks a session runs BEFORE its first hunt")
     f.add_argument("--db", default="litkb", help="the database (default: %(default)s)")

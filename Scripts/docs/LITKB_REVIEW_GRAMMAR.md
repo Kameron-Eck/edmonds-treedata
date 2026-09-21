@@ -370,6 +370,15 @@ when any finding has `severity: fail`. The finding codes are `malformed-citation
 `claim-outside-claim-section`, `missing-expectations-section`, `expectation-not-disclosed`,
 `k2-never-fired`, `missing-sources-section`, `source-not-listed`, `source-never-cited`.
 
+**A green grade is not the end of the review stage.** §7 is the list of what this grader cannot
+see, and the ADVERSARIAL READ is what answers the first item on it — whether the claim a sentence
+makes is the claim its quote supports. Its input is `py -3.12 -m litkb review-context <review.md>
+--out <ctx.md>`, which writes the whole block behind every citation; its runner is
+`qc/instruments/litkb_codex_review.py`; its gate is `qc/instruments/litkb_acceptance.py codex`.
+This grammar is the deterministic half and that stage is the read, and neither substitutes for the
+other — the proving run of 2026-09-20 passed this grader with 0/13 overreaching citations and was
+still refused by its reader, for two claims made where K1 does not look.
+
 `uncited-heading` is raised by two guards, on the two kinds of heading: `###` and deeper
 (`_deep_heading_findings`, RC13) and a claim section's own `##` title (`_title_findings`, RC26).
 They are separate rows because they are separate holes — removing either leaves the other closed.

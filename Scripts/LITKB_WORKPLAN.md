@@ -384,9 +384,11 @@ model wrote. `py -3.12 qc/instruments/litkb_acceptance.py codex --review --conte
 counts `citations_unreviewed verdict_outside_set hash_mismatch overreach unsupported`: the first
 three are gates, and `overreach` is a finding the orchestrator rules on, never a failure.
 `--mutate N` plants a causation claim on citation N with its quote byte-identical and requires the
-report to flag it (`mutation_not_flagged`). **That kill has been exercised only against an
-injected fake reviewer; no real Codex call has ever made it fire.** S2 is the first live run.
-Codex version measured at build time: codex-cli 0.155.1, `--output-schema` present.
+report to flag it (`mutation_not_flagged`). **Proven LIVE 2026-09-20** on the run-2 review:
+13/13 SUPPORTED unmutated, the planted causation on citation 5 flagged OVERREACH, nothing else
+moved (`Reports/LITKB_CODEX_STAGE_2026-09-20.md`; reports with session ids under
+`Reports/codex/`). Codex version at proof: codex-cli 0.155.1, prompt on stdin, model-facing
+schema derived by the wrapper (strict structured output refuses optional properties).
 
 Inherited hazards: live migrations are Kam's to apply; the MCP server is stale after a merge
 until `/mcp` reconnect; agents stall on background jobs (brief foreground polling); usage quota

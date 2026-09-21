@@ -46,6 +46,22 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-20  litkb post-S1 — preflight subcommand; Codex as a scripted, schema'd stage, gate proven LIVE
+goal:    Kam: integrate the next-session tips + the Codex improvements INTO the tree, finished tonight, no spill into S2.
+did:     `litkb_acceptance.py preflight` (stray_tokens migration_mismatch mcp_servers_missing main_not_at_parity
+         soak_stale; 11 mutation tests; first command in plan protocol). Launch recipe → bash + prompt FILE + first
+         ws_open check; SKILL no-topic stop; log reader utf-8-sig. Codex stage (Opus builder, 10 harness rows CX1-10,
+         census hole fixed): `litkb review-context`, `qc/fixtures/litkb_codex_report.schema.json`,
+         `qc/instruments/litkb_codex_review.py` (prompt on stdin, sha256 stamps, session id), `litkb_acceptance.py
+         codex --mutate`. LIVE (2 Codex calls, 0.155.1): run-2 review 13/13 SUPPORTED + run 2's 3 editorial findings
+         reproduced; planted causation on citation 5 → OVERREACH, `mutation_not_flagged=0`. Three wrapper defects
+         found live, fixed, tested (strict schema needs all-required; refusal on stdout stream; 81-char quote_head).
+decided: Reports/codex/ whitelisted (evidence a gate fired = work product). overreach is a FINDING, not a gate fail.
+killed:  hand-exported block context (`run2_block_context.md` class) — `review-context` is the producer now.
+files:   Reports/LITKB_CODEX_STAGE_2026-09-20.md, Reports/codex/, docs/LITKB_CODEX_PROMPT.md, docs/SCHEMAS.md
+         (codex report), Reports/LITKB_SCOUT_LAUNCH.md §4, jobs/litkb-s1/{brief-C,builder-C}-codex-stage.md.
+next:    S2. Kam: relay agent step 2 → builder-C report §7 (stdin, not `"$(cat …)"`); pgpass litkb_reader for worker DBs.
+
 ## 2026-09-20  litkb S1 — the front door: lit-scout, `title` refs, hunt VALIDATES; first headless scout run (9 drop-offs); soak clock started
 goal:    `LITKB_WORKPLAN.md` S1: topic → drop-offs unattended; every ref shape hunt sees ends in named state.
 did:     paper-search MCP in `.mcp.json` (strict-config probe lists 13 litkb + 58 paper-search tools). Two Opus

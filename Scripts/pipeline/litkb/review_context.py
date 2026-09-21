@@ -141,6 +141,12 @@ def build(conn, path, *, is_text=False, review_path=None, review_sha256=None):
         if entry["also"]:
             out.append("")
         row = _block(conn, ws, bid)
+        # BEGIN guard: a cited block this workstream cannot see is NAMED and COUNTED
+        # Removing this leaves a section holding an EMPTY fenced block and an empty `missing`
+        # list, so the command exits 0 over a file with a hole in it -- which is the whole
+        # failure this module's docstring is about, and why the fallback below is written to
+        # degrade into it rather than to crash. A crash would be caught by any test; a silent
+        # hole is what a reviewer cannot see (harness row CX1).
         if row is None:
             missing.append(bid)
             out.append(NOT_VISIBLE)
@@ -151,11 +157,12 @@ def build(conn, path, *, is_text=False, review_path=None, review_sha256=None):
                        "hole it cannot see.")
             out.append("")
             continue
+        # END guard: a cited block this workstream cannot see is NAMED and COUNTED
         out.append("```")
         # The block's own bytes. Its line breaks are left exactly as stored -- about half of the
         # corpus's blocks carry CRLF (LITKB_REVIEW_GRAMMAR.md §2) -- so a reviewer comparing a
         # quote against this file compares what the grader compared.
-        out.append(row["text"])
+        out.append(row["text"] if row else "")
         out.append("```")
         out.append("")
     return "\n".join(out), {"citations": len(cits), "blocks": len(order), "missing": missing}

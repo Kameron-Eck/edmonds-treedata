@@ -1524,6 +1524,79 @@ block("RC27", f"{PKG}/review_check.py",
       "construction. They bind the docs to SCOPE_TEMPLATE; only the three m16 rows kill the guard",
       tests=TESTS_REVIEW)
 
+# ── CX1-CX10: the Codex review stage (2026-09-20, between S1 and S2) ──────────────────────────────────────
+# The stage that answers the first item of LITKB_REVIEW_GRAMMAR.md §7 -- whether a sentence means what its
+# quote says -- which the deterministic grader above cannot. Three commands: `litkb review-context` (the whole
+# block behind every citation), qc/instruments/litkb_codex_review.py (prompt -> Codex -> schema'd JSON) and
+# qc/instruments/litkb_acceptance.py codex (the counters). Two of the three live under qc/ rather than under
+# pipeline/litkb, so they are outside the --sites census, which scans the package; their guards are ordinary
+# marker rows and each one has a known-bad input in qc/test_litkb_codex_stage.py.
+#
+# WHAT NONE OF THESE ROWS PROVES. Every test in that file injects a FAKE reviewer whose verdicts come from a
+# command-line flag. CX10 shows that the kill FIRES when a reviewer passes a planted causation claim; it does
+# not show that a real Codex flags one. That proof is a live run and it is not in this harness.
+TESTS_CODEX = [*TESTS, "qc/test_litkb_codex_stage.py"]
+block("CX1", f"{PKG}/review_context.py",
+      "guard: a cited block this workstream cannot see is NAMED and COUNTED",
+      "a citation whose block the workstream cannot see gets a section holding an EMPTY fenced "
+      "block, and `missing` stays empty, so `litkb review-context` exits 0 over a context file "
+      "with a hole in it. The reviewer then reads the sections it was given and has no way to "
+      "know that the one citation it was never shown is the one that was missing (X5)",
+      tests=TESTS_CODEX)
+block("CX2", "qc/instruments/litkb_codex_review.py",
+      "guard: the prompt template carries every placeholder",
+      "a prompt template with `{REVIEW_TEXT}` deleted is SENT: the reviewer is asked to review "
+      "nothing, and what comes back is well-formed, schema-valid, hash-stamped and about no "
+      "document (X7)", tests=TESTS_CODEX)
+block("CX3", "qc/instruments/litkb_codex_review.py",
+      "guard: a schema keyword this validator does not implement is REFUSED",
+      "a keyword added to the report schema is silently ignored and every instance it was added "
+      "to constrain validates -- the schema says more and the validator checks the same. This is "
+      "the row that makes a hand-written validator honest instead of merely convenient: without "
+      "it the case for not depending on `jsonschema` collapses (X8)", tests=TESTS_CODEX)
+block("CX4", "qc/instruments/litkb_codex_review.py",
+      "guard: the two digests and the session id are STAMPED, not trusted",
+      "the MODEL's own `review_sha256` / `context_sha256` survive into the report. A model has no "
+      "way to know them, so either the gate's hash_mismatch fires on every honest run and is "
+      "turned off, or the model echoes a digest it was handed and the counter passes on a review "
+      "that has since changed. Either way the binding between the report and the bytes is gone",
+      tests=TESTS_CODEX)
+block("CX5", "qc/instruments/litkb_codex_review.py",
+      "guard: every citation of the review has a row, and no row names a citation it has not",
+      "the wrapper stops comparing the report's rows with the review's citations, so a report "
+      "that simply omitted the citation its reviewer could not decide comes back clean and the "
+      "wrapper exits 0. An extra row for a citation the review does not have also passes (X1)",
+      tests=TESTS_CODEX)
+block("CX6", "qc/instruments/litkb_acceptance.py",
+      "guard: every citation of the review carries a verdict row of its own",
+      "`citations_unreviewed` stays 0 whatever is missing: the gate counts verdicts and never "
+      "asks which citations HAVE one, so a report that dropped a citation passes with every "
+      "remaining row SUPPORTED. It is the one failure of this stage that looks exactly like "
+      "success (X1, X1b)", tests=TESTS_CODEX)
+block("CX7", "qc/instruments/litkb_acceptance.py",
+      "guard: every verdict is one of the three, and the findings are counted",
+      "`verdict_outside_set` stays 0 over a reviewer answering in prose, and `overreach` and "
+      "`unsupported` stay 0 whatever the report says -- so the gate reads green and reports no "
+      "findings at the same time. This is the shape of run 1's bookkeeping, whose summary said "
+      "7/12 over a table that held 6 (X2)", tests=TESTS_CODEX)
+block("CX8", "qc/instruments/litkb_acceptance.py",
+      "guard: the report's digests are recomputed from the two files it names",
+      "`hash_mismatch` stays 0: the gate never re-reads the review or the context, so a review "
+      "edited after it was reviewed -- or a report carried over from a different review "
+      "entirely -- grades clean (X3)", tests=TESTS_CODEX)
+block("CX9", "qc/instruments/litkb_acceptance.py",
+      "guard: the mutation leaves every citation and every quote byte-identical",
+      "`--mutate N` writes a rewrite that moved a citation or a quote. A mutated QUOTE is the "
+      "sharp case: the reviewer is then right to flag the citation, the kill passes, and it has "
+      "proved nothing about the planted claim -- the run reads exactly like a real catch (X9)",
+      tests=TESTS_CODEX)
+block("CX10", "qc/instruments/litkb_acceptance.py",
+      "guard: the planted causation must come back flagged",
+      "the stage's OWN kill stops asking: `--mutate N` plants a claim the quote does not carry, "
+      "hands it to the reviewer, and `mutation_not_flagged` stays 0 whatever comes back. The one "
+      "command whose purpose is to show the reviewer catches an overreach then passes a reviewer "
+      "that called it SUPPORTED (X4)", tests=TESTS_CODEX)
+
 # Call sites a mutation cannot change the behaviour of. The reason must be about the CODE, never about the tests.
 EQUIVALENT = {
     "litkb/admit/binding.py::author_on_page::tokens_contain":
@@ -2079,6 +2152,43 @@ VIS_LEDGER = {
         "token against. Its callers are the CLI's cmd_use (passes none — main only) and this "
         "test's row (f). Any NEW caller that passes a ws must carry the guards itself, and the "
         "call-site rule sees it there."),
+    # ── the READ side, 2026-09-20. Three binds of the same shape: a read-only grader or exporter,
+    # on the reader login, whose ws comes from a DOCUMENT or from the worktree's own workstream and
+    # never from a caller's claim, returning rows the reader could already see. None of them widens
+    # anything a token would gate — the token gates WRITES and the opening of a workstream.
+    #
+    # They are here because of a defect in this scan, not because they changed: `vis_sites` opens a
+    # module only when its text contains "FILE_JOIN" or "visibility", so all three were invisible to
+    # a census built to enumerate EVERY widening. review_context.py mentioned the word in a comment,
+    # was scanned, and failed — which is how the other two were found. Each module now says so in a
+    # comment of its own, and the three rows below are the result. The filter is still a filter:
+    # whether a module binds `ws` is an AST question this scan already answers, and deciding which
+    # files to parse by substring is the hole. Dropping it is a change to this instrument and to
+    # qc/test_litkb_harness_sites.py, and it is not made here.
+    "litkb/review_context.py::_block": ("caller-supplied",
+        "a READ on the reader login: `review-context` prints the block behind each citation of a "
+        "review, and ws is resolved ONCE in build(), from the workstream the REVIEW'S OWN HEADER "
+        "declares, by review_check.resolve_workstream — never from a caller's claim. The query is "
+        "review_check._block_row's, clause for clause, on the review whose citations that grader "
+        "grades. Any NEW caller that passes a ws of its own must carry the guards itself, and the "
+        "call-site rule sees it there."),
+    "litkb/review_check.py::_block_row": ("caller-supplied",
+        "the same read, in the grader: ws is a parameter, and check() resolves it from the "
+        "review's header comment (LITKB_REVIEW_GRAMMAR.md §1) — the CLI's --workstream cannot "
+        "redirect it, only assert it, and a mismatch is refused by name. review-check holds no "
+        "token and writes nothing."),
+    "litkb/brief.py::expected_lines": ("caller-supplied",
+        "the EXPORT's read: ws is a parameter and its callers are build() (from the CLI's own "
+        "worktree workstream, or the MCP server's _brief, whose ws is _caller_workstream's — the "
+        "resolver that refuses a bad token and narrows an unopened workstream to main) and "
+        "review_check.check, from the review's header. It reads hunt_request_status for that "
+        "workstream and names no use table."),
+    "litkb/brief.py::verified_lines": ("caller-supplied",
+        "the other half of the same export, with the same callers and the same ws. Its "
+        "_VERIFIED_SQL is deliberately WIDER than the workstream — `wu.state = 'promoted'` makes "
+        "every promoted use in the database citable, which grammar §7 states as a property a "
+        "green grade does NOT have — so a token check here would imply a narrowing this query "
+        "does not perform."),
 }
 
 

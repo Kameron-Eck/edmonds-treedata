@@ -931,6 +931,10 @@ def check_codex(review, context, report_path, *, mutate=None):
     for r in rows:
         if isinstance(r, dict):
             by_n.setdefault(r.get("n"), r)
+    # BEGIN guard: every citation of the review carries a verdict row of its own
+    # Without this the gate counts verdicts and never asks which citations HAVE one, so a report
+    # that omitted the citation its reviewer could not decide passes with every remaining row
+    # SUPPORTED. It is the one failure of this stage that looks exactly like success (row CX6).
     for i, c in enumerate(cits, start=1):
         r = by_n.get(i)
         if r is None:
@@ -941,6 +945,12 @@ def check_codex(review, context, report_path, *, mutate=None):
             counters["citations_unreviewed"] += 1
             offences.append(f"citation {i} names block {c['block_id']}, the report's row {i} "
                             f"names {r.get('block_id')!r}")
+    # END guard: every citation of the review carries a verdict row of its own
+    # BEGIN guard: every verdict is one of the three, and the findings are counted
+    # Without this a free-text verdict is neither refused nor counted, and `overreach` and
+    # `unsupported` stay 0 whatever the report says -- so the gate reads green over a reviewer
+    # answering in prose, which is how run 1's summary came to say 7/12 over a table that held
+    # 6 (row CX7).
     for r in rows:
         v = r.get("verdict") if isinstance(r, dict) else None
         if v not in CODEX_VERDICTS:
@@ -951,7 +961,12 @@ def check_codex(review, context, report_path, *, mutate=None):
             counters["overreach"] += 1
         elif v == "UNSUPPORTED":
             counters["unsupported"] += 1
+    # END guard: every verdict is one of the three, and the findings are counted
 
+    # BEGIN guard: the report's digests are recomputed from the two files it names
+    # Without this the gate never re-reads the files, so a review edited after it was reviewed --
+    # or a report carried over from a different review entirely -- grades clean. A report and a
+    # review edited between them look exactly like a report about the review (row CX8).
     for name, path in (("review", review), ("context", context)):
         want = sha256_file(path)
         got = report.get(f"{name}_sha256")
@@ -959,11 +974,21 @@ def check_codex(review, context, report_path, *, mutate=None):
             counters["hash_mismatch"] += 1
             offences.append(f"{name}_sha256 in the report is {got!r}; {Path(path).name} hashes "
                             f"to {want}")
+    # END guard: the report's digests are recomputed from the two files it names
 
     if mutate is not None:
         r = by_n.get(mutate)
+        # The defaults below are what the guard REPLACES, and they are deliberately the
+        # permissive ones: with the guard removed this command still runs and still exits 0,
+        # which is the defect row CX10 plants rather than a crash any test would catch.
+        flagged, counters["mutation_not_flagged"] = True, 0
+        # BEGIN guard: the planted causation must come back flagged
+        # This is the stage's own kill. Without it `--mutate N` plants a claim the quote does not
+        # carry, hands it to the reviewer, and never asks what came back -- so the command that
+        # exists to prove the reviewer catches an overreach passes whatever it says (row CX10).
         flagged = bool(r) and r.get("verdict") in CODEX_VERDICTS and r.get("verdict") != "SUPPORTED"
         counters["mutation_not_flagged"] = 0 if flagged else 1
+        # END guard: the planted causation must come back flagged
         if not flagged:
             offences.append(
                 f"citation {mutate} of the MUTATED review asserts a causation its quote does not "

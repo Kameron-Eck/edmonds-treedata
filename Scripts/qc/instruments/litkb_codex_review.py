@@ -83,10 +83,15 @@ def build_prompt(review, context, *, template=None):
     if PROMPT_BEGIN not in tpl:
         raise SystemExit(f"litkb_codex_review: {tpl_path} has no {PROMPT_BEGIN} marker")
     body = tpl.split(PROMPT_BEGIN, 1)[1].lstrip("\n")
+    # BEGIN guard: the prompt template carries every placeholder
+    # Without this the template goes out with a placeholder left unsubstituted. The one that
+    # matters is `{REVIEW_TEXT}`: a prompt carrying no review still gets a reply, and the reply
+    # is well-formed, schema-valid, hash-stamped, and about no document (harness row CX2).
     missing = [p for p in PLACEHOLDERS if p not in body]
     if missing:
         raise SystemExit(f"litkb_codex_review: {tpl_path} is missing {', '.join(missing)} — a "
                          "prompt with no review in it would still produce a well-formed report")
+    # END guard: the prompt template carries every placeholder
     # newline="" on both reads: the review's and the block's line endings are content (half the
     # corpus's blocks carry CRLF), and a reviewer comparing a quote against a context file whose
     # breaks Python rewrote is comparing something the grader never saw.
@@ -221,10 +226,15 @@ def validate(instance, schema, *, path="$"):
     known = {"$schema", "title", "description", "type", "properties", "required",
              "additionalProperties", "items", "enum", "pattern", "minimum", "maxLength",
              "minLength"}
+    # BEGIN guard: a schema keyword this validator does not implement is REFUSED
+    # Without this, a keyword added to the schema is silently ignored and every instance the
+    # keyword was added to constrain validates. The failure is invisible in exactly the direction
+    # that matters: the schema says more and the validator checks the same (harness row CX3).
     unknown = set(schema) - known
     if unknown:
         return [f"{path}: schema uses keywords this validator does not implement: "
                 f"{sorted(unknown)} — extend validate() or the check is not a check"]
+    # END guard: a schema keyword this validator does not implement is REFUSED
     errs = []
     types = schema.get("type")
     if types is not None:
@@ -303,6 +313,10 @@ def check_citation_set(report, review):
             offences.append(f"citation n={n} has two rows")
         by_n[n] = r
     want_ns = {n for n, _ in want}
+    # BEGIN guard: every citation of the review has a row, and no row names a citation it has not
+    # Without this the function still returns offences for a DUPLICATE n and nothing else, so a
+    # report that simply omitted the citation its reviewer could not decide comes back clean and
+    # the wrapper exits 0. That is the silent pass this docstring is about (harness row CX5).
     for n, bid in want:
         if n not in by_n:
             offences.append(f"citation n={n} (#{bid}) has no row — a missing row reads as a pass")
@@ -312,6 +326,7 @@ def check_citation_set(report, review):
     for n in by_n:
         if n not in want_ns:
             offences.append(f"the report has a row n={n}, the review has {len(want)} citation(s)")
+    # END guard: every citation of the review has a row, and no row names a citation it has not
     return offences
 
 
@@ -347,14 +362,19 @@ def run(review, context, out, *, schema=None, template=None, codex_cmd=None, cd=
         counters["schema_errors"] = 1
         return 1, None, counters
 
-    # STAMPED, NOT TRUSTED. Both digests are computed here over the files this wrapper actually
-    # read, and overwrite whatever the model put there, so the report can never be wrong about
-    # which bytes it is about. The session id is stamped for the same reason.
+    # BEGIN guard: the two digests and the session id are STAMPED, not trusted
+    # Both digests are computed here over the files this wrapper actually read, and OVERWRITE
+    # whatever the model put there, so the report can never be wrong about which bytes it is
+    # about. Without this the model's own values survive -- and a model has no way to know them,
+    # so the gate's `hash_mismatch` would fire on every honest run and be turned off, or the model
+    # would echo a digest it was told and the counter would pass on a review that had since
+    # changed. Either way the binding between report and bytes is gone (harness row CX4).
     report["review_sha256"] = sha256_file(review)
     report["context_sha256"] = sha256_file(context)
     sid, key = session_from_stream(stdout)
     report["session_id"] = sid
     report["session_id_key"] = key
+    # END guard: the two digests and the session id are STAMPED, not trusted
 
     errs = validate(report, schema_doc)
     offences = [] if errs else check_citation_set(report, review)

@@ -45,3 +45,14 @@
 *.jpg     binary
 *.jpeg    binary
 *.gdoc    binary
+
+# ── Recorded HTTP bodies used as test fixtures ────────────────────────────
+# Added 2026-09-21 with the first one (qc/fixtures/litkb_web_snapshot_*.html,
+# the Crossref blog article `hunt`'s page route is tested against). These files
+# are the BYTES a server sent on a named date, and the tests that read them
+# assert a sha256 over exactly those bytes. `* text=auto` would newline-convert
+# them on checkout, so the fixture would hash differently on a tree checked out
+# on Windows from one checked out on Linux — which is a fixture that is not a
+# record. `binary` is the narrowest rule that stops it; the file is still
+# perfectly readable text, it is simply never rewritten.
+Scripts/qc/fixtures/*.html  binary

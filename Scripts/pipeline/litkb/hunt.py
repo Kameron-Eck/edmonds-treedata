@@ -533,12 +533,53 @@ def look_up(conn, ws_id, ref, kind):
 
 # ── step 1: the document itself ────────────────────────────────────────────────────────────
 
+#: What the URL branch tells a server it will take. It used to be ``application/pdf`` ALONE, and
+#: that was not merely a hint: a content-negotiating host answers such a request with a landing
+#: page, and the branch then quarantined the page and refused the hunt `not-a-pdf`. Since S3 an
+#: HTML page is a web source in its own right (:func:`_web_snapshot`), so the header says so —
+#: the PDF still preferred, HTML accepted, anything else last.
+URL_ACCEPT = "application/pdf, text/html;q=0.9, application/xhtml+xml;q=0.9, */*;q=0.5"
+
+
 def _default_fetch(url, timeout=180):
-    """-> (status, bytes). Never raises; a dead URL is a refusal, not a traceback."""
+    """-> (status, bytes, content_type). Never raises; a dead URL is a refusal, not a traceback.
+
+    THE THIRD MEMBER IS NEW (S3) and it is the routing decision's whole evidence: whether these
+    bytes are a document or a page is the SERVER's statement about them
+    (`litkb.extract.text_snapshot.classify`), not a guess off the first 512 bytes. A caller's
+    injected `fetch` may still return the old two-tuple; :func:`_fetched` is where that is read."""
     from litkb.netutil import Client
 
-    st, _hd, body = Client(base="").get(url, accept="application/pdf", timeout=timeout)
-    return st, body or b""
+    st, hd, body = Client(base="").get(url, accept=URL_ACCEPT, timeout=timeout)
+    return st, body or b"", _content_type(hd)
+
+
+def _content_type(headers):
+    """The Content-Type out of a header mapping, case-insensitively. -> the value, or None.
+
+    `netutil.Client._raw_get` returns `dict(r.headers)`, whose keys are whatever the server sent
+    them as — `Content-Type` from most, `content-type` from an HTTP/2 origin behind a proxy — so
+    the lookup cannot be a plain subscript."""
+    for k, v in (headers or {}).items():
+        if str(k).lower() == "content-type":
+            return v
+    return None
+
+
+def _fetched(result):
+    """A fetch's answer as (status, bytes, content_type), whichever shape it came back in.
+
+    Two shapes, one reader. Every injected `fetch` written before S3 returns `(status, bytes)` —
+    the hunt suite's own stubs, `qc/fixtures/litkb_ref_shapes.json`'s driver and builder C's edge
+    runner among them — and a third member appearing in the signature must not turn those into
+    `crashed:ValueError`. A two-tuple means the caller did not say what the bytes are, and
+    `classify` treats an undeclared body exactly as it was treated before today: the PDF shape
+    check, and `not-a-pdf` when it fails."""
+    if isinstance(result, tuple) and len(result) == 3:
+        st, body, ctype = result
+        return st, body or b"", ctype
+    st, body = result
+    return st, body or b"", None
 
 
 def page1(pdf_path):
@@ -548,8 +589,14 @@ def page1(pdf_path):
     return _binding.first_page_text(pdf_path) or "", _binding.pdf_info(pdf_path)
 
 
-def guess_fields(text, info, title=None, author=None, year=None):
+def guess_fields(text, info, title=None, author=None, year=None, *, text_label="page-1 text"):
     """Title, author and year for a document no registry can confirm. -> (title, author, year, how)
+
+    ``text_label`` names WHERE the text came from, for the ``how`` map the result carries. The
+    default is a PDF's first page; the web-snapshot path passes the page's own words, because a
+    result that said "page-1 text" for an HTML article would be describing a page that does not
+    exist. One function rather than two: the heuristic is the same weak one either way, and a
+    second copy of it would be a second place for "which field could not be filled" to drift.
 
     DELIBERATELY WEAK, and it says which fields it could not fill rather than inventing them. The
     PDF's ``/Title`` is whatever the tool that wrote it was pointed at — this document's is
@@ -566,7 +613,7 @@ def guess_fields(text, info, title=None, author=None, year=None):
         # a cover page that prints the work's name in display type beats a producer's file label
         head = " ".join(lines[:4])
         t = head if len(head) > len(meta) else meta
-        how["title"] = "page-1 text" if t == head else "/Title metadata"
+        how["title"] = text_label if t == head else "/Title metadata"
     else:
         how["title"] = "--title"
     a = (author or "").strip()
@@ -619,6 +666,49 @@ def land_download(store, stem, data):
                           sha256=sha, bytes=len(data))
     # END guard: a hunted download that is not a whole PDF is quarantined, never admitted
     return dl, sha
+
+
+#: The snapshot's own record, written beside it as `<name>.txt.snapshot.json`. It carries the two
+#: hashes deliberately: `sha256_raw` is the BYTES the server sent and `sha256_text` is what this
+#: parse made of them, so a later reader can ask whether the extraction is still what those bytes
+#: say without trusting `litkb.extract.text_snapshot`. `content_type` is what the routing decision
+#: was made on.
+SNAPSHOT_FACTS = ("source_url", "retrieved", "content_type", "sha256_raw", "sha256_text",
+                  "bytes_raw", "bytes_text", "blocks", "headings", "parser", "at")
+
+
+def land_web_snapshot(store, stem, data, *, url, retrieved, content_type):
+    """HTML bytes → the page's text at ``_litkb_staging/web/<stem>.txt``, and its record beside it.
+
+    -> (path, text, blocks, facts). Both writes go through ``store.write_new``, which is
+    create-only (`guard: store never overwrites`, mutation row B4) — a snapshot is evidence that a
+    page said something on a date, and a second retrieval that overwrote the first would destroy
+    the only record that the page had changed. ``free_name`` therefore gives the second one
+    ``<stem>.2.txt`` and both stand.
+
+    The directory is ``litkb.admit.front.WEB_SNAPSHOT_DIR``'s, so `web_snapshot_evidence` finds the
+    file ALREADY inside the store and binds it where it lies instead of landing a second copy.
+    """
+    import hashlib
+    import json
+
+    from litkb.admit.front import WEB_SNAPSHOT_DIR
+    from litkb.extract import text_snapshot as TS
+
+    blocks = TS.parse(data, content_type)
+    text = TS.render(blocks)
+    body = text.encode("utf-8")
+    path = store.write_new(store.free_name(store.staging / WEB_SNAPSHOT_DIR, stem, ".txt"), body)
+    facts = {"source_url": url, "retrieved": str(retrieved), "content_type": content_type,
+             "sha256_raw": hashlib.sha256(data or b"").hexdigest(),
+             "sha256_text": hashlib.sha256(body).hexdigest(),
+             "bytes_raw": len(data or b""), "bytes_text": len(body), "blocks": len(blocks),
+             "headings": sum(1 for b in blocks if b["kind"] == "heading"),
+             "parser": TS.__name__, "at": _now().isoformat()}
+    store.write_new(Path(str(path) + ".snapshot.json"),
+                    json.dumps(facts, indent=2, sort_keys=True, ensure_ascii=False,
+                               default=str).encode("utf-8"))
+    return path, text, blocks, facts
 
 
 def file_under_key(store, key, download):
@@ -825,7 +915,8 @@ def _acquisition_stop(acq):
 
 def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, author=None,
          year=None, source_note=None, key=None, work_type="report", retrieved=None,
-         fetch=None, store=None, reader_role=None, writer_role=None, extract=True,
+         fetch=None, store=None, reader_role=None, writer_role=None, ingest_role=None,
+         extract=True,
          device="cuda", docling_python=None, derived=None, registry_client=None,
          spend=True, acquirer=None, hunt_request_id=None, ref_scheme=None, pacer=None):
     """Resolve → admit → bind → extract → ingest, for one reference. -> the result dict.
@@ -889,6 +980,7 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
                      session=session, title=title, author=author, year=year,
                      source_note=source_note, key=key, work_type=work_type, retrieved=retrieved,
                      fetch=fetch, store=store, reader_role=reader_role, writer_role=writer_role,
+                     ingest_role=ingest_role,
                      extract=extract, device=device, docling_python=docling_python,
                      derived=derived, registry_client=registry_client, spend=spend,
                      acquirer=acquirer, hunt_request_id=hunt_request_id, ref_scheme=ref_scheme,
@@ -926,11 +1018,13 @@ def hunt(ref, *, db=None, worktree=None, agent=None, session=None, title=None, a
 
 def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, author, year,
           source_note, key, work_type, retrieved, fetch, store, reader_role, writer_role,
+          ingest_role,
           extract, device, docling_python, derived, registry_client, spend, acquirer,
           hunt_request_id=None, ref_scheme=None, pacer=None, progress=None):
     from litkb.acquire.store import Store
     from litkb.admit import front
     from litkb.db import connect as c
+    from litkb.extract import text_snapshot
     from litkb.textnorm import norm_label
 
     progress = {"stage": STAGES[0]} if progress is None else progress
@@ -1148,12 +1242,52 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         # ── a web source ───────────────────────────────────────────────────────────────────
         progress["stage"] = "download"
         t0 = time.monotonic()
-        status, data = (fetch or _default_fetch)(ref)
+        status, data, content_type = _fetched((fetch or _default_fetch)(ref))
         timing["download"] = round(time.monotonic() - t0, 2)
         _classify_fetch(status, data, ref)
         progress["stage"] = "bind"
         retrieved = retrieved or _now().date().isoformat()
         stem = key or f"hunt-{_now().strftime('%Y%m%dT%H%M%S')}"
+
+        # BEGIN guard: an HTML page is a web source in its own right, not a failed PDF download
+        # Until S3 these bytes were quarantined and the hunt refused `not-a-pdf` — right for a
+        # PAPER (the 2026-09-15 incident: 295,657 bytes of a sign-in page filed as
+        # IFLA_2017_library-reference-model.pdf) and wrong for the other half of what the
+        # convention calls a web source. A blog post, a documentation page or a standard IS the
+        # work; `admit_web`/`web_snapshot_evidence` has been able to bind one since P8 and nothing
+        # could reach it, because the fetch refused the bytes two functions earlier.
+        #
+        # THE 2026-09-15 GUARD IS NOT RELAXED. `classify` routes on what the SERVER declared, and
+        # an unlabelled body — the incident's own shape — still falls through to `land_download`
+        # and its quarantine. What a page bought here is not a shortcut past a check: the snapshot
+        # is bound as `copy_kind = 'web snapshot'` (migration 0020), the admission is a manual
+        # PROPOSAL that a SECOND session must approve, and check 3 still binds the claimed title
+        # against the text that landed — a sign-in page does not bind a paper's title.
+        kind_of_body, body_why = text_snapshot.classify(data, content_type)
+        # inside the guard block on purpose: the mutation that removes this route must
+        # leave a hunt that works exactly as it did before S3, so that the row measures
+        # the missing ROUTE and not a NameError two lines below it
+        out["body"] = {"kind": kind_of_body, "why": body_why,
+                       "content_type": content_type}
+        if kind_of_body == "html":
+            res, snap_rel, snap_blocks, snap_facts = _web_snapshot(
+                writer, ws_id, token, ref, data, out, timing, refusals, store=store, stem=stem,
+                retrieved=retrieved, content_type=content_type, http_status=status, title=title,
+                author=author, year=year, source_note=source_note, work_type=work_type, key=key,
+                agent=agent, session=session, why=body_why, progress=progress)
+            if hunt_request_id:
+                _link_hunt_request(db, ws_id, token, hunt_request_id, res["work_id"], agent,
+                                   session, writer_role, out, conn=writer)
+            held = {"work_id": str(res["work_id"]), "state": "bound-unextracted",
+                    "files": [{"file_id": str(res["file_id"])}]}
+            if not extract:
+                return _result(out, "bound-unextracted", "fresh-bound", refusals,
+                               timing) | _report(db, ws_id, held, reader_role)
+            return _finish_snapshot(db, ws_id, held, str(res["file_id"]), snap_blocks, out,
+                                    timing, refusals, reader_role=reader_role,
+                                    ingest_role=ingest_role, artifact=snap_rel, facts=snap_facts,
+                                    progress=progress)
+        # END guard: an HTML page is a web source in its own right, not a failed PDF download
         dl, sha = land_download(store, stem, data)
         out["downloaded"] = {"bytes": len(data), "sha256": sha, "rel_path": store.rel(dl),
                              "http_status": status}
@@ -1220,6 +1354,136 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                    out, timing, refusals, reader_role=reader_role, device=device,
                    docling_python=docling_python, derived=derived, root=store.root,
                    pdf_path=str(pdf), progress=progress)
+
+
+#: What a caller is told when an HTML page arrived and the record it needs did not. A page has no
+#: `/Info` dictionary and no registry to ask, so the title, the author and the year are the
+#: CALLER's claim — which is what a manual admission is, and why the flags are named here.
+SNAPSHOT_INCOMPLETE = (
+    "a web page is admitted as a MANUAL proposal on a claimed title, author and year, and there "
+    "is no registry to ask and no PDF /Info dictionary to read: the page's own text supplied only "
+    "some of the three. Pass --title / --author / --year (litkb_hunt: title=, author=, year=). "
+    "The snapshot is landed and named below; nothing was admitted.")
+
+
+def _web_snapshot(conn, ws_id, token, url, data, out, timing, refusals, *, store, stem, retrieved,
+                  content_type, http_status, title, author, year, source_note, work_type, key,
+                  agent, session, why, progress):
+    """The HTML half of the URL branch: land the snapshot, admit the proposal, record the event.
+
+    -> (the admission result, the snapshot's rel_path, its blocks, its facts). Raises
+    :class:`HuntRefused` — `incomplete-record` when the three claimed fields are not all there,
+    `admission-refused` when the checks refuse the work. Both are codes `HUNT_REFUSALS` already
+    holds: this path adds no word to the vocabulary.
+
+    THE ORDER IS THE CONTRACT. The snapshot is written BEFORE the field check, so a refusal names
+    a file on disk the caller can read and hunt again with `--title`; the admission comes before
+    the acquisition event, because `acquisition_attempts` has no row shape for a file with neither
+    a work nor a candidate (its own CHECK) and the candidate is created BY `admit_web`. That is
+    `litkb.acquire.events`'s contract, unchanged — this path only adds a fifth refusal that leaves
+    no event, `incomplete-record` from a page, and it leaves the snapshot and its
+    `.snapshot.json` behind, which is the same kind of record `_quarantine/` leaves for bad bytes.
+    """
+    from litkb.admit import front
+
+    path, text, blocks, facts = land_web_snapshot(
+        store, stem, data, url=url, retrieved=retrieved, content_type=content_type)
+    out["snapshot"] = dict(facts, rel_path=store.rel(path), why=why)
+    t, a, y, how = guess_fields(text, {}, title, author, year, text_label="the page's own text")
+    out["fields"] = {"title": t, "author": a, "year": y, "from": how, "snapshot_chars": len(text)}
+    # BEGIN guard: a web page is admitted on a claimed title, author and year, never on two of them
+    if not (t and a and y):
+        raise HuntRefused("incomplete-record", SNAPSHOT_INCOMPLETE, fields=out["fields"],
+                          snapshot=store.rel(path))
+    # END guard: a web page is admitted on a claimed title, author and year, never on two of them
+    progress["stage"] = "admit"
+    t0 = time.monotonic()
+    res = front.admit_web(conn, ws_id, token, title=t, authors=a, year=y, url=url,
+                          retrieved=retrieved, snapshot_path=str(path),
+                          source_note=source_note or f"hunted from {url} on {retrieved}",
+                          work_type=work_type, key=key, agent=agent, session=session,
+                          root=store.root, store=store)
+    timing["admit"] = round(time.monotonic() - t0, 2)
+    # BEGIN guard: a page that does not bind its claimed title is refused, never snapshotted in
+    # This is where the 2026-09-15 guard stands on the HTML route. `admit_web` -> check 3 binds
+    # the claimed title against the text that landed, at the same 0.85 and by the same binder a
+    # PDF's first page goes through (`web_snapshot_evidence`); a sign-in page, a consent wall or a
+    # 404 body does not bind a paper's title and never becomes the work.
+    if res.get("outcome") != "proposed":
+        raise HuntRefused("admission-refused",
+                          "the web page was not admitted; the checks say why. Check 3 binds the "
+                          "claimed title against the text that landed, so a sign-in page or a "
+                          "consent wall refuses here rather than becoming the work.",
+                          admission=_thin(res), snapshot=store.rel(path))
+    # END guard: a page that does not bind its claimed title is refused, never snapshotted in
+    out["admission"] = _thin(res)
+    # BEGIN call site: the snapshot path records its acquisition event for the BOUND bytes
+    # The same function, the same route (`hunt-url`) and the same six detail keys the PDF landing
+    # writes, plus the four that say which of the two landed and where its text came from. The
+    # failure contract is the PDF path's, unchanged: a database without migration 0028 leaves the
+    # hunt in its normal state with `acquisition-event-failed` in `refusals[]`.
+    #
+    # `sha256` IS THE SNAPSHOT'S, NOT THE HTML'S, and that is load-bearing rather than a choice of
+    # emphasis: `events.bound_without_event` joins `detail->>'sha256'` to `files.sha256`, and the
+    # file bound here is the TEXT (`web_snapshot_evidence` hashes what it landed). An event
+    # carrying the served HTML's hash would exonerate no binding at all, so every snapshot hunt
+    # would leave an offence in the verifier the S2 counter reads. The served bytes' own hash and
+    # length ride along as `sha256_raw` / `bytes_raw`.
+    body = text.encode("utf-8")
+    _record_acquisition_event(conn, ws_id, token, res["work_id"], out, refusals, url=url,
+                              sha256=facts["sha256_text"], data=body, http_status=http_status,
+                              filed=store.rel(path), content_type=content_type, snapshot=True,
+                              sha256_raw=facts["sha256_raw"], bytes_raw=facts["bytes_raw"])
+    # END call site: the snapshot path records its acquisition event for the BOUND bytes
+    return res, store.rel(path), blocks, facts
+
+
+def _finish_snapshot(db, ws_id, held, file_id, blocks, out, timing, refusals, *, reader_role,
+                     ingest_role, artifact, facts, progress=None):
+    """The snapshot's blocks into the database, and the rung the hunt reached. -> the result.
+
+    NOT :func:`_finish`. That one probes the file, runs GROBID and Docling over its pages and
+    reconciles two readings; a `.txt` has no pages to probe, pypdfium2 cannot open it, and there
+    is no second reading to reconcile against.
+    `litkb.extract.ingest.ingest_text_snapshot` is the route, under a run key of its own so a
+    snapshot can never be mistaken for a reconciliation of a PDF.
+
+    `extracted/fresh` is the state, and it means here what it means everywhere else: the blocks
+    exist and this hunt made them. That the work is a PROPOSAL is a DIFFERENT fact, carried by
+    `in_main: false` and by `admission.outcome == 'proposed'`. S3 deliberately did NOT add a
+    `proposed` STATE (builder-A1.md §5.1): the web-source gate of 2026-09-20 makes a proposal's
+    blocks searchable from the workstream that made them, so a state saying "wait for a second
+    session" would contradict the same result's `visible_to_search: True`.
+    """
+    from litkb.db import connect as c
+    from litkb.extract import ingest as ing
+
+    progress = {"stage": "ingest"} if progress is None else progress
+    progress["stage"] = "ingest"
+    t0 = time.monotonic()
+    if ingest_role:
+        conn = c.connect(db, ingest_role, autocommit=True)
+    else:
+        from litkb import ingest as ingest_login
+
+        conn = ingest_login.connect(db)
+    try:
+        res = ing.ingest_text_snapshot(conn, file_id, blocks, artifact_path=artifact,
+                                       metrics=dict(facts, route="hunt-url-snapshot"))
+    finally:
+        conn.close()
+    timing["ingest"] = round(time.monotonic() - t0, 2)
+    kinds = {}
+    for b in blocks:
+        k = "heading" if b["kind"] == "heading" else "paragraph"
+        kinds[k] = kinds.get(k, 0) + 1
+    out["extraction"] = {"run_id": str(res["run_id"]), "inserted": res["inserted"],
+                         "blocks": res["blocks"], "disagreements": 0, "grobid_tei": False,
+                         "docling": False, "route": "web-snapshot", "pages": 1,
+                         "by_kind": kinds, "matched": 0, "extractor": ing.TEXT_EXTRACTOR,
+                         "stage": ing.TEXT_STAGE}
+    return _result(out, "extracted", "fresh", refusals, timing) | _report(db, ws_id, held,
+                                                                         reader_role)
 
 
 def _default_acquire(conn, ws_id, token, work, *, store, agent, session):
@@ -1450,7 +1714,8 @@ EVENT_FAILED = ("the file is bound and its acquisition event could NOT be record
 
 
 def _record_acquisition_event(conn, ws_id, token, work_id, out, refusals, *, url, sha256, data,
-                              http_status, filed):
+                              http_status, filed, content_type=None, snapshot=False,
+                              sha256_raw=None, bytes_raw=None):
     """The URL path's `ok` acquisition attempt, through the SAME function the route path uses.
 
     ONE PROVENANCE SHAPE (`litkb.acquire.events`): route `hunt-url`, the URL redacted as
@@ -1478,7 +1743,9 @@ def _record_acquisition_event(conn, ws_id, token, work_id, out, refusals, *, url
     try:
         attempt_id = events.record_url_landing(
             conn, ws_id, token, work_id, url=url, sha256=sha256, md5=events.md5_of(data),
-            nbytes=len(data), http_status=http_status, filed=filed)
+            nbytes=len(data), http_status=http_status, filed=filed,
+            content_type=content_type, snapshot=snapshot, sha256_raw=sha256_raw,
+            bytes_raw=bytes_raw)
         out["acquisition_event"] = {"ok": True, "route": events.ROUTE, "status": "ok",
                                     "attempt_id": str(attempt_id)}
     except Exception as e:                # noqa: BLE001 — the verifier is the gate, not this write

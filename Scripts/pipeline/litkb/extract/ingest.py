@@ -56,6 +56,37 @@ CORPUS_PARAMS = {"latex_source": "codeformula-l4", "latex_status": "0022",
                  "merge_rule": "pairwise-union-charcover"}
 
 
+#: The run key of a TEXT SNAPSHOT ingest (S3, 2026-09-21) — a web page's saved `.txt`, not a PDF.
+#:
+#: A SEPARATE STAGE AND TOOL, not `5-reconcile`/`litkb-reconcile` with a different params hash. The
+#: reconciliation's identity means "GROBID and Docling were run over this file's pages and their
+#: readings were reconciled", and none of that happened here: there are no pages, no bounding
+#: boxes, no two tools and no disagreements. Recording a snapshot under that key would make a
+#: coverage number, a disagreement count and a `route` mean two different things depending on which
+#: kind of file produced the run — and `qc/instruments/litkb_p5_bulk.py` reads that key to decide
+#: whether a file still needs converting, so a snapshot filed under it would look to the bulk pass
+#: like a PDF it had already done.
+#:
+#: `extraction_runs` CHECKs only that `stage`, `tool`, `tool_version`, `params_hash` and
+#: `pipeline_version` are non-empty (migration 0001), and `host` ∈ (colab, local) — read
+#: 2026-09-21, so no migration is needed for these values and S3 adds none.
+TEXT_STAGE = "5-text-snapshot"
+TEXT_TOOL = "litkb-text-snapshot"
+#: Bumped when the PARSE changes the rows a page produces, exactly as `reconcile.PIPELINE_VERSION`
+#: is: the run key is (file, stage, tool, tool_version, params_hash, pipeline_version) and a
+#: snapshot re-parsed by a different reader has to be a different run beside the old one.
+TEXT_VERSION = "snapshot-1"
+#: What the parse was: the stdlib reader, and the two block kinds it emits.
+TEXT_PARAMS = {"parser": "html.parser", "kinds": "heading+paragraph", "skip": "SKIP"}
+
+#: `blocks.extractor` for every row a snapshot ingest writes. A free-text column (0002) — the
+#: CHECKed column is `blocks.source`, whose vocabulary is grobid/docling/both (0017), and a
+#: snapshot is none of the three, so `source` is left NULL and this column carries the real
+#: producer. `text_source` is `native`: the characters ARE the page's own, not a tool's reading of
+#: a picture of them.
+TEXT_EXTRACTOR = "text-snapshot"
+
+
 def _tool_version():
     from litkb.extract import reconcile
 
@@ -92,9 +123,28 @@ def run_key(file_id, pipeline_version=None, params=None):
                 params_hash=params_hash(params), pipeline_version=pipeline_version or _tool_version())
 
 
-def already_ingested(conn, file_id, pipeline_version=None, params=None):
-    """-> (run_id, status) for this file at this pipeline version, or (None, None)."""
-    k = run_key(file_id, pipeline_version, params)
+def text_run_key(file_id):
+    """The run key of a text-snapshot ingest. -> the same dict shape :func:`run_key` returns.
+
+    `params_hash` is :func:`params_hash` over :data:`TEXT_PARAMS` and NOT over the reconciler's
+    thresholds: `params_hash`'s own defaults are IOU_MATCH, TEXT_AGREE, COVERAGE_FLOOR and the
+    merge's containment values, every one of which is a parameter of an overlap computation that
+    does not happen here. So the hash is taken of this route's own parameters alone."""
+    import hashlib
+
+    h = hashlib.sha256(json.dumps(TEXT_PARAMS, sort_keys=True).encode()).hexdigest()[:16]
+    return dict(file_id=file_id, stage=TEXT_STAGE, tool=TEXT_TOOL, tool_version=TEXT_VERSION,
+                params_hash=h, pipeline_version=TEXT_VERSION)
+
+
+def already_ingested(conn, file_id, pipeline_version=None, params=None, key=None):
+    """-> (run_id, status) for this file at this pipeline version, or (None, None).
+
+    `key` (S3) overrides the reconciliation's run key with a route's own — :func:`text_run_key` is
+    the one caller. The QUERY is not duplicated for it: "has this file been ingested at this run
+    key" is one question, and two copies of the six-column WHERE would be two places for the
+    idempotence rule to drift."""
+    k = key or run_key(file_id, pipeline_version, params)
     row = conn.execute(
         "SELECT id, status FROM litkb.extraction_runs WHERE file_id = %(file_id)s AND stage = %(stage)s "
         "AND tool = %(tool)s AND tool_version = %(tool_version)s AND params_hash = %(params_hash)s "
@@ -210,6 +260,90 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
             conn.commit()
         return {"run_id": run_id, "inserted": True, "blocks": len(ids),
                 "disagreements": len(disagreements)}
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.autocommit = was_autocommit
+
+
+def ingest_text_snapshot(conn, file_id, blocks, *, artifact_path=None, host="local",
+                         metrics=None, make_current=True, commit=True):
+    """A web page's saved text into `litkb.blocks`. -> the same dict :func:`ingest_file` returns.
+
+    ONE TRANSACTION, the SAME idempotence, and the current-run pointer LAST — this module's three
+    rules, for a file that has no pages, no bounding boxes and no second tool. What it is not is a
+    second copy of :func:`ingest_file` with the PDF parts deleted: that function's body is the
+    reconciliation's rows (tables, figures, equations, disagreements, per-page coverage), and a
+    snapshot has none of them, so sharing it would mean threading five "is this a PDF" flags
+    through every loop it holds.
+
+    ``blocks`` is `litkb.extract.text_snapshot.parse`'s output: ``{"kind": "heading"|"paragraph",
+    "text": …}``, in the page's own order.
+
+    WHAT EACH COLUMN GETS, and why each is honest about what produced it:
+      ``page_no``      1. A web page has one. `litkb.pages` gets one row, with a NULL width and
+                       height — it has no geometry and inventing one would be a measurement.
+      ``bbox``         NULL. There is no rectangle. This also takes the row past migration 0022's
+                       BEFORE INSERT trigger, whose first clause is ``NEW.bbox IS NULL`` — read
+                       rather than assumed, because a canonical block with a made-up bbox would
+                       collide with the next one at the same made-up bbox and the ingest would
+                       fail on the page's second paragraph.
+      ``extractor``    :data:`TEXT_EXTRACTOR`; ``source`` NULL (its CHECK is grobid/docling/both);
+                       ``text_source`` ``native`` — the characters are the page's own.
+      ``canonical``    true. These ARE the file's blocks; there is no second reading to reconcile
+                       them against, and a non-canonical block is invisible to every consumer that
+                       reads the current run.
+    """
+    from psycopg.types.json import Jsonb
+
+    k = text_run_key(file_id)
+    existing, status = already_ingested(conn, file_id, key=k)
+    if existing and status == "ok":
+        return {"run_id": existing, "inserted": False,
+                "blocks": conn.execute("SELECT count(*) FROM litkb.blocks WHERE run_id = %s",
+                                       (existing,)).fetchone()[0],
+                "disagreements": 0}
+
+    rows = [b for b in blocks if str(b.get("text") or "").strip()]
+    was_autocommit = conn.autocommit
+    conn.autocommit = False
+    try:
+        run_id = conn.execute(
+            "SELECT litkb.open_extraction_run(%(file_id)s, %(stage)s, %(tool)s, %(tool_version)s, "
+            "%(params_hash)s, %(pipeline_version)s, %(host)s, 'failed', %(artifact)s, %(metrics)s)",
+            dict(k, host=host, artifact=artifact_path,
+                 metrics=Jsonb(metrics or {}))).fetchone()[0]
+        # a run that exists and is NOT ok is a killed worker's leftovers, removed in THIS
+        # transaction so the file never holds two sets of blocks (this module's opening rule)
+        _clear_run(conn, run_id)
+        conn.execute(
+            "INSERT INTO litkb.pages (file_id, run_id, page_no, text_layer_chars, needs_ocr, "
+            "page_class, native_chars, covered_chars, coverage_share) "
+            # `text`, not a word of this route's own: 0017's CHECK is
+            # text/partial/image-only/empty (read 2026-09-21) and a snapshot IS a page whose
+            # characters are all native. Widening that vocabulary would need a migration, and S3
+            # adds none; what says this run is a snapshot is its STAGE and TOOL.
+            "VALUES (%s, %s, 1, %s, false, 'text', %s, %s, 1.0)",
+            (file_id, run_id, sum(len(b["text"]) for b in rows),
+             sum(len(b["text"]) for b in rows), sum(len(b["text"]) for b in rows)))
+        for order, b in enumerate(rows, start=1):
+            conn.execute(
+                "INSERT INTO litkb.blocks (file_id, run_id, page_no, bbox, reading_order, type, "
+                "text, extractor, confidence, canonical, text_source, source) "
+                "VALUES (%s, %s, 1, NULL, %s, %s, %s, %s, %s, true, 'native', NULL)",
+                (file_id, run_id, order,
+                 "heading" if b["kind"] == "heading" else "paragraph",
+                 b["text"], TEXT_EXTRACTOR, 1.0))
+        conn.execute("SELECT litkb.finish_extraction_run(%s, 'ok', %s)",
+                     (run_id, Jsonb(metrics or {})))
+        if make_current:
+            current = conn.execute("SELECT current_run_id FROM litkb.files WHERE id = %s",
+                                   (file_id,)).fetchone()[0]
+            conn.execute("SELECT litkb.set_current_run(%s, %s, %s)", (file_id, current, run_id))
+        if commit:
+            conn.commit()
+        return {"run_id": run_id, "inserted": True, "blocks": len(rows), "disagreements": 0}
     except BaseException:
         conn.rollback()
         raise

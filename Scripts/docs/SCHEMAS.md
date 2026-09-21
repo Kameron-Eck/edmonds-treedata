@@ -1889,6 +1889,33 @@ readable here). The third bucket reads the same rows admission's check 2 refuses
 (`iv.state = 'proposed'`, blind to the holder's state), so the tool never invites an admission
 check 2 would refuse.
 
+**A WEB SOURCE THAT IS A PAGE, NOT A DOCUMENT (S3).** `hunt(ref="https://…", ref_scheme="url")`
+whose response is HTML lands a TEXT SNAPSHOT instead of quarantining the bytes, and ends
+`extracted` / `fresh` with `in_main: false`. The page's readable text
+(`pipeline/litkb/extract/text_snapshot.py`, stdlib `html.parser`, script/style/nav and every
+container whose `id`/`class` names it furniture dropped) is written to
+`_litkb_staging/web/<key>.txt` through `Store.write_new` — create-only, so a second retrieval
+lands `<key>.2.txt` and never overwrites the first — with a `<key>.txt.snapshot.json` beside it
+carrying `source_url`, `retrieved`, `content_type`, `sha256_raw` (the bytes the server sent),
+`sha256_text` (what the parse made of them), both lengths and the block counts. `admit_web` binds
+that `.txt` as `copy_kind = 'web snapshot'` (migration 0020) and the admission is a manual
+PROPOSAL: a SECOND session approves it, `promote prepare` holds every chain that quotes it until
+then, and `litkb_search` reaches its blocks from THIS workstream and from no other
+(`litkb/visibility.py`, decisions.yaml `litkb-web-source-gate`). The blocks are ingested by
+`litkb.extract.ingest.ingest_text_snapshot` under a run key of its own — stage `5-text-snapshot`,
+tool `litkb-text-snapshot`, version `snapshot-1` — with `page_no = 1`, `bbox` NULL,
+`extractor = 'text-snapshot'`, `text_source = 'native'` and `source` NULL, so a page can never be
+read as a reconciliation of a PDF. The acquisition event is the route path's, route `hunt-url`,
+whose `detail` gains `snapshot: true`, `content_type`, `sha256_raw` and `bytes_raw`; its `sha256`
+is the SNAPSHOT's, because that is the file that is bound and the key
+`events.bound_without_event` joins on. **The 2026-09-15 guard is unchanged**: the routing decision
+is made on the media type the SERVER declared, so a body that declared none — the sign-in-page
+shape — still reaches `hunt.land_download` and `_quarantine/` as `refused` / `not-a-pdf`, and a
+DOI whose acquisition route serves HTML is a landing page, stays an acquisition `bad-file` and
+leaves the hunt at `held`. S3 adds no state and no reason for this path: a page that yields no
+claimed title, author and year is `refused` / `incomplete-record`, and one whose text does not
+bind the claimed title is `refused` / `admission-refused`.
+
 **The staging reaper (S3).** `litkb reap` (`pipeline/litkb/ops/reaper.py`) walks
 `_litkb_staging/{incoming,filed,web}` and gives every file ONE verdict from `owned` (its sha256 is
 a `litkb.files` row, OR a `file_versions.rel_path` names its path) · `young` (a sibling lock

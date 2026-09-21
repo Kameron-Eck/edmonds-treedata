@@ -905,8 +905,8 @@ def test_kill_a_partial_run_left_by_a_kill_is_cleared_not_appended_to(pg):
         "%(params_hash)s, %(pipeline_version)s, 'local', 'failed', NULL, '{}'::jsonb)",
         k).fetchone()[0]
     for i in range(3):
-        conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                     "VALUES (%s, %s, 1, 'paragraph', %s)", (file_id, run_id, f"stale {i}"))
+        conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                     "VALUES (%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks))", (file_id, run_id, f"stale {i}"))
     assert pg.one("SELECT count(*) FROM litkb.blocks WHERE run_id = %s", (run_id,))[0] == 3
 
     res, _ = _ingest(pg, file_id)
@@ -924,8 +924,8 @@ def test_kill_the_writer_role_cannot_insert_a_block_or_a_disagreement(pg):
     res, _ = _ingest(pg, file_id)
     writer = pg.session("litkb_writer")
     with pytest.raises(pg.errors.InsufficientPrivilege):
-        writer.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                       "VALUES (%s, %s, 1, 'paragraph', 'forged')", (file_id, res["run_id"]))
+        writer.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                       "VALUES (%s, %s, 1, 'paragraph', 'forged', true, (SELECT count(*) + 1 FROM litkb.blocks))", (file_id, res["run_id"]))
     with pytest.raises(pg.errors.InsufficientPrivilege):
         writer.execute("SELECT litkb.add_disagreement(%s, %s, 1, 'kind_conflict', 'x', NULL, NULL, "
                        "'grobid', NULL, '', 'docling', NULL, '', NULL)", (file_id, res["run_id"]))
@@ -993,8 +993,8 @@ def test_kill_the_retired_tables_cells_json_is_refused(pg):
     res, conn = _ingest(pg, file_id)
     # a second table block, so the insert below is the first `tables` row for it
     block = conn.execute(
-        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-        "VALUES (%s, %s, 1, 'table', '') RETURNING id", (file_id, res["run_id"])).fetchone()[0]
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+        "VALUES (%s, %s, 1, 'table', '', true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (file_id, res["run_id"])).fetchone()[0]
     with pytest.raises(pg.errors.InvalidParameterValue, match="retired"):
         conn.execute("INSERT INTO litkb.tables (block_id, cells) VALUES (%s, '[]'::jsonb)", (block,))
     # the control: the same insert with no JSON cells is accepted, and the rows go to table_cells
@@ -1019,8 +1019,8 @@ def test_kill_a_block_cannot_name_another_files_run(pg):
     a, b = _file_row(pg), _file_row(pg)
     res, conn = _ingest(pg, a)
     with pytest.raises(pg.errors.CheckViolation, match="is not a run of file"):
-        conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                     "VALUES (%s, %s, 1, 'paragraph', 'x')", (b, res["run_id"]))
+        conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                     "VALUES (%s, %s, 1, 'paragraph', 'x', true, (SELECT count(*) + 1 FROM litkb.blocks))", (b, res["run_id"]))
 
 
 @pg_only
@@ -1033,8 +1033,8 @@ def test_kill_a_canonical_block_cannot_have_a_null_reading_order(pg):
         conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical) "
                      "VALUES (%s, %s, 1, 'paragraph', 'orderless', true)", (file_id, res["run_id"]))
     # the control: a NON-canonical block may have none (that is what a tool's raw block is)
-    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                 "VALUES (%s, %s, 1, 'paragraph', 'raw')", (file_id, res["run_id"]))
+    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                 "VALUES (%s, %s, 1, 'paragraph', 'raw', true, (SELECT count(*) + 1 FROM litkb.blocks))", (file_id, res["run_id"]))
 
 
 @pg_only

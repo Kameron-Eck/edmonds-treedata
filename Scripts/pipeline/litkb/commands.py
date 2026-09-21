@@ -651,6 +651,96 @@ def cmd_reap(args, conn):
     return 1 if out["errors"] else 0
 
 
+#: The counters `retire-runs` prints, in this order, on ONE line. `files` is files that hold at
+#: least one retirable run, not files in the corpus.
+RETIRE_COUNTERS = ("files", "runs_superseded", "blocks_retired", "refused_referenced",
+                   "refused_current", "skipped_errors")
+
+
+def retire_runs(read_conn, *, apply=False, file_id=None, ingest_connect=None):
+    """The census of superseded run sets, and — with apply=True — `litkb.retire_run` on each.
+
+    -> (counters, rows). `rows` is one dict per candidate run with the verdict this call reached:
+    `would-retire` / `retired` / `referenced` / `current` / `error`.
+
+    DRY RUN IS THE DEFAULT, on `reap`'s rule: the census is the product and retiring is a second,
+    explicit call. A dry run opens no ingest login at all — it is a SELECT, and a command that
+    took a write credential to answer a read would be a credential held for no reason.
+
+    `refused_referenced` is counted by this driver from the same EXISTS the function refuses on,
+    so the count is available without attempting 676 transactions that would each roll back. The
+    database is still the authority: `--apply` calls `retire_run` on every candidate this driver
+    did not already exclude, and a refusal it did not predict lands in `skipped_errors` with its
+    message, never silently.
+    """
+    from litkb import ingest as _ingest_login
+    from litkb import readability as _readability
+
+    rows = _readability.superseded_runs(read_conn, file_id=file_id)
+    counters = dict.fromkeys(RETIRE_COUNTERS, 0)
+    counters["files"] = len({r["file_id"] for r in rows})
+    counters["runs_superseded"] = len(rows)
+    counters["refused_referenced"] = sum(1 for r in rows if r["referenced"])
+    for r in rows:
+        r["verdict"] = "referenced" if r["referenced"] else "would-retire"
+    if not apply:
+        return counters, rows
+    conn = (ingest_connect or _ingest_login.connect)(read_conn.info.dbname)
+    try:
+        for r in rows:
+            if r["referenced"]:
+                continue
+            try:
+                # autocommit (litkb.ingest.connect's default): each retirement is its own
+                # transaction, so one refusal cannot roll back the retirements before it and there
+                # is no aborted transaction to clear before the next candidate.
+                n = conn.execute("SELECT litkb.retire_run(%s)", (r["run_id"],)).fetchone()[0]
+                counters["blocks_retired"] += int(n or 0)
+                r["verdict"], r["retired_blocks"] = "retired", int(n or 0)
+            except Exception as e:                   # noqa: BLE001 — a refusal is a row, not a stop
+                msg = f"{type(e).__name__}: {str(e)[:200]}"
+                # the function's own two refusals, told apart by their message: `current` is the
+                # one a caller can act on (re-point the file first), anything else is an error
+                if "is the current run of file" in msg:
+                    counters["refused_current"] += 1
+                    r["verdict"] = "current"
+                else:
+                    counters["skipped_errors"] += 1
+                    r["verdict"] = "error"
+                r["error"] = msg
+    finally:
+        conn.close()
+    return counters, rows
+
+
+def cmd_retire_runs(args, conn):
+    """`litkb retire-runs [--apply] [--file <id>]` — mark superseded run sets superseded.
+
+    It opens its OWN logins, like `reap` and `hunt`: a READER for the census (which is all a dry
+    run needs, and the only login a worker database's pgpass holds), and the INGEST login for
+    `litkb.retire_run`, which is granted to `litkb_ingest` alone (migration 0030).
+
+    Exit 1 when any candidate ended in `error` — a retirement pass with a hole in it must not read
+    as a clean one (`reap`'s rule).
+    """
+    from litkb.db import connect as _c
+
+    read = _c.connect(args.db, args.role)
+    try:
+        counters, rows = retire_runs(read, apply=bool(args.apply), file_id=args.file)
+    finally:
+        read.close()
+    if args.json:
+        _print({"counters": counters, "applied": bool(args.apply), "runs": rows})
+    else:
+        for r in rows:
+            print(f"{r['file_id']}  {r['run_id']}  {r['stage']}  blocks={r['blocks']:>6}  "
+                  f"{r['verdict']}")
+        print(" ".join(f"{k}={counters[k]}" for k in RETIRE_COUNTERS))
+        print(f"mode={'apply' if args.apply else 'dry-run'}")
+    return 1 if counters["skipped_errors"] else 0
+
+
 def cmd_hunt(args, conn):
     """The whole hunt protocol in one call (litkb/hunt.py).
 
@@ -890,6 +980,20 @@ def build_parser():
                     help="the read login (default: LITKB_READER_ROLE, else litkb_reader). Worker "
                          "databases litkb_test_wN admit ONLY litkb_test (provision_workers), so a "
                          "run against one passes --role litkb_test; the same variable hunt.py reads")
+
+    rr = sub.add_parser("retire-runs",
+                        help="census the SUPERSEDED extraction run sets — every ok run of a file "
+                             "that is not its current run, at the current run's stage — and, with "
+                             "--apply, mark each superseded and take its blocks out of the "
+                             "canonical set (migration 0030). Never deletes. Dry run by default")
+    rr.add_argument("--apply", action="store_true",
+                    help="retire them (the default is a census that changes nothing)")
+    rr.add_argument("--file", help="one file id, instead of every file")
+    rr.add_argument("--json", action="store_true")
+    rr.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
+                    help="the read login for the census (default: LITKB_READER_ROLE, else "
+                         "litkb_reader). The RETIREMENT itself always runs as litkb_ingest, which "
+                         "is the only role migration 0030 grants litkb.retire_run to")
     return ap
 
 
@@ -919,7 +1023,10 @@ class _NoConn:
 #: `reap`: it reads litkb.files and litkb.file_versions on the READER login and writes no row at
 #: all, so the writer main() would hand it is a credential it never uses — and a worker database's
 #: pgpass has no litkb_writer line, which would make the command test-only.
-_OWN_LOGINS = ("promote", "hunt", "review-context", "reap")
+#: `retire-runs`: the census is a READ on litkb_reader and the retirement is the INGEST login, the
+#: only role migration 0030 grants `litkb.retire_run` to; the writer main() would hand it is a
+#: credential it never uses, and a worker database's pgpass has no litkb_writer line.
+_OWN_LOGINS = ("promote", "hunt", "review-context", "reap", "retire-runs")
 
 
 def main(argv=None, connect=None):
@@ -930,6 +1037,7 @@ def main(argv=None, connect=None):
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt, "reap": cmd_reap,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
+                "retire-runs": cmd_retire_runs,
                 "review-check": cmd_review_check, "review-context": cmd_review_context,
                 "promote": cmd_promote}[args.cmd](args, conn)
     finally:

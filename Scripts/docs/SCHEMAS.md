@@ -1845,8 +1845,8 @@ outcome words no constant in the module that produced them held.
 | state | `ok` | reason classes | meaning | who acts next |
 |---|---|---|---|---|
 | `extracted` | yes | `fresh` · `already-extracted` · `docling-only` · `grobid-only` | the work is in view, a file is bound and its blocks are searchable | the caller records uses |
-| `bound-unextracted` | yes | `fresh-bound` · `already-bound` | a file is bound and no blocks exist for it (only reachable with `extract=False`; the reason says whether this hunt landed the file or the database already held it) | the readability queue, or hunt again without `--no-extract` |
-| `held` | yes | `no-spend` · `no-file` · `not-acquired` · `duplicate-held` · `not-in-main` | the work is admitted and no file is bound | `litkb acquire --key <key>`, or `--from-file <PDF>` |
+| `bound-unextracted` | yes | `fresh-bound` · `already-bound` · **`partial`** · **`scan-needs-ocr`** · **`over-page-cap`** · **`zero-content`** · **`bad-file`** | a file is bound and its text is not readable. `fresh-bound`/`already-bound` say whether this hunt landed the file (reachable only with `extract=False`); the five bold reasons are S4's and say WHY it cannot be read — see *Readability* below | the named file's own fix: OCR, the page cap, a re-extraction, or a new copy |
+| `held` | yes | `no-spend` · `no-file` · **`no-file-any-route`** · `not-acquired` · `duplicate-held` · `not-in-main` | the work is admitted and no file is bound | `litkb acquire --key <key>`, or `--from-file <PDF>`; `no-file-any-route` means only `--from-file` is left |
 | `refused` | no | `REF_REFUSALS` + `HUNT_REFUSALS` (the sixteen codes above and in `litkb.hunt`) | a terminal refusal: the reference, the record or the claim is wrong, and hunting it again changes nothing | the caller fixes the reference or the claim |
 | `api-error` | no | `registry-transient` · `route-raised` · `fetch-transient` · `empty-response` | a registry or a route answered transiently (0/406/408/429/5xx) or raised — NOT a verdict on the reference | retry after a back-off |
 | `blocked` | no | `403` · `challenge` · `quota-stop` | a host refused this client, or spending stopped | another route, a browser session and `--from-file`, or Kam |
@@ -1928,6 +1928,112 @@ Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a re
 (`Store.to_quarantine` + `write_reason`) — the reaper never deletes and never writes the database.
 `--dry-run` is the default. Counters, one line: `scanned owned young orphans quarantined
 skipped_errors`.
+
+## Readability: one completeness rule (S4)
+
+**A work reads `extracted` only when EVERY active file has a current extraction run whose
+CANONICAL block count is greater than zero.** One function says so —
+`litkb.readability.work_state(conn, work_id, ws_id=None)` — and three hand-written copies of the
+old rule were replaced by calls into it: `litkb/mcp/server.py::_work` (the `litkb_work` ladder),
+`litkb/mcp/server.py::_absent_kind` (the in-this-workstream rung) and `litkb/hunt.py::look_up`.
+`file_state(conn, file_id)` is its per-file half and `extracted_reason(metrics, fresh=)` its
+reason half.
+
+The rule it replaced was `if not files: held / elif not any(current_run_id): bound-unextracted /
+else: extracted`, and it was wrong in two ways that had never fired on real data — on the
+2026-09-21 live corpus 0 works hold more than one active file and 0 files have a current run with
+no blocks, so both were unexercised rather than merely untested:
+
+| situation | before S4 | since S4 |
+|---|---|---|
+| every active file has current-run canonical text | `extracted` | `extracted` (unchanged) |
+| one readable file, one unreadable file | `extracted` | `bound-unextracted` / `partial`, and `files[]` names which is which |
+| a current run holding no canonical block | `extracted`, `blocks: 0` | `bound-unextracted` / `zero-content` |
+| a bound file no run has been made for | `bound-unextracted` | `bound-unextracted` / `already-bound`, or the file's residue class |
+| no active file, every attempted route terminal | `held` / `no-file` | `held` / `no-file-any-route` |
+
+**The reasons added to the hunt's table above.** `partial` is the WORK-level word: the active
+files disagree, some readable and some not. The other four are per-FILE residue classes — a file
+IS bound, no canonical text exists for it, and here is why — and they reach a work's reason only
+when every active file carries the same one: `scan-needs-ocr` (an image-only scan, no text layer)
+· `over-page-cap` (longer than the extraction page cap, deliberately not attempted) ·
+`zero-content` (the extractor ran and produced no canonical block) · `bad-file` (the bound bytes
+are not a readable document). Three of the four are recorded by the extraction queue
+(`litkb.extraction_jobs`, migration 0029) and read from it only when that table exists, so this
+code keeps working against a database at 0028; `zero-content` is computed here and needs no row.
+`held` / `no-file-any-route` needs BOTH halves: at least one acquisition attempt, and every
+attempt terminal — `litkb.acquire.run.DEAD_STATUSES` for its route, or `blocked`. An `ok` attempt
+that did not end in a bound file is NOT terminal. Measured on the 2026-09-21 corpus: 0 works
+qualify (189 of the 212 file-less works have no attempt row at all, and each of the other 23 has
+at least one non-terminal attempt), so the reason exists and its live population is empty.
+
+**`extracted`'s reason comes from the run's `metrics`, not from artifacts.**
+`grobid_regions > 0 and docling_regions == 0` → `grobid-only`, the mirror → `docling-only`, both →
+`fresh` (this hunt produced it) or `already-extracted` (the database already held it). Until S4
+`hunt.py` read this off ARTIFACT EXISTENCE — whether a `.docling.json` was on disk — and those are
+different questions: the live `Maiti_2022` run `01a0c263` has that file beside it, 69
+`grobid_regions`, 0 `docling_regions` and not one block with `source = 'docling'`, and was
+reported `fresh`. The artifact path is the reconciler's output naming convention, not a witness
+that docling ran.
+
+**ONE spelling of the current-run join.** `litkb.readability.current_run_join(block=, file=,
+table=)` returns the SQL fragment `JOIN <table> <f> ON <f>.<id> = b.file_id AND
+<f>.current_run_id = b.run_id AND b.canonical`. It replaced five hand-written copies:
+`mcp/server.py::_BLOCK_FROM` (search), `mcp/server.py::_work` (the block count),
+`use.py::locate_quote` (the quote anchor), `review_check.py::_BLOCK_SQL` (the grader) and
+`review_context.py::_BLOCK_TEXT_SQL` (the context file). It is a fragment rather than a view or a
+SQL function for `litkb.visibility.FILE_JOIN`'s reason: a function would raise
+`UndefinedFunction` on every read between a merge and its migration. `table` is
+`litkb.main_files` at the one site that reads through main's view, whose file column is `file_id`
+rather than `id`.
+
+`litkb_work` gains `reason` beside `state`, a `what_next` sentence per reason (`_WORK_REASONS`),
+and per-file `state`, `reason` and `blocks` in `files[]` — a `partial` a caller cannot resolve to
+a file is not an answer. `hunt.look_up` gains the same `reason` and per-file detail, and `blocks`
+is now the sum of every active file's current-run canonical blocks rather than the first file's.
+
+## Retiring superseded run sets (S4)
+
+A run is SUPERSEDED when its file points somewhere else. Nothing in the schema said so until
+migration 0030: `extraction_runs.status` was `CHECK (status IN ('ok','failed'))`, there was no
+`superseded_by` and no `retired_at`, and `clear_extraction_rows` (0017) refuses an `ok` run's rows
+outright — so retiring a run set had no door at all. Measured on the 2026-09-21 live dump: 676 of
+the 926 runs are superseded and hold 267,545 of the 372,305 blocks (71.9 %), every one of them
+`canonical = true`.
+
+**`litkb.retire_run(p_run uuid) RETURNS integer`** (migration 0030, SECURITY DEFINER, EXECUTE
+granted to `litkb_ingest` alone) sets `status = 'superseded'` and `canonical = false` for that
+run's blocks, and returns how many blocks left the canonical set. **It never deletes** (design
+§12.4): the run row, its metrics, its blocks and every child row hanging off them stay, so a quote
+taken against that run in the past is still readable. It refuses, in order: a run that does not
+exist (`23503`); the file's own `current_run_id` (`22023` — retiring the pointer's target leaves a
+file that reads `extracted` and answers nothing); and any run a `use_evidence` row is anchored in
+(`22023`). A run already `superseded` is a no-op returning 0, so `--apply` is safe to re-run.
+
+`use_evidence` is the only one of the eleven foreign keys into `blocks` that another actor wrote
+at another time — the other ten (`blocks.parent_block_id`, `citation_mentions`, `equations`,
+`extraction_disagreements`, `figures` x2, `"references"`, `table_cells`, `tables` x2) are rows of
+the SAME run, superseded exactly when it is, and are left alone for the same provenance reason.
+
+**`canonical = false` means NOT SEARCHABLE, NOT QUOTABLE, NOT GRADABLE**, and that is the
+`b.canonical` clause in `readability.current_run_join()` above — one predicate at every read site.
+Before 0030 the word meant only "ordered within its own run" (`blocks_canonical_order` is a unique
+index per run), which is why all 372,305 blocks carried it. The two GIN indexes on `blocks` still
+index every block regardless: they are the index, the predicate is the gate.
+
+**`litkb retire-runs [--apply] [--file <id>]`** is the driver. Dry run is the DEFAULT and changes
+nothing (`reap`'s rule). It lists, per file, every `ok` run that is not the file's `current_run_id`
+AND is at the current run's STAGE — a file's runs are not one series, and the 17 live
+`6-references` runs are a later pass that is current for nothing — with its canonical block count
+and whether a use quotes it. Counters, one line: `files runs_superseded blocks_retired
+refused_referenced refused_current skipped_errors`. Exit 1 when any candidate ended in `error`.
+The census runs on `litkb_reader`; the retirement always runs as `litkb_ingest`.
+
+Measured by running it against the restored 2026-09-21 corpus (`litkb_test_w9`): dry run
+`files=229 runs_superseded=676 blocks_retired=0 refused_referenced=6 refused_current=0
+skipped_errors=0`; `--apply` the same with `blocks_retired=263779`. After it, `canonical = true`
+blocks fell from 372,305 to 108,526 — the 104,760 in current runs plus the 3,766 held by the six
+runs a use quotes, which the guard refused. `blocks` itself stayed at 372,305: nothing was deleted.
 
 ## LITKB_EDGE_RUN_&lt;date&gt;.csv (Reports/, GENERATED — the edge-case register's ledger)
 

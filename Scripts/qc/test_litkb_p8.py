@@ -757,8 +757,8 @@ def _seed_work_state(conn, ws_id, state, text=None):
         "'ok') RETURNING id", (file_id, uuid.uuid4().hex)).fetchone()[0]
     conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
     block_id = conn.execute(
-        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-        "VALUES (%s, %s, 1, 'paragraph', %s) RETURNING id",
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+        "VALUES (%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
         (file_id, run_id, text or "A seeded block.")).fetchone()[0]
     out["run_id"], out["block_id"] = str(run_id), str(block_id)
     return out
@@ -1134,8 +1134,8 @@ def _seed_work_file_block(conn, ws_id, text, block_type="paragraph", extra=()):
         "'ok') RETURNING id", (file_id, uuid.uuid4().hex)).fetchone()[0]
     conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
     block_id = conn.execute(
-        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-        "VALUES (%s, %s, 1, %s, %s) RETURNING id",
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+        "VALUES (%s, %s, 1, %s, %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
         (file_id, run_id, block_type, text)).fetchone()[0]
     # `extra` seeds further blocks of the same run as (page, type, text) — what a search's
     # block-type filter needs in order to be tested against a real competing row rather than
@@ -1143,8 +1143,8 @@ def _seed_work_file_block(conn, ws_id, text, block_type="paragraph", extra=()):
     others = []
     for page, kind, body in extra:
         others.append(str(conn.execute(
-            "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-            "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+            "VALUES (%s, %s, %s, %s, %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
             (file_id, run_id, page, kind, body)).fetchone()[0]))
     return {"work_id": str(work_id), "file_id": str(file_id), "run_id": str(run_id),
             "block_id": str(block_id), "extra_ids": others}
@@ -1260,8 +1260,8 @@ def _seed_block(conn, work_id, text):
         "pipeline_version, host, status) VALUES (%s, 'native', 'p8-seed', '0', %s, 'v0', 'local', "
         "'ok') RETURNING id", (file_id[0], uuid.uuid4().hex)).fetchone()[0]
     conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id[0], run_id))
-    return conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                        "VALUES (%s, %s, 1, 'paragraph', %s) RETURNING id",
+    return conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                        "VALUES (%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
                         (file_id[0], run_id, text)).fetchone()[0]
 
 

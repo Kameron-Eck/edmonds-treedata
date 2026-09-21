@@ -600,8 +600,8 @@ def _evidence_world(pg):
     pg.conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
     text = "The optimism identity holds under an arbitrary joint model."
     block_id = pg.one(
-        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
-        "'paragraph', %s) RETURNING id", (file_id, run_id, text))[0]
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES (%s, %s, 1, "
+        "'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (file_id, run_id, text))[0]
     use_id, uv = pg.proposal(pg.conn, "use", None, {"work_id": str(work_id)}, None,
                              {"statement": "supplies the optimism identity", "kind": "theorem",
                               "status": "supported", "feeds": ["gap row 6"]}, None, ws)
@@ -737,8 +737,8 @@ def _dependency_setup(pg):
     pg.conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
     text = "The dependency between a use and its gap is what this world is about."
     block_id = pg.one(
-        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
-        "'paragraph', %s) RETURNING id", (file_id, run_id, text))[0]
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES (%s, %s, 1, "
+        "'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (file_id, run_id, text))[0]
     for uv in (pg.one("SELECT version_id FROM litkb.use_versions WHERE use_id = %s", (use_id,))[0],
                u2):
         pg.one("SELECT evidence_id, verified FROM litkb.add_evidence(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -1779,8 +1779,8 @@ def test_writer_cannot_install_a_run_or_make_it_current(pg):
         writer.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], ingested))
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == w["run"]
     with pytest.raises(pg.errors.InsufficientPrivilege):
-        writer.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
-                       "'paragraph', 'any quote at all')", (w["file"], w["run"]))
+        writer.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES (%s, %s, 1, "
+                       "'paragraph', 'any quote at all', true, (SELECT count(*) + 1 FROM litkb.blocks))", (w["file"], w["run"]))
 
 
 @pg_only
@@ -1788,8 +1788,8 @@ def test_ingest_installs_a_run_and_makes_it_current(pg):
     w = _evidence_world(pg)
     ingest = pg.session("litkb_ingest")
     run2 = _run(pg, ingest, w["file"], "ok")
-    ingest.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
-                   "'paragraph', 'extracted again')", (w["file"], run2))
+    ingest.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES (%s, %s, 1, "
+                   "'paragraph', 'extracted again', true, (SELECT count(*) + 1 FROM litkb.blocks))", (w["file"], run2))
     ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["run"], run2))
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == run2
 
@@ -2138,7 +2138,13 @@ _EXPECTED_EXECUTE = {
                      # canonical_newlines: 0026 grants the three roles in one line, ingest
                      # included, so the rule a block is later matched by is not defined
                      # differently for the role that wrote the block
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # retire_run: migration 0030, the ONLY door to marking a superseded run set
+                     # superseded. Same shape as clear_extraction_rows — the ingest login holds no
+                     # UPDATE on extraction_runs or on blocks, so the function's three refusals (no
+                     # such run, the file's own current run, a run a use_evidence row quotes)
+                     # cannot be walked around. Granted to litkb_ingest and to nobody else.
+                     "retire_run"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}
@@ -2265,8 +2271,8 @@ def test_rebase_copies_head_evidence_whose_run_was_superseded(pg):
     # 0019, with this test's own twist: evidence anchored in a SUPERSEDED run is not promotable, so
     # the world's use is given its quote in r2 — the run that is current now — and only the
     # absent-gap chain is held. That is the hold this test is about.
-    b2 = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 1, "
-                "'paragraph', %s) RETURNING id", (w["file"], r2, w["text"]))[0]
+    b2 = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES (%s, %s, 1, "
+                "'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (w["file"], r2, w["text"]))[0]
     _make_promotable(pg, w, block=b2, run=r2)
     chain = _hold_and_rebase(pg, w, promotable=False)
     assert chain["evidence_copied"] == 1, chain

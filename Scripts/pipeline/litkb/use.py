@@ -164,7 +164,9 @@ def locate_quote(conn, work_id, quote, page=None, ws=None):
 
     The search is over the CURRENT run of the work's active files only (`files.current_run_id`), for
     the same reason `use_evidence_status.promotable` compares against it: evidence recorded against a
-    superseded run is evidence about text that is no longer the file's answer.
+    superseded run is evidence about text that is no longer the file's answer. Since S4 that join
+    is spelled ONCE, in `litkb.readability.current_run_join`, and it also requires `b.canonical` —
+    a run migration 0030's `litkb.retire_run` has retired is not quotable.
 
     Matching is exact on the block text, up to the ENCODING of a line ending and nothing else
     (`locate_in_text` above, and `litkb.canonical_newlines` on the block side — migration 0026, the
@@ -179,7 +181,7 @@ def locate_quote(conn, work_id, quote, page=None, ws=None):
     `litkb_search` and `_record_use` make, from the same one definition in `litkb.visibility`, so
     the CLI cannot end up able to find a quote the MCP path cannot or the other way round.
     """
-    from litkb import visibility
+    from litkb import readability, visibility
     from litkb.textnorm import canonical_newlines, sql_canonical_newlines
 
     if not newline_canon_available(conn):
@@ -188,7 +190,7 @@ def locate_quote(conn, work_id, quote, page=None, ws=None):
             "applied, so a quote cannot be located by the same rule the verify trigger uses. "
             "Apply the migrations (py -3.12 -m litkb.db.migrate --db <db>) before recording uses.")
     sql = ("SELECT b.id, b.run_id, b.page_no, b.text FROM litkb.blocks b "
-           "  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id "
+           + readability.current_run_join()
            + visibility.FILE_JOIN +
            " WHERE fv.work_id = %(work_id)s AND fv.status = 'active' "
            "   AND b.text IS NOT NULL AND position(%(quote)s in "

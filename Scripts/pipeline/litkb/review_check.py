@@ -84,6 +84,7 @@ WHAT IT CANNOT CHECK, stated here so nobody reads a pass as more than it is:
 import re
 import uuid
 
+from litkb import readability as _readability
 from litkb.textnorm import canonical_newlines, sql_canonical_newlines
 
 #: `[work_key p.N #block_id]` -- the one citation form (LITKB_REVIEW_GRAMMAR.md §2).
@@ -784,7 +785,7 @@ _CANON_TEXT = sql_canonical_newlines("b.text")
 _BLOCK_SQL = f"""
 SELECT b.page_no, wk.key, coalesce(position(%(q)s in {_CANON_TEXT}) > 0, false)
   FROM litkb.blocks b
-  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id
+  {_readability.current_run_join()}
   JOIN litkb.ws_files wf ON wf.file_id = f.id AND wf.view_workstream_id = %(ws)s
                         AND wf.status = 'active'
   JOIN litkb.works wk ON wk.id = wf.work_id

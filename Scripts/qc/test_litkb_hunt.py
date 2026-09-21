@@ -120,8 +120,8 @@ def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block.", state=
         "pipeline_version, host, status) VALUES (%s, '5-reconcile', 'hunt-seed', '0', %s, 'v0', "
         "'local', 'ok') RETURNING id", (file_id, uuid.uuid4().hex[:16])).fetchone()[0]
     conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
-    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                 "VALUES (%s, %s, 1, 'heading', %s)", (file_id, run_id, text))
+    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                 "VALUES (%s, %s, 1, 'heading', %s, true, (SELECT count(*) + 1 FROM litkb.blocks))", (file_id, run_id, text))
     return {"key": key, "work_id": str(work_id), "file_id": str(file_id), "run_id": str(run_id)}
 
 

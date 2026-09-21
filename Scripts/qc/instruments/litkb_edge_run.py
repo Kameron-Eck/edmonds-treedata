@@ -461,7 +461,14 @@ def _extract_stub(spec):
     GROBID needs WSL and Docling needs a GPU; neither may run inside the gate, and a replay that
     ran them would be measuring the extractors rather than the state machinery. The stub returns
     the `(res, detail)` PAIR `litkb/hunt.py::_finish` reads, with `tei`/`docling` picking the
-    reason — which is how `extracted/docling-only` becomes reachable at all."""
+    reason — which is how `extracted/docling-only` becomes reachable at all.
+
+    SINCE S4 THE REASON IS DERIVED FROM `detail["stats"]`, not from `detail["tei"]`/`["docling"]`:
+    a tool can write an artifact and contribute nothing to it (the live `Maiti_2022` run has a
+    `.docling.json` and 0 `docling_regions`), so `_finish` reads the run's own metrics through
+    `litkb.readability.extracted_reason`. The stub therefore sets `grobid_regions` /
+    `docling_regions` from the same two register flags, and every register row keeps its meaning:
+    `tei: false` still means GROBID contributed nothing."""
     kind = (spec or {}).get("kind") or "off"
     if kind in ("off", "real"):
         return None
@@ -483,7 +490,9 @@ def _extract_stub(spec):
                 progress["stage"] = "ingest"
             res = {"run_id": uuid.uuid4(), "inserted": 3, "blocks": 3, "disagreements": 0}
             detail = {"record": {"route": "native", "pages": 1, "sha256": uuid.uuid4().hex},
-                      "stats": {"by_kind": {"paragraph": 3}, "matched": 3},
+                      "stats": {"by_kind": {"paragraph": 3}, "matched": 3,
+                                "grobid_regions": 3 if tei else 0,
+                                "docling_regions": 3 if doc else 0},
                       "coverage": {1: {"page_class": "native", "chars": 100, "covered": 95,
                                        "share": 0.95}},
                       "tei": tei, "docling": doc, "canonical": []}
@@ -535,8 +544,8 @@ def _seed(conn, ws_id, spec, row):
         "pipeline_version, host, status) VALUES (%s, '5-reconcile', 'edge-seed', '0', %s, 'v0', "
         "'local', 'ok') RETURNING id", (file_id, uuid.uuid4().hex[:16])).fetchone()[0]
     conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
-    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                 "VALUES (%s, %s, 1, 'heading', %s)",
+    conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                 "VALUES (%s, %s, 1, 'heading', %s, true, (SELECT count(*) + 1 FROM litkb.blocks))",
                  (file_id, run_id, f"A seeded block for {row['id']}."))
     return {"key": key, "work_id": str(work_id), "file_id": str(file_id), "run_id": str(run_id)}
 

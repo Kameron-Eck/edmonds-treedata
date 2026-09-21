@@ -130,8 +130,8 @@ def loaded(litkb_pg_base, recorded):
     ids = {}
     for name, b in recorded.items():
         ids[name] = conn.execute(
-            "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-            "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+            "VALUES (%s, %s, %s, %s, %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
             (file_id, run, b["page_no"], b["type"], b["text"])).fetchone()[0]
     return conn, ids
 

@@ -37,6 +37,7 @@ import hashlib
 import uuid
 from pathlib import Path
 
+from litkb import readability as _readability
 from litkb.review_check import _read, citations, header_workstream, resolve_workstream
 
 #: The cited block's own text, as THIS workstream sees it. The visibility join is
@@ -44,10 +45,10 @@ from litkb.review_check import _read, citations, header_workstream, resolve_work
 #: row for this workstream -- because a context file must show what the grader graded and nothing
 #: wider. What differs is the projection: the grader asks Postgres a substring question and needs
 #: no bytes back, this needs the whole block.
-_BLOCK_TEXT_SQL = """
+_BLOCK_TEXT_SQL = f"""
 SELECT b.page_no, wk.key, b.text
   FROM litkb.blocks b
-  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id
+  {_readability.current_run_join()}
   JOIN litkb.ws_files wf ON wf.file_id = f.id AND wf.view_workstream_id = %(ws)s
                         AND wf.status = 'active'
   JOIN litkb.works wk ON wk.id = wf.work_id

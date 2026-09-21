@@ -181,8 +181,8 @@ def propose_web_source(kb):
         "'local', 'ok') RETURNING id", (file_id, uuid.uuid4().hex)).fetchone()[0]
     conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
     block_id = conn.execute(
-        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-        "VALUES (%s, %s, 1, 'paragraph', %s) RETURNING id",
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+        "VALUES (%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
         (file_id, run_id, PASSAGE)).fetchone()[0]
     return str(work_id), str(file_id), str(block_id)
 

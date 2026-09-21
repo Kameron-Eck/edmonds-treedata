@@ -78,7 +78,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from litkb import visibility
+from litkb import readability, visibility
 
 VERSION = "0.1.0"
 SERVER_NAME = "litkb"
@@ -320,9 +320,13 @@ def _registry_client():
 #: (decisions.yaml litkb-web-source-gate): the caller's OWN workstream also sees the files it has
 #: proposed and a second session has not yet approved. With no open workstream this is the same
 #: join it was; the module's docstring is the one home for why, and for what promotion still holds.
+#: The current-run join is `litkb.readability.current_run_join()` since S4 — ONE spelling of "the
+#: file's current, canonical text", shared with `use.locate_quote`, `review_check` and
+#: `review_context`, and the predicate that makes migration 0030's `canonical = false` mean NOT
+#: SEARCHABLE. A retired run's blocks leave search here, and they leave it for every reader at once.
 _BLOCK_FROM = f"""
   FROM litkb.blocks b
-  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id
+  {readability.current_run_join()}
   {visibility.FILE_JOIN}
  WHERE b.type = ANY(%(kinds)s)
 """
@@ -600,6 +604,38 @@ _WORK_STATES = {
 }
 
 
+#: What to do about the `reason` beside the state — the S4 additions, which are the whole point of
+#: the completeness rule: `extracted` and `bound-unextracted` each covered several different
+#: situations with different next moves, and a caller told only the state could not tell them
+#: apart. A reason with no entry here falls back to its state's sentence above.
+_WORK_REASONS = {
+    "partial": "SOME of this work's files are readable and some are not — read `files[]`, where "
+               "each file carries its own state and reason. The work as a whole is NOT searchable "
+               "end to end: a search may return passages from the readable file and silently miss "
+               "everything in the other. Fix the named file, do not re-fetch the work.",
+    "zero-content": "the extractor RAN on this file and produced no canonical block. Re-running "
+                    "the same extraction will produce the same nothing; this is a classification "
+                    "problem (a scan with no text layer, a file the converter cannot read), not a "
+                    "missing run. `litkb retire-runs` and the extraction queue are where it is "
+                    "handled.",
+    "scan-needs-ocr": "the file is an image-only scan: it holds no text layer, so the native route "
+                      "has nothing to read and an OCR pass is what it needs.",
+    "over-page-cap": "the file is longer than the extraction page cap, so no run was attempted. "
+                     "It is a deliberate refusal, not a failure.",
+    "bad-file": "the bound file could not be read as a document at all.",
+    "no-file-any-route": "no file is bound AND every acquisition route that was attempted is "
+                         "terminal (see litkb_acquire's attempts). Automated fetching has nothing "
+                         "left to try: `litkb acquire --key <key> --from-file <PDF>` is the "
+                         "remaining route.",
+    "grobid-only": "the blocks are searchable, but the reconciliation ran on GROBID alone — "
+                   "Docling contributed no region. Layout-dependent material (tables, figures, "
+                   "equations) is weaker than a two-tool run.",
+    "docling-only": "the blocks are searchable, but the reconciliation ran on Docling alone — "
+                    "GROBID contributed no region. Bibliographic structure (references, "
+                    "affiliations, section kinds) is weaker than a two-tool run.",
+}
+
+
 #: `absent` was ONE answer to three different questions, and only one of them is answered by
 #: "admit it". A work this very worktree proposed an hour ago and a work nobody has ever heard of
 #: came back identically, because the miss rung was a single SELECT against `main_*` — and a
@@ -637,8 +673,11 @@ _WS_BY_DOI = ("SELECT wi.work_id::text FROM litkb.ws_identifiers wi "
               "   AND wi.value_norm = litkb.norm_identifier('doi', %s) LIMIT 1")
 _WS_BY_KEY = ("SELECT work_id::text FROM litkb.ws_works "
               " WHERE view_workstream_id = %s AND key = %s LIMIT 1")
-_WS_FILES = ("SELECT current_run_id FROM litkb.ws_files "
-             " WHERE view_workstream_id = %s AND work_id = %s AND status = 'active'")
+#: `_WS_FILES` is gone with S4: the caller's-own-workstream branch of `_absent_kind` reads the rung
+#: through `litkb.readability.work_state(conn, work_id, ws_id=…)`, which spells that same
+#: `ws_files` / `status = 'active'` predicate once (`readability._WS_FILES`) and applies the
+#: completeness rule to it. Two entry points cannot drift on what "this workstream holds it" means
+#: if there is one statement.
 
 #: The third bucket, and the only read here that leaves the caller's view. It answers ONE bit —
 #: does some OTHER open workstream hold this identifier — and returns no slug, no key and no file:
@@ -688,14 +727,12 @@ def _absent_kind(conn, doi=None, key=None):
         row = (conn.execute(_WS_BY_DOI, (ws_id, doi)).fetchone() if doi
                else conn.execute(_WS_BY_KEY, (ws_id, key)).fetchone())
         if row:
-            files = conn.execute(_WS_FILES, (ws_id, row[0])).fetchall()
-            # the same three-branch rule as the main ladder below and as hunt.look_up: a file with
-            # a current run may still hold zero blocks, and "the extractor ran and found nothing"
-            # is not "the extractor never ran".
-            ws_state = ("held" if not files
-                        else "bound-unextracted" if not any(f[0] for f in files)
-                        else "extracted")
-            return "in-this-workstream", {"ws_state": ws_state, "ws_files": len(files)}
+            # the same completeness rule as the main ladder below and as hunt.look_up, and now
+            # literally the same function (`readability.work_state`) rather than a third copy of
+            # it: `extracted` needs every active file to have current-run canonical text.
+            ws_state, ws_reason, ws_files = readability.work_state(conn, row[0], ws_id=ws_id)
+            return "in-this-workstream", {"ws_state": ws_state, "ws_reason": ws_reason,
+                                          "ws_files": len(ws_files)}
     # END guard: a work the caller's OWN workstream holds is in-this-workstream
     # BEGIN guard: an identifier another workstream holds is in-another-workstream
     other = (conn.execute(_OTHER_WS_BY_DOI, (doi, ws_id, ws_id)).fetchone() if doi
@@ -738,14 +775,18 @@ def _work(doi=None, key=None):
         ids = conn.execute("SELECT scheme, value_norm, verified_by, active FROM litkb.main_identifiers "
                            "WHERE work_id = %s ORDER BY scheme, value_norm", (work_id,)).fetchall()
         files = conn.execute(
-            "SELECT sha256, rel_path, bytes, pages, current_run_id::text, status "
+            "SELECT sha256, rel_path, bytes, pages, current_run_id::text, status, file_id::text "
             "FROM litkb.main_files WHERE work_id = %s ORDER BY rel_path", (work_id,)).fetchall()
-        # Blocks of the CURRENT run only — the same join litkb_search makes, so this count is the
-        # number of blocks a search can actually return for this work, not the number ever stored.
+        # Blocks of the CURRENT run only, and CANONICAL — the same join litkb_search makes, from
+        # the same one definition (`readability.current_run_join`), so this count is the number of
+        # blocks a search can actually return for this work, not the number ever stored.
         blocks = conn.execute(
             "SELECT count(*) FROM litkb.blocks b "
-            "JOIN litkb.main_files mf ON mf.file_id = b.file_id AND mf.current_run_id = b.run_id "
+            + readability.current_run_join(file="mf", table="litkb.main_files") +
             "WHERE mf.work_id = %s", (work_id,)).fetchone()[0]
+        # BEGIN call site: one completeness rule for a work's state
+        state, reason, file_states = readability.work_state(conn, work_id)
+        # END call site: one completeness rule for a work's state
         uses = conn.execute(
             "SELECT u.version_id::text, g.slug, u.statement, u.kind, u.status, u.feeds "
             "FROM litkb.main_uses u LEFT JOIN litkb.gaps g ON g.id = u.gap_id "
@@ -753,25 +794,24 @@ def _work(doi=None, key=None):
         disc = conn.execute(
             "SELECT source, source_row, field, claimed_value, registry_value, ratio "
             "FROM litkb.discrepancies WHERE work_id = %s ORDER BY source, field", (work_id,)).fetchall()
-    # BEGIN guard: the four states of a work
-    # A file with no current_run_id is bound and unread; a file with one may still hold zero blocks
-    # (a run that produced nothing), and that is reported as extracted with blocks: 0 rather than
-    # silently demoted — "the extractor ran and found nothing" and "the extractor never ran" are
-    # different problems and only the second one is fixed by running it.
-    if not files:
-        state = "held"
-    elif not any(f[4] for f in files):
-        state = "bound-unextracted"
-    else:
-        state = "extracted"
-    # END guard: the four states of a work
-    return _ok(found=True, state=state, what_next=_WORK_STATES[state], key=key, work_id=work_id,
-               blocks=blocks, use_count=len(uses),
+    # The ladder is `litkb.readability.work_state` since S4 and is no longer spelled here. What it
+    # changed: `extracted` now needs EVERY active file to have a current run with canonical text,
+    # so one extracted file beside one unreadable file is `bound-unextracted/partial` instead of
+    # `extracted`, and a current run holding no canonical block is `zero-content` instead of
+    # `extracted, blocks: 0`. `reason` says which, and `files[].state`/`files[].reason` say WHICH
+    # FILE — a `partial` a caller cannot resolve to a file is not an answer.
+    per_file = {f["file_id"]: f for f in file_states}
+    return _ok(found=True, state=state, reason=reason,
+               what_next=_WORK_REASONS.get(reason) or _WORK_STATES[state], key=key,
+               work_id=work_id, blocks=blocks, use_count=len(uses),
                file_stems=[Path(f[1]).stem for f in files],
                work=dict(zip(("type", "title", "authors", "year", "venue", "publisher", "work_id"), w)),
                identifiers=[dict(zip(("scheme", "value", "verified_by", "active"), r)) for r in ids],
-               files=[dict(zip(("sha256", "path", "bytes", "pages", "current_run_id", "status"), r))
-                      | {"stem": Path(r[1]).stem} for r in files],
+               files=[dict(zip(("sha256", "path", "bytes", "pages", "current_run_id", "status",
+                                "file_id"), r))
+                      | {"stem": Path(r[1]).stem}
+                      | {k: v for k, v in (per_file.get(r[6]) or {}).items()
+                         if k in ("state", "reason", "blocks")} for r in files],
                uses=[dict(zip(("use_version_id", "gap", "statement", "kind", "status", "feeds"), r))
                      for r in uses],
                discrepancies=[dict(zip(("source", "source_row", "field", "claimed", "registry", "ratio"), r))

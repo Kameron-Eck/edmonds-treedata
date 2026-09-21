@@ -21,7 +21,7 @@
   "extract": "off (extract=False) · stub (extract_and_ingest returns a fixed artifact pair; `tei`/`docling` pick the reason) · raise:<ExceptionClass>"
  },
  "vocabulary": {
-  "_note": "copied from litkb.hunt at write time (2026-09-21, branch work/20260921-litkb-s3-c). qc/test_litkb_edges.py::test_the_register_vocabulary_is_hunts_own pins it against the module, so a state or a reason added to hunt.py without this file fails the suite.",
+  "_note": "copied from litkb.hunt at write time (2026-09-21, branch work/20260921-litkb-s4-r; the bound-unextracted and held tuples gained S4 decision D1’s residue classes). qc/test_litkb_edges.py::test_the_register_vocabulary_is_hunts_own pins it against the module, so a state or a reason added to hunt.py without this file fails the suite.",
   "states": [
    "extracted",
    "bound-unextracted",
@@ -40,11 +40,17 @@
    ],
    "bound-unextracted": [
     "fresh-bound",
-    "already-bound"
+    "already-bound",
+    "partial",
+    "scan-needs-ocr",
+    "over-page-cap",
+    "zero-content",
+    "bad-file"
    ],
    "held": [
     "no-spend",
     "no-file",
+    "no-file-any-route",
     "not-acquired",
     "duplicate-held",
     "not-in-main"

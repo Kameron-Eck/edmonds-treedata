@@ -1703,6 +1703,22 @@ def _register_s3a2():
 _register_s3a2()
 
 
+def _register_s4r():
+    """S4 builder R: the completeness rule, the one current-run join, retiring a run set
+    (qc/instruments/litkb_s4r_mutations.py). Its own file for the reason the S2 and S3 legs have
+    one — the rows belong in this ONE ledger, and three builders on the same stage must not all be
+    appending to the end of this file."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_s4r_mutations", Path(__file__).resolve().parent / "litkb_s4r_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_s4r()
+
+
 # ── the first real use of the KB (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8, migration 0020) ────
 # These kills are asserted in qc/test_litkb_first_use.py, which is NOT in TESTS, so every row names its
 # own set — `tests` REPLACES the default, it does not extend it, and a row that forgot this would run
@@ -1748,9 +1764,16 @@ fu(replace, "U4", f"{PKG}/use.py",
    '    sql += " AND b.page_no = %s"', '    sql += " AND %s IS NOT NULL"',
    "locate_quote stops honouring --page: a quote that occurs on two pages is anchored to whichever "
    "block the ordering happens to return first")
-fu(replace, "U5", f"{PKG}/use.py",
-   "           \"  JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id = b.run_id \"",
-   "           \"  JOIN litkb.files f ON f.id = b.file_id \"",
+# REPOINTED to litkb/readability.py at S4 (2026-09-21), on the MIG21 rule: the copy this row
+# mutated — the current-run join written out in `use.locate_quote` — is gone. The join is one
+# fragment now (`readability.current_run_join`, the home for all five former copies), so the
+# mutation that used to break the quote path alone breaks every read path, which is what moving a
+# guard into one place costs and is the point of moving it. S4R2 in litkb_s4r_mutations.py is this
+# same break under the S4 leg's own id and test set; this row keeps the FIRST-USE suite on it,
+# because §8.3's kill is a quote anchored in a superseded run and that suite is where it is asserted.
+fu(replace, "U5", f"{PKG}/readability.py",
+   '            f"  AND {file}.current_run_id = {block}.run_id AND {block}.canonical ")',
+   '            f"  AND {block}.canonical ")',
    "a quote may be anchored in a SUPERSEDED run's blocks, which is text that is no longer the file's "
    "answer — the same thing use_evidence_status.promotable refuses at prepare")
 

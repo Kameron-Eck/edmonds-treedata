@@ -1346,8 +1346,8 @@ def fw_ws(tmp_path, litkb_pg_base):
                 (file_id, uuid.uuid4().hex[:16])).fetchone()[0]
             conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
             if blocks:
-                conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-                             "VALUES (%s, %s, 1, %s, %s)", (file_id, run_id, block_type, PASSAGE))
+                conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+                             "VALUES (%s, %s, 1, %s, %s, true, (SELECT count(*) + 1 FROM litkb.blocks))", (file_id, run_id, block_type, PASSAGE))
         out = {"key": key, "url": url, "work_id": str(work_id), "file_id": str(file_id),
                "sha256": sha, "run_id": str(run_id) if run_id else None}
         if use:
@@ -1487,8 +1487,8 @@ def test_c3_a_report_that_grades_one_of_two_citations_leaves_one_ungraded(mod, c
     since = fw_ws["now"]()
     seeded = fw_ws["seed"]()
     second = fw_ws["conn"].execute(
-        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
-        "VALUES (%s, %s, 2, 'paragraph', %s) RETURNING id::text",
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) "
+        "VALUES (%s, %s, 2, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id::text",
         (seeded["file_id"], seeded["run_id"], PASSAGE + " A second block.")).fetchone()[0]
     first = _first_block(fw_ws, seeded)
     review = write_review(tmp_path / "review.md", [first, second])

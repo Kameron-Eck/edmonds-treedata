@@ -53,6 +53,7 @@ import time
 import urllib.parse
 from pathlib import Path
 
+from litkb import readability
 from litkb.hunt_request import REF_SCHEMES
 
 #: Tool artifacts (TEI, DoclingDocument) for the files hunt extracts. OUTSIDE the repository, and
@@ -201,11 +202,24 @@ REASONS = {
     # two tools produced nothing and the reconciliation ran on the other (the soft `grobid`
     # refusals[] code folds in here; it said the same thing in a place with no closed vocabulary).
     "extracted": ("fresh", "already-extracted", "docling-only", "grobid-only"),
-    # a hunt reaches this rung ONLY with extract=False: with extraction requested, a bound file is
-    # either extracted or refused `file-missing`/`no-artifact`. So the reason says where the file
-    # came FROM, which `state` cannot: this hunt landed it, or the database already held it.
-    "bound-unextracted": ("fresh-bound", "already-bound"),
-    "held": ("no-spend", "no-file", "not-acquired", "duplicate-held", "not-in-main"),
+    # `fresh-bound` / `already-bound` are the two that say where the file came FROM, which `state`
+    # cannot: this hunt landed it, or the database already held it. A hunt reaches THOSE two only
+    # with extract=False.
+    #
+    # THE S4 ADDITIONS say why a bound file holds no readable text, which the two above could not:
+    # before them, a file whose extraction had run and found nothing was reported `extracted` with
+    # `blocks: 0`, and a work with one readable file beside one unreadable one was reported
+    # `extracted` outright. `partial` is the WORK-level word (the active files disagree); the four
+    # after it are per-FILE residue classes (S4 decision D1) and reach a hunt result through
+    # `litkb.readability.work_state`, which is the one place the rule lives.
+    "bound-unextracted": ("fresh-bound", "already-bound", "partial",
+                          "scan-needs-ocr", "over-page-cap", "zero-content", "bad-file"),
+    # `no-file-any-route`: admitted, no file bound, at least one acquisition route attempted and
+    # EVERY attempt terminal (`acquire.run.DEAD_STATUSES` for its route, or `blocked`). Distinct
+    # from `no-file` (nothing was ever attempted) and from `not-acquired` (this hunt spent and came
+    # back empty): it is the state of a work automated acquisition has finished failing at.
+    "held": ("no-spend", "no-file", "no-file-any-route", "not-acquired", "duplicate-held",
+             "not-in-main"),
     # exactly the two refusal tuples: the codes ARE the reason classes, and the AST test that
     # already pins every HuntRefused literal to them pins this by construction.
     "refused": REF_REFUSALS + HUNT_REFUSALS,
@@ -478,6 +492,16 @@ def load_workstream(worktree):
 
 # ── step 0: what does the knowledge base already hold for this reference ───────────────────
 
+def _first_unreadable(files):
+    """The file an extraction should be pointed at: the first whose readability state is not
+    `extracted`, else the first file.
+
+    `look_up` attaches each file's own state (`readability.work_state`), and the fall-back is for a
+    caller holding a file list from somewhere that did not — never a silent wrong answer, because a
+    list with no unreadable file in it is a work that is not `bound-unextracted` at all."""
+    return next((f for f in files if f.get("state") != "extracted"), files[0])
+
+
 def look_up(conn, ws_id, ref, kind):
     """The four-state ladder for one reference, read through the WORKSTREAM's view.
 
@@ -509,25 +533,25 @@ def look_up(conn, ws_id, ref, kind):
         (ws_id, work_id)).fetchall()
     in_main = bool(conn.execute("SELECT 1 FROM litkb.main_works WHERE work_id = %s",
                                 (work_id,)).fetchone())
-    # A file with a current run may still hold zero blocks — "the extractor ran and found
-    # nothing" and "the extractor never ran" are different problems, and only the second is
-    # fixed by running it (the distinction litkb_work's ladder already makes).
-    if not files:
-        state = "held"
-    elif not any(f[4] for f in files):
-        state = "bound-unextracted"
-    else:
-        state = "extracted"
+    # BEGIN call site: one completeness rule for a work's state
+    # The ladder was spelled here until S4 (`not files` / `not any(current_run_id)` / else), in the
+    # same three branches as `litkb_work` and `_absent_kind`. It now comes from
+    # `litkb.readability.work_state`, which requires EVERY active file to have a current run with
+    # canonical text before it says `extracted`, and names the residue when one does not. The two
+    # cases that changed had never fired live (0 works with more than one active file, 0 current
+    # runs with no blocks), which is exactly why the old rule could stay wrong.
+    state, reason, file_states = readability.work_state(conn, work_id, ws_id=ws_id)
+    # END call site: one completeness rule for a work's state
     run_id = next((f[4] for f in files if f[4]), None)
-    blocks = 0
-    if run_id:
-        blocks = conn.execute("SELECT count(*) FROM litkb.blocks WHERE run_id = %s",
-                              (run_id,)).fetchone()[0]
-    return {"state": state, "work_id": work_id, "key": w[0] if w else None,
+    blocks = sum(f["blocks"] for f in file_states)
+    per_file = {f["file_id"]: f for f in file_states}
+    return {"state": state, "reason": reason, "work_id": work_id, "key": w[0] if w else None,
             "title": w[1] if w else None, "year": w[2] if w else None,
             "in_main": in_main, "run_id": run_id, "blocks": blocks,
             "files": [dict(zip(("file_id", "sha256", "rel_path", "pages", "current_run_id",
-                                "status"), f)) for f in files],
+                                "status"), f))
+                      | {k: v for k, v in (per_file.get(f[0]) or {}).items()
+                         if k in ("state", "reason", "blocks")} for f in files],
             "identifiers": [dict(zip(("scheme", "value", "verified_by"), i)) for i in ids]}
 
 
@@ -773,10 +797,27 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
     t0 = time.monotonic()
     doc_json = os.path.join(derived, rec["sha256"] + ".docling.json")
     wants_ocr = rec["route"] == "scan" or (rec["route"] == "mixed" and rec.get("ocr_pages"))
-    D.run([{"pdf": str(pdf_path), "out": doc_json}],
-          os.path.join(derived, "metrics_docling.jsonl"), python=docling_python,
-          ocr=bool(wants_ocr), formula=False, device=device, cwd=derived)
-    doc = D.load(doc_json) if os.path.exists(doc_json) else None
+    # `D.extract`, NOT `D.run`. `run` starts the worker and returns its metrics rows; `extract`
+    # is the same call plus the five refusals the adapter learned the hard way — a worker row with
+    # `status != ok`, a docling `convert_status` of FAILURE/SKIPPED (docling does not always
+    # RAISE: a file it cannot parse comes back as a RESULT with no pages), a run with no peak-RSS
+    # measurement, and a conversion with no body block, which is "a FAILED run, not an ok one with
+    # zero blocks". The hunt called `run` and so none of those reached it: an empty conversion
+    # became `doc` with no blocks and the reconciliation carried on as though Docling had spoken.
+    #
+    # The exception is CAUGHT here rather than allowed to end the hunt, exactly as the GROBID
+    # branch above catches `GrobidError`: one tool producing nothing is a WEAKER extraction, not a
+    # failed one, and the refusal below (`no-artifact`) is what fires when BOTH produce nothing.
+    # What changes is that the failure is now NAMED — `timing["docling_error"]` — instead of being
+    # inferred later from whether a JSON happens to exist on disk.
+    doc = None
+    try:
+        doc, _dm = D.extract(str(pdf_path), doc_json,
+                             os.path.join(derived, "metrics_docling.jsonl"),
+                             python=docling_python, ocr=bool(wants_ocr), formulas="off",
+                             device=device, cwd=derived)
+    except D.DoclingError as e:
+        timing["docling_error"] = f"{type(e).__name__}: {e}"[:300]
     timing["docling"] = round(time.monotonic() - t0, 2)
     if tei is None and doc is None:
         raise HuntRefused("no-artifact",
@@ -1168,16 +1209,24 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
     # END guard: hunt answers from the database before it fetches anything
 
     if held and held["state"] == "bound-unextracted" and extract:
-        f = held["files"][0]
+        # THE FIRST UNREADABLE FILE, not the first file. Under S4's completeness rule a
+        # `bound-unextracted` work may already hold a readable file beside an unreadable one
+        # (`partial`), and `files[0]` would then hand the extractor the file that is already done
+        # and leave the one that is not.
+        f = _first_unreadable(held["files"])
         return _finish(db, ws_id, held, f, out, timing, refusals, reader_role=reader_role,
                        device=device, docling_python=docling_python, derived=derived,
                        root=(store.root if store else None), progress=progress)
 
     if held and not extract:
-        # the ONLY way to stop at `bound-unextracted`: the file was bound before this hunt ran and
-        # extraction was not asked for. (Its `outcome` reads `bound` since S3, derived from the
-        # pair; it used to say `held`, which named the rung the hunt did NOT stop at.)
-        return _result(out, held["state"], "already-bound", refusals, timing) | _report(
+        # the ONLY way to stop at `bound-unextracted` without extracting: the file was bound before
+        # this hunt ran and extraction was not asked for. (Its `outcome` reads `bound` since S3,
+        # derived from the pair; it used to say `held`, which named the rung the hunt did NOT stop
+        # at.) The REASON is the ladder's, not the literal `already-bound` this returned until S4:
+        # a work whose files disagree is `partial` and one whose extraction ran and found nothing
+        # is `zero-content`, and reporting either as `already-bound` sends the caller to run the
+        # extraction that has already run.
+        return _result(out, held["state"], held["reason"], refusals, timing) | _report(
             db, ws_id, held, reader_role)
 
     if not agent or not session:
@@ -1575,7 +1624,7 @@ def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, 
         if not extract:
             return _result(out, "bound-unextracted", "fresh-bound", refusals, timing) | _report(
                 db, ws_id, fresh, reader_role)
-        return _finish(db, ws_id, fresh, fresh["files"][0], out, timing, refusals,
+        return _finish(db, ws_id, fresh, _first_unreadable(fresh["files"]), out, timing, refusals,
                        reader_role=reader_role, device=device, docling_python=docling_python,
                        derived=derived, root=(store.root if store else None), progress=progress)
 
@@ -1606,6 +1655,11 @@ def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, d
     out["extraction"] = {"run_id": str(res["run_id"]), "inserted": res["inserted"],
                          "blocks": res["blocks"], "disagreements": res["disagreements"],
                          "grobid_tei": detail["tei"], "docling": detail["docling"],
+                         # what each tool CONTRIBUTED, beside whether it produced an artifact —
+                         # the two are not the same question (see the reason derivation below)
+                         "grobid_regions": detail["stats"].get("grobid_regions"),
+                         "docling_regions": detail["stats"].get("docling_regions"),
+                         "docling_error": timing.get("docling_error"),
                          "route": detail["record"]["route"],
                          "pages": detail["record"]["pages"],
                          "by_kind": detail["stats"]["by_kind"],
@@ -1614,12 +1668,18 @@ def _finish(db, ws_id, held, f, out, timing, refusals, *, reader_role, device, d
     if timing.get("grobid_error"):
         refusals.append({"code": "grobid", "message": timing["grobid_error"],
                          "effect": "the reconciliation ran on Docling alone"})
-    # WHICH tools produced the blocks, from the artifacts themselves rather than from a flag: a
-    # reconciliation that ran on one of the two is a weaker extraction and the caller could only
-    # learn it from the soft `grobid` refusals[] code, which named the tool that FAILED and had no
-    # closed vocabulary to be checked against.
-    reason = ("fresh" if detail["tei"] and detail["docling"] else
-              "docling-only" if detail["docling"] else "grobid-only")
+    if timing.get("docling_error"):
+        refusals.append({"code": "docling", "message": timing["docling_error"],
+                         "effect": "the reconciliation ran on GROBID alone"})
+    # BEGIN call site: the extraction's reason is derived from the run's metrics
+    # WHICH tools produced the blocks, from the run's own METRICS. Until S4 this read the
+    # ARTIFACTS — `"fresh" if detail["tei"] and detail["docling"]` — and those are a different
+    # question: the live `Maiti_2022` run `01a0c263` has a `.docling.json` on disk beside it, 69
+    # `grobid_regions`, 0 `docling_regions` and not one block with `source = 'docling'`, and this
+    # expression called it `fresh`. The artifact path is the RECONCILER's output naming
+    # convention, not evidence that docling ran.
+    reason = readability.extracted_reason(detail["stats"], fresh=True)
+    # END call site: the extraction's reason is derived from the run's metrics
     return _result(out, "extracted", reason, refusals, timing) | _report(db, ws_id, held,
                                                                         reader_role)
 

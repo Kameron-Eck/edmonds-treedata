@@ -856,9 +856,12 @@ replace("T19", f"{PKG}/admit/binding.py",
         "OCR is offered to a first page that HAS a text layer: a paper the rule refused on its own "
         "printed page gets a second oracle, and can bind on a reading nobody could reproduce from "
         "the file", tests=TESTS_P1P2)
-replace("T20", f"{PKG}/admit/binding.py",
-        "OCR_BIND_MAX_PAGES = 400",
-        "OCR_BIND_MAX_PAGES = 10000",
+# S4 moved the cap's ONE HOME to litkb/config.py (binding and extraction were about to answer
+# "too big?" from two constants); `binding.OCR_BIND_MAX_PAGES` now reads it from there, so this
+# row moved with it. Same guard, same claim, same test set.
+replace("T20", f"{PKG}/config.py",
+        "PAGE_CAP_DEFAULT = 400",
+        "PAGE_CAP_DEFAULT = 10000",
         "the page cap is gone: a binding question puts the corpus's 688-page book through OCR, "
         "which is an hour of GPU to read a title its first page already prints",
         tests=TESTS_P1P2)
@@ -2148,6 +2151,16 @@ SINK_ALLOW = {
         "pages_per_s, peak RSS, the source path the caller typed on the command line. This module holds no "
         "credential at all: it never connects to the database or the network, and the heavy tool runs as a "
         "subprocess in its own virtual environment."),
+    "litkb/extract/_pdf_probe.py::main::sys.stdout.write": (2,
+        "S4's page-probe child. Its stdout IS its return value — the parent reads one JSON object off it — so "
+        "the write cannot go through a redactor without the redactor becoming part of the protocol. Both calls "
+        "are json.dumps of a dict whose keys are literals in this file: {'pages': int}, {'reason': one of "
+        "PROBE_REASONS}, {'pdfium_error': int|None}, {'error': the exception text}, and the usage string. The "
+        "one value not built here is that exception text, which is pdfium's own message plus the PDF PATH the "
+        "parent passed in argv — a filesystem fact about a file under the literature root, the same class "
+        "extract/inventory.py::report_new is allowed for. The module imports pypdfium2 and the stdlib and "
+        "nothing else: it opens no socket, connects to no database, reads no passfile and never imports litkb, "
+        "so no credential is in scope in the process at all."),
     "litkb/extract/docling_worker.py::main::print": (1,
         "One line per finished job: a fixed seven-key projection of the metrics dict — file, status, pages, "
         "seconds, pages_per_s, peak_rss_bytes, cpu_cores_busy. The keys are literals in this call, so no "

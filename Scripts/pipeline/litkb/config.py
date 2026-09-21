@@ -7,7 +7,14 @@ make every one of those modules import this one for a value it already owns. Wha
 the setting whose HOME is genuinely nowhere else: a value a route hardcodes, that an operator has a
 reason to change, and that no module can claim as its own fact.
 
-Today that is one list: the Sci-Hub mirrors. `litkb.acquire.scihub` hardcoded two of the four Kam's
+Today that is one list and one number. The list is the Sci-Hub mirrors; the number is
+:data:`PAGE_CAP`, the largest document litkb converts, which `litkb.admit.binding` owned as
+`OCR_BIND_MAX_PAGES = 400` while the EXTRACTION side had no cap at all (S4 survey-code §9,
+LITKB_WORKPLAN line 484: "Binding cap OCR_BIND_MAX_PAGES=400 …; no extraction cap"). Two routes
+asking "is this document too big to convert" must not answer from two constants, and neither
+module can claim the number as its own fact: binding is one caller of it, extraction is another.
+
+`litkb.acquire.scihub` hardcoded two of the four Kam's
 operating note names (memory `scihub-fetch-method`, 2026-09-12), and `litkb.acquire.run` called the
 route without passing `mirrors=` at all — so the caller that decides the route order could not
 decide the mirror order, and a mirror that went dark could only be replaced by editing the module.
@@ -40,3 +47,36 @@ def scihub_mirrors(env=None):
 
 
 SCIHUB_MIRRORS = scihub_mirrors()
+
+
+#: The largest document litkb converts, in pages. 400 is the value `litkb.admit.binding` has used
+#: since P4 and the reason it gives is the whole reason: the corpus's 688-page `Schneider_2008`
+#: "would spend an hour of GPU to answer a question its first page already answers, and the
+#: decision to extract a book at all is not this function's to make". Nothing in the live corpus is
+#: near it — the largest of the 251 active files is 101 pages (S4 survey-data §1.5) — so the cap is
+#: a policy about what litkb REFUSES to start, not a threshold tuned on anything. The book ruling
+#: itself is Kam's and still pending (LITKB_WORKPLAN lines 116, 297); when it lands, this number is
+#: what changes.
+PAGE_CAP_DEFAULT = 400
+
+
+def page_cap(env=None):
+    """-> the page cap this process enforces. `LITKB_PAGE_CAP` overrides with a positive integer.
+
+    EMPTY, ZERO AND JUNK ARE NOT CHOICES, for the reason the mirror list gives above: a launcher
+    that exports every `LITKB_*` as the empty string, or a typo, would otherwise turn a cap into
+    "refuse everything" (0) or into a crash at the call site that can least afford one — the
+    fail-closed probe in front of an extraction. A value that is not a positive integer is the
+    default.
+    """
+    # BEGIN guard: a page-cap override that is not a positive integer is the default
+    raw = (env if env is not None else os.environ).get("LITKB_PAGE_CAP") or ""
+    try:
+        n = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return PAGE_CAP_DEFAULT
+    return n if n > 0 else PAGE_CAP_DEFAULT
+    # END guard: a page-cap override that is not a positive integer is the default
+
+
+PAGE_CAP = page_cap()

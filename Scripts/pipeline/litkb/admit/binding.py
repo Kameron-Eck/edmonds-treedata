@@ -34,6 +34,7 @@ import unicodedata
 from pathlib import Path
 
 from litkb.admit.resolver import _norm_text, _UNDECODABLE_RE, strip_tags, title_match_ratio
+from litkb.extract import readiness
 
 BIND_RATIO = 0.85
 MIN_TEXT_CHARS = 200     # below this (normalised characters) the first page has no usable text layer
@@ -238,10 +239,24 @@ OCR_BIND_PAGES = 2
 #: The largest document OCR is offered for a BINDING. A book is not a cover sheet: the corpus's
 #: 688-page `Schneider_2008` would spend an hour of GPU to answer a question its first page
 #: already answers, and the decision to extract a book at all is not this function's to make.
-OCR_BIND_MAX_PAGES = 400
+#:
+#: The NUMBER is no longer this module's (S4): it is `litkb.config.PAGE_CAP`, because the
+#: extraction side needs the same cap and two routes answering "too big?" from two constants is
+#: how they drift. The NAME stays, because what it means here — the cap *for a binding OCR* — is
+#: this module's fact and every caller and mutation row reads it by this name.
+OCR_BIND_MAX_PAGES = readiness.PAGE_CAP
+
+#: Why :func:`ocr_first_pages` refused, when it did. A CLOSED set, in the order the function tests
+#: them: the count could not be read (the fail-open hole S4 closed), the document is past the cap,
+#: there is no docling environment on this machine, the conversion refused or produced no text.
+#: `bind_any_with_ocr` records the code in the binding evidence as `ocr_refusal`, so a
+#: `binding-pending` that never got its OCR says which of five things happened instead of leaving
+#: a reader to guess from `ocr_attempted`.
+OCR_BIND_REFUSALS = ("page-probe-failed", "over-page-cap", "no-worker", "convert-refused",
+                     "no-text")
 
 
-def ocr_first_pages(pdf_path, pages=OCR_BIND_PAGES, python=None, timeout=1800, info=None):
+def ocr_first_pages(pdf_path, pages=OCR_BIND_PAGES, python=None, timeout=1800, refusals=None):
     """The first ``pages`` pages as DOCLING'S OCR reads them, or ``''``. Reads only.
 
     The scan's own defect, stated plainly: :func:`first_page_text` runs ``pdftotext``, a scan has
@@ -253,15 +268,35 @@ def ocr_first_pages(pdf_path, pages=OCR_BIND_PAGES, python=None, timeout=1800, i
     Returns ``''`` rather than raising on every failure a caller cannot act on: no Docling
     environment on this machine, a document past :data:`OCR_BIND_MAX_PAGES`, a conversion that
     refuses. The caller then keeps whatever verdict it already had, which is the state before
-    this function existed.
+    this function existed. ``refusals``, when a list is passed, collects the
+    :data:`OCR_BIND_REFUSALS` code for whichever of those it was — the empty string alone cannot
+    tell a book from a machine with no GPU.
+
+    THE CAP IS NOW FAIL-CLOSED (S4). It used to read ``n = pdf_info(...).get("Pages") or ""`` and
+    refuse only ``if n.isdigit() and int(n) > OCR_BIND_MAX_PAGES``. `pdf_info` runs poppler's
+    `pdfinfo` and returns ``{}`` when poppler is absent or the file is damaged — so a page count
+    that could not be READ fell straight through the guard and OCR ran uncapped, on exactly the
+    documents least likely to survive it. The count now comes from
+    :func:`litkb.extract.readiness.probe_pages`, in-process pypdfium2 under a deadline, and a
+    probe that cannot answer is the refusal `page-probe-failed`, not a pass.
     """
-    n = (info or pdf_info(pdf_path)).get("Pages") or ""
-    if n.isdigit() and int(n) > OCR_BIND_MAX_PAGES:
+    def refuse(code):
+        if refusals is not None:
+            refusals.append(code)
         return ""
+
+    # BEGIN guard: a page count that cannot be read refuses the OCR, never passes it
+    try:
+        n_pages = readiness.probe_pages(pdf_path)
+    except readiness.ProbeFailed:
+        return refuse("page-probe-failed")
+    if readiness.cap_check(n_pages):
+        return refuse("over-page-cap")
+    # END guard: a page count that cannot be read refuses the OCR, never passes it
     from litkb.extract import docling as D
 
     if not D.worker_available(python):
-        return ""
+        return refuse("no-worker")
     with tempfile.TemporaryDirectory(prefix="litkb_ocrbind_") as d:
         out, met = Path(d) / "ocr.json", Path(d) / "metrics.jsonl"
         try:
@@ -269,8 +304,9 @@ def ocr_first_pages(pdf_path, pages=OCR_BIND_PAGES, python=None, timeout=1800, i
                                 pages=list(range(1, int(pages) + 1)), ocr=True,
                                 python=python, timeout=timeout)
         except Exception:  # noqa: BLE001 - an OCR that refuses leaves the binding where it was
-            return ""
-        return "\n".join(b.text for b in D.blocks(doc) if (b.text or "").strip())
+            return refuse("convert-refused")
+        text = "\n".join(b.text for b in D.blocks(doc) if (b.text or "").strip())
+        return text or refuse("no-text")
 
 
 def bind_any_with_ocr(pdf_path, titles, first_author, *, info=None, ocr=True, python=None):
@@ -293,10 +329,16 @@ def bind_any_with_ocr(pdf_path, titles, first_author, *, info=None, ocr=True, py
     if not ocr or b["verdict"] == "bound" or b["text_layer"]:
         b.setdefault("page_text_source", "pdftotext")
         return b
-    text = ocr_first_pages(pdf_path, python=python, info=info)
+    refusals = []
+    text = ocr_first_pages(pdf_path, python=python, refusals=refusals)
     if not _norm_text(text):
         b.setdefault("page_text_source", "pdftotext")
         b["ocr_attempted"] = True
+        # WHICH refusal, not just "it was attempted". A `binding-pending` on a machine with no
+        # docling and one on a 700-page book are the same row today; the code says which, and the
+        # first is retryable where the second is a decision.
+        if refusals:
+            b["ocr_refusal"] = refusals[0]
         return b
     after = bind_any(pdf_path, titles, first_author, page_text=text, info=info)
     # `text_layer` stays the PDF's own fact, not the OCR's. It is what stage 0 routes on and what

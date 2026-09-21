@@ -2016,3 +2016,121 @@ schema uses and REFUSING any keyword it does not implement — `jsonschema` is i
 machine but is in neither requirements file, and the same-commit rule forbids a runtime dependency
 that a bootstrap does not install. `qc/test_litkb_codex_stage.py` cross-checks the two on every
 accept and reject case and skips where `jsonschema` is absent.
+---
+
+## readiness: the page probe, the cap and the OCR policy (S4)
+
+`litkb.extract.readiness` is the one place litkb asks, before a conversion starts, **is this file
+ready to extract, on what device, and if not — what class of residue is it?** Before S4 the
+question was asked in four places and three of them were too late to act on: the page count came
+from poppler at ADMIT time (`litkb.admit.binding.pdf_info`), from pypdfium2 inside stage 0, and
+from pypdfium2 inside the docling worker subprocess after the converter had been built. The module
+runs no tool and writes no row; every function is pure except `probe_pages` (one subprocess) and
+`vram_free_mib` (one `nvidia-smi`), so a caller can be tested against it with no GPU, no docling
+and no database.
+
+| function | answers | on a failure |
+|---|---|---|
+| `probe_pages(path, timeout=None)` | the PDF's page count, from pypdfium2 in a child process under a deadline | raises `ProbeFailed(reason)`, `reason ∈ PROBE_REASONS` = `unopenable` · `encrypted` · `zero-pages` · `probe-error`. **Never returns `None`** |
+| `cap_check(pages)` | `None`, or `'over-page-cap'` | a count it cannot read is refused, never passed |
+| `vram_free_mib()` | free VRAM in MiB | `None` = UNKNOWN (nvidia-smi absent, non-zero exit, empty or unparsable) |
+| `page_needs_ocr(page_class, coverage_share=None)` | does this ONE page need OCR | — |
+| `is_scan(pages_rows)` | is the WHOLE FILE a scan | no page rows ⇒ False |
+| `ocr_policy(n_ocr_pages, ocr_enabled, free_mib)` | `('run','cuda'|'cpu')` or `('residue','scan-needs-ocr')` | — |
+| `classify_extraction(pages_rows, canonical_blocks)` | `extracted` · `zero-content` · `scan-needs-ocr` | — |
+
+**The cap has ONE home: `litkb.config.PAGE_CAP`** (`LITKB_PAGE_CAP` overrides; an override that is
+not a positive integer is the default, the same rule `config.scihub_mirrors` applies to an empty
+mirror list). `readiness.PAGE_CAP` and `litkb.admit.binding.OCR_BIND_MAX_PAGES` both read it, so
+the binding route and the extraction route can no longer answer "too big?" from two constants.
+The value is 400, which is what `binding` has used since P4; the book ruling behind it is still
+Kam's (`LITKB_WORKPLAN` lines 116, 297). Writers: `litkb/config.py` `PAGE_CAP_DEFAULT`,
+`config.page_cap()`; harness row `T20`.
+
+**The cap is FAIL-CLOSED at the binding call site.** `binding.ocr_first_pages` used to read
+`n = (info or pdf_info(pdf_path)).get("Pages") or ""` and refuse only `if n.isdigit() and int(n) >
+OCR_BIND_MAX_PAGES`. `pdf_info` shells out to poppler and returns `{}` when poppler is absent or
+the file is damaged, so a page count that could not be READ fell through the guard and OCR ran
+uncapped. It now calls `readiness.probe_pages`, and a probe that cannot answer is a refusal. The
+refusal codes are a closed set, `binding.OCR_BIND_REFUSALS` = `page-probe-failed` ·
+`over-page-cap` · `no-worker` · `convert-refused` · `no-text`; `ocr_first_pages(…, refusals=[])`
+collects the code and `bind_any_with_ocr` records it in the binding evidence as `ocr_refusal`
+beside `ocr_attempted`. Writers: `litkb/admit/binding.py` `ocr_first_pages`, `bind_any_with_ocr`;
+harness row `S4Q2-1`.
+
+**Why the probe is a subprocess.** pdfium is a C library: a page count that does not come back is
+stuck below the Python frame, where no signal and no thread flag reaches it, so a worker thread
+with a timeout returns control to the caller and leaves the hang running. `subprocess.run(
+timeout=…)` is the only bound a caller can enforce. The child is `litkb/extract/_pdf_probe.py`,
+run as a SCRIPT with `-P` and importing pypdfium2 and the stdlib only — never `litkb`, because
+litkb is not in the editable install and a child that imported it from a worktree would answer
+with main's code. Its `PDFIUM_REASON` table maps `FPDF_GetLastError()` to the reason, measured
+2026-09-21 (pypdfium2 5.13.0): 0-byte and truncated files give code 3 → `unopenable`; a `/Count 0`
+document is refused with the code left at 0 (SUCCESS) → `zero-pages`; an `/Encrypt` dictionary the
+empty user password does not authenticate gives code 4 → `encrypted`. A future pdfium that fails
+with SUCCESS for some other reason would be labelled `zero-pages` where `probe-error` is truer —
+the label moves, the fail-closed answer does not, because every reason there is a refusal.
+Writers: `_pdf_probe.classify_load_failure`, `_pdf_probe.classify_opened`; harness rows `S4Q2-2`,
+`S4Q2-3`, `S4Q2-11`.
+
+**`files.has_text_layer` IS NOT A SCAN CLASSIFIER, and stays what it is.** It records "page 1
+carried at least `binding.MIN_TEXT_CHARS` normalised characters for `pdftotext`" — a BINDING fact,
+measured on page 1 only (`litkb.admit.binding.bind`), deliberately not rewritten when OCR bound a
+scan. Live it is wrong in both directions: of the 6 files with `has_text_layer = false`,
+`Abdulkader_2020` and `Crowder_2017` are fully extracted with 18,064 and 1,212 blocks. `is_scan`
+replaces it as the classifier and reads the SHARE of a file's pages needing OCR against
+`inventory.SCAN_FILE_FRAC` (0.5) — the rule `inventory.route_file` already applies to stage-0
+records, applied here to a file's page rows whatever produced them. Rows may be database
+`litkb.pages` rows (`page_class`, `coverage_share`) or stage-0 `page_detail` entries (`scan`, no
+coverage); both carry `inventory.PAGE_CLASSES`. Fixture, with the read-only query and the stage-0
+command behind every row: `qc/testdata/litkb_readiness/pages_rows.json`. Harness row `S4Q2-7`.
+
+**`page_needs_ocr` and `inventory.needs_ocr` are two questions, not two copies.**
+`inventory.needs_ocr(page_class)` is stage 0's ROUTING answer, taken before any run exists and
+with no coverage to read: `image-only` or `partial` → yes. `page_needs_ocr` is the READINESS
+answer with a run's per-page evidence in hand: `image-only` always; `partial` only when
+`coverage_share` is below `reconcile.COVERAGE_FLOOR` (0.80 — the same floor the reconciliation
+already calls "this page's native layer was not covered"), and `partial` with no coverage evidence
+falls back to exactly stage 0's answer. They can only disagree where one of them holds evidence
+the other does not. Live the floor splits the 96 `partial` pages 92 above / 4 below
+(`litkb.pages`, read-only, 2026-09-21). Harness row `S4Q2-9`.
+
+**The OCR policy's numbers are runs.** Instrument `qc/instruments/litkb_ocr_vram.py` → measured CSV
+`Reports/LITKB_OCR_VRAM_2026-09-21.csv` (9 rows; T2000 4,096 MiB, `nvidia-smi` at 2 Hz around each
+docling worker PROCESS, the two real corpus scans `Hwang_1982` 11 pp and `Anderson_1957` 22 pp).
+
+| constant | value | where from |
+|---|---|---|
+| `OCR_NEED_MIB` | 1,994 | largest `peak_over_baseline_mib` in the CSV (row `hwang-cuda-c8`, 2,690 of 4,096, 65.7 %); the six CUDA rows span 1,417–1,994 |
+| `VRAM_MARGIN_MIB` | 819 | a RULE, not a measurement: design §12's 20 % headroom on 4,096 MiB. `LITKB_VRAM_MARGIN_MIB` overrides |
+| `CPU_OCR_PAGES_PER_S` | 0.0756 | slowest of the three `hwang-cpu-c4*` rows (0.0756 / 0.0765 / 0.0782) |
+| `CPU_OCR_BUDGET_S` | 1,800 | NOT a measurement: the timeout `binding.ocr_first_pages` already passes to docling, i.e. where litkb's own code gives up on an OCR conversion |
+| `CPU_OCR_MAX_PAGES` | 136 | `1800 × 0.0756`, floored |
+
+`ocr_policy` in order: OCR off ⇒ residue (never a silent no-OCR conversion, which is how
+"extracted, 0 chars" happened); `free_mib ≥ OCR_NEED_MIB + VRAM_MARGIN_MIB` ⇒ `('run','cuda')`,
+and `free_mib = None` is UNKNOWN and never reaches that branch; otherwise `('run','cpu')` only at
+or under `CPU_OCR_MAX_PAGES`, else residue. Harness rows `S4Q2-5`, `S4Q2-6`, `S4Q2-10`.
+
+**HOW TIGHT THE CPU BOUND IS, stated rather than hidden.** A fourth CPU pass earlier the same day,
+on the same file and venv, measured 0.0689 pages/s; its CSV was replaced by the tracked run. At
+that rate the 136-page bound is 1,974 s — past `CPU_OCR_BUDGET_S`, so the largest job the bound
+admits would be killed by the very timeout it exists to avoid. The bound is honest about the
+MEASURED rate and is not a guarantee; what it buys is that a 700-page scan is never started on a
+CPU. Closing the remaining ~10 % is a second day's runs or a derate agreed with Kam.
+
+**What the CSV also says, and a caller should not re-derive:** chunking a page range is NOT a VRAM
+knob. Splitting the 22-page `Anderson_1957` into 4-page ranges RAISED the peak (1,780 MiB at chunk
+4, 1,490 at 8, 1,417 as one chunk) and cost rate (0.449 / 0.500 / 0.538 pages/s), because the peak
+is a high-water mark over the worker PROCESS — the same finding `pipeline/litkb/extract/docling.py`'s VRAM block
+recorded for `page_batch_size`. Chunking is for page-range control, not for memory.
+
+**`classify_extraction` is what a RESULT is**, and it is the end of `any(current_run_id) ⇒
+extracted` (`litkb.mcp.server._work`, `litkb.hunt.look_up`): blocks decide readability, and the page
+rows decide what the ABSENCE of blocks means. More than 0 canonical blocks ⇒ `extracted`; 0 blocks
+on a scan ⇒ `scan-needs-ocr`, a file waiting for a device; 0 blocks on anything else ⇒
+`zero-content`, a defect to look at. Harness row `S4Q2-8`.
+
+Tests: `qc/test_litkb_readiness.py` (39, no database, no GPU, no corpus, no skips — it is the
+baseline the ledger measures its rows against). Mutation ledger:
+`qc/instruments/litkb_s4q2_mutations.py`, rows `S4Q2-1` … `S4Q2-11`, all eleven FIRED 2026-09-21.

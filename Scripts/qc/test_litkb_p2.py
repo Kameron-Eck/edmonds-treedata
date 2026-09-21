@@ -2386,10 +2386,20 @@ def test_a_page_that_has_text_is_never_re_read_by_ocr(monkeypatch):
 def test_ocr_is_not_offered_for_a_book(monkeypatch):
     """`OCR_BIND_MAX_PAGES`: the corpus's 688-page book would spend an hour of GPU to answer a
     question its first page already answers, and whether to extract a book at all is not this
-    function's decision to make."""
-    from litkb.admit import binding
+    function's decision to make.
 
-    monkeypatch.setattr(binding, "pdf_info", lambda _p: {"Pages": "688"})
+    S4 moved WHERE THE COUNT COMES FROM, which is why this test patches a different thing than it
+    used to. It was poppler's `pdfinfo`, read through `binding.pdf_info`, and the guard refused
+    only `if n.isdigit() and int(n) > cap` — so a count that could NOT be read fell through and
+    OCR ran uncapped. It is now `litkb.extract.readiness.probe_pages`, in-process pypdfium2 under
+    a deadline, and a probe that cannot answer is the refusal `page-probe-failed`. That kill, the
+    cap's one home in `litkb.config.PAGE_CAP` and the refusal codes are all in
+    `qc/test_litkb_readiness.py`; what is left here is the book itself.
+    """
+    from litkb.admit import binding
+    from litkb.extract import readiness
+
+    monkeypatch.setattr(readiness, "probe_pages", lambda _p, timeout=None: 688)
     assert binding.ocr_first_pages("book.pdf") == ""
     assert binding.OCR_BIND_MAX_PAGES < 688
     # THE CONTROL: the same call on a paper-sized document is not refused HERE. It gets as far as
@@ -2398,6 +2408,6 @@ def test_ocr_is_not_offered_for_a_book(monkeypatch):
     from litkb.extract import docling as D
 
     seen = []
-    monkeypatch.setattr(binding, "pdf_info", lambda _p: {"Pages": "22"})
+    monkeypatch.setattr(readiness, "probe_pages", lambda _p, timeout=None: 22)
     monkeypatch.setattr(D, "worker_available", lambda python=None: bool(seen.append(python)))
     assert binding.ocr_first_pages("paper.pdf") == "" and seen == [None]

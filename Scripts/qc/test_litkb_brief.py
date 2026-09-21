@@ -85,8 +85,8 @@ def test_build_hands_the_MCP_WRITER_a_quote_with_canonical_line_endings(pg):
     w = _evidence_world(pg)
     text = "A canopy line\r\nand its second half, stored as the extractor wrote it."
     span = "A canopy line\r\nand its second half"
-    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
+    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (w["file"], w["run"], text))[0]
     _add_evidence(pg, pg.conn, dict(w, block=block), w["ws"], w["uv"], span, 0, len(span))
 
     stored = pg.one("SELECT quote FROM litkb.use_evidence WHERE block_id = %s", (block,))[0]
@@ -111,8 +111,8 @@ def test_the_MCP_route_round_trips_a_crlf_span_into_a_passing_review(pg, tmp_pat
     text = ("Canopy cover fell by eleven percent between 2000 and 2020.\r\n"
             "The decline was concentrated in the northern parcels.")
     span = text[:len(text)]
-    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
+    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (w["file"], w["run"], text))[0]
     _add_evidence(pg, pg.conn, dict(w, block=block), w["ws"], w["uv"], span, 0, len(span))
     hr = _hrmod._record(pg, w["ws"], ref="10.1/contradicted", expected_claim="the opposite")
     _hrmod._link(pg, w["ws"], hr, w["work"])

@@ -2,7 +2,7 @@
 each guard FIRE (CLAUDE.md 3.4c).
 
     PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_w9 py -3.12 \
-        qc/instruments/litkb_p2_mutations.py --only S4R1,S4R3,S4R4,S4R5,S4R6,S4R7,S4R8
+        qc/instruments/litkb_p2_mutations.py --only S4R1,S4R3,S4R4,S4R5,S4R6,S4R7,S4R8,S4R9
 
 Same machinery and the same ledger as the P6 / S2 / S3 legs: the rows are appended to the ONE
 shared table at import, because the per-call-site rule covers the whole package. They live in
@@ -48,6 +48,12 @@ WHAT EACH ROW IS FOR:
     and that expression calls it `fresh` — a two-tool extraction reported for a run docling
     contributed nothing to.
 
+  * **S4R9 is the GROBID lifecycle**, found by builder Q1 on 2026-09-21 and fixed here because
+    `hunt.py` is this brief's. `extract/grobid.py::start` is idempotent and returns True when the
+    service was ALREADY ALIVE, so the hunt's `finally` — which read that return as "I started it"
+    — stopped a GROBID somebody else was holding open on every hunt. The mutation removes the
+    `not was_alive` half of the condition, which is the code as it stood.
+
 NOT COVERED BY A ROW, and said rather than left out: the `_classified` guard in
 `readability.py` (a bound file with a classification row is named by its residue class rather than
 `already-bound`) reads `litkb.extraction_jobs`, which builder Q1's migration 0029 creates. Against
@@ -57,8 +63,9 @@ once 0029 lands.
 PKG = "pipeline/litkb"
 MIG30 = "pipeline/litkb/db/migrations/0030_retire_runs.sql"
 TESTS_S4R = ["qc/test_litkb_readability.py", "qc/test_litkb_retire.py",
+             "qc/test_litkb_hunt_grobid.py",
              "qc/test_litkb_first_use.py", "qc/test_litkb_hunt.py"]
-IDS = ["S4R1", "S4R3", "S4R4", "S4R5", "S4R6", "S4R7", "S4R8"]
+IDS = ["S4R1", "S4R3", "S4R4", "S4R5", "S4R6", "S4R7", "S4R8", "S4R9"]
 
 
 def register(block, replace, site):
@@ -99,6 +106,12 @@ def register(block, replace, site):
           "a run a USE is anchored in retires: recorded evidence is left quoting text the database "
           "now calls non-canonical. 6 of the 676 superseded runs on the live corpus are in exactly "
           "this state",
+          tests=TESTS_S4R)
+    block("S4R9", f"{PKG}/hunt.py",
+          "guard: a hunt stops GROBID only when the hunt started it",
+          "every hunt calls G.stop() again, whoever started the service: an operator holding a "
+          "wsl.exe client open for a batch, or the run that is about to hunt the next reference, "
+          "loses GROBID under it — the state S4 found the machine in after S3's hunts",
           tests=TESTS_S4R)
     # A REPLACE, not a block: deleting the guarded region would leave `reason` unbound and the
     # hunt would die with a NameError, which "fires" for a reason that is not the defect (the RC16

@@ -94,8 +94,8 @@ def _two_block_review(pg, w):
     blocks. The shape that makes the dedupe rule and the occurrence numbering separable."""
     second_text = ("A second paragraph of the same file, long enough to quote from without "
                    "tripping the twenty-five character floor.")
-    second = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                    "(%s, %s, 2, 'paragraph', %s) RETURNING id",
+    second = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES "
+                    "(%s, %s, 2, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
                     (w["file"], w["run"], second_text))[0]
     body = (f'It says so plainly: "{w["quote"]}" [{w["key"]} p.1 #{w["block"]}].\n'
             f'It says so again: "{w["quote"]}" [{w["key"]} p.1 #{w["block"]}].\n'

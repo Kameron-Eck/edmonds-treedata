@@ -782,6 +782,18 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
     tei = None
     if grobid and rec["route"] in ("native", "mixed", "cover-sheet"):
         t0 = time.monotonic()
+        # BEGIN guard: a hunt stops GROBID only when the hunt started it
+        # `G.start` is IDEMPOTENT and returns True when the service was ALREADY ALIVE
+        # (`extract/grobid.py::start` answers at once on a healthy `health()`), so its return
+        # value means "it is up", not "I brought it up". The `finally` below read it as the
+        # second and stopped a service somebody else was holding open — an operator with a
+        # `wsl.exe` client open for a batch, or the run that will hunt the next reference. That
+        # is the likely reason GROBID was found DOWN at the start of S4 after S3's hunts
+        # (builder Q1, 2026-09-21). Asking `health` FIRST is what tells the two cases apart, and
+        # it is asked HERE rather than fixed inside `start` because whether the service is left
+        # running afterwards is this caller's decision, not the adapter's — the bulk pass wants
+        # it kept up across hundreds of files.
+        was_alive = G.health()
         started = G.start(wait=300, hold=True)
         try:
             if not started:
@@ -790,8 +802,10 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
         except G.GrobidError as e:
             timing["grobid_error"] = f"{type(e).__name__}: {e}"[:300]
         finally:
-            if started:
+            if started and not was_alive:
                 G.stop()
+        # END guard: a hunt stops GROBID only when the hunt started it
+        timing["grobid_was_already_running"] = bool(was_alive)
         timing["grobid"] = round(time.monotonic() - t0, 2)
 
     t0 = time.monotonic()

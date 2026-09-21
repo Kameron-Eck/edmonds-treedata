@@ -2144,6 +2144,15 @@ SINK_ALLOW = {
         "passfile and Python never sees, and it never reads a token file. Same reason as "
         "extract/inventory.py::report_new above, and the same shape — the call site is written to be VISIBLE to "
         "this checker rather than hidden behind a bound stream."),
+    "litkb/commands.py::cmd_retire_runs::print": (3,
+        "The superseded-run census (S4, 2026-09-21). Three calls: one line per candidate run, the counters line, "
+        "and the mode line. Every interpolated value is a database identifier or a count this command produced — "
+        "a file uuid, a run uuid, a stage word from the fixed set litkb.extraction_runs.stage holds, a block "
+        "count, and a verdict word from the fixed vocabulary would-retire/retired/referenced/current/error. No "
+        "block TEXT is printed: the census is about runs, not about what they say. The connections are the "
+        "READER login for the census and the INGEST login for the retirement, both of whose passwords libpq "
+        "reads from a passfile and Python never sees, and neither reads a token file. Same reason and same shape "
+        "as cmd_reap above."),
     # Stage 3 (Docling), added at the P4 merge 2026-09-15. The docling branch forked before this
     # sink checker existed, so these two sites reach it for the first time here.
     "litkb/extract/colab_formula_worker.py::main::print": (6,

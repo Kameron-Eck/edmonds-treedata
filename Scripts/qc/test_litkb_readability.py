@@ -19,6 +19,7 @@ that construct them are the first time either rule has been exercised at all.
   main_files joins on file_id, not id                             test_the_join_reads_main_files_by_its_own_file_id_column
   the extracted reason comes from METRICS, not artifacts          test_the_extracted_reason_is_read_from_the_runs_metrics
   the live Maiti_2022 shape                                       test_the_live_maiti_shape_reads_grobid_only_not_fresh
+  the hunt's own call site reads metrics, not artifacts           test_the_hunts_extract_stage_reads_the_metrics_not_the_artifacts
   one file, current run, blocks                                   test_a_work_whose_every_file_is_read_is_extracted
   a current run holding no canonical block                        test_a_current_run_with_no_canonical_block_is_zero_content
   one readable file beside one unreadable one                     test_one_extracted_file_beside_one_unread_file_is_partial
@@ -66,7 +67,7 @@ def test_the_join_reads_main_files_by_its_own_file_id_column():
     (None, False, "already-extracted"),
 ])
 def test_the_extracted_reason_is_read_from_the_runs_metrics(metrics, fresh, want):
-    """`hunt.py:1621` derived this from ARTIFACT EXISTENCE — "is there a .docling.json" — and that
+    """`hunt.py::_finish` derived this from ARTIFACT EXISTENCE — "is there a .docling.json" — and that
     is a different question from "did docling contribute a region"."""
     from litkb import readability
 
@@ -82,6 +83,51 @@ def test_the_live_maiti_shape_reads_grobid_only_not_fresh():
     maiti = {"blocks": 113, "grobid_only": 69, "docling_only": 0, "grobid_regions": 69,
              "docling_regions": 0, "merged_regions": 4, "pipeline_version": "stage5-3"}
     assert readability.extracted_reason(maiti, fresh=True) == "grobid-only"
+
+
+def test_the_hunts_extract_stage_reads_the_metrics_not_the_artifacts(tmp_path):
+    """`hunt._finish`'s OWN call site, not just the helper it calls.
+
+    The defect was not that `extracted_reason` was wrong — it did not exist. It was that
+    `hunt._finish` decided the reason from `detail["tei"]` and `detail["docling"]`, which are
+    "did a file appear on disk". This drives `_finish` with BOTH artifacts present and
+    `docling_regions: 0`, which is the live `Maiti_2022` shape exactly, and the old expression
+    answers `fresh` for it. `extract_and_ingest` and `_report` are the two seams: neither the
+    extractors nor the database is what is under test here.
+    """
+    from unittest import mock
+
+    from litkb import hunt as H
+
+    pdf = tmp_path / "seeded.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n")
+    res = {"run_id": "01a0c263-3977-7483-bdb9-f483890782be", "inserted": 113, "blocks": 113,
+           "disagreements": 4}
+
+    def _detail(grobid_regions, docling_regions):
+        return {"record": {"route": "native", "pages": 8, "sha256": "0" * 64},
+                "stats": {"by_kind": {"paragraph": 52}, "matched": 0,
+                          "grobid_regions": grobid_regions,
+                          "docling_regions": docling_regions},
+                "coverage": {1: {"page_class": "native", "chars": 100, "covered": 95,
+                                 "share": 0.95}},
+                # BOTH artifacts exist on disk. That is the whole point: the reconciler names its
+                # output `<sha>.docling.json` whether docling contributed anything or not.
+                "tei": True, "docling": True, "canonical": []}
+
+    def _run(grobid_regions, docling_regions):
+        with mock.patch.object(H, "extract_and_ingest",
+                               return_value=(res, _detail(grobid_regions, docling_regions))), \
+             mock.patch.object(H, "_report", return_value={}):
+            return H._finish(None, None, {"work_id": None}, {"rel_path": "seeded.pdf", "file_id": "01a0c261-df48-777c-8ff9-f2012c0edddd"}, {},
+                             {}, [], reader_role=None, device="cpu", docling_python=None,
+                             derived=None, pdf_path=str(pdf))
+
+    out = _run(69, 0)
+    assert (out["state"], out["reason"]) == ("extracted", "grobid-only"), out
+    assert out["extraction"]["docling"] is True and out["extraction"]["docling_regions"] == 0
+    assert _run(0, 40)["reason"] == "docling-only"
+    assert _run(69, 40)["reason"] == "fresh"
 
 
 def test_every_reason_readability_can_return_is_a_hunt_reason():

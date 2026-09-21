@@ -575,8 +575,8 @@ def _long_block(pg, w):
     it is still that file's current run, which is all `_BLOCK_SQL` asks). Must run BEFORE any
     `_add_evidence` call: that helper anchors on `w["block"]`."""
     w["text"] = _BLOCK_TEXT
-    w["block"] = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                        "(%s, %s, 1, 'paragraph', %s) RETURNING id",
+    w["block"] = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES "
+                        "(%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id",
                         (w["file"], w["run"], _BLOCK_TEXT))[0]
     return w
 
@@ -702,8 +702,8 @@ def test_a_review_quoting_a_use_recorded_across_a_stored_crlf_passes(pg):
     crlf = ("Seasonal difference enters as label error, not as scattered noise.\r\n"
             "Every label in the archive comes from one April flight.\r\n")
     span = "as label error, not as scattered noise.\r\nEvery label in the archive"
-    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], crlf))[0]
+    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (w["file"], w["run"], crlf))[0]
     lf = span.replace("\r\n", "\n")
     hit = next(h for h in _use.locate_quote(pg.conn, w["work"], lf) if h["block_id"] == block)
     assert (hit["char_start"], hit["char_end"]) == (crlf.index(span), crlf.index(span) + len(span))
@@ -729,8 +729,8 @@ def test_m1b_a_real_block_outside_the_brief_still_fails(pg):
     file, quoted verbatim, carries no promotable use_evidence row and must be refused."""
     w = _world(pg)
     text = "A second paragraph of the same file that nobody ever recorded a use for."
-    other = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
+    other = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (w["file"], w["run"], text))[0]
     codes = _codes(pg, _review(w, block_id=other, quote=text))
     assert codes == ["not-in-brief"], codes
 
@@ -909,8 +909,8 @@ def _crlf_world(pg):
     text = "A canopy line\r\nand its second half, stored as the extractor wrote it."
     span = "A canopy line\r\nand its second half"
     assert text[:len(span)] == span and "\r\n" in span
-    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES "
-                   "(%s, %s, 1, 'paragraph', %s) RETURNING id", (w["file"], w["run"], text))[0]
+    block = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text, canonical, reading_order) VALUES "
+                   "(%s, %s, 1, 'paragraph', %s, true, (SELECT count(*) + 1 FROM litkb.blocks)) RETURNING id", (w["file"], w["run"], text))[0]
     _add_evidence(pg, pg.conn, dict(w, block=block), w["ws"], w["uv"], span, 0, len(span))
     return w, block, span
 

@@ -4,13 +4,13 @@ Two things lived in five and three places respectively until S4, and both had dr
 something a reader could not check:
 
   * **the current-run join.** ``JOIN litkb.files f ON f.id = b.file_id AND f.current_run_id =
-    b.run_id`` was hand-written at ``mcp/server.py:325`` and ``:747``, ``use.py:191``,
-    ``review_check.py:787`` and ``review_context.py:50``. Five copies of one rule with no
+    b.run_id`` was hand-written at ``mcp/server.py::_BLOCK_FROM`` and ``::_work``, ``use.py::locate_quote``,
+    ``review_check.py::_BLOCK_SQL`` and ``review_context.py::_BLOCK_TEXT_SQL``. Five copies of one rule with no
     constraint behind it: a sixth reader that forgot the join saw 3.55x the corpus on the
     2026-09-21 live dump (372,305 blocks, of which 267,545 belong to a run no file points at).
   * **the state of a work.** ``if not files: held / elif not any(current_run_id): bound-unextracted
-    / else: extracted`` was written out at ``mcp/server.py:761-767``, ``mcp/server.py:694-697`` and
-    ``hunt.py:519-524``. All three agreed, and all three were wrong in the same two ways:
+    / else: extracted`` was written out at ``mcp/server.py::_work``, ``mcp/server.py::_absent_kind`` and
+    ``hunt.py::look_up``. All three agreed, and all three were wrong in the same two ways:
     ONE extracted file beside one unreadable file read ``extracted`` (``any()``), and a current run
     holding zero blocks read ``extracted, blocks: 0``. Neither had ever fired on real data — live,
     0 works hold more than one active file and 0 files have a current run with no blocks — so the
@@ -106,7 +106,7 @@ def extracted_reason(metrics, *, fresh=True):
     """WHICH tools produced a current run's blocks, from the run's own `metrics`.
 
     `grobid-only` / `docling-only` mean the reconciliation ran on one tool because the other
-    produced nothing. Until S4 this was derived from ARTIFACT EXISTENCE at `hunt.py:1621` — "is
+    produced nothing. Until S4 this was derived from ARTIFACT EXISTENCE at `hunt.py::_finish` — "is
     there a .docling.json on disk" — and that is not the same question: the live `Maiti_2022` run
     `01a0c263` has a `.docling.json` beside it, 69 `grobid_regions`, 0 `docling_regions` and not
     one block with `source = 'docling'`, and the hunt called it `fresh`. The artifact is the

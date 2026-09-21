@@ -1784,8 +1784,10 @@ a manual route as an `operator_intervention`, and folding the two together would
 web source read as a human having stepped in. `status` is the vocabulary migration 0013 states.
 
 **THE ACQUISITION-EVENT CONTRACT (S2).** Every BOUND file has an `ok` row whose `detail->>'sha256'`
-is that file's sha256 — the join is the BYTES, not a file id, because the route path records the
-attempt before `attach_file` has returned one. The route path's `detail` carries `sha256`, `md5`,
+is that file's sha256 **and whose `work_id` is the work the file is bound to**. The join is the
+BYTES rather than a file id because the route path records the attempt before `attach_file` has
+returned one; the work is the second half of it because an `ok` attempt for some OTHER work — in
+another workstream, in another year — says nothing about how THIS binding got its file. The route path's `detail` carries `sha256`, `md5`,
 `bytes`, `binding`, `source_url`, `attach`, `filed`; the `hunt-url` route writes the same five
 facts plus `http_status` (`litkb.acquire.events.DETAIL_KEYS`) and no `binding`/`attach`, because
 `admit_web` performs the binding and the admission together. `identifier_used` is the work's DOI
@@ -1801,8 +1803,14 @@ so the contract — which is about bound files — is not reached.
 
 `bound_without_event(conn, workstream_id, since_utc)` in `litkb.acquire.events` is the verifier
 that makes that checkable: every file version the workstream bound after the instant with no `ok`
-attempt naming its bytes. Empty is the only passing answer, and what it returns is what
-`qc/instruments/litkb_acceptance.py first-work` counts as `operator_interventions`.
+attempt naming its bytes for its work. Empty is the only passing answer, and what it returns is
+what `qc/instruments/litkb_acceptance.py first-work` counts as `operator_interventions`.
+
+The `hunt-url` write is BEST-EFFORT and the verifier is the gate: a write that fails leaves the
+file bound (losing an admitted work because its provenance row could not be written would trade a
+missing record for a lost one) and reports itself in the hunt result's `refusals` under
+`acquisition-event-failed`, with the file then returned by `bound_without_event` until an event
+exists for it. A database that has not applied 0028 is exactly that case.
 
 ## `hunt_requests.ref_scheme` (litkb, migration 0023 widened by 0027)
 

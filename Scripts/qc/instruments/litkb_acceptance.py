@@ -100,9 +100,18 @@ report a full set of "known" states and pass.
 WHAT `first-work` COUNTS (S2), and every choice inside it. S2's claim is that ONE genuinely
 unknown work crossed admission, acquisition, extraction, workstream visibility, recording and
 review WITH NO OPERATOR REPAIR. `first-work --freeze` writes the baseline BEFORE the run — repo
-HEAD, the two migration tips, the workstream, the UTC freeze instant, the optional hunt_request
-the run is following up, and six BASELINE COUNTS, each with the SQL text that produced it under
-the manifest's `queries` key so a reader can see what was counted rather than trust a number.
+HEAD, the two migration tips, the workstream, the freeze instant, the optional hunt_request the
+run is following up, and six BASELINE COUNTS, each with the SQL text that produced it under the
+manifest's `queries` key so a reader can see what was counted rather than trust a number.
+
+THE FREEZE INSTANT IS THE DATABASE'S CLOCK (`baseline_snapshot`, and `frozen_at_source: "db"` in
+the manifest says so). It and the six counts are read in ONE repeatable-read transaction, so
+`frozen_at` is exactly the moment of the snapshot they were counted from. Every timestamp it is
+later compared against — `works.created_at`, `file_versions.created_at`, `use_versions.created_at`
+— defaults to that same server's `now()`, and a workstation clock agrees with it only by
+coincidence: one seconds ahead would freeze at an instant later than rows the baseline had already
+counted, and each of those would then score as a NEW work.
+
 `first-work --manifest` then prints seven counters:
 
   new_works       works whose identity row was created IN this workstream AFTER the freeze
@@ -539,9 +548,9 @@ def db_migration_tip(db, passfile=None):
         return None, f"{type(e).__name__}: {str(e).splitlines()[0][:160]}"
 
 
-def _connect(db, role):
+def _connect(db, role, autocommit=True):
     from litkb.db import connect as c
-    return c.connect(db, role, autocommit=True)
+    return c.connect(db, role, autocommit=autocommit)
 
 
 def resolve_workstream(db, role, slug):
@@ -850,12 +859,36 @@ SELECT fv.version_id::text, fv.file_id::text, fv.source_route
 """
 
 
-def _baseline_counts(db, role, ws_id):
-    """{name: count} for BASELINE_QUERIES, run as written."""
-    conn = _connect(db, role)
+def baseline_snapshot(db, role, ws_id):
+    """(frozen_at, {name: count}) — the freeze instant AND the baseline, from ONE clock and ONE
+    snapshot.
+
+    THE FREEZE INSTANT IS THE DATABASE'S, not this process's. `frozen_at` and every count it is
+    compared against are read from the same server in the same REPEATABLE READ transaction, so
+    `now()` (which in PostgreSQL is the transaction's start time) is exactly the instant the
+    snapshot the counts were taken from was established. A client clock cannot be used for this:
+    `works.created_at` defaults to the server's `now()`, and the two clocks agree only by
+    coincidence — a workstation seconds ahead of its database server would freeze at an instant
+    later than rows the baseline had already counted, and every one of those would then score as a
+    NEW work. The test fixtures had read `SELECT now()` for exactly this reason since the day they
+    were written; the freeze had not.
+
+    REPEATABLE READ rather than the default READ COMMITTED, because under READ COMMITTED each
+    count takes a fresh snapshot: a row inserted while the six queries run is in a later count and
+    not in an earlier one, and it is after `now()` in either case. One snapshot makes "the baseline"
+    a single fact about a single moment, which is what the word means.
+    """
+    conn = _connect(db, role, autocommit=False)
     try:
-        return {name: conn.execute(sql, {"ws": ws_id}).fetchone()[0]
-                for name, sql in BASELINE_QUERIES.items()}
+        from psycopg import IsolationLevel
+
+        conn.isolation_level = IsolationLevel.REPEATABLE_READ
+        with conn.transaction():
+            at = conn.execute("SELECT now()").fetchone()[0]
+            counts = ({name: conn.execute(sql, {"ws": ws_id}).fetchone()[0]
+                       for name, sql in BASELINE_QUERIES.items()} if ws_id
+                      else dict.fromkeys(BASELINE_QUERIES))
+        return at, counts
     finally:
         conn.close()
 
@@ -1116,14 +1149,18 @@ def _first_work_freeze(args):
             return 2
     repo = Path(args.repo or _repo_root())
     role = args.role
-    frozen_at = _utc_now()
     ws_id = resolve_workstream(args.db, role, args.workstream)
-    baseline = _baseline_counts(args.db, role, ws_id) if ws_id else {
-        name: None for name in BASELINE_QUERIES}
+    frozen_at, baseline = baseline_snapshot(args.db, role, ws_id)
     db_tip, db_tip_note = db_migration_tip(args.db, args.passfile)
     manifest = {
         "kind": "litkb-first-work",
-        "frozen_at": frozen_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        # FULL PRECISION, and UTC. Not the scout's `%Y-%m-%dT%H:%M:%SZ`: truncating to the second
+        # moves the instant EARLIER, which is the unsafe direction — a row written in the truncated
+        # fraction is before the freeze and would score as a new work.
+        "frozen_at": frozen_at.astimezone(dt.timezone.utc).isoformat(),
+        # WHICH CLOCK. Recorded because "the freeze instant" is meaningless without it, and because
+        # a later manifest written by some other hand can be read for this field and disbelieved.
+        "frozen_at_source": "db",
         "repo": str(repo),
         "repo_head": _repo_head(repo),
         "db": args.db,

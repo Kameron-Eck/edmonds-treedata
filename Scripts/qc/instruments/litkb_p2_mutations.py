@@ -1890,11 +1890,25 @@ hu(block, "AE1", f"{PKG}/hunt.py",
    "how many bytes arrived — the state the contract exists to make impossible")
 hu(replace, "AE2", f"{PKG}/acquire/events.py",
    "   AND NOT EXISTS (SELECT 1 FROM litkb.acquisition_attempts a\n"
-   "                    WHERE a.status = 'ok' AND a.detail->>'sha256' = f.sha256)",
+   "                    WHERE a.status = 'ok' AND a.detail->>'sha256' = f.sha256\n"
+   "                      AND a.work_id = fv.work_id)",
    "   AND true",
    "the verifier stops asking about the EVENT and returns every file the workstream bound: it can "
    "no longer tell an accounted-for file from an unaccounted-for one, which is the one thing "
    "`operator_interventions` reads it for")
+hu(replace, "AE3", f"{PKG}/hunt.py",
+   "        refusals.append({\"code\": \"acquisition-event-failed\", \"message\": EVENT_FAILED,\n"
+   "                         \"detail\": detail, \"sha256\": sha256, \"route\": events.ROUTE})",
+   "        pass",
+   "the event write's failure is recorded in a field nothing reads: the hunt returns ok=True with "
+   "an EMPTY refusals list and the CLI exits 0, so a file bound with no provenance row looks "
+   "exactly like one that has one — and this is the branch that runs on any database that has not "
+   "applied migration 0028")
+hu(replace, "AE4", f"{PKG}/acquire/events.py",
+   "\n                      AND a.work_id = fv.work_id", "",
+   "the verifier exonerates by sha256 ALONE: any `ok` attempt ever recorded for those bytes — "
+   "another work, another workstream, another year — accounts for a fresh binding, so the "
+   "hand-placed file the verifier exists to name reads as accounted-for")
 hu(site, "RD19", "litkb/acquire/events.py::record_url_landing::redact", "{a0}",
    what="events.record_url_landing: acquisition_attempts.identifier_used is stored as the URL was "
         "fetched — a key in its query string is written to the row and printed by every later "

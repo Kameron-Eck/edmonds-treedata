@@ -923,8 +923,8 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
         # is created BY admit_web. Every earlier refusal on this path therefore leaves no event and
         # no bound file, which is the contract rather than a gap — events.py names the four and
         # says what each leaves instead.
-        _record_acquisition_event(writer, ws_id, token, res["work_id"], out, url=ref, sha256=sha,
-                                  data=data, http_status=status, filed=store.rel(pdf))
+        _record_acquisition_event(writer, ws_id, token, res["work_id"], out, refusals, url=ref,
+                                  sha256=sha, data=data, http_status=status, filed=store.rel(pdf))
         # END call site: the URL path records its acquisition event
         # BEGIN call site: hunt_request linked from a fresh web-source admission
         if hunt_request_id:
@@ -1145,8 +1145,22 @@ def _link_hunt_request(db, ws_id, token, hunt_request_id, work_id, agent, sessio
             conn.close()
 
 
-def _record_acquisition_event(conn, ws_id, token, work_id, out, *, url, sha256, data, http_status,
-                              filed):
+#: What the caller is told when the file bound and its provenance row did not. It is a REFUSAL —
+#: `hunt()`'s documented contract is `ok` / `refused` / `refusals` (this module's `hunt` docstring),
+#: and a failure recorded only in a field nothing reads is a failure nobody is told about. The hunt
+#: still succeeded: the work is admitted, the file is bound and the blocks are ingested, and that is
+#: why this is a refusals entry rather than `ok = False`, exactly as `no-spend` and `not-acquired`
+#: are.
+EVENT_FAILED = ("the file is bound and its acquisition event could NOT be recorded, so nothing in "
+                "the knowledge base says where these bytes came from. "
+                "`litkb.acquire.events.bound_without_event` returns this file until an event "
+                "exists for it. The usual cause is a database that has not applied migration 0028 "
+                "(the `hunt-url` route); apply it, then hunt the reference again — the second hunt "
+                "answers from the database and records the event without fetching anything.")
+
+
+def _record_acquisition_event(conn, ws_id, token, work_id, out, refusals, *, url, sha256, data,
+                              http_status, filed):
     """The URL path's `ok` acquisition attempt, through the SAME function the route path uses.
 
     ONE PROVENANCE SHAPE (`litkb.acquire.events`): route `hunt-url`, the URL redacted as
@@ -1158,9 +1172,16 @@ def _record_acquisition_event(conn, ws_id, token, work_id, out, *, url, sha256, 
     NEVER RAISES, for the reason `_link_hunt_request` never raises and one more: this call happens
     AFTER the file is bound, so an exception here would turn a complete admission into a hunt that
     reports failure while the work, the file and (below) its blocks are all in the database. The
-    failure is reported in `out['acquisition_event']` and the file then comes back from
-    `events.bound_without_event` — the verifier is the gate, not this write. A database that has
-    not yet applied migration 0028 lands exactly here.
+    file stays bound and `events.bound_without_event` is what catches it — the verifier is the
+    gate, not this write.
+
+    IT IS NOT SILENT, THOUGH, and that distinction is the whole of the fix of 2026-09-20: the
+    first version set `out['acquisition_event']['ok'] = False` and nothing read that field, so a
+    hunt whose provenance row was never written returned `ok: True`, an empty `refusals` and exit
+    0 — and this branch is the one that RUNS on a database that has not applied migration 0028
+    yet, which is to say on live between this merge and that migration. The failure now goes into
+    `refusals`, which is where `hunt()`'s docstring promises a caller will find everything the run
+    refused to do and why.
     """
     from litkb.acquire import events
 
@@ -1171,8 +1192,13 @@ def _record_acquisition_event(conn, ws_id, token, work_id, out, *, url, sha256, 
         out["acquisition_event"] = {"ok": True, "route": events.ROUTE, "status": "ok",
                                     "attempt_id": str(attempt_id)}
     except Exception as e:                # noqa: BLE001 — the verifier is the gate, not this write
-        out["acquisition_event"] = {"ok": False, "route": events.ROUTE,
-                                    "error": f"{type(e).__name__}: {e}"}
+        # 300 characters: a PL/pgSQL CheckViolation carries the whole failing row and the whole
+        # constraint body, which is a screen of text a caller has to scroll past to reach the next
+        # refusal. The class name plus the head of the message names the cause.
+        detail = f"{type(e).__name__}: {str(e)[:300]}"
+        out["acquisition_event"] = {"ok": False, "route": events.ROUTE, "error": detail}
+        refusals.append({"code": "acquisition-event-failed", "message": EVENT_FAILED,
+                         "detail": detail, "sha256": sha256, "route": events.ROUTE})
 
 
 def _thin(res):

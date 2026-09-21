@@ -1598,6 +1598,47 @@ def test_the_freeze_writes_the_baseline_with_the_query_that_produced_each_count(
     assert m["manual_file_routes"] == list(mod.MANUAL_FILE_ROUTES), m
 
 
+@pg_only
+def test_the_freeze_instant_is_the_databases_clock_not_this_processs(mod, capsys, tmp_path,
+                                                                     fw_ws, monkeypatch):
+    """The client clock is moved a year into the future; the manifest must still carry the
+    SERVER's instant.
+
+    `works.created_at`, `file_versions.created_at` and `use_versions.created_at` all default to the
+    database's `now()`. A freeze taken from this process agrees with them only by coincidence, and
+    the disagreement is not symmetric: a workstation AHEAD of its server freezes at an instant
+    later than rows the baseline has already counted, so every one of those scores as a NEW work
+    and the run reads as a discovery it never made. The fixtures in this file have read
+    `SELECT now()` since they were written, for this reason; the freeze had not.
+
+    THE KILL is the second half: the chain seeded BEFORE the freeze is in the baseline, and with a
+    future client clock a client-clock freeze would score it `new_works=1`. Reading the server's
+    clock scores it 0, which is the truth — nothing was discovered after this freeze."""
+    import datetime as dt
+
+    slug = fw_ws["conn"].execute("SELECT slug FROM litkb.workstreams WHERE id = %s",
+                                 (fw_ws["ws_id"],)).fetchone()[0]
+    fw_ws["seed"]()                       # in the baseline: seeded BEFORE the freeze
+    far_future = dt.datetime(2099, 1, 1, tzinfo=dt.timezone.utc)
+    monkeypatch.setattr(mod, "_utc_now", lambda: far_future)
+    out_path = tmp_path / "frozen.json"
+    code, _out, _err = run(mod, capsys, ["first-work", "--freeze", "--workstream", slug,
+                                         "--db", fw_ws["db"], "--role", "litkb_test",
+                                         "--out", str(out_path)])
+    assert code == 0
+    m = json.loads(out_path.read_text(encoding="utf-8"))
+    assert m["frozen_at_source"] == "db", m
+    frozen = mod._parse_utc(m["frozen_at"])
+    assert frozen.year != far_future.year, m["frozen_at"]
+    assert abs((frozen - fw_ws["now"]()).total_seconds()) < 120, m["frozen_at"]
+    # full precision: truncating to the second moves the instant EARLIER, the unsafe direction
+    assert frozen.microsecond or "." in m["frozen_at"], m["frozen_at"]
+    # and the chain seeded before it is NOT a discovery
+    code, out, _err = fw_run(mod, capsys, out_path)
+    assert counters_of(out)["new_works"] == "0", out
+    assert code == 1, out
+
+
 def test_first_work_needs_a_manifest_or_a_freeze(mod, capsys):
     code, _out, err = run(mod, capsys, ["first-work"])
     assert code == 2 and "--manifest" in err, err

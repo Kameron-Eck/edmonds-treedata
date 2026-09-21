@@ -106,10 +106,25 @@ def record_url_landing(conn, ws, token, work_id, *, url, sha256, md5, nbytes, ht
 
 
 #: Every file version this workstream bound after the instant, that no successful acquisition
-#: attempt accounts for. `detail->>'sha256'` is the join, not `file_id`: the event is about the
-#: BYTES that arrived, and the route path records it before `attach_file` has returned a file id.
-#: The attempt is NOT scoped to the workstream -- a sha256 acquired once is acquired, and scoping
-#: it would report a re-binding of known bytes as unaccounted-for.
+#: attempt accounts for.
+#:
+#: TWO PREDICATES, and the second was missing until 2026-09-20. `detail->>'sha256'` is the join
+#: rather than `file_id`, because the event is about the BYTES that arrived and the route path
+#: records it before `attach_file` has returned a file id. But bytes alone are not the question
+#: this asks: `a.work_id = fv.work_id` scopes the exoneration to the work the file is BOUND TO
+#: (`file_versions.work_id`, the column `attach_file` writes and the one main's `main_files` view
+#: reads), so an `ok` attempt recorded for some OTHER work -- in another workstream, in another
+#: year -- cannot account for this binding.
+#:
+#: The first version deliberately left that out, reasoning that "a sha256 acquired once is
+#: acquired". That reasoning was wrong in the direction that matters: the counter this feeds asks
+#: whether THIS run's binding is accounted for, and a corpus that has ever fetched these bytes for
+#: anything would otherwise exonerate a file bound to a different work with no fetch of its own --
+#: which is precisely the hand-placed file the verifier exists to name.
+#:
+#: The attempt is still not scoped to the WORKSTREAM, and that is deliberate: a file acquired for
+#: this work in an earlier workstream and re-bound here is accounted for, by an event that names
+#: the same work and the same bytes.
 BOUND_WITHOUT_EVENT_SQL = """
 SELECT fv.file_id::text, fv.work_id::text, f.sha256, fv.version_id::text, fv.rel_path,
        fv.source_route, fv.created_at
@@ -117,7 +132,8 @@ SELECT fv.file_id::text, fv.work_id::text, f.sha256, fv.version_id::text, fv.rel
   JOIN litkb.files f ON f.id = fv.file_id
  WHERE fv.workstream_id = %(ws)s AND fv.created_at > %(since)s
    AND NOT EXISTS (SELECT 1 FROM litkb.acquisition_attempts a
-                    WHERE a.status = 'ok' AND a.detail->>'sha256' = f.sha256)
+                    WHERE a.status = 'ok' AND a.detail->>'sha256' = f.sha256
+                      AND a.work_id = fv.work_id)
  ORDER BY fv.created_at, fv.file_id
 """
 
@@ -126,7 +142,8 @@ _COLS = ("file_id", "work_id", "sha256", "version_id", "rel_path", "source_route
 
 def bound_without_event(conn, workstream_id, since_utc):
     """[{file_id, work_id, sha256, version_id, rel_path, source_route, created_at}] -- the files
-    this workstream bound after `since_utc` with no `ok` acquisition attempt naming their bytes.
+    this workstream bound after `since_utc` with no `ok` acquisition attempt naming their bytes
+    FOR THE WORK THEY ARE BOUND TO (see the two predicates above the SQL).
 
     EMPTY IS THE ONLY PASSING ANSWER. A non-empty list is what S2's `operator_interventions`
     counts and what S5 reuses: a file that is in the knowledge base and cannot say how it got

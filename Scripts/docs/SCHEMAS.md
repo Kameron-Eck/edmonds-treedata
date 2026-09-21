@@ -1870,8 +1870,9 @@ attempt and does not enter the rule. `acquire()` hands the hunt the per-route `r
 reads (`litkb.acquire.run`); `attempts` keeps its `(route, status)` shape.
 
 **WHERE AN OUTCOME LIVES.** Nowhere in the schema: no table holds a hunt outcome, and S3 adds no
-migration. The run-level homes are CSVs — the scout-run ledger above, and the S3 edge-run ledger
-(written by S3's builder C under Reports/) — and `litkb.hunt.ledger_word` is the ONE function that
+migration. The run-level homes are CSVs — the scout-run ledger above, and the edge-run ledger
+below (`LITKB_EDGE_RUN_<date>.csv`, which records the STATE and the REASON as two columns) — and
+`litkb.hunt.ledger_word` is the ONE function that
 chooses the word either writes: the refusal code where there is one, the reason where the reason is
 a closed word, the state where it is not. `CLOSED_STATES` in `qc/instruments/litkb_acceptance.py`
 is derived from `STATES` + every enumerable member of `REASONS` (plus `held-no-spend`, which older
@@ -1897,6 +1898,55 @@ Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a re
 (`Store.to_quarantine` + `write_reason`) — the reaper never deletes and never writes the database.
 `--dry-run` is the default. Counters, one line: `scanned owned young orphans quarantined
 skipped_errors`.
+
+## LITKB_EDGE_RUN_&lt;date&gt;.csv (Reports/, GENERATED — the edge-case register's ledger)
+
+Written by `qc/instruments/litkb_edge_run.py` from the manifest that
+`qc/instruments/litkb_acceptance.py edges --freeze` wrote BEFORE the run, and graded by
+`litkb_acceptance.py edges --manifest`. One row per row of the register
+(`qc/fixtures/litkb_hunt_edge_cases.json`), resolved through `litkb.hunt.hunt`. Columns, in order:
+`row_id`, `class`, `mode`, `ref`, `ref_scheme`, `expected_state`, `expected_reason`,
+`observed_state`, `observed_reason`, `ok`, `refusal_codes`, `work_id`, `admission_id`, `file_id`,
+`run_id`, `attempt_statuses`, `route_detail`, `new_admissions`, `report`, `seconds`, `traceback`,
+`started_at`, `message`. The `_replay.csv` beside it is the same shape, written by `--replay`.
+
+**STATE AND REASON ARE TWO COLUMNS, and that is the difference from the scout ledger above.** The
+scout CSV records one closed word (`litkb.hunt.ledger_word`), which is all a drop-off follow-up
+needs. The four states S3 added are only legible as a PAIR: `api-error/registry-transient` and
+`api-error/route-raised` are one word in a one-column ledger and two different next moves for the
+operator. `route_detail` carries what `acquire()` returns per route (`route`, `status`, `codes`,
+`exception`) so a `blocked/403` row can be told from a `blocked/challenge` row after the fact —
+the codes are what the precedence rule read. `report` is a small JSON object (`in_main`,
+`admission_state`, `blocks`) holding the facts `state` deliberately does NOT carry, because a web
+source's proposal-ness lives in `in_main` plus the admission's outcome rather than in the rung
+(see the hunt's terminal states above). `mode` is the mode this row RAN in, and `traceback=1` is a
+raise out of `hunt()` — the thing the whole vocabulary exists to make impossible, recorded as a
+row rather than as a dead run.
+
+**The register is an ADJUDICATED table, not a list of tests.** Every row names a real carrier from
+the corpus, cites where it came from, and states from code and from the attempts history why its
+`(state, reason)` is the right one. A row whose expected state needs a human carries
+`held_for_ruling` with the question and the evidence instead of an expectation, and is NOT a
+manifest row. A row the hunt vocabulary does not cover at all — a scout-side tool fault — carries
+`live.mode = "not-a-hunt"` and is excluded from `executed`. A row whose replay cannot hold a
+precondition only the live corpus has carries `replay.expected`, which overrides for the replay
+alone; both expectations are in the register and both are graded.
+
+`edges` prints one line — `executed skipped state_or_reason_mismatches tracebacks held_for_ruling
+waits_on_migration` — and exits 0 only when `executed` equals the manifest's own non-held,
+non-waiting row count and the other three are zero. A MISMATCH is an observed pair differing from
+the expected one, an `asserts` entry failing, or an observed state outside
+`litkb_acceptance.CLOSED_STATES`; **membership alone cannot pass**, which is what separates this
+counter from the scout's `unknown_states`. The manifest freezes the register's sha256 and the
+grader refuses a register that changed since — the register is what the run is graded against, so
+a register edited afterwards grades a different question.
+
+`waits-on-migration` is MEASURED at freeze (`db_migration_tip` against a row's own
+`needs_migration`), never written into the register: 0028 was unapplied when S3 opened and applied
+the same night, and a hard-coded wait would still be waiting. `--replay` re-runs every non-held
+row on `LITKB_TEST_DB` — reset and migrated under the suite's advisory lock, with every route,
+registry, fetch and extractor replaced at the seams `qc/test_litkb_hunt.py` uses — so a waiting row
+is proven there while the live run waits. It refuses the database name `litkb`.
 
 ## litkb Codex report JSON (`qc/fixtures/litkb_codex_report.schema.json`, GENERATED per review)
 

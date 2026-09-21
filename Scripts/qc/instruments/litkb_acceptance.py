@@ -198,6 +198,7 @@ import argparse
 import csv
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -1539,6 +1540,258 @@ def cmd_preflight(args):
     return 0 if not any(counters.values()) else 1
 
 
+# ── edges: does EVERY edge class end in the state the register adjudicated (S3) ───────────
+#
+# The scout counted whether a drop-off ended in SOME closed word. This counts whether it ended in
+# the RIGHT one: the register (`qc/fixtures/litkb_hunt_edge_cases.json`) names the (state, reason)
+# pair for each class and cites the code and the attempts history that decide it, and this command
+# compares the pair the run observed against it. Membership alone cannot pass — that is the whole
+# difference, and the mutation row that proves it swaps one row's expectation for another VALID
+# pair and requires a mismatch.
+
+#: The register file's `kind`, and this command's manifest `kind`.
+EDGES_FIXTURE_KIND = "litkb-hunt-edge-cases"
+EDGES_MANIFEST_KIND = "litkb-edges"
+
+#: The migration the URL branch's acquisition-event route waits on (`hunt-url` in
+#: `acquisition_attempts_route_check`). Rows that need it declare `live.needs_migration`; the mode
+#: is MEASURED at freeze against `db_migration_tip`, never hard-coded — 0028 was unapplied on the
+#: morning S3 opened and applied by the afternoon.
+EDGES_URL_MIGRATION = 28
+
+
+def _edge_run():
+    """The sibling driver, by path (the scout checker's rule): one home for the CSV columns, the
+    mode rule and the expectation rule, never a second copy here."""
+    spec = importlib.util.spec_from_file_location(
+        "litkb_edge_run", SCRIPTS / "qc" / "instruments" / "litkb_edge_run.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def _edge_rows(fixture_path):
+    return json.loads(read_text(fixture_path))
+
+
+def _asserts_offences(row, csv_row):
+    """The register's extra `asserts`, checked against the CSV row. -> [offence lines].
+
+    These are the facts `state` deliberately does NOT carry — whether the work reached main,
+    whether the admission is a proposal, how many admissions the hunt wrote, what the route
+    attempt recorded — and a row that got the pair right by writing a second admission has not
+    passed."""
+    out = []
+    a = row.get("asserts") or {}
+    rid = row["id"]
+    try:
+        report = json.loads(csv_row.get("report") or "{}")
+    except ValueError:
+        report = {}
+    for key in ("in_main", "admission_state"):
+        if key in a:
+            if report.get(key) != a[key]:
+                out.append(f"{rid}: {key} {report.get(key)!r} != {a[key]!r}")
+    if "new_admissions" in a and a["new_admissions"] is not None:
+        got = str(csv_row.get("new_admissions") or "").strip()
+        if got != str(a["new_admissions"]):
+            out.append(f"{rid}: new_admissions {got!r} != {a['new_admissions']}")
+    if a.get("attempt_status"):
+        statuses = [s.split(":", 1)[-1] for s in
+                    (csv_row.get("attempt_statuses") or "").split(";") if s]
+        detail = csv_row.get("route_detail") or "[]"
+        if a["attempt_status"] not in statuses and f'"{a["attempt_status"]}"' not in detail:
+            out.append(f"{rid}: no route attempt with status {a['attempt_status']!r} "
+                       f"(attempts={statuses})")
+    # BEGIN guard: an assert this grader cannot evaluate is named, never silently passed
+    # A gate that has never fired is not a gate (CLAUDE.md §3.4c). The register may carry an
+    # assert about a fact no column holds; saying so is a mismatch, because the alternative is a
+    # row that reads as checked and is not.
+    unknown = sorted(set(a) - {"in_main", "admission_state", "new_admissions", "attempt_status"})
+    for key in unknown:
+        out.append(f"{rid}: assert {key!r} is not checkable from the edge-run CSV — add a column "
+                   "or drop the assert; it is NOT being checked")
+    # END guard: an assert this grader cannot evaluate is named, never silently passed
+    return out
+
+
+def check_edges(manifest, *, rows=None, csv_path=None, replay=False, fixture_sha=None):
+    """(counters dict, [offence lines]).
+
+    `rows` and `fixture_sha` are injected by the tests; the defaults read the fixture named in the
+    manifest and its sha256 on disk. THE SHA IS CHECKED BEFORE ANYTHING IS GRADED: the register is
+    what the run is graded against, so a register edited after the freeze grades a different
+    question, and a mutation of the fixture that the grader then passed would make this command
+    unable to catch its own known-bad."""
+    E = _edge_run()
+    offences = []
+    fixture = manifest.get("fixture")
+    if rows is None:
+        if fixture_sha is None:
+            fixture_sha = _sha256(fixture)
+        want = manifest.get("fixture_sha256")
+        # BEGIN guard: the register graded is the register frozen
+        if want and fixture_sha != want:
+            raise SystemExit(f"litkb_acceptance edges: {fixture} has sha256 {fixture_sha}, the "
+                             f"manifest froze {want}. The register was edited after the freeze; "
+                             "re-freeze it or restore the file. Nothing was graded.")
+        # END guard: the register graded is the register frozen
+        register = _edge_rows(fixture)
+        if register.get("kind") != EDGES_FIXTURE_KIND:
+            offences.append(f"{fixture}: kind {register.get('kind')!r} is not "
+                            f"{EDGES_FIXTURE_KIND!r}")
+        rows = E.rows_of(register)
+
+    results = E.read_edge_csv(csv_path or (manifest["replay_csv"] if replay
+                                           else manifest["run_csv"]))
+    db_tip = manifest.get("db_migration_tip")
+
+    executed = skipped = mismatches = tracebacks = held = waiting = 0
+    for row in rows:
+        rid = row["id"]
+        mode = E.resolve_mode(row, db_tip)
+        if mode == "held-for-ruling":
+            held += 1
+            if not (row.get("held_for_ruling") or {}).get("question"):
+                offences.append(f"{rid}: held_for_ruling with no question")
+            continue
+        if mode == "not-a-hunt":
+            continue
+        # in --replay a waiting row IS executed: the worker database is migrated by the driver, so
+        # the migration the live run waits on is present there by construction
+        if mode == "waits-on-migration" and not replay:
+            waiting += 1
+            continue
+        if mode == "replay-only" and not replay:
+            continue
+        hit = results.get(rid)
+        if hit is None:
+            skipped += 1
+            offences.append(f"{rid}: no row in the driver CSV")
+            continue
+        executed += 1
+        if str(hit.get("traceback") or "0").strip() not in ("", "0", "false"):
+            tracebacks += 1
+            offences.append(f"{rid}: hunt() RAISED — {hit.get('message')}")
+            continue
+        want_state, want_reason = E.expected_of(row, replay=replay)
+        got_state = (hit.get("observed_state") or "").strip()
+        got_reason = (hit.get("observed_reason") or "").strip()
+        row_offences = []
+        # BEGIN guard: the pair is compared, and membership alone cannot pass
+        if (got_state, got_reason) != (want_state, want_reason):
+            row_offences.append(f"{rid}: observed {got_state}/{got_reason} != expected "
+                                f"{want_state}/{want_reason}")
+        # END guard: the pair is compared, and membership alone cannot pass
+        if got_state not in CLOSED_STATES:
+            row_offences.append(f"{rid}: state {got_state!r} outside the closed vocabulary")
+        row_offences += _asserts_offences(row, hit)
+        if row_offences:
+            mismatches += 1
+            offences += row_offences
+
+    return ({"executed": executed, "skipped": skipped,
+             "state_or_reason_mismatches": mismatches, "tracebacks": tracebacks,
+             "held_for_ruling": held, "waits_on_migration": waiting}, offences)
+
+
+def edges_ok(counters, manifest_rows):
+    """`executed` must equal the rows the manifest expected to run — a run that hunted half the
+    register and got them all right has not graded the register."""
+    return (counters["executed"] == manifest_rows and counters["skipped"] == 0
+            and counters["state_or_reason_mismatches"] == 0 and counters["tracebacks"] == 0)
+
+
+def edges_manifest_rows(manifest, counters, *, replay=False):
+    """How many rows this mode was supposed to execute: the manifest's own row list, minus the
+    held and the not-a-hunt rows, minus (outside --replay) the rows waiting on a migration."""
+    rows = [r for r in (manifest.get("rows") or [])
+            if r.get("mode") not in ("held-for-ruling", "not-a-hunt")]
+    if not replay:
+        rows = [r for r in rows if r.get("mode") != "waits-on-migration"]
+        rows = [r for r in rows if r.get("mode") != "replay-only"]
+    return len(rows)
+
+
+def cmd_edges(args):
+    if args.freeze:
+        return _edges_freeze(args)
+    if not args.manifest:
+        print("litkb_acceptance edges needs --manifest (or --freeze --out)", file=sys.stderr)
+        return 2
+    manifest = json.loads(read_text(args.manifest))
+    if args.replay and not args.no_execute:
+        # `--replay` EXECUTES the replay first, then grades it: two commands that could disagree
+        # about which CSV they meant is the failure mode the scout's `--out`/`--csv` split already
+        # produced once. `--no-execute` grades a replay CSV somebody else wrote.
+        E = _edge_run()
+        import tempfile
+
+        db = os.environ.get("LITKB_TEST_DB") or "litkb_test"
+        register = E.load_register(manifest["fixture"])
+        with tempfile.TemporaryDirectory(prefix="litkb-edge-replay-") as tmp:
+            E.run_replay(register, args.csv or manifest["replay_csv"], db=db, tmp=tmp)
+    counters, offences = check_edges(manifest, csv_path=args.csv, replay=args.replay)
+    for line in offences:
+        print(line, file=sys.stderr)
+    print(" ".join(f"{k}={v}" for k, v in counters.items()))
+    return 0 if edges_ok(counters, edges_manifest_rows(manifest, counters,
+                                                       replay=args.replay)) else 1
+
+
+def _edges_freeze(args):
+    for required in ("workstream", "fixture", "out"):
+        if not getattr(args, required):
+            print(f"edges --freeze needs --{required}", file=sys.stderr)
+            return 2
+    E = _edge_run()
+    repo = Path(args.repo or _repo_root())
+    role = args.role
+    ws_id = resolve_workstream(args.db, role, args.workstream)
+    frozen_at, _baseline = baseline_snapshot(args.db, role, ws_id)
+    db_tip, db_tip_note = db_migration_tip(args.db, args.passfile)
+    register = E.load_register(args.fixture)
+    # THE MODE IS MEASURED HERE AND NOWHERE ELSE. `waits-on-migration` is a fact about this
+    # database at this instant; a row that hard-coded it would still be waiting the morning after
+    # Kam applied the migration (0028, applied live 2026-09-21 00:07).
+    rows = [{"id": r["id"], "mode": E.resolve_mode(r, db_tip)} for r in E.rows_of(register)]
+    stem = f"LITKB_EDGE_RUN_{frozen_at.strftime('%Y-%m-%d')}"
+    manifest = {
+        "kind": EDGES_MANIFEST_KIND,
+        "frozen_at": frozen_at.astimezone(dt.timezone.utc).isoformat(),
+        "frozen_at_source": "db",
+        "repo": str(repo),
+        "repo_head": _repo_head(repo),
+        "db": args.db,
+        "reader_role": role,
+        "repo_migration_tip": repo_migration_tip(),
+        "db_migration_tip": db_tip,
+        "db_migration_tip_note": db_tip_note,
+        "url_route_migration": EDGES_URL_MIGRATION,
+        "workstream_slug": args.workstream,
+        "workstream_id": ws_id,
+        "worktree": str(args.worktree or repo),
+        "log": str(args.log) if args.log else None,
+        "fixture": str(args.fixture),
+        "fixture_sha256": _sha256(args.fixture),
+        "rows": rows,
+        "run_csv": args.csv or str(repo / "Reports" / f"{stem}.csv"),
+        "replay_csv": args.replay_csv or str(repo / "Reports" / f"{stem}_replay.csv"),
+        # recorded for the READER; the checker uses the module constants (the scout's rule)
+        "closed_states": list(CLOSED_STATES),
+    }
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+    modes = {}
+    for r in rows:
+        modes[r["mode"]] = modes.get(r["mode"], 0) + 1
+    print(f"frozen {out} workstream={args.workstream} id={ws_id} rows={len(rows)} "
+          f"head={manifest['repo_head'][:12]} repo_tip={manifest['repo_migration_tip']} "
+          f"db_tip={db_tip} " + " ".join(f"{k}={v}" for k, v in sorted(modes.items())))
+    return 0
+
+
 # ── cli ───────────────────────────────────────────────────────────────────────────────────
 
 def build_parser():
@@ -1597,6 +1850,29 @@ def build_parser():
     fw.add_argument("--repo", help="repository root (default: this instrument's own)")
     fw.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
     fw.set_defaults(func=cmd_first_work)
+
+    e = sub.add_parser("edges",
+                       help="did EVERY edge class end in the state the register adjudicated (S3)")
+    e.add_argument("--freeze", action="store_true",
+                   help="write the manifest BEFORE the run instead of checking one")
+    e.add_argument("--manifest", help="the manifest frozen before the run (check mode)")
+    e.add_argument("--workstream", help="the workstream slug the run works in (freeze)")
+    e.add_argument("--fixture", help="the edge-case register (freeze); its sha256 is frozen with it")
+    e.add_argument("--log", help="the stream-json log (freeze records it)")
+    e.add_argument("--csv", help="the run CSV (default: the manifest's run_csv, or replay_csv "
+                                 "with --replay)")
+    e.add_argument("--replay-csv", dest="replay_csv", help="the replay CSV (freeze)")
+    e.add_argument("--replay", action="store_true",
+                   help="EXECUTE the deterministic replay on LITKB_TEST_DB and grade it")
+    e.add_argument("--no-execute", dest="no_execute", action="store_true",
+                   help="with --replay: grade a replay CSV somebody else wrote, run nothing")
+    e.add_argument("--out", help="where to write the frozen manifest (freeze)")
+    e.add_argument("--db", default="litkb", help="the database (default: %(default)s)")
+    e.add_argument("--role", default="litkb_reader", help="read role (default: %(default)s)")
+    e.add_argument("--repo", help="repository root (default: this instrument's own)")
+    e.add_argument("--worktree", help="the worktree the run and the driver use")
+    e.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
+    e.set_defaults(func=cmd_edges)
 
     c = sub.add_parser("codex", help="did the adversarial read actually read every citation")
     c.add_argument("--review", required=True, help="the review the report claims to be about")

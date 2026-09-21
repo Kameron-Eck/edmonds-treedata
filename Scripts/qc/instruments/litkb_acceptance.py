@@ -7,6 +7,10 @@ r"""The acceptance instrument for the litkb work plan: a session's "done" is a C
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py scout --freeze --workstream scout-1 \
         --topic "…" --launch-cmd "…" --log <run.jsonl> --out <manifest.json>
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py scout --manifest <manifest.json>
+    PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py first-work --freeze \
+        --workstream <slug> [--hunt-request <id>] [--log <run.jsonl>] --out <manifest.json>
+    PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py first-work --manifest <manifest.json> \
+        [--review <md> --codex-report <report.json>]
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py codex --review <md> --context <md> \
         --report <report.json> [--mutate N]
 
@@ -23,11 +27,12 @@ the real fixtures, not assertions about the code.
 SUBCOMMANDS THAT EXIST TODAY. `plan` (does the work plan still grade itself) and `disposition`
 (did the worktree disposition actually happen), both landing with session S0; `scout` (did the
 discovery run actually discover), landing with S1; `codex` (did the adversarial read actually
-read every citation), landing between S1 and S2 with the Codex stage it grades. `first-work`,
-`edges`, `readability`, `run`,
-`synthesis` and `soak` land with their own sessions and are deliberately absent until then — an
-acceptance command that cannot fail is worse than no command. `guard-checkout` is not a session
-gate: it is the safety interlock the owner runs BEFORE removing any checkout.
+read every citation), landing between S1 and S2 with the Codex stage it grades; `first-work` (did
+ONE genuinely unknown work cross the whole loop unaided), landing with S2. `edges`, `readability`,
+`run`, `synthesis` and `soak` land with their own sessions and are deliberately absent until then
+— an acceptance command that cannot fail is worse than no command. `guard-checkout` is not a
+session gate: it is the safety interlock the owner runs BEFORE removing any checkout. `preflight`
+is not one either: it is what a session runs before its FIRST hunt.
 
 WHAT `plan` COUNTS, and the choices inside each count, because every one of them is a choice:
 
@@ -92,6 +97,86 @@ A generic `error` refusal is deliberately OUTSIDE `CLOSED_STATES`. hunt() return
 "error"` for any unexpected exception, so a driver that crashed on every row would otherwise
 report a full set of "known" states and pass.
 
+WHAT `first-work` COUNTS (S2), and every choice inside it. S2's claim is that ONE genuinely
+unknown work crossed admission, acquisition, extraction, workstream visibility, recording and
+review WITH NO OPERATOR REPAIR. `first-work --freeze` writes the baseline BEFORE the run — repo
+HEAD, the two migration tips, the workstream, the freeze instant, the optional hunt_request the
+run is following up, and six BASELINE COUNTS, each with the SQL text that produced it under the
+manifest's `queries` key so a reader can see what was counted rather than trust a number.
+
+THE FREEZE INSTANT IS THE DATABASE'S CLOCK (`baseline_snapshot`, and `frozen_at_source: "db"` in
+the manifest says so). It and the six counts are read in ONE repeatable-read transaction, so
+`frozen_at` is exactly the moment of the snapshot they were counted from. Every timestamp it is
+later compared against — `works.created_at`, `file_versions.created_at`, `use_versions.created_at`
+— defaults to that same server's `now()`, and a workstation clock agrees with it only by
+coincidence: one seconds ahead would freeze at an instant later than rows the baseline had already
+counted, and each of those would then score as a NEW work.
+
+`first-work --manifest` then prints seven counters:
+
+  new_works       works whose identity row was created IN this workstream AFTER the freeze
+                  (`litkb.works.created_in_ws` + `created_at`, not a version: a work is admitted
+                  once and edited many times, and an edit is not a new work). The bound is `== 1`,
+                  NOT `>= 1`. One work is the whole of S2 — a bounded proving run, sized so that
+                  every rung below can be read off a single chain — and a run that admitted three
+                  is a run whose other two counters no longer describe anything in particular.
+  bound           of those, works the workstream sees with an active file. Read through
+                  `litkb.hunt.look_up`, by one of the work's own active identifiers, because that
+                  function IS the four-state ladder (`absent` / `held` / `bound-unextracted` /
+                  `extracted`) and a second copy of it here would be a second definition of
+                  "extracted". `litkb_work`'s ladder in `mcp/server.py` is the same three lines
+                  over `main_files`; this path must use the workstream's view, because a URL
+                  source is a PROPOSAL and main holds nothing for it until a second session
+                  approves it.
+  extracted       of those, the ones that ladder answers `extracted` for — a file with a current
+                  extraction run. A run that produced zero blocks still counts as extracted and
+                  falls out at `searchable` instead: "the extractor ran and found nothing" and
+                  "the extractor never ran" are different problems.
+  searchable      of those, works with at least one block VISIBLE TO SEARCH from this workstream.
+                  The predicate is `mcp/server._BLOCK_FROM` itself — the fragment the search tool
+                  runs, carrying `visibility.FILE_JOIN` and the current-run join — with the
+                  server's own `DEFAULT_KINDS`, so a work whose only blocks are running heads and
+                  page numbers does NOT count. Nothing here restates that join.
+  verified_uses   use versions written in this workstream after the freeze that carry at least one
+                  evidence row with `quote_verified` — the DATABASE's verdict, set by the trigger
+                  of migrations 0007/0026 when it re-reads the span, never this instrument's and
+                  never the session's. Bound `>= 1`: S2 asks for one verified use, and a run that
+                  recorded two has not done anything wrong.
+  claims_ungraded citations of the review that have no verdict row in the Codex report. The
+                  citations come from `litkb.review_check.citations`, the grammar's own parser,
+                  by way of the same rule `check_codex` applies: a row counts as a verdict for
+                  citation *i* only when the report has a row `n = i` AND that row's `block_id` is
+                  the one the citation names. Bound `== 0`. WITH NO REVIEW AND NO REPORT IT IS
+                  NOT 0: with a review and no report it is that review's citation count, and with
+                  no review at all it is 1, because "nothing was graded" is a RED and a counter
+                  that read 0 there would make a missing review look like a clean one.
+  operator_interventions   the counter S2 exists for, defined here from FACTS rather than from a
+                  session's account of its own run, and it is the SUM of four:
+                    1. `human_input_events` from the headless log, when one is given — the same
+                       `read_log` the scout uses, so permission denials, `AskUserQuestion` and a
+                       `result.subtype` that is not `success` all count. With no log the term is 0
+                       and the manifest says no log was read; the other three are database facts
+                       and are always counted.
+                    2. an `acquisition_attempts` row for the new work with `status = 'manual-step'`
+                       (acquisition's own word for "no automated route landed it; fetch it by
+                       hand") or `route` in MANUAL_ATTEMPT_ROUTES.
+                    3. a file version of the new work whose `source_route` is in
+                       MANUAL_FILE_ROUTES — what `acquire --from-file` writes (`browser`) and what
+                       a file bound where it already lay writes (`held-in-place`).
+                    4. every file this workstream bound after the freeze that
+                       `litkb.acquire.events.bound_without_event` returns. A bound file with no
+                       acquisition event is unaccounted-for BY DEFINITION, whether a hand put it
+                       there or a code path forgot to record it, and those two are the same defect
+                       from the point of view of a cold session asking where the file came from.
+                  Bound `== 0`.
+
+Exit 0 only when `new_works == 1 and bound == 1 and extracted == 1 and searchable == 1 and
+verified_uses >= 1 and claims_ungraded == 0 and operator_interventions == 0`.
+
+THE REPLAY IS THE KILL. A manifest frozen AFTER the work was admitted — the baseline snapshot
+already holds it — scores `new_works = 0` and exits 1, which is the workplan's own (c) clause and
+the reason the freeze instant is a manifest field rather than a runtime `now()`.
+
 The git queries are the two module-level functions `_worktree_list` and `_rev_parse`, injected
 into the checker so the tests can exercise parity without a second remote. The database read is
 the module-level `_hunt_request_rows`, injected the same way.
@@ -100,7 +185,9 @@ the module-level `_hunt_request_rows`, injected the same way.
 `scout --freeze` WRITES its manifest and `scout` READS the litkb database, so psycopg and the
 `litkb` package are imported lazily, inside the scout functions only: the other three subcommands
 still run on a machine with neither installed, which is what keeps them usable from CI and from a
-cold checkout. `codex` imports the `litkb` package too -- for the GRAMMAR's own citation parser,
+cold checkout. `first-work` is the same: `--freeze` writes its manifest, the check reads the
+database, and psycopg, `litkb.hunt`, `litkb.acquire.events` and `litkb.mcp.server` are all
+imported INSIDE the first-work functions. `codex` imports the `litkb` package too -- for the GRAMMAR's own citation parser,
 `review_check.citations`, because a second citation regex here would be a second grammar -- and
 imports it lazily for the same reason; it touches no database at all. `codex --mutate N` with no
 `--report` WRITES the mutated review beside the original and is the one subcommand that writes a
@@ -461,9 +548,9 @@ def db_migration_tip(db, passfile=None):
         return None, f"{type(e).__name__}: {str(e).splitlines()[0][:160]}"
 
 
-def _connect(db, role):
+def _connect(db, role, autocommit=True):
     from litkb.db import connect as c
-    return c.connect(db, role, autocommit=True)
+    return c.connect(db, role, autocommit=autocommit)
 
 
 def resolve_workstream(db, role, slug):
@@ -706,6 +793,402 @@ def _scout_freeze(args):
     print(f"frozen {out} workstream={args.workstream} id={ws_id} baseline={baseline} "
           f"head={manifest['repo_head'][:12]} repo_tip={manifest['repo_migration_tip']} "
           f"db_tip={db_tip}")
+    return 0
+
+
+# ── first-work: did ONE unknown work cross the whole loop unaided (S2) ────────────────────
+
+#: An `acquisition_attempts.route` that means a HUMAN fetched the file and handed it in
+#: (`litkb acquire --from-file`, and the `manual-step` instruction row acquisition writes when no
+#: automated route landed anything). `hunt-url` is deliberately NOT here: it is the automated URL
+#: fetch, and folding it in would make every hunted web source read as an intervention.
+MANUAL_ATTEMPT_ROUTES = ("browser",)
+
+#: A `file_versions.source_route` that means the same at the FILE. `browser` is what
+#: `acquire --from-file` writes through `land_and_attach`; `held-in-place` is what
+#: `acquire.run.attach_in_place` writes for a file that was already lying in a topic folder. Both
+#: are a hand putting a file where the pipeline then found it.
+MANUAL_FILE_ROUTES = ("browser", "held-in-place")
+
+#: The baseline counts `--freeze` records, as {name: SQL}. The SQL TEXT goes into the manifest
+#: (its `queries` key) with the number, because a baseline count whose query nobody can see is a
+#: number a reader has to take on trust. Every one binds `%(ws)s` and nothing else.
+BASELINE_QUERIES = {
+    # main's works plus THIS workstream's proposals — `ws_works` is that view (migration 0004)
+    "works": "SELECT count(*) FROM litkb.ws_works WHERE view_workstream_id = %(ws)s",
+    "files": "SELECT count(*) FROM litkb.ws_files WHERE view_workstream_id = %(ws)s",
+    # versions WRITTEN BY this workstream, which is what `bound_without_event` later scans
+    "file_versions": "SELECT count(*) FROM litkb.file_versions WHERE workstream_id = %(ws)s",
+    "blocks": ("SELECT count(*) FROM litkb.blocks b "
+               "  JOIN litkb.ws_files f ON f.file_id = b.file_id AND f.current_run_id = b.run_id "
+               " WHERE f.view_workstream_id = %(ws)s"),
+    "uses": "SELECT count(*) FROM litkb.use_versions WHERE workstream_id = %(ws)s",
+    "hunt_requests": "SELECT count(*) FROM litkb.hunt_requests WHERE workstream_id = %(ws)s",
+}
+
+#: Works ADMITTED in this workstream after the freeze. The identity row, not a version: a work is
+#: admitted once and edited many times, and `works.created_in_ws` + `created_at` is the one place
+#: that says when this workstream first brought it into existence.
+NEW_WORKS_SQL = """
+SELECT w.id::text, w.key, w.created_at
+  FROM litkb.works w
+ WHERE w.created_in_ws = %(ws)s AND w.created_at > %(since)s
+ ORDER BY w.created_at, w.id
+"""
+
+VERIFIED_USES_SQL = """
+SELECT count(*) FROM litkb.use_versions uv
+ WHERE uv.workstream_id = %(ws)s AND uv.created_at > %(since)s
+   AND EXISTS (SELECT 1 FROM litkb.use_evidence e
+                WHERE e.use_version_id = uv.version_id AND e.quote_verified)
+"""
+
+MANUAL_ATTEMPTS_SQL = """
+SELECT a.id::text, a.route, a.status
+  FROM litkb.acquisition_attempts a
+ WHERE a.work_id = ANY(%(works)s::uuid[])
+   AND (a.status = 'manual-step' OR a.route = ANY(%(routes)s))
+ ORDER BY a.at
+"""
+
+MANUAL_FILES_SQL = """
+SELECT fv.version_id::text, fv.file_id::text, fv.source_route
+  FROM litkb.file_versions fv
+ WHERE fv.work_id = ANY(%(works)s::uuid[]) AND fv.source_route = ANY(%(routes)s)
+ ORDER BY fv.created_at
+"""
+
+
+def baseline_snapshot(db, role, ws_id):
+    """(frozen_at, {name: count}) — the freeze instant AND the baseline, from ONE clock and ONE
+    snapshot.
+
+    THE FREEZE INSTANT IS THE DATABASE'S, not this process's. `frozen_at` and every count it is
+    compared against are read from the same server in the same REPEATABLE READ transaction, so
+    `now()` (which in PostgreSQL is the transaction's start time) is exactly the instant the
+    snapshot the counts were taken from was established. A client clock cannot be used for this:
+    `works.created_at` defaults to the server's `now()`, and the two clocks agree only by
+    coincidence — a workstation seconds ahead of its database server would freeze at an instant
+    later than rows the baseline had already counted, and every one of those would then score as a
+    NEW work. The test fixtures had read `SELECT now()` for exactly this reason since the day they
+    were written; the freeze had not.
+
+    REPEATABLE READ rather than the default READ COMMITTED, because under READ COMMITTED each
+    count takes a fresh snapshot: a row inserted while the six queries run is in a later count and
+    not in an earlier one, and it is after `now()` in either case. One snapshot makes "the baseline"
+    a single fact about a single moment, which is what the word means.
+    """
+    conn = _connect(db, role, autocommit=False)
+    try:
+        from psycopg import IsolationLevel
+
+        conn.isolation_level = IsolationLevel.REPEATABLE_READ
+        with conn.transaction():
+            at = conn.execute("SELECT now()").fetchone()[0]
+            counts = ({name: conn.execute(sql, {"ws": ws_id}).fetchone()[0]
+                       for name, sql in BASELINE_QUERIES.items()} if ws_id
+                      else dict.fromkeys(BASELINE_QUERIES))
+        return at, counts
+    finally:
+        conn.close()
+
+
+def _new_works(db, role, ws_id, since):
+    """[{work_id, key, created_at}] — the works this workstream admitted after the freeze."""
+    conn = _connect(db, role)
+    try:
+        rows = conn.execute(NEW_WORKS_SQL, {"ws": ws_id, "since": since}).fetchall()
+        return [dict(zip(("work_id", "key", "created_at"), r)) for r in rows]
+    finally:
+        conn.close()
+
+
+def _work_states(db, role, ws_id, work_ids):
+    """{work_id: {"state", "identifier"}} through `litkb.hunt.look_up` — THE ladder, not a copy.
+
+    `look_up` starts from an identifier, so each work is reached by one of its own active ones
+    (every admission writes at least one: a DOI, an arXiv id, or the URL `admit_web` records). A
+    work with none is reported with `state = None` and an offence naming it rather than silently
+    counted as unbound — that would be a different defect wearing this one's name.
+    """
+    from litkb import hunt as H
+
+    conn = _connect(db, role)
+    try:
+        out = {}
+        for wid in work_ids:
+            row = conn.execute(
+                "SELECT scheme, value FROM litkb.ws_identifiers "
+                " WHERE view_workstream_id = %s AND work_id = %s AND status = 'active' "
+                " ORDER BY scheme, value LIMIT 1", (ws_id, wid)).fetchone()
+            if not row:
+                out[wid] = {"state": None, "identifier": None}
+                continue
+            held = H.look_up(conn, ws_id, row[1], row[0])
+            out[wid] = {"state": (held or {}).get("state"), "identifier": f"{row[0]}:{row[1]}"}
+        return out
+    finally:
+        conn.close()
+
+
+def _searchable_work_ids(db, role, ws_id, work_ids):
+    """The subset of `work_ids` with at least one block litkb_search can return from here.
+
+    The predicate is the SERVER's own `_BLOCK_FROM` fragment with the server's `DEFAULT_KINDS`:
+    the blocks/files/current-run join plus `visibility.FILE_JOIN`, which is what widens a search
+    to this workstream's own proposals (decisions.yaml litkb-web-source-gate). Restating it here
+    would be a second answer to "what can this session read".
+    """
+    from litkb.mcp import server as S
+
+    sql = "SELECT DISTINCT fv.work_id::text" + S._BLOCK_FROM + \
+          "   AND fv.work_id = ANY(%(works)s::uuid[])"
+    conn = _connect(db, role)
+    try:
+        rows = conn.execute(sql, {"ws": ws_id, "kinds": list(S.DEFAULT_KINDS),
+                                  "works": list(work_ids)}).fetchall()
+        return {r[0] for r in rows}
+    finally:
+        conn.close()
+
+
+def _verified_uses(db, role, ws_id, since):
+    conn = _connect(db, role)
+    try:
+        return conn.execute(VERIFIED_USES_SQL, {"ws": ws_id, "since": since}).fetchone()[0]
+    finally:
+        conn.close()
+
+
+def _manual_traces(db, role, work_ids):
+    """([manual attempt rows], [manual file-version rows]) for the new works."""
+    conn = _connect(db, role)
+    try:
+        works = list(work_ids)
+        attempts = conn.execute(MANUAL_ATTEMPTS_SQL,
+                                {"works": works,
+                                 "routes": list(MANUAL_ATTEMPT_ROUTES)}).fetchall()
+        files = conn.execute(MANUAL_FILES_SQL,
+                             {"works": works, "routes": list(MANUAL_FILE_ROUTES)}).fetchall()
+        return ([dict(zip(("attempt_id", "route", "status"), r)) for r in attempts],
+                [dict(zip(("version_id", "file_id", "source_route"), r)) for r in files])
+    finally:
+        conn.close()
+
+
+def _unaccounted_files(db, role, ws_id, since):
+    """`litkb.acquire.events.bound_without_event`, opened on a reader connection. The verifier
+    lives in the litkb package beside the acquisition code that writes the events; this is only
+    where the acceptance run reads it."""
+    from litkb.acquire import events
+
+    conn = _connect(db, role)
+    try:
+        return events.bound_without_event(conn, ws_id, since)
+    finally:
+        conn.close()
+
+
+#: The database reads, in ONE injectable place (the scout's `_hunt_request_rows` seam, widened to
+#: six calls). The tests replace entries here to exercise the counting rules with no server.
+DB_READS = {"new_works": _new_works, "work_states": _work_states,
+            "searchable": _searchable_work_ids, "verified_uses": _verified_uses,
+            "manual_traces": _manual_traces, "unaccounted_files": _unaccounted_files}
+
+
+def review_citations(path):
+    """The review's citations, through the GRAMMAR's own parser. One grammar, one parser."""
+    return _citations(_read_review(path))
+
+
+def count_claims_ungraded(review, report_path):
+    """(claims_ungraded, [offence lines]) for one review against one Codex report.
+
+    The same rule `check_codex` applies for `citations_unreviewed`: citation *i* is graded only
+    when the report carries a row `n = i` whose `block_id` is the block that citation names. A row
+    for a citation the review does not have grades nothing; a row pointing at another block grades
+    another sentence.
+    """
+    if not review:
+        return 1, ["no --review was named: nothing was graded, which is a RED and not a 0"]
+    cits = review_citations(review)
+    if not report_path:
+        return len(cits), [f"no --codex-report was named: all {len(cits)} citation(s) of "
+                           f"{Path(review).name} are ungraded"]
+    report = json.loads(Path(report_path).read_text(encoding="utf-8"))
+    by_n = {}
+    for r in report.get("citations", []):
+        if isinstance(r, dict):
+            by_n.setdefault(r.get("n"), r)
+    ungraded, offences = 0, []
+    for i, c in enumerate(cits, start=1):
+        r = by_n.get(i)
+        if r is None:
+            ungraded += 1
+            offences.append(f"citation {i} (#{c['block_id']}) has no verdict row in the report")
+        elif r.get("block_id") != c["block_id"]:
+            ungraded += 1
+            offences.append(f"citation {i} names block {c['block_id']}, the report's row {i} "
+                            f"names {r.get('block_id')!r}")
+    return ungraded, offences
+
+
+def check_first_work(manifest, *, reads=None, review=None, codex_report=None, log=None):
+    """(counters dict, [offence lines]). Every database read goes through `reads` (DB_READS)."""
+    reads = reads or DB_READS
+    db = manifest["db"]
+    role = manifest.get("reader_role") or "litkb_reader"
+    ws_id = manifest.get("workstream_id")
+    since = _parse_utc(manifest["frozen_at"])
+    review = review or manifest.get("review")
+    codex_report = codex_report or manifest.get("codex_report")
+    log = log or manifest.get("log")
+    offences = []
+
+    if not ws_id:
+        ws_id = resolve_workstream(db, role, manifest["workstream_slug"])
+    if not ws_id:
+        offences.append(f"no OPEN workstream with slug {manifest.get('workstream_slug')!r} "
+                        f"in {db}")
+        works = []
+    else:
+        works = reads["new_works"](db, role, ws_id, since)
+
+    # a NOTE, not an offence: which chain the counters below are about. A clean run still prints
+    # it, because a gate that says only "1" leaves the reader unable to check anything by hand.
+    for w in works:
+        offences.append(f"graded: {w['key']} ({w['work_id']})")
+    ids = [w["work_id"] for w in works]
+    keys = {w["work_id"]: w["key"] for w in works}
+
+    states = reads["work_states"](db, role, ws_id, ids) if ids else {}
+    bound, extracted = [], []
+    for wid in ids:
+        state = (states.get(wid) or {}).get("state")
+        if state in ("bound-unextracted", "extracted"):
+            bound.append(wid)
+        else:
+            offences.append(f"{keys[wid]}: no bound file (ladder says {state!r})")
+        if state == "extracted":
+            extracted.append(wid)
+        elif state == "bound-unextracted":
+            offences.append(f"{keys[wid]}: bound and never extracted — litkb_search cannot see it")
+
+    searchable = reads["searchable"](db, role, ws_id, extracted) if extracted else set()
+    for wid in extracted:
+        if wid not in searchable:
+            offences.append(f"{keys[wid]}: extracted with no block visible to search from this "
+                            f"workstream")
+
+    verified = reads["verified_uses"](db, role, ws_id, since) if ws_id else 0
+    if not verified:
+        offences.append("no use recorded after the freeze carries a database-verified quote")
+
+    ungraded, claim_offences = count_claims_ungraded(review, codex_report)
+    offences += claim_offences
+
+    # BEGIN guard: operator_interventions sums four independent traces, never one
+    # Each names a different way a human or an unrecorded hand can have moved the run along, and
+    # three of the four are database facts that hold whether or not a log was kept. A counter
+    # built on the log alone would read 0 for a run nobody logged, which is the reading S2 must
+    # not be able to produce.
+    interventions, log_note = 0, "no log named: human_input_events not read"
+    if log:
+        events_n, _stated, log_offences = read_log(log)
+        interventions += events_n
+        offences += log_offences
+        log_note = f"log {Path(log).name}: human_input_events={events_n}"
+    attempts, manual_files = reads["manual_traces"](db, role, ids) if ids else ([], [])
+    interventions += len(attempts) + len(manual_files)
+    for a in attempts:
+        offences.append(f"manual acquisition attempt {a['attempt_id']}: route={a['route']} "
+                        f"status={a['status']}")
+    for f in manual_files:
+        offences.append(f"file version {f['version_id']} arrived by the manual route "
+                        f"{f['source_route']!r}")
+    unaccounted = reads["unaccounted_files"](db, role, ws_id, since) if ws_id else []
+    interventions += len(unaccounted)
+    for u in unaccounted:
+        offences.append(f"file {u['file_id']} (sha256 {u['sha256'][:12]}…) is bound with NO "
+                        f"acquisition event — unaccounted-for provenance")
+    # END guard: operator_interventions sums four independent traces, never one
+    offences.append(log_note)
+
+    return ({"new_works": len(works), "bound": len(bound), "extracted": len(extracted),
+             "searchable": len(searchable), "verified_uses": verified,
+             "claims_ungraded": ungraded, "operator_interventions": interventions}, offences)
+
+
+def first_work_ok(counters):
+    """S2's bounds. `new_works == 1`, not `>= 1`: one work is the whole point (module docstring)."""
+    return (counters["new_works"] == 1 and counters["bound"] == 1
+            and counters["extracted"] == 1 and counters["searchable"] == 1
+            and counters["verified_uses"] >= 1 and counters["claims_ungraded"] == 0
+            and counters["operator_interventions"] == 0)
+
+
+def cmd_first_work(args):
+    if args.freeze:
+        return _first_work_freeze(args)
+    if not args.manifest:
+        print("litkb_acceptance first-work needs --manifest (or --freeze --out)", file=sys.stderr)
+        return 2
+    manifest = json.loads(read_text(args.manifest))
+    counters, offences = check_first_work(manifest, review=args.review,
+                                          codex_report=args.codex_report, log=args.log)
+    for line in offences:
+        print(line, file=sys.stderr)
+    print(" ".join(f"{k}={v}" for k, v in counters.items()))
+    return 0 if first_work_ok(counters) else 1
+
+
+def _first_work_freeze(args):
+    for required in ("workstream", "out"):
+        if not getattr(args, required):
+            print(f"first-work --freeze needs --{required}", file=sys.stderr)
+            return 2
+    repo = Path(args.repo or _repo_root())
+    role = args.role
+    ws_id = resolve_workstream(args.db, role, args.workstream)
+    frozen_at, baseline = baseline_snapshot(args.db, role, ws_id)
+    db_tip, db_tip_note = db_migration_tip(args.db, args.passfile)
+    manifest = {
+        "kind": "litkb-first-work",
+        # FULL PRECISION, and UTC. Not the scout's `%Y-%m-%dT%H:%M:%SZ`: truncating to the second
+        # moves the instant EARLIER, which is the unsafe direction — a row written in the truncated
+        # fraction is before the freeze and would score as a new work.
+        "frozen_at": frozen_at.astimezone(dt.timezone.utc).isoformat(),
+        # WHICH CLOCK. Recorded because "the freeze instant" is meaningless without it, and because
+        # a later manifest written by some other hand can be read for this field and disbelieved.
+        "frozen_at_source": "db",
+        "repo": str(repo),
+        "repo_head": _repo_head(repo),
+        "db": args.db,
+        "reader_role": role,
+        "repo_migration_tip": repo_migration_tip(),
+        "db_migration_tip": db_tip,
+        "db_migration_tip_note": db_tip_note,
+        "workstream_slug": args.workstream,
+        "workstream_id": ws_id,
+        "hunt_request_id": args.hunt_request,
+        "log": str(args.log) if args.log else None,
+        # Recorded when they are already known; the command line WINS at grade time, because the
+        # Codex report is produced after the freeze and naming it should not mean rewriting a
+        # frozen file.
+        "review": str(args.review) if args.review else None,
+        "codex_report": str(args.codex_report) if args.codex_report else None,
+        "baseline": baseline,
+        "queries": dict(BASELINE_QUERIES),
+        # recorded for the READER; the checker uses the module constants (the scout's rule)
+        "manual_attempt_routes": list(MANUAL_ATTEMPT_ROUTES),
+        "manual_file_routes": list(MANUAL_FILE_ROUTES),
+    }
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+    print(f"frozen {out} workstream={args.workstream} id={ws_id} "
+          f"baseline={baseline} head={manifest['repo_head'][:12]} "
+          f"repo_tip={manifest['repo_migration_tip']} db_tip={db_tip}")
     return 0
 
 
@@ -1080,6 +1563,25 @@ def build_parser():
     s.add_argument("--worktree", help="the worktree the run and the driver use")
     s.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
     s.set_defaults(func=cmd_scout)
+
+    fw = sub.add_parser("first-work",
+                        help="did ONE unknown work cross the whole loop unaided (S2)")
+    fw.add_argument("--freeze", action="store_true",
+                    help="write the manifest BEFORE the run instead of checking one")
+    fw.add_argument("--manifest", help="the manifest frozen before the run (check mode)")
+    fw.add_argument("--workstream", help="the workstream slug the run works in (freeze)")
+    fw.add_argument("--hunt-request", dest="hunt_request",
+                    help="the drop-off this run is following up (freeze; recorded, not graded)")
+    fw.add_argument("--log", help="the headless stream-json log; absent, operator_interventions "
+                                  "is computed from the database alone")
+    fw.add_argument("--review", help="the review whose citations Codex graded")
+    fw.add_argument("--codex-report", dest="codex_report", help="the Codex report JSON")
+    fw.add_argument("--out", help="where to write the frozen manifest (freeze)")
+    fw.add_argument("--db", default="litkb", help="the database (default: %(default)s)")
+    fw.add_argument("--role", default="litkb_reader", help="read role (default: %(default)s)")
+    fw.add_argument("--repo", help="repository root (default: this instrument's own)")
+    fw.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
+    fw.set_defaults(func=cmd_first_work)
 
     c = sub.add_parser("codex", help="did the adversarial read actually read every citation")
     c.add_argument("--review", required=True, help="the review the report claims to be about")

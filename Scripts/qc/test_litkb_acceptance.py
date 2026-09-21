@@ -34,6 +34,15 @@ row below is an input the check must REFUSE, not an assertion about the code's s
   the scout prompt template    a DOI, an arXiv id or a work key in it         test_a_prompt_naming_*
   the soak row writer          a CSV path outside the repository              test_a_soak_csv_outside_*
                                a search smoke that fails                      test_a_failing_search_still_*
+  new_works (first-work)       a manifest frozen AFTER the work (the replay)  test_c1_*
+                               a second new work -> the bound is == 1, not >= test_a_second_new_work_*
+  searchable                   an extracted work whose only block is a        test_an_extracted_work_whose_*
+                                 running head
+  verified_uses                a use with no database-verified quote          test_a_use_with_no_verified_*
+  claims_ungraded              a report grading 1 of 2 citations              test_c3_*
+                               no review and no report -> RED, never 0        test_c4_*
+  operator_interventions       a bound file with no acquisition event         test_c2_*
+                               a `manual-step` acquisition row on the work    test_c5_*
 
 The git queries are injected (`_worktree_list`, `_rev_parse` on the module), so parity is
 exercised with no second remote and no network. The scout counters read a real worker database
@@ -1230,3 +1239,424 @@ def test_a_bom_prefixed_scout_log_is_still_read(mod, tmp_path):
             '"result":"SCOUT-STOP: n=0 reason=x"}\n')
     log.write_bytes(b"\xef\xbb\xbf" + body.encode("utf-8"))
     assert mod.read_log(log) == (0, 1, [])
+
+
+# ── first-work (S2): the counters, on a real worker database ──────────────────────────────
+#
+# WHY A REAL DATABASE. Five of the seven counters are read off rows: a work admitted in a
+# workstream, a file bound to it, an extraction run, blocks a search can see, a use whose quote the
+# DATABASE verified, and an acquisition attempt naming the file's bytes. Every one of those is a
+# row the schema's own CHECKs accept in the WRONG combination too — a bound file with no event, an
+# extracted work with no visible block — which is exactly what the counters are for, and what a
+# mock built to fail could never demonstrate.
+#
+# THE KNOWN-BADS, each its own test and each a real mutation of the clean seed:
+#   (c1) a manifest frozen AFTER the work        -> new_works=0               -> exit 1
+#   (c2) a bound file with no acquisition event  -> operator_interventions>=1 -> exit 1
+#   (c3) a review of 2 citations, 1 graded       -> claims_ungraded=1         -> exit 1
+#   (c4) no review and no report                 -> claims_ungraded=1, never 0
+#   (c5) a manual `manual-step` acquisition row  -> operator_interventions=1  -> exit 1
+
+PASSAGE = ("Training with large amounts of noisy labels is possible when the noise is spatially "
+           "structured rather than independent across pixels.")
+
+
+def _jsonb(obj):
+    from psycopg.types.json import Jsonb
+    return Jsonb(obj)
+
+
+@pytest.fixture
+def fw_ws(tmp_path, litkb_pg_base):
+    """A throwaway workstream on the worker DB, plus a seeder for one COMPLETE chain.
+
+    `litkb_test` stands in for reader, writer and ingest (member of all three WITH INHERIT
+    FALSE), the way every other litkb suite exercises the roles — so nothing here can reach the
+    live `litkb`. Facts are written through `_write_version`, as qc/test_litkb_hunt.py's
+    `seed_extracted` and qc/test_litkb_p1.py's `_PG.work` do: admitting the chain for real would
+    test admission rather than the counters.
+    """
+    from litkb import use as _use
+    from litkb import workstream
+    from litkb.acquire import run as _run
+    from litkb.db import connect as c
+
+    _psycopg, conn, _ran = litkb_pg_base
+    wt = tmp_path / "worktree"
+    wt.mkdir()
+    ws_id = workstream.open_workstream(conn, f"first-{uuid.uuid4().hex[:8]}", "test",
+                                       "first-work acceptance tests", directory=wt)
+    _ws, token = workstream.load(wt)
+    ws = str(ws_id)
+
+    def now():
+        """The freeze instant read off the SERVER: `works.created_at` defaults to its `now()`,
+        and a Python clock microseconds ahead would put the seeded work BEFORE the freeze."""
+        return conn.execute("SELECT now()").fetchone()[0]
+
+    def seed(*, event=True, extracted=True, blocks=True, use=True, manual_attempt=False,
+             block_type="paragraph"):
+        """One work + identifier + bound file (+ run, blocks, verified use, acquisition event).
+
+        Each keyword removes exactly one rung, which is how the known-bads below are built: the
+        chain is otherwise identical, so a counter that fires names the rung that was removed."""
+        key = f"Seeded_2026_first-work-{uuid.uuid4().hex[:6]}"
+        url = f"https://example.org/{uuid.uuid4().hex}/paper.pdf"
+        work_id, _v = conn.execute(
+            "SELECT entity_id, version_id FROM litkb._write_version('fact', 'work', NULL, %s, "
+            "NULL, %s, NULL, %s, 'fw-seed', 'fw-seed')",
+            (_jsonb({"key": key}),
+             _jsonb({"type": "report", "title": "A seeded first work", "authors": [],
+                     "year": 2026}), ws)).fetchone()
+        conn.execute(
+            "SELECT entity_id FROM litkb._write_version('fact', 'identifier', NULL, %s, NULL, "
+            "%s, NULL, %s, 'fw-seed', 'fw-seed')",
+            (_jsonb({"scheme": "url"}),
+             _jsonb({"work_id": str(work_id), "value": url, "verified_by": "manual",
+                     "evidence": {}, "status": "active"}), ws))
+        sha = uuid.uuid4().hex + uuid.uuid4().hex
+        file_id, _fv = conn.execute(
+            "SELECT entity_id, version_id FROM litkb._write_version('fact', 'file', NULL, %s, "
+            "NULL, %s, NULL, %s, 'fw-seed', 'fw-seed')",
+            (_jsonb({"sha256": sha}),
+             _jsonb({"work_id": str(work_id), "status": "active", "source_route": "web",
+                     "rel_path": f"Validation/{key}.pdf", "bytes": 4096, "pages": 3}),
+             ws)).fetchone()
+        if event:
+            _run.record_attempt(conn, ws, token, str(work_id), "hunt-url", url, "ok",
+                                {"sha256": sha, "md5": "0" * 32, "bytes": 4096,
+                                 "source_url": url, "filed": f"Validation/{key}.pdf",
+                                 "http_status": 200})
+        if manual_attempt:
+            _run.record_attempt(conn, ws, token, str(work_id), "browser", url, "manual-step",
+                                {"instruction": "fetch it in one browser session"})
+        run_id = None
+        if extracted:
+            run_id = conn.execute(
+                "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, "
+                "params_hash, pipeline_version, host, status) VALUES (%s, '5-reconcile', "
+                "'fw-seed', '0', %s, 'v0', 'local', 'ok') RETURNING id",
+                (file_id, uuid.uuid4().hex[:16])).fetchone()[0]
+            conn.execute("SELECT litkb.set_current_run(%s, NULL, %s)", (file_id, run_id))
+            if blocks:
+                conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
+                             "VALUES (%s, %s, 1, %s, %s)", (file_id, run_id, block_type, PASSAGE))
+        out = {"key": key, "url": url, "work_id": str(work_id), "file_id": str(file_id),
+               "sha256": sha, "run_id": str(run_id) if run_id else None}
+        if use:
+            anchors = _use.locate_quote(conn, str(work_id), PASSAGE, ws=ws)
+            assert anchors, "the seeded quote is in no block the workstream can read"
+            _uid, version_id = _use.write_use(
+                conn, ws, token, work_id=str(work_id), statement="Noisy labels are tolerable.",
+                kind="empirical evidence", agent="fw-seed", session="fw-seed")
+            ev = _use.attach_quote(conn, ws, token, version_id, anchors[0], PASSAGE)
+            assert ev["quote_verified"] is True, ev
+            out["use_version_id"] = str(version_id)
+        return out
+
+    return {"conn": conn, "ws_id": ws, "token": token, "wt": wt, "db": c.DB_TEST,
+            "seed": seed, "now": now}
+
+
+def fw_manifest(tmp_path, fw_ws, *, frozen_at, name="first_work_manifest.json", **over):
+    """A frozen first-work manifest pointing at the throwaway workstream."""
+    m = {"kind": "litkb-first-work",
+         "frozen_at": frozen_at.isoformat(),
+         "repo": str(SCRIPTS.parent),
+         "repo_head": "0" * 40,
+         "db": fw_ws["db"],
+         "reader_role": "litkb_test",
+         "workstream_slug": "first-work-test",
+         "workstream_id": fw_ws["ws_id"],
+         "log": None, "review": None, "codex_report": None,
+         "baseline": {}, "queries": {}}
+    m.update(over)
+    p = tmp_path / name
+    p.write_text(json.dumps(m), encoding="utf-8")
+    return m, p
+
+
+def write_review(path, blocks):
+    """A review carrying one citation per block id, in the grammar's strict form."""
+    body = ["<!-- litkb-review workstream=first-work-test -->", "", "# A review", "",
+            "## Claims", ""]
+    for i, bid in enumerate(blocks, start=1):
+        body.append(f'Claim {i} is stated plainly. "{PASSAGE[:60]}" [Seeded_2026_a-b p.1 #{bid}]')
+        body.append("")
+    Path(path).write_text("\n".join(body), encoding="utf-8")
+    return path
+
+
+def write_report(path, review, blocks, *, grade=None):
+    """A Codex report grading `grade` of the review's citations (all of them by default)."""
+    import hashlib
+
+    rows = [{"n": i, "block_id": bid, "quote_head": PASSAGE[:60], "verdict": "SUPPORTED",
+             "reason": "the quote carries it"}
+            for i, bid in enumerate(blocks, start=1)][:len(blocks) if grade is None else grade]
+    Path(path).write_text(json.dumps({
+        "review_sha256": hashlib.sha256(Path(review).read_bytes()).hexdigest(),
+        "context_sha256": "0" * 64, "citations": rows, "editorial": []}), encoding="utf-8")
+    return path
+
+
+def fw_run(mod, capsys, manifest_path, *extra):
+    return run(mod, capsys, ["first-work", "--manifest", str(manifest_path), *extra])
+
+
+def _first_block(fw_ws, seeded, page=1):
+    return fw_ws["conn"].execute(
+        "SELECT id::text FROM litkb.blocks WHERE run_id = %s AND page_no = %s",
+        (seeded["run_id"], page)).fetchone()[0]
+
+
+def _clean(tmp_path, fw_ws):
+    """The clean chain: seed, review, report, manifest — what every known-bad mutates."""
+    since = fw_ws["now"]()
+    seeded = fw_ws["seed"]()
+    block = _first_block(fw_ws, seeded)
+    review = write_review(tmp_path / "review.md", [block])
+    report = write_report(tmp_path / "report.json", review, [block])
+    _m, path = fw_manifest(tmp_path, fw_ws, frozen_at=since, review=str(review),
+                           codex_report=str(report))
+    return {"since": since, "seeded": seeded, "block": block, "review": review,
+            "report": report, "manifest": path}
+
+
+@pg_only
+def test_a_full_clean_first_work_run_scores_every_bound_and_exits_zero(mod, capsys, tmp_path,
+                                                                      fw_ws):
+    c = _clean(tmp_path, fw_ws)
+    code, out, err = fw_run(mod, capsys, c["manifest"])
+    assert counters_of(out) == {"new_works": "1", "bound": "1", "extracted": "1",
+                                "searchable": "1", "verified_uses": "1", "claims_ungraded": "0",
+                                "operator_interventions": "0"}, (out, err)
+    assert code == 0, (out, err)
+
+
+@pg_only
+def test_c1_a_manifest_frozen_after_the_work_counts_no_new_work(mod, capsys, tmp_path, fw_ws):
+    """(c1) THE REPLAY, the workplan's own kill. Grade the same run against a baseline snapshot
+    taken AFTER the work was admitted — the work is already in the baseline, so nothing was
+    discovered. A manifest frozen after the run grades nothing and says so by counting zero."""
+    c = _clean(tmp_path, fw_ws)
+    after = fw_ws["now"]()
+    _m, replay = fw_manifest(tmp_path, fw_ws, frozen_at=after, name="replay.json",
+                             review=str(c["review"]), codex_report=str(c["report"]))
+    code, out, _err = fw_run(mod, capsys, replay)
+    counters = counters_of(out)
+    assert counters["new_works"] == "0", out
+    assert counters["bound"] == "0" and counters["extracted"] == "0", out
+    assert code == 1, out
+
+
+@pg_only
+def test_c2_a_bound_file_with_no_acquisition_event_is_an_operator_intervention(mod, capsys,
+                                                                              tmp_path, fw_ws):
+    """(c2) The acquisition-event contract, read through the acceptance counter. The chain is
+    complete in every other respect — bound, extracted, searchable, one verified use — and the
+    file cannot say where it came from, so the run is not unattended-clean."""
+    since = fw_ws["now"]()
+    seeded = fw_ws["seed"](event=False)
+    block = _first_block(fw_ws, seeded)
+    review = write_review(tmp_path / "review.md", [block])
+    report = write_report(tmp_path / "report.json", review, [block])
+    _m, path = fw_manifest(tmp_path, fw_ws, frozen_at=since, review=str(review),
+                           codex_report=str(report))
+    code, out, err = fw_run(mod, capsys, path)
+    counters = counters_of(out)
+    assert counters["new_works"] == "1" and counters["searchable"] == "1", out
+    assert counters["operator_interventions"] == "1", out
+    assert "unaccounted-for provenance" in err and seeded["file_id"] in err, err
+    assert code == 1, out
+
+
+@pg_only
+def test_c3_a_report_that_grades_one_of_two_citations_leaves_one_ungraded(mod, capsys, tmp_path,
+                                                                         fw_ws):
+    """(c3) THE SILENT PASS. A report that skipped the citation its reviewer could not decide
+    looks exactly like a clean report, because every row it DOES carry says SUPPORTED. The
+    counter asks which citations HAVE a verdict, not how many verdicts there are."""
+    since = fw_ws["now"]()
+    seeded = fw_ws["seed"]()
+    second = fw_ws["conn"].execute(
+        "INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) "
+        "VALUES (%s, %s, 2, 'paragraph', %s) RETURNING id::text",
+        (seeded["file_id"], seeded["run_id"], PASSAGE + " A second block.")).fetchone()[0]
+    first = _first_block(fw_ws, seeded)
+    review = write_review(tmp_path / "review.md", [first, second])
+    report = write_report(tmp_path / "report.json", review, [first, second], grade=1)
+    _m, path = fw_manifest(tmp_path, fw_ws, frozen_at=since, review=str(review),
+                           codex_report=str(report))
+    code, out, err = fw_run(mod, capsys, path)
+    assert counters_of(out)["claims_ungraded"] == "1", out
+    assert "citation 2" in err and "no verdict row" in err, err
+    assert code == 1, out
+
+
+@pg_only
+def test_c4_no_review_and_no_report_is_red_never_zero(mod, capsys, tmp_path, fw_ws):
+    """(c4) A counter that read 0 for "nothing was graded" would make the absence of a review
+    indistinguishable from a review with no defects — the default that turns a gate into a rubber
+    stamp. Both halves: no review at all, and a review with no report."""
+    since = fw_ws["now"]()
+    seeded = fw_ws["seed"]()
+    block = _first_block(fw_ws, seeded)
+    _m, bare = fw_manifest(tmp_path, fw_ws, frozen_at=since, name="bare.json")
+    code, out, err = fw_run(mod, capsys, bare)
+    assert counters_of(out)["claims_ungraded"] == "1", out
+    assert "nothing was graded" in err, err
+    assert code == 1, out
+
+    review = write_review(tmp_path / "review.md", [block, block])
+    _m, no_report = fw_manifest(tmp_path, fw_ws, frozen_at=since, name="no_report.json",
+                                review=str(review))
+    code, out, err = fw_run(mod, capsys, no_report)
+    assert counters_of(out)["claims_ungraded"] == "2", out       # the citation count, never 0
+    assert "no --codex-report" in err, err
+    assert code == 1, out
+
+
+@pg_only
+def test_c5_a_manual_acquisition_row_on_the_new_work_is_an_intervention(mod, capsys, tmp_path,
+                                                                       fw_ws):
+    """(c5) The database half of `operator_interventions`. `manual-step` is acquisition's own word
+    for "no automated route landed it; fetch it in a browser and hand it in" — a run that needed
+    one is a run a human finished, whatever the log says."""
+    since = fw_ws["now"]()
+    seeded = fw_ws["seed"](manual_attempt=True)
+    block = _first_block(fw_ws, seeded)
+    review = write_review(tmp_path / "review.md", [block])
+    report = write_report(tmp_path / "report.json", review, [block])
+    _m, path = fw_manifest(tmp_path, fw_ws, frozen_at=since, review=str(review),
+                           codex_report=str(report))
+    code, out, err = fw_run(mod, capsys, path)
+    assert counters_of(out)["operator_interventions"] == "1", out
+    assert "manual acquisition attempt" in err and "manual-step" in err, err
+    assert code == 1, out
+
+
+@pg_only
+def test_an_extracted_work_whose_only_blocks_are_furniture_is_not_searchable(mod, capsys,
+                                                                            tmp_path, fw_ws):
+    """`searchable` is the SERVER's own predicate, its kinds included: a running head is the same
+    string on every page and is not a passage. A work whose only block is `page_header` is
+    extracted and answers no search, and those are different facts."""
+    since = fw_ws["now"]()
+    fw_ws["seed"](block_type="page_header", use=False)
+    _m, path = fw_manifest(tmp_path, fw_ws, frozen_at=since)
+    _code, out, err = fw_run(mod, capsys, path)
+    counters = counters_of(out)
+    assert counters["extracted"] == "1" and counters["searchable"] == "0", out
+    assert "no block visible to search" in err, err
+
+
+@pg_only
+def test_a_use_with_no_verified_quote_does_not_count(mod, capsys, tmp_path, fw_ws):
+    """`verified_uses` is the DATABASE's verdict (`use_evidence.quote_verified`, the 0007/0026
+    trigger), never a use row's existence: a use recorded with no evidence is a claim nothing
+    anchored."""
+    since = fw_ws["now"]()
+    fw_ws["seed"](use=False)
+    _m, path = fw_manifest(tmp_path, fw_ws, frozen_at=since)
+    code, out, err = fw_run(mod, capsys, path)
+    assert counters_of(out)["verified_uses"] == "0", out
+    assert "database-verified quote" in err, err
+    assert code == 1, out
+
+
+@pg_only
+def test_a_second_new_work_fails_the_bound_of_exactly_one(mod, capsys, tmp_path, fw_ws):
+    """`new_works` is bounded `== 1`, not `>= 1`. S2 is a BOUNDED proving run: every other counter
+    is read off one chain, and two works make `bound=2` describe nothing in particular."""
+    c = _clean(tmp_path, fw_ws)
+    fw_ws["seed"]()
+    code, out, _err = fw_run(mod, capsys, c["manifest"])
+    assert counters_of(out)["new_works"] == "2", out
+    assert code == 1, out
+
+
+@pg_only
+def test_the_freeze_writes_the_baseline_with_the_query_that_produced_each_count(mod, capsys,
+                                                                               tmp_path, fw_ws):
+    """`--freeze` records a number AND the SQL text behind it: a baseline whose query nobody can
+    see is a number a reader has to take on trust."""
+    slug = fw_ws["conn"].execute("SELECT slug FROM litkb.workstreams WHERE id = %s",
+                                 (fw_ws["ws_id"],)).fetchone()[0]
+    fw_ws["seed"]()
+    out_path = tmp_path / "frozen.json"
+    code, _out, _err = run(mod, capsys, ["first-work", "--freeze", "--workstream", slug,
+                                         "--db", fw_ws["db"], "--role", "litkb_test",
+                                         "--out", str(out_path)])
+    assert code == 0
+    m = json.loads(out_path.read_text(encoding="utf-8"))
+    assert m["kind"] == "litkb-first-work" and m["workstream_id"] == fw_ws["ws_id"], m
+    assert m["queries"] == dict(mod.BASELINE_QUERIES), m["queries"]
+    assert set(m["baseline"]) == set(mod.BASELINE_QUERIES), m["baseline"]
+    # the seeded chain is IN the baseline, which is the whole point of freezing after it
+    assert m["baseline"]["file_versions"] >= 1 and m["baseline"]["uses"] >= 1, m["baseline"]
+    assert m["manual_file_routes"] == list(mod.MANUAL_FILE_ROUTES), m
+
+
+@pg_only
+def test_the_freeze_instant_is_the_databases_clock_not_this_processs(mod, capsys, tmp_path,
+                                                                     fw_ws, monkeypatch):
+    """The client clock is moved a year into the future; the manifest must still carry the
+    SERVER's instant.
+
+    `works.created_at`, `file_versions.created_at` and `use_versions.created_at` all default to the
+    database's `now()`. A freeze taken from this process agrees with them only by coincidence, and
+    the disagreement is not symmetric: a workstation AHEAD of its server freezes at an instant
+    later than rows the baseline has already counted, so every one of those scores as a NEW work
+    and the run reads as a discovery it never made. The fixtures in this file have read
+    `SELECT now()` since they were written, for this reason; the freeze had not.
+
+    THE KILL is the second half: the chain seeded BEFORE the freeze is in the baseline, and with a
+    future client clock a client-clock freeze would score it `new_works=1`. Reading the server's
+    clock scores it 0, which is the truth — nothing was discovered after this freeze."""
+    import datetime as dt
+
+    slug = fw_ws["conn"].execute("SELECT slug FROM litkb.workstreams WHERE id = %s",
+                                 (fw_ws["ws_id"],)).fetchone()[0]
+    fw_ws["seed"]()                       # in the baseline: seeded BEFORE the freeze
+    far_future = dt.datetime(2099, 1, 1, tzinfo=dt.timezone.utc)
+    monkeypatch.setattr(mod, "_utc_now", lambda: far_future)
+    out_path = tmp_path / "frozen.json"
+    code, _out, _err = run(mod, capsys, ["first-work", "--freeze", "--workstream", slug,
+                                         "--db", fw_ws["db"], "--role", "litkb_test",
+                                         "--out", str(out_path)])
+    assert code == 0
+    m = json.loads(out_path.read_text(encoding="utf-8"))
+    assert m["frozen_at_source"] == "db", m
+    frozen = mod._parse_utc(m["frozen_at"])
+    assert frozen.year != far_future.year, m["frozen_at"]
+    assert abs((frozen - fw_ws["now"]()).total_seconds()) < 120, m["frozen_at"]
+    # full precision: truncating to the second moves the instant EARLIER, the unsafe direction
+    assert frozen.microsecond or "." in m["frozen_at"], m["frozen_at"]
+    # and the chain seeded before it is NOT a discovery
+    code, out, _err = fw_run(mod, capsys, out_path)
+    assert counters_of(out)["new_works"] == "0", out
+    assert code == 1, out
+
+
+def test_first_work_needs_a_manifest_or_a_freeze(mod, capsys):
+    code, _out, err = run(mod, capsys, ["first-work"])
+    assert code == 2 and "--manifest" in err, err
+
+
+def test_the_manual_route_vocabularies_are_the_ones_acquisition_writes(mod):
+    """The two constants are pinned against the source that WRITES those routes, not maintained by
+    memory: `acquire.run` passes `route="browser"` for a `--from-file` landing and
+    `source_route="held-in-place"` for a file bound where it lay, and `hunt-url` — the automated
+    URL fetch — must never be read as a human's doing."""
+    import pathlib
+
+    from litkb.acquire import events
+    from litkb.acquire import run as _run
+
+    src = pathlib.Path(_run.__file__).read_text(encoding="utf-8")
+    assert 'route="browser"' in src and 'source_route="held-in-place"' in src
+    assert set(mod.MANUAL_FILE_ROUTES) == {"browser", "held-in-place"}
+    assert set(mod.MANUAL_ATTEMPT_ROUTES) == {"browser"}
+    assert events.ROUTE not in mod.MANUAL_ATTEMPT_ROUTES
+    assert events.ROUTE not in mod.MANUAL_FILE_ROUTES

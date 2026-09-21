@@ -1878,6 +1878,42 @@ hu(replace, "HS10", f"{PKG}/admit/resolver.py",
    "qc/fixtures/litkb_title_gate_wrong_work.json, a sibling volume scoring 0.83 against the "
    "queried title, resolves to its DOI and is admitted as the work that was asked for")
 
+# ── AE: the acquisition-event contract (S2, 2026-09-20; litkb/acquire/events.py) ────────────
+# The URL path landed files through its own function and recorded NOTHING, so a bound file could
+# carry no row saying where it came from. AE1 is the CONTRACT (does the event get written at all);
+# AE2 is the VERIFIER (does the check that reads it actually refuse); RD19 is the redaction family's
+# nineteenth call site, which this module's per-call-site rule requires the moment events.py exists.
+hu(block, "AE1", f"{PKG}/hunt.py",
+   "call site: the URL path records its acquisition event",
+   "a web source is landed, bound and admitted with no acquisition attempt anywhere: the file is "
+   "in the knowledge base and nothing says which URL it came from, what the server answered or "
+   "how many bytes arrived — the state the contract exists to make impossible")
+hu(replace, "AE2", f"{PKG}/acquire/events.py",
+   "   AND NOT EXISTS (SELECT 1 FROM litkb.acquisition_attempts a\n"
+   "                    WHERE a.status = 'ok' AND a.detail->>'sha256' = f.sha256\n"
+   "                      AND a.work_id = fv.work_id)",
+   "   AND true",
+   "the verifier stops asking about the EVENT and returns every file the workstream bound: it can "
+   "no longer tell an accounted-for file from an unaccounted-for one, which is the one thing "
+   "`operator_interventions` reads it for")
+hu(replace, "AE3", f"{PKG}/hunt.py",
+   "        refusals.append({\"code\": \"acquisition-event-failed\", \"message\": EVENT_FAILED,\n"
+   "                         \"detail\": detail, \"sha256\": sha256, \"route\": events.ROUTE})",
+   "        pass",
+   "the event write's failure is recorded in a field nothing reads: the hunt returns ok=True with "
+   "an EMPTY refusals list and the CLI exits 0, so a file bound with no provenance row looks "
+   "exactly like one that has one — and this is the branch that runs on any database that has not "
+   "applied migration 0028")
+hu(replace, "AE4", f"{PKG}/acquire/events.py",
+   "\n                      AND a.work_id = fv.work_id", "",
+   "the verifier exonerates by sha256 ALONE: any `ok` attempt ever recorded for those bytes — "
+   "another work, another workstream, another year — accounts for a fresh binding, so the "
+   "hand-placed file the verifier exists to name reads as accounted-for")
+hu(site, "RD19", "litkb/acquire/events.py::record_url_landing::redact", "{a0}",
+   what="events.record_url_landing: acquisition_attempts.identifier_used is stored as the URL was "
+        "fetched — a key in its query string is written to the row and printed by every later "
+        "reader of the attempt (record_attempt redacts the DETAIL, RD14/RD16, and not this column)")
+
 
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.

@@ -21,6 +21,7 @@ Run:
     PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_w1 py -3.12 -m pytest qc/test_litkb_hunt.py
 """
 import json
+import re
 import uuid
 from pathlib import Path
 
@@ -77,7 +78,8 @@ def _hunt(env, ref, **kw):
                   **kw)
 
 
-def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block.", state="extracted"):
+def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block.", state="extracted",
+                   sha=None):
     """A work with an identifier, and — at `state="extracted"` — a bound file, an `ok` run and one
     block. `state="held"` stops after the identifier, which is the rung a DOI reaches when it is
     admitted and no PDF has been found for it.
@@ -103,7 +105,9 @@ def seed_extracted(conn, ws_id, scheme, value, *, text="A seeded block.", state=
     file_id, _fv = conn.execute(
         "SELECT entity_id, version_id FROM litkb._write_version('fact', 'file', NULL, %s, NULL, %s, "
         "NULL, %s, 'hunt-seed', 'hunt-seed')",
-        (_jsonb({"sha256": uuid.uuid4().hex + uuid.uuid4().hex}),
+        # `sha` is passed only by the verifier's cross-work row, which has to bind KNOWN bytes;
+        # every other caller takes a fresh hash, because `files.sha256` is UNIQUE
+        (_jsonb({"sha256": sha or (uuid.uuid4().hex + uuid.uuid4().hex)}),
          _jsonb({"work_id": str(work_id), "status": "active", "rel_path": "Validation/seeded.pdf",
                  "bytes": 2048, "pages": 3}), ws_id)).fetchone()
     run_id = conn.execute(
@@ -351,6 +355,215 @@ def test_the_mcp_wrapper_threads_spend_to_no_spend_and_omits_it_by_default(tmp_p
     S._hunt(ref="10.1/x", spend=False)
     assert "--no-spend" not in calls[0], calls[0]
     assert "--no-spend" in calls[1], calls[1]
+
+
+# ── the acquisition-event contract (S2): one provenance shape, one verifier ───────────────
+#
+# The URL path lands files through its own function and used to record NOTHING, so a file bound
+# that way carried no row saying where it came from. `litkb/acquire/events.py` gives it the route
+# path's shape and `bound_without_event` is the verifier both S2 and S5 read. Two rows, and the
+# second is the KILL: a gate that has never been shown to fire is not a gate (CLAUDE.md 3.4c).
+
+
+def _url_hunt(env, *, record=True, monkeypatch=None, title=None, author="Doe", url=None):
+    """One clean web-source hunt of a real small PDF, stopping before GROBID/Docling.
+
+    `record=False` makes the event write a no-op for the duration — the known-bad. The no-op goes
+    on `hunt._record_acquisition_event`, the OUTER call, so the landing, the binding and the
+    admission all happen exactly as before and ONLY the event is lost. That is the end state a
+    code path that forgot to record leaves behind, which is what the verifier has to catch.
+
+    The title carries a random suffix because the work KEY is derived from it
+    (`front.make_key`): two rows hunting "A Hunted Document" would collide on admission's check 2
+    and the second would be refused as a duplicate, which is a different test's subject."""
+    p2 = _p2_module()
+    p2._need_pdftotext()
+    title = title or f"A Hunted Document {uuid.uuid4().hex[:8]}"
+    pdf = p2.paper_pdf(title, author)
+    if not record:
+        from litkb import hunt as H
+        monkeypatch.setattr(H, "_record_acquisition_event", lambda *a, **k: None)
+    url = url or f"https://example.org/{uuid.uuid4().hex}/paper.pdf"
+    res = _hunt(env, url, fetch=lambda u, timeout=180: (200, pdf), extract=False,
+                title=title, author=author, year=2020, registry_client=_NoNet())
+    return url, res
+
+
+def _db_now(conn):
+    """The freeze instant read off the SERVER, because `file_versions.created_at` defaults to the
+    server's `now()`: a Python clock a few microseconds ahead would put the file BEFORE the freeze
+    and the verifier would answer about nothing."""
+    return conn.execute("SELECT now()").fetchone()[0]
+
+
+@pg_only
+def test_a_url_hunt_records_an_acquisition_event_and_the_verifier_is_clean(env):
+    """The contract's good input. A web source lands, binds and is admitted — and afterwards it
+    has a row in `litkb.acquisition_attempts` under route `hunt-url` carrying the six documented
+    detail keys, and `bound_without_event` for this workstream is EMPTY."""
+    from litkb.acquire import events
+
+    since = _db_now(env["conn"])
+    url, res = _url_hunt(env)
+    assert res["ok"] is True and res["state"] == "bound-unextracted", res
+    assert res["acquisition_event"]["ok"] is True, res["acquisition_event"]
+    assert res["acquisition_event"]["route"] == "hunt-url", res["acquisition_event"]
+
+    row = env["conn"].execute(
+        "SELECT route, identifier_used, status, detail, http_codes, work_id::text "
+        "  FROM litkb.acquisition_attempts WHERE id = %s",
+        (res["acquisition_event"]["attempt_id"],)).fetchone()
+    route, identifier, status, detail, codes, work_id = row
+    assert (route, status) == ("hunt-url", "ok"), row
+    assert identifier == url and detail["source_url"] == url, row
+    assert codes == [200] and detail["http_status"] == 200, row
+    assert set(events.DETAIL_KEYS) <= set(detail), sorted(detail)
+    assert detail["sha256"] == res["downloaded"]["sha256"], detail
+    assert detail["bytes"] == res["downloaded"]["bytes"], detail
+    assert re.fullmatch(r"[0-9a-f]{32}", detail["md5"]), detail
+    assert detail["filed"] == res["downloaded"]["filed"], detail
+    assert work_id == str(res["admission"]["work_id"]), row
+
+    assert events.bound_without_event(env["conn"], env["ws_id"], since) == []
+
+
+@pg_only
+def test_a_url_landing_with_no_acquisition_event_makes_the_verifier_go_red(env, monkeypatch):
+    """THE KILL (workplan S2 (c), second clause). The same hunt with the event write removed binds
+    exactly the same file — and `bound_without_event` returns that file and only that file.
+
+    The offence names what a reader needs to act: the file, the work it is bound to and the sha256
+    no attempt accounts for."""
+    from litkb.acquire import events
+
+    since = _db_now(env["conn"])
+    _url, res = _url_hunt(env, record=False, monkeypatch=monkeypatch)
+    assert res["ok"] is True and res["state"] == "bound-unextracted", res
+    assert "acquisition_event" not in res, res
+
+    offences = events.bound_without_event(env["conn"], env["ws_id"], since)
+    assert len(offences) == 1, offences
+    assert offences[0]["file_id"] == str(res["admission"]["file_id"]), offences
+    assert offences[0]["work_id"] == str(res["admission"]["work_id"]), offences
+    assert offences[0]["sha256"] == res["downloaded"]["sha256"], offences
+    # the file IS bound and IS a web source — the offence is the missing event, nothing else
+    assert offences[0]["source_route"] == "web", offences
+
+
+@pg_only
+def test_an_event_write_that_fails_is_a_refusal_and_not_a_silent_success(env, monkeypatch):
+    """THE BRANCH THAT RUNS ON LIVE until migration 0028 is applied, and it must not be silent.
+
+    The first version of this path set `out['acquisition_event']['ok'] = False` and NOTHING read
+    that field: the hunt returned `ok: True` with an empty `refusals` and the CLI exited 0, so a
+    file whose provenance row was never written looked exactly like one whose was. `hunt()`'s own
+    docstring says a caller reads `ok`, `refused` and `refusals`; this asserts the failure arrives
+    there.
+
+    The INNER write is what raises — `acquire.run.record_attempt`, the function that actually
+    reaches the database — so the whole of `events.record_url_landing` runs first, which is what a
+    `CheckViolation` on the route CHECK would do. The file must still be BOUND: losing an admitted,
+    bound work because its provenance row could not be written would trade a missing record for a
+    lost one."""
+    from litkb.acquire import events
+    from litkb.acquire import run as _run
+
+    def _explode_write(*a, **kw):
+        raise RuntimeError("new row for relation \"acquisition_attempts\" violates check "
+                           "constraint \"acquisition_attempts_route_check\" " + "x" * 500)
+
+    monkeypatch.setattr(_run, "record_attempt", _explode_write)
+    since = _db_now(env["conn"])
+    _url, res = _url_hunt(env)
+
+    # the hunt SUCCEEDED: the work is admitted and the file is bound
+    assert res["ok"] is True and res["state"] == "bound-unextracted", res
+    assert res["admission"]["file_id"], res
+    # and it said so
+    codes = [r["code"] for r in res["refusals"]]
+    assert "acquisition-event-failed" in codes, res["refusals"]
+    entry = next(r for r in res["refusals"] if r["code"] == "acquisition-event-failed")
+    assert entry["detail"].startswith("RuntimeError: "), entry
+    assert len(entry["detail"]) <= len("RuntimeError: ") + 300, len(entry["detail"])
+    assert "0028" in entry["message"], entry["message"]
+    assert res["acquisition_event"]["ok"] is False, res["acquisition_event"]
+
+    # and the verifier catches exactly this file
+    offences = events.bound_without_event(env["conn"], env["ws_id"], since)
+    assert [o["file_id"] for o in offences] == [str(res["admission"]["file_id"])], offences
+
+
+@pg_only
+def test_an_ok_attempt_on_a_different_work_does_not_exonerate_this_binding(env):
+    """The verifier's second predicate. An `ok` attempt naming these BYTES, recorded for a
+    DIFFERENT work, must not account for this binding.
+
+    Without `a.work_id = fv.work_id` the exoneration is by sha256 alone, so any successful fetch
+    of these bytes anywhere in the corpus — another work, another workstream, another year — makes
+    a hand-placed file read as accounted-for. That is precisely the file the verifier exists to
+    name, so this is its known-bad: with the predicate removed the assertion below goes RED.
+
+    The other work is seeded `held` (no file of its own), so the only file in the workstream is the
+    one under test and the assertion names it exactly."""
+    from litkb.acquire import events
+    from litkb.acquire import run as _run
+
+    since = _db_now(env["conn"])
+    sha = uuid.uuid4().hex + uuid.uuid4().hex
+    other = seed_extracted(env["conn"], env["ws_id"], "doi",
+                           f"10.9999/other.{uuid.uuid4().hex[:10]}", state="held")
+    _run.record_attempt(env["conn"], env["ws_id"], _token(env), other["work_id"], "hunt-url",
+                        "https://example.org/somebody-elses.pdf", "ok",
+                        {"sha256": sha, "md5": "0" * 32, "bytes": 4096,
+                         "source_url": "https://example.org/somebody-elses.pdf",
+                         "filed": "Validation/other.pdf", "http_status": 200})
+    mine = seed_extracted(env["conn"], env["ws_id"], "doi",
+                          f"10.9999/mine.{uuid.uuid4().hex[:10]}", sha=sha)
+
+    offences = events.bound_without_event(env["conn"], env["ws_id"], since)
+    assert [o["file_id"] for o in offences] == [mine["file_id"]], offences
+    assert offences[0]["sha256"] == sha and offences[0]["work_id"] == mine["work_id"], offences
+
+
+@pg_only
+def test_the_url_of_an_acquisition_event_is_redacted_in_both_columns(env):
+    """Row RD19, the redaction family's call site in `events.record_url_landing`.
+
+    `record_attempt` redacts the DETAIL (rows RD14/RD16) and does NOT redact `identifier_used` —
+    on the route path that column holds a DOI, which carries no secret. On this path it holds a
+    URL, so the redaction happens at the one call site, and this is what makes it fire: a key
+    planted in the URL's query string must not reach the column.
+
+    The planted key is 64 random characters. `netutil.add_secret` arms redaction PROCESS-WIDE for
+    the rest of the pytest session and nothing ever clears it, so a short or common string would
+    mask itself out of every later test's output."""
+    from litkb.netutil import add_secret
+
+    secret = "k" + uuid.uuid4().hex + uuid.uuid4().hex
+    add_secret(secret)
+    url, res = _url_hunt(env, url=f"https://example.org/{uuid.uuid4().hex}/p.pdf?key={secret}")
+    assert res["acquisition_event"]["ok"] is True, res.get("acquisition_event")
+    identifier, detail = env["conn"].execute(
+        "SELECT identifier_used, detail FROM litkb.acquisition_attempts WHERE id = %s",
+        (res["acquisition_event"]["attempt_id"],)).fetchone()
+    assert secret in url, "the test planted no key"
+    assert secret not in identifier and "<KEY>" in identifier, identifier
+    assert secret not in json.dumps(detail), detail
+
+
+@pg_only
+def test_a_file_bound_by_hand_with_no_event_is_also_an_offence(env):
+    """The other door into the same defect, and the one S5 will see most: a file written straight
+    into `file_versions` (here through `_write_version`, as every seed in this module does) with
+    no acquisition attempt anywhere. The verifier is about the FILE's provenance, not about which
+    function bound it."""
+    from litkb.acquire import events
+
+    since = _db_now(env["conn"])
+    seeded = seed_extracted(env["conn"], env["ws_id"], "doi",
+                            f"10.9999/noevent.{uuid.uuid4().hex[:10]}")
+    offences = events.bound_without_event(env["conn"], env["ws_id"], since)
+    assert [o["file_id"] for o in offences] == [seeded["file_id"]], offences
 
 
 # ── kill 3: no workstream token ───────────────────────────────────────────────────────────

@@ -597,7 +597,11 @@ def cmd_review_context(args, conn):
     from litkb.db import connect as _c
     from litkb import review_context as _rx
 
-    conn = _c.connect(args.db, "litkb_reader")
+    # the role is a flag with hunt.py's env default, not a literal: worker databases admit only
+    # litkb_test, and a literal here made this command live-only (found 2026-09-20 building the
+    # Codex stage; the fix is a flag, NOT a pgpass or GRANT that would put production roles on
+    # test databases the provisioner deliberately keeps them off)
+    conn = _c.connect(args.db, args.role)
     try:
         out = args.out or str(Path(args.review).with_suffix(".context.md"))
         report = _rx.write(conn, args.review, out)
@@ -823,6 +827,10 @@ def build_parser():
                              "one the quote does not carry. Exits 1 on a block it cannot show")
     rx.add_argument("review", help="path to the review .md (it names its own workstream)")
     rx.add_argument("--out", help="output path (default: <review>.context.md)")
+    rx.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
+                    help="the read login (default: LITKB_READER_ROLE, else litkb_reader). Worker "
+                         "databases litkb_test_wN admit ONLY litkb_test (provision_workers), so a "
+                         "run against one passes --role litkb_test; the same variable hunt.py reads")
     return ap
 
 

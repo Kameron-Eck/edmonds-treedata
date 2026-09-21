@@ -26,6 +26,7 @@ words.
 """
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -33,7 +34,6 @@ import uuid
 from pathlib import Path
 
 import pytest
-
 import test_litkb_p1 as _p1mod
 from test_litkb_review_check import _review, _world
 
@@ -154,6 +154,34 @@ def test_X5_the_cli_exits_1_on_a_hole_and_0_without_one(pg, tmp_path):
     assert rx.write(pg.conn, good, tmp_path / "g.ctx.md")["missing"] == []
     assert len(rx.write(pg.conn, bad, tmp_path / "b.ctx.md")["missing"]) == 1
     # the CLI's own exit code is `1 if report["missing"] else 0` (commands.cmd_review_context)
+
+
+@pg_only
+def test_the_cli_runs_end_to_end_against_a_worker_database_with_the_test_role(pg, tmp_path):
+    """Builder C's listed gap: `review-context` had never been run THROUGH THE CLI against a
+    database, because the command hard-coded `litkb_reader` and worker databases admit only
+    `litkb_test` (provision_workers). `--role` (default LITKB_READER_ROLE, hunt.py's variable)
+    is the fix; a pgpass line or GRANT would have put a production role on a test database."""
+    import subprocess
+
+    db = os.environ.get("LITKB_TEST_DB") or "litkb_test"
+    w = _world(pg)
+    good, bad = tmp_path / "good.md", tmp_path / "bad.md"
+    good.write_text(_review(w), encoding="utf-8", newline="")
+    bad.write_text(_review(w, block_id=uuid.uuid4()), encoding="utf-8", newline="")
+    env = dict(os.environ, PYTHONPATH=str(SCRIPTS / "pipeline"), PYTHONUTF8="1")
+    env.pop("LITKB_READER_ROLE", None)
+
+    def cli(review, out):
+        return subprocess.run([sys.executable, "-m", "litkb", "--db", db, "review-context",
+                               str(review), "--out", str(out), "--role", "litkb_test"],
+                              capture_output=True, text=True, env=env, cwd=str(SCRIPTS))
+
+    r = cli(good, tmp_path / "g.ctx.md")
+    assert r.returncode == 0, r.stderr[-800:]
+    assert (tmp_path / "g.ctx.md").is_file()
+    r = cli(bad, tmp_path / "b.ctx.md")
+    assert r.returncode == 1 and "BLOCK NOT VISIBLE" in (tmp_path / "b.ctx.md").read_text(encoding="utf-8")
 
 
 @pg_only

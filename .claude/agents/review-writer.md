@@ -10,12 +10,16 @@ mcpServers: litkb
 # plugin subagents, skipped by disableAllHooks, and absent in an untrusted folder. The durable
 # control is Kam's `permissions.deny` block in settings.json, anchored at the filesystem root.
 # The literal `py -3.12 <path>` form is deliberate: a .bat wrapper in this field is not executed.
+# THE PATH IS LOCATED, NOT ASSUMED (2026-09-21, S2): `${CLAUDE_PROJECT_DIR}` is the directory
+# the session OPENED in (`Scripts\` for every session), `.claude/` is one level up, and `py`
+# on a missing script exits 2 = BLOCK. The one-liner walks up two levels and, finding no
+# guard, exits 0 (fail-open is the guard's own contract). Reports/LITKB_AGENT_HOOK_PATH_2026-09-21.md
 hooks:
   PreToolUse:
     - matcher: "Read|Grep|Glob"
       hooks:
         - type: command
-          command: "py -3.12 ${CLAUDE_PROJECT_DIR}/.claude/hooks/litkb_guard.py"
+          command: "py -3.12 -c \"import os,runpy;d=os.environ.get('CLAUDE_PROJECT_DIR') or os.getcwd();c=[os.path.join(x,'.claude','hooks','litkb_guard.py') for x in (d,os.path.dirname(d),os.path.dirname(os.path.dirname(d)))];p=next((x for x in c if os.path.isfile(x)),None);p and runpy.run_path(p,run_name='__main__')\""
 ---
 
 You write the literature review. Your one source is the BRIEF that `litkb_brief` returns for the

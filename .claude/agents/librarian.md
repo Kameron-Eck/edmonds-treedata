@@ -17,12 +17,16 @@ mcpServers: litkb
 # filesystem root — `Read(//**/pgpass*)`, not `Read(**/pgpass*)`, which resolves relative to the
 # settings file and never reaches `~/.pgpass`. For Grep and Glob the docs call Read deny rules
 # best-effort, so the rule in the brief below is not decoration.
+# THE PATH IS LOCATED, NOT ASSUMED (2026-09-21, S2): `${CLAUDE_PROJECT_DIR}` is the directory
+# the session OPENED in (`Scripts\` for every session), `.claude/` is one level up, and `py`
+# on a missing script exits 2 = BLOCK. The one-liner walks up two levels and, finding no
+# guard, exits 0 (fail-open is the guard's own contract). Reports/LITKB_AGENT_HOOK_PATH_2026-09-21.md
 hooks:
   PreToolUse:
     - matcher: "Read|Grep|Glob"
       hooks:
         - type: command
-          command: "py -3.12 ${CLAUDE_PROJECT_DIR}/.claude/hooks/litkb_guard.py"
+          command: "py -3.12 -c \"import os,runpy;d=os.environ.get('CLAUDE_PROJECT_DIR') or os.getcwd();c=[os.path.join(x,'.claude','hooks','litkb_guard.py') for x in (d,os.path.dirname(d),os.path.dirname(os.path.dirname(d)))];p=next((x for x in c if os.path.isfile(x)),None);p and runpy.run_path(p,run_name='__main__')\""
 ---
 
 You are the project's librarian. Your one source is the litkb knowledge base, reached through the

@@ -1,0 +1,53 @@
+arXiv:2303.07334v1 [stat.CO] 13 Mar 2023  ASSESSING THE PERFORMANCE OF SPATIAL CROSS-VALIDATION
+
+                                            APPROACHES FOR MODELS OF SPATIALLY STRUCTURED DATA
+
+                                                                                                         A PREPRINT
+
+                                                                                                   Michael J Mahoney
+                                                                                     Graduate Program in Environmental Science
+                                                                  State University of New York College of Environmental Science and Forestry
+
+                                                                                                    Syracuse, NY, 13210
+                                                                                                    mjmahone@esf.edu
+
+                                                                                                    Lucas K Johnson
+                                                                                     Graduate Program in Environmental Science
+                                                                  State University of New York College of Environmental Science and Forestry
+
+                                                                                                    Syracuse, NY, 13210
+                                                                                                      ljohns11@esf.edu
+
+                                                                                                         Julia Silge
+                                                                                                          Posit, PBC
+                                                                                                     Boston, MA, 02210
+                                                                                                    julia.silge@posit.co
+
+                                                                                                      Hannah Frick
+                                                                                                          Posit, PBC
+
+                                                                                                     Boston, MA, 02210
+                                                                                                      hannah@posit.co
+
+                                                                                                        Max Kuhn
+                                                                                                          Posit, PBC
+
+                                                                                                     Boston, MA, 02210
+                                                                                                        max@posit.co
+
+                                                                                                      Colin M Beier
+                                                                                 Department of Sustainable Resources Management
+                                                                  State University of New York College of Environmental Science and Forestry
+
+                                                                                                    Syracuse, NY, 13210
+                                                                                                       cbeier@esf.edu
+
+                                                                                                            3/13/23
+
+                                                                                             ABSTRACT
+
+                                                    Evaluating models fit to data with internal spatial structure requires specific cross-validation (CV)
+                                                    approaches, because randomly selecting assessment data may produce assessment sets that are
+                                                    not truly independent of data used to train the model. Many spatial CV methodologies have been
+                                                    proposed to address this by forcing models to extrapolate spatially when predicting the assessment
+

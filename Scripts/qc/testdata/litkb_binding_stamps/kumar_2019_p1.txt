@@ -1,0 +1,53 @@
+arXiv:1909.10155v2 [cs.LG] 31 Jan 2020               Verified Uncertainty Calibration
+
+                                                                         Ananya Kumar, Percy Liang, Tengyu Ma
+                                                                                Department of Computer Science
+                                                                                        Stanford University
+
+                                                                   {ananya, pliang, tengyuma}@cs.stanford.edu
+
+                                                                                    Abstract
+
+                                                   Applications such as weather forecasting and personalized medicine demand mod-
+                                                   els that output calibrated probability estimates--those representative of the true
+                                                   likelihood of a prediction. Most models are not calibrated out of the box but are
+                                                   recalibrated by post-processing model outputs. We find in this work that popular re-
+                                                   calibration methods like Platt scaling and temperature scaling are (i) less calibrated
+                                                   than reported, and (ii) current techniques cannot estimate how miscalibrated they
+                                                   are. An alternative method, histogram binning, has measurable calibration error
+                                                   but is sample inefficient--it requires O(B/ 2) samples, compared to O(1/ 2) for
+                                                   scaling methods, where B is the number of distinct probabilities the model can
+                                                   output. To get the best of both worlds, we introduce the scaling-binning calibrator,
+                                                   which first fits a parametric function to reduce variance and then bins the function
+                                                   values to actually ensure calibration. This requires only O(1/ 2 + B) samples.
+                                                   Next, we show that we can estimate a model's calibration error more accurately
+                                                   using an estimator from the meteorological community--or equivalently measure
+                                                   its calibration error with fewer samples (O( B) instead of O(B)). We validate
+                                                   our approach with multiclass calibration experiments on CIFAR-10 and ImageNet,
+                                                   where we obtain a 35% lower calibration error than histogram binning and, un-
+                                                   like scaling methods, guarantees on true calibration. In these experiments, we
+                                                   also estimate the calibration error and ECE more accurately than the commonly
+                                                   used plugin estimators. We implement all these methods in a Python library:
+                                                   https://pypi.org/project/uncertainty-calibration
+
+                                        1 Introduction
+
+                                        The probability that a system outputs for an event should reflect the true frequency of that event: if
+                                        an automated diagnosis system says 1,000 patients have cancer with probability 0.1, approximately
+                                        100 of them should indeed have cancer. In this case, we say the model is uncertainty calibrated.
+                                        The importance of this notion of calibration has been emphasized in personalized medicine [1],
+                                        meteorological forecasting [2, 3, 4, 5, 6] and natural language processing applications [7, 8]. As most
+                                        modern machine learning models, such as neural networks, do not output calibrated probabilities out
+                                        of the box [9, 10, 11], reseachers use recalibration methods that take the output of an uncalibrated
+                                        model, and transform it into a calibrated probability. Scaling approaches for recalibration--Platt
+                                        scaling [12], isotonic regression [13], and temperature scaling [9]--are widely used and require very
+                                        few samples, but do they actually produce calibrated probabilities?
+
+                                        We discover that these methods are less calibrated than reported. Past work approximates a model's
+                                        calibration error using a finite set of bins. We show that by using more bins, we can uncover a higher
+                                        calibration error for models on CIFAR-10 and ImageNet. We show that a fundamental limitation
+                                        with approaches that output a continuous range of probabilities is that their true calibration error is
+                                        unmeasurable with a finite number of bins (Example 3.2).
+
+                                        33rd Conference on Neural Information Processing Systems (NeurIPS 2019), Vancouver, Canada.
+

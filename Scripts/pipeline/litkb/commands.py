@@ -26,6 +26,8 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb review-context <review.md> --out <context.md>   (exit 1 on a block it cannot show)
     py -3.12 -m litkb reap [--min-age-hours 72] [--apply] [--out census.json] [--json]
                           (the staging census; --dry-run is the default and moves nothing)
+    py -3.12 -m litkb runs retire [--apply --reason R] [--json] [--out PATH]
+                          (superseded extraction runs: MARKED retired, never deleted; dry run default)
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -890,7 +892,65 @@ def build_parser():
                     help="the read login (default: LITKB_READER_ROLE, else litkb_reader). Worker "
                          "databases litkb_test_wN admit ONLY litkb_test (provision_workers), so a "
                          "run against one passes --role litkb_test; the same variable hunt.py reads")
+
+    # ── retiring superseded run sets, 2026-09-22 (migration 0031, litkb/ops/retire.py) ──────
+    rn = sub.add_parser("runs", help="extraction runs: retire the superseded ones (MARKING, never "
+                                     "deleting; S4 run 3 decision D6)")
+    rnsub = rn.add_subparsers(dest="runs_cmd", required=True)
+    rr = rnsub.add_parser("retire", help="list what would be retired, what is excluded and why; "
+                                         "--apply records ONE op (who, when, why)")
+    rrg = rr.add_mutually_exclusive_group()
+    rrg.add_argument("--dry-run", dest="apply", action="store_false", default=False,
+                     help="the default: report, write nothing")
+    rrg.add_argument("--apply", dest="apply", action="store_true",
+                     help="record the retirement through the ingest login (litkb.ingest.connect)")
+    rr.add_argument("--reason", help="why this op retires these runs (required with --apply)")
+    rr.add_argument("--json", action="store_true", help="print the plan as JSON, not a table")
+    rr.add_argument("--out", help="write the plan as JSON to this path")
+    rr.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
+                    help="the read login (default: LITKB_READER_ROLE, else litkb_reader)")
     return ap
+
+
+def cmd_runs(args, conn):
+    """`litkb runs retire [--apply]` — litkb/ops/retire.py, migration 0031.
+
+    It opens its OWN logins, like `reap`: the dry run is SELECTs only, so it reads as
+    `litkb_reader` (which is also what lets it run against live without a write credential), and
+    `--apply` hands the eligible list to `litkb.retire_extraction_runs`, which only the ingest
+    login may execute. The session label (--session or LITKB_SESSION) and --reason are recorded
+    with the op; nothing is deleted."""
+    from litkb.db import connect as _c
+    from litkb.ops import retire as _rt
+    from litkb.textnorm import norm_label
+
+    session = norm_label(args.session or os.environ.get("LITKB_SESSION") or "")
+    if args.apply and (not session.strip() or not (args.reason or "").strip()):
+        raise SystemExit("litkb runs retire --apply: a session label (--session or LITKB_SESSION) "
+                         "and --reason are both required — the op records who and why")
+    reader = _c.connect(args.db, args.role, autocommit=True)
+    ingest_conn = None
+    try:
+        if args.apply:
+            from litkb import ingest as _ingest
+
+            ingest_conn = _ingest.connect(args.db)
+        out = _rt.retire(reader, ingest_conn, apply=bool(args.apply), session=session,
+                         reason=args.reason)
+    finally:
+        reader.close()
+        if ingest_conn is not None:
+            ingest_conn.close()
+    doc = _rt.as_json(out)
+    if args.json:
+        _print(doc)
+    else:
+        for line in _rt.summary_lines(out):
+            print(line)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=1, default=str, ensure_ascii=False)
+    return 0
 
 
 class _NoConn:
@@ -919,7 +979,9 @@ class _NoConn:
 #: `reap`: it reads litkb.files and litkb.file_versions on the READER login and writes no row at
 #: all, so the writer main() would hand it is a credential it never uses — and a worker database's
 #: pgpass has no litkb_writer line, which would make the command test-only.
-_OWN_LOGINS = ("promote", "hunt", "review-context", "reap")
+#: `runs`: the dry run reads on the READER login and `--apply` writes through the ingest login,
+#: each opened by cmd_runs; the writer is a credential it never uses.
+_OWN_LOGINS = ("promote", "hunt", "review-context", "reap", "runs")
 
 
 def main(argv=None, connect=None):
@@ -931,7 +993,7 @@ def main(argv=None, connect=None):
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt, "reap": cmd_reap,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
                 "review-check": cmd_review_check, "review-context": cmd_review_context,
-                "promote": cmd_promote}[args.cmd](args, conn)
+                "promote": cmd_promote, "runs": cmd_runs}[args.cmd](args, conn)
     finally:
         conn.close()
 

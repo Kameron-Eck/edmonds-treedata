@@ -2086,8 +2086,11 @@ _EXPECTED_EXECUTE = {
     # (0001:25 revokes EXECUTE on a new function from PUBLIC, so an ungranted one is dead to every
     # agent role). THIS MATRIX IS WHY THE GRANT IS DECLARED AND NOT JUST WRITTEN: the grant
     # shipped, and this row is where it had to be admitted.
+    # run_retirement_status: migration 0031's verdict on every extraction run (the dry run of
+    # `litkb runs retire`, qc/test_litkb_retire.py). SECURITY INVOKER and read-only, so the reader
+    # asks it with its own SELECT rights; the op that WRITES is the ingest login's.
     "litkb_reader": {"norm_identifier", "check_ws_token", "norm_search_text", "any_term_query",
-                     "canonical_newlines"},
+                     "canonical_newlines", "run_retirement_status"},
     # admit, approve_admission, attach_file: P2 admission (migration 0013, qc/test_litkb_p2.py)
     "litkb_writer": {"norm_identifier", "open_workstream", "abandon_workstream", "write_fact", "write_proposal",
                      "admit", "approve_admission", "attach_file",
@@ -2138,7 +2141,12 @@ _EXPECTED_EXECUTE = {
                      # canonical_newlines: 0026 grants the three roles in one line, ingest
                      # included, so the rule a block is later matched by is not defined
                      # differently for the role that wrote the block
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # retire_extraction_runs: migration 0031 (qc/test_litkb_retire.py). The ONE
+                     # writer of run_retirement_ops / run_retirements, which grant INSERT to
+                     # nobody; SECURITY DEFINER, refusing a current, evidence-cited or
+                     # not-superseded run. Retirement MARKS runs and deletes nothing.
+                     "retire_extraction_runs"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

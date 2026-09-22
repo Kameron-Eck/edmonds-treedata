@@ -1338,3 +1338,149 @@ def test_the_gold_cross_page_paragraph_is_stored_on_the_page_it_is_printed_on():
     got = R._norm(hits[0].text)
     assert got == want, f"the block carries {len(got)} characters for the gold's {len(want)}"
     assert hits[0].extractor.get("continues_from") == {"page": 11}, hits[0].extractor
+
+
+# ── stage5-4: a TOOL-text fragment carries its own page's text (litkb S4 run 3, builder-D2) ──
+#
+# The native-slice rule above cannot reach a page with no native layer: there the tool's text is
+# stored, and both adapters gave every fragment of an element the element's WHOLE text, so a
+# paragraph OCR'd across a page break was stored whole under each page (live, survey-code C3:
+# Abdulkader_2020 p49 and p52, 8,740 characters each). stage5-4 cuts it by what the tool records
+# per box: Docling's per-prov `charspan`, GROBID's `<s>` coordinates.
+
+def test_prov_pieces_tile_the_text_across_a_space_join_and_a_hyphen_join_CONSTRUCTED():
+    """CONSTRUCTED items with the exact charspans docling 2.127.0's `_merge_elements` writes
+    (readingorder_model.py:657-686): a merged piece's span is taken BEFORE the join, so it is
+    exact after a space and two characters too far after a removed hyphen."""
+    from litkb.extract import docling as D
+
+    # "alpha beta" + space join "gamma delta": spans (0,10), (11,22)
+    space = {"text": "alpha beta gamma delta", "prov": [{"charspan": [0, 10]}, {"charspan": [11, 22]}]}
+    assert D.prov_pieces(space) == ["alpha beta ", "gamma delta"]
+    # "the spe-" + hyphen join "cial case": text "the special case"; span 2 = (9, 18) taken on the
+    # 8-character "the spe-", and the text afterwards is 16 = 18 - 2 long
+    hyphen = {"text": "the special case", "prov": [{"charspan": [0, 8]}, {"charspan": [9, 18]}]}
+    assert D.prov_pieces(hyphen) == ["the spe", "cial case"]
+    # three pieces, the first join a hyphen and the second a space
+    three = {"text": "the special case holds here",
+             "prov": [{"charspan": [0, 8]}, {"charspan": [9, 18]}, {"charspan": [17, 27]}]}
+    assert D.prov_pieces(three) == ["the spe", "cial case ", "holds here"]
+    # spans that read back to neither join: no cut at all, never a guessed one
+    assert D.prov_pieces({"text": "alpha beta gamma", "prov": [{"charspan": [0, 5]},
+                                                               {"charspan": [3, 9]}]}) is None
+    assert D.prov_pieces({"text": "alpha beta", "prov": [{"charspan": [0, 5]}, {}]}) is None
+
+
+_TEI_CROSS_PAGE = """<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><div>
+<p coords="1,40,700,300,10;1,40,712,300,10;2,40,60,300,10;2,40,72,200,10"><s
+ coords="1,40,700,300,10">First sentence on page one.</s> <s
+ coords="1,40,712,300,10;2,40,60,120,10">Second one runs over the break</s> <s
+ coords="2,165,60,175,10;2,40,72,200,10">and the third is page two's.</s></p>
+</div></body></text></TEI>"""
+
+
+def test_sentence_pieces_cut_at_the_sentence_that_begins_on_each_page_CONSTRUCTED():
+    """CONSTRUCTED TEI. GROBID records no text per line, only per sentence; a sentence over the
+    break stays whole on the page where it begins, and the cut tiles the element's raw text."""
+    from litkb.extract import grobid as G
+
+    blocks = G.body_blocks(_TEI_CROSS_PAGE.encode(), kinds=("p",))
+    frags = R.union_boxes(blocks)
+    assert [(f.page, f.box_index, f.box_count) for f in frags] == [(1, 0, 2), (2, 1, 2)]
+    own = [" ".join(f.piece.split()) for f in frags]
+    assert own == ["First sentence on page one. Second one runs over the break",
+                   "and the third is page two's."]
+    assert "".join(own).replace(" ", "") == blocks[0].text.replace(" ", "")
+
+
+def _copy_real(tmp_path, *paths):
+    """Real corpus/artifact files COPIED into the test's tmp dir (never read in place)."""
+    import shutil
+
+    out = []
+    for p in paths:
+        dst = tmp_path / pathlib.Path(p).name
+        shutil.copyfile(p, dst)
+        out.append(dst)
+    return out
+
+
+ANDERSON = CORPUS / "Validation" / "Anderson_1957_statistical-inference-about-markov.pdf"
+ANDERSON_OCR_DOC = DOC_DIR / "Anderson_1957__ocr-t4.docling.json"
+#: `#/texts/21` of that REAL artifact: a paragraph whose two prov entries sit on pages 2 and 3
+#: (charspans [0, 909] and [910, 1155], text 1,155 characters); the file is an image-only scan, so
+#: stage 0 routes every page to OCR and both fragments take the TOOL's text.
+ANDERSON_ELEMENT = "#/texts/21"
+
+
+@pytest.mark.skipif(not (ANDERSON.exists() and ANDERSON_OCR_DOC.exists()),
+                    reason="the Anderson_1957 scan and its OCR Docling artifact are not on this machine")
+def test_kill_an_ocr_paragraph_over_a_page_break_is_stored_once_per_page_not_twice(tmp_path):
+    """THE KILL for stage5-4, on a REAL stored Docling artifact of a real scan (copied).
+
+    Before stage5-4 both fragments carried the element's whole 1,155 characters — the same text
+    under page 2 and page 3, so a quote printed on page 2 cited page 3 as well. Each fragment now
+    carries only its own prov's slice, and the two concatenate back to the element."""
+    from litkb.extract import docling as D
+    from litkb.extract import inventory as I
+
+    pdf, doc_path = _copy_real(tmp_path, ANDERSON, ANDERSON_OCR_DOC)
+    doc = D.load(str(doc_path))
+    element = next(t for t in doc["texts"] if t["self_ref"] == ANDERSON_ELEMENT)
+    assert sorted({p["page_no"] for p in element["prov"]}) == [2, 3]
+    rec = I.probe_file(str(pdf))
+    assert {2, 3} <= set(rec.get("ocr_pages") or ()), "the routing this test rests on moved"
+    canonical, _dis, stats = R.reconcile(str(pdf), None, doc, rec, ocr_pages=rec["ocr_pages"])
+    frags = sorted((c for c in canonical if c.element_id == ANDERSON_ELEMENT), key=lambda c: c.page)
+    assert [c.page for c in frags] == [2, 3]
+    assert all(c.text_source == "ocr" and c.extractor.get("page_text") == R.PAGE_TEXT_CHARSPAN
+               for c in frags), [(c.text_source, c.extractor) for c in frags]
+    p2, p3 = frags[0].text, frags[1].text
+    assert p2 != p3, "the same text is stored under both pages of one OCR'd paragraph"
+    assert p3 not in p2 and p2 not in p3
+    assert len(p2) < len(element["text"]) and len(p3) < len(element["text"])
+
+    def ink(s):
+        return "".join(s.split())
+
+    assert ink(p2) + ink(p3) == ink(element["text"]), "the fragments do not add up to the element"
+    assert stats["fragment_page_text"].get(R.PAGE_TEXT_ELEMENT, 0) == 0, stats["fragment_page_text"]
+
+
+MONTGOMERY_SHA = "51367802e89cbb49c2ef864a526b26357ed620fc4bca500e4bf4df8a80a59475"
+MONTGOMERY = CORPUS / "Validation" / "Montgomery_1991_some-statistical-process-control.pdf"
+MONTGOMERY_TEI = P5_DERIVED / "tei" / f"{MONTGOMERY_SHA}.tei.xml"
+MONTGOMERY_DOC = P5_DERIVED / "docling" / f"{MONTGOMERY_SHA}.docling.json"
+
+
+@pytest.mark.skipif(not (MONTGOMERY.exists() and MONTGOMERY_TEI.exists() and MONTGOMERY_DOC.exists()),
+                    reason="the Montgomery_1991 P5 artifacts are not on this machine")
+def test_a_grobid_paragraph_over_the_break_onto_an_ocr_page_keeps_only_that_pages_sentences(tmp_path):
+    """The GROBID side, on a REAL stored TEI (copied): Montgomery_1991 is routed `mixed` with page
+    9 OCR'd, and a `<p>` running from page 8 onto page 9 was stored under page 9 with all 1,351 of
+    its characters (live block, current run). Its page-9 fragment now holds the sentences that
+    begin on page 9 and none of page 8's."""
+    from litkb.extract import docling as D
+    from litkb.extract import grobid as G
+    from litkb.extract import inventory as I
+
+    pdf, tei_path, doc_path = _copy_real(tmp_path, MONTGOMERY, MONTGOMERY_TEI, MONTGOMERY_DOC)
+    rec = I.probe_file(str(pdf))
+    assert list(rec.get("ocr_pages") or ()) == [9], "the routing this test rests on moved"
+    tei = tei_path.read_bytes()
+    canonical, _dis, _stats = R.reconcile(str(pdf), tei, D.load(str(doc_path)), rec,
+                                          ocr_pages=rec["ocr_pages"])
+    hits = [c for c in canonical if c.page == 9 and c.source == "grobid"
+            and (c.extractor or {}).get("continues_from") == {"page": 8}]
+    assert len(hits) == 1, [(c.page, c.extractor) for c in hits]
+    frag = hits[0]
+    assert frag.text_source == "ocr" and frag.extractor["page_text"] == R.PAGE_TEXT_SENTENCE
+    # the element: the <p> with line boxes on pages 8 AND 9 whose text holds the fragment's
+    # (a GROBID <p> carries no xml:id, so it is found by its pages and its words)
+    lines = G.body_blocks(tei, kinds=("p",))
+    element = next(b for b in lines if b.page == 9 and frag.text in b.text
+                   and any(o.text == b.text and o.page == 8 for o in lines))
+    assert len(element.text) == 1351, len(element.text)
+    assert frag.text and frag.text in element.text
+    assert len(frag.text) < len(element.text) // 2, "page 9 still holds the element's whole text"
+    assert not element.text.startswith(frag.text[:60]), "page 8's opening words are under page 9"

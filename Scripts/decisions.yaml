@@ -1129,3 +1129,24 @@ decisions:
       two. The ask is recorded here so the unattended chain does not stall on it.
     evidence:
       - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+
+  - id: litkb-colab-page-boundary
+    question: >-
+      What may leave this laptop for a Colab runtime? pipeline/litkb/extract/colab_formula_worker.py
+      is the only litkb code that runs off the laptop and its header says it never sees a PDF - the
+      shard carries page-region CROPS, and the corpus stays local (litkb-p0-foundation). S4.7's
+      vision-language OCR rung would ship WHOLE scanned PAGES of acquired PDFs to a T4 runtime.
+      litkb-s47-colab-queue granted T4 TIME, not a data boundary, so the boundary is unruled.
+      Three options: (a) whole pages may go, the shard is page images; (b) only strips or tiles, the
+      way the formula worker crops, so no page ever leaves whole - text OCR on horizontal strips
+      loses little, and this is the orchestrator's recommendation; (c) no Colab OCR at all, and the
+      vision-language rung is reported UNDETERMINED.
+    owner: kam
+    status: open
+    why: >-
+      S4.7's vision-language rung is the only item that waits on this; every other rung of that
+      session lands on the T2000 regardless. Unruled, a session either ships the corpus off the
+      laptop against the foundation ruling, or drops a rung Kam has already paid T4 time for.
+    evidence:
+      - Scripts/pipeline/litkb/extract/colab_formula_worker.py
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md

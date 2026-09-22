@@ -46,6 +46,47 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-22  litkb PLAN: 25 itemized fixes folded -> implementable
+goal:    three independent builder-reads (S4.5 / S4.6+S4.7 / S4-chain) each found plan NOT implementable as
+         written. Fold their (1) items in as plan text. No code touched.
+did:     25 fixes -> LITKB_WORKPLAN.md. S4.5: bban "7 rows whose tried differs from doi" -> 7 SERVED rows (23
+         not-in-corpus rows carry the retry too, misses either way); .wf 200 "Checking your browser" = challenge
+         client does not recognise, .ren "Verification" = that mirror's MISS page (D2: 1 in-corpus -> article,
+         3 out -> Verification; confirm on 1 more in-corpus DOI before booking not_in_corpus); no-pdf-link is a
+         tried TOKEN in acquire/scihub.py, not a status; fixtures = full pages THIS rung records (1 GET per
+         mirror per test DOI) into Scripts/qc/fixtures/, jobs folder holds metadata + ~300-char prefixes only;
+         preprints_sent_to_shadow measured over main_works.type='preprint' OR cr_type='posted-content' in
+         phase4/qc/litkb_acq_probe_crosswalk.csv; promotions_committed>=1 -> promotions_prepared>=1 GATED,
+         committed REPORTED (promote.commit calls verify_merge -> needs Kam merge); referee classes = the nine
+         unvalidated_items names (one home), 3-agent cap is on CONCURRENT referees; hardening subcommand added
+         to (a), built from edges shape; operator-bind gate wired (proposed version only) +
+         operator_binds_unproposed=0; volumes_bound_as_article parses a-b digit range only, page_ranges_unparsed
+         REPORTED; workstream slug ladder-1; worker DBs free = w3 w7 w9 (w2 w8 w10 w11 reserved).
+         S4: Store.to_quarantine writes only the FILENAME - sidecar is quarantine_new's alone, acquisition
+         callers leave nothing machine-readable -> S4.5 item 8 writes it, quarantines_without_reason=0;
+         files_without_reference_stage + reference_anchor_rate REPORTED; cap known-bad split in two (pages over
+         cap -> over-page-cap refuse; page-count probe ERRORS -> unclassified, never bound); over_cap_bound,
+         scans_ocr_unrouted, mutated_leases_accepted added so all 3 orphan known-bads move a counter.
+         S4.6: coverage denominator written down - eligible = tracker rows minus retired by
+         litkb-e23-residue-copies / litkb-crc-book, no-DOI rows STAY IN (Stage D's targets), A0 is S4.5's;
+         ladder EXITS NON-ZERO under 0.95 unless --residue-ruled <csv> names every residue row with its ruling
+         id (no prose read); coverage population query + bban re-run EXECUTED BY REFEREE; credentials_stored
+         GATED -> REPORTED (text scan, bypassable).
+         S4.7: ligature rows -> Reports/litkb_ligature_c0_2026-09-19.csv + litkb_ligature_quote_hazard CSV
+         (that ruling's referee report names none: grep -ci ligature = 0); latex_status is a COLUMN of table
+         litkb.equations, live values unverified/stable/contaminated/degenerate/unstable/NULL, verified+held
+         ADDED beside, NULL reported as latex_status_null; scan harness is 6 files and NO OCR engine installed
+         local (docTR/RapidOCR/tesseract absent) -> enlarge harness + install, or report UNDETERMINED in those
+         words; gold pages AUTHORED BY REFEREE, not by the builder that scores.
+         Protocol: launch only with tree on main at parity (HEAD prints main AND main_not_at_parity=0).
+decided: litkb-colab-page-boundary raised OPEN (owner kam) - whole scan pages to T4 vs strips/tiles the way
+         colab_formula_worker crops (recommendation) vs no Colab OCR. litkb-s47-colab-queue granted T4 TIME,
+         not a data boundary. S4.7 vision-language rung conditional on it; nothing else blocks.
+gates:   litkb_acceptance.py plan -> sessions_missing_abc=0 unresolved_decision_ids=0, exit 0.
+         pytest qc/test_docs_match_code.py qc/test_decisions.py qc/test_litkb_edges.py -> 50 passed, exit 0.
+files:   Scripts/LITKB_WORKPLAN.md, Scripts/decisions.yaml, Scripts/CHATLOG.md
+next:    Kam rules litkb-colab-page-boundary; S4 run 3 launches from main at parity.
+
 ## 2026-09-22  litkb SCI-HUB: parking reversed -> diagnosed -> workaround ladder measured; Elsevier key measured
 goal:    Kam: "I do want to attempt a work around for scihub. Scihub is a massive loss if we table it."; keys.
 found:   Sci-Hub (wf_88f4554c-1ee, D1 own-route + D2 fronts, 30 min, read-only): ledger 26 attempts / 22 works,

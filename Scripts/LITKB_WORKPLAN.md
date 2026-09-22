@@ -49,11 +49,11 @@ Update this block only. Everything else in the file changes when a session lands
   (the shadow-library linkage map and the identifier crosswalk; record `Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md`, its §M the measurements)
   landed the same day and rewrote S4.5 item 1's identifier model, Stage A's zero-request derivations and
   offline membership table, Stage B's fan-out order and closure rule, and S4.6's Stages F and G; round
-  4 over the loop's other twelve stages landed the same day (record `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md`; its header table is the
+  4 over the loop's other stages landed the same day (record `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md`; its header table is the
   measured defects, its §1 the per-stage changes with local test sets, its §4 the build waves) and
   rewrote S5's entry conditions, S6, S7, S4.5's replay item and the after-S5 table; several of the
   plan's own known-bads were found DEFEATED as written and are rewritten below. Codex's GitHub pass
-  has died on quota in four consecutive rounds and is owed for every round.
+  has died on quota in every round since the first and is owed for each.
 - **The honest number, as the survey grades it** (its §M is MEASURED on litkb's rows by the probe
   instruments under `qc/instruments/`, whose CSVs sit under phase4/qc/; its §6.3 is an EXTERNAL
   self-reported figure from a review of the same shape): of the ledger's open-access misses, litkb's
@@ -377,8 +377,12 @@ Work
   nothing for while GROBID carried it (`Reports/LITKB_FIRST_WORK_2026-09-21.md`) → a
   classification, never a refusal; the E20 book if a copy arrives (`litkb-e23-residue-copies`). The REFERENCE stage of extraction
   (stage 6, `pipeline/litkb/extract/references.py`) has run on a small fraction of the files with
-  blocks (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.2) — the drain runs it on every one, because citation anchoring downstream is
-  coverage-bound, not matcher-bound: every anchor its resolved DOIs could reach is already made.
+  blocks (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.2) — on that measured slice every
+  anchor its resolved DOIs could reach is already made, so anchoring downstream is coverage-bound on
+  the slice, and whether it stays so is what the full run measures. The drain runs the stage as far as
+  the session allows and REPORTS `files_without_reference_stage` and the anchor rate against its real
+  denominator; running it over every file is a wall-clock spend the record marks as Kam's to approve
+  (its §1.2 R4), named in this block's Kam line.
 - Carried from S3, unchanged: `binding.TITLE_REGION_LINES = 45` is a PDF-page rule and a ceiling on
   web pages; a refused page hunt leaves its snapshot in `_litkb_staging/web/` with no row — own it
   at refusal or let the reaper take it at its age threshold (decide in the report, and say which);
@@ -409,7 +413,8 @@ py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=l
 py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute(\"SELECT w.key FROM litkb.main_identifiers i JOIN litkb.main_works w ON w.work_id=i.work_id WHERE i.scheme='doi' AND i.value LIKE '10.1101/%'\").fetchall())"
 ```
 
-Kam: the OCR strategy (recommendation: page-range chunks on the T2000).
+Kam: the OCR strategy (recommendation: page-range chunks on the T2000); whether the reference stage
+runs over every file with blocks in this session (a wall-clock spend, survey round 4 §1.2 R4).
 
 ### S4.5 — The acquisition ladder, part 1: the substrate and the free rungs (Stages A–C and E)
 
@@ -469,10 +474,12 @@ Work
    sha on every attempt row, a rejected-hash lookup over S4's quarantine state, and a landing that
    offers a refused-duplicate file to its work through check 3. A second-session REFUSE verb with both
    guards fired — with round 4's corrections (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.8): an append-only decision log (who decided
-   what, when, on which version) beside the verb; `rejected` and `withdrawn` are schema states nothing
-   writes today, so the verb and a `withdraw_version` function are what give them writers; the promote
-   stage has no live evidence at all (prepared, never committed), so its first end-to-end proof is a
-   known-bad in this session; and the largest open bibliographic database does NOT enforce two-person
+   what, when, on which version) beside the verb; on the VERSION tables `rejected` and `withdrawn` are states nothing
+   writes today (the candidates table's own `rejected` IS written, by the refusal function — a
+   different state), so the verb and a `withdraw_version` function are what give them writers; the promote
+   stage has no live evidence at all (prepared, never committed), so its first end-to-end proof —
+   `promote prepare` then commit on a constructed chain, with the approve guard fired by the
+   proposing session — is a counter and a known-bad in this session; and the largest open bibliographic database does NOT enforce two-person
    review, so litkb's rule is stricter and is not weakened by analogy. Rows: E13 and the ruled run's `registry-transient` rows for the back-off; E21's pair
    for identity, with E06 as an ADMISSION negative (a page with no confirmed identifier, title-near an
    existing work, must still refuse `duplicate-review` — it exercises the duplicate check, not an
@@ -562,8 +569,11 @@ Work
    NEGATIVE); Internet Archive item search and download (E3) and the Common Crawl index (E5) have no
    litkb row today and are built as free fan-out members whose yield the run measures. fatcat's API is
    dead server-side (the survey settled it) and is not a rung.
-7. **Hermetic replay BEFORE the first referee round** (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.10; the referee cost measured live
-   was minutes per register row against hosts already refusing this client, seconds in replay): a
+7. **Hermetic replay BEFORE the first referee round** (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.10; that record measured the
+   register's live rows in hundreds of seconds against seconds in replay, against hosts already
+   refusing this client). Cassettes do not exist until they are RECORDED: one live pass over the
+   register rows records them, and every replay after it is hermetic — so the order is record, then
+   replay, then referee: a
    recorded-client cassette layer at litkb's single HTTP seam; replay through the REAL acquisition
    ladder, never a synthetic return from the acquirer (today's stub fabricates the ladder's answer, so
    the register is graded against a world the instrument wrote itself — one row passes on state and
@@ -571,7 +581,8 @@ Work
    hermeticity; cassette identity in the manifest with a staleness diff; the register rows that still
    carry superseded predictions re-graded against recorded truth. Rows: the register's hunt-shaped
    rows and their divergence rows; the raise cases in `qc/test_litkb_hunt.py`; CONSTRUCTED, in those
-   words: a cassette's 403 edited to 200, a truncated body, an HTML body.
+   words: a cassette's 403 edited to 200, a truncated body, an HTML body. Counters and known-bads for
+   this item are in (b) and (c) below, and "replay" is a rung class of its own.
 8. **The measurement that comes FIRST**: read every `bad-file` row's `detail`, its stored bytes' first
    kilobyte where the bytes were kept (the store kept them for only a few of these rows; the rest have
    `detail` alone) and its length; type each into item 2's vocabulary; the count of causes that are free
@@ -621,9 +632,12 @@ Done-state
   with no yield line in the report) · `crosswalk_rows_without_identifier=0` (works the probe CSV gives
   an arXiv id, ISBN or relation edge that hold no such row after the run) ·
   `identifiers_without_provenance=0` · `conflicts_uncounted=0` (two works claiming one distinct-valued
-  identifier with no conflict edge and counter) · `nondistinct_schemes_in_unique_index=0` · `unvalidated_items=0` (rung classes — the six above — whose
-  referee report the manifest does not name or whose report has no `fired: <counter>=<value> on
-  <input>` line). REPORTED, unbounded: `transient_rows_unretried`, `relation_edges_missing`,
+  identifier with no conflict edge and counter) · `nondistinct_schemes_in_unique_index=0` · `unvalidated_items=0` (rung
+  classes — the substrate, the vocabulary, Stage A, Stage B, Stage C, Stage E, replay, the bad-file
+  read — whose referee report the manifest does not name or whose report has no
+  `fired: <counter>=<value> on <input>` line) · `replay_rows_graded_against_stubs=0` (register rows
+  graded by a synthetic acquirer return) · `replay_network_calls=0` · `cassettes_stale=0` ·
+  `promotions_committed>=1` (the first end-to-end promotion on a constructed chain). REPORTED, unbounded: `transient_rows_unretried`, `relation_edges_missing`,
   `identifier_first_refusals`, `books_without_isbn`, `attempts_without_sha`, `unowned_landings`,
   `attempts_without_terminal`, `files_without_word_count`, `hits_without_version`,
   `bronze_landing_unconverted`, `manual_step_rows`.
@@ -641,7 +655,11 @@ Done-state
   identifier row written with NULL `asserted_by` → `identifiers_without_provenance=1`; a CONSTRUCTED
   second work claiming an existing DOI → refused, the edge written and `conflicts_uncounted=0` only if
   the counter moved; `isbn` placed in the distinct set → `nondistinct_schemes_in_unique_index=1`; a referee report
-  dropped from the manifest → `unvalidated_items=1`.
+  dropped from the manifest → `unvalidated_items=1`; a cassette's 403 edited to 200 (CONSTRUCTED) →
+  the replay disagrees with the register → RED; a socket opened during a replay → refused,
+  `replay_network_calls=1` if it connects; the synthetic acquirer return reinstated →
+  `replay_rows_graded_against_stubs>0`; the proposing session approving its own constructed chain →
+  refused, and the chain committed by a second session → `promotions_committed=1`.
 
 #### Test-set commands (run from Scripts/, read-only)
 
@@ -939,31 +957,45 @@ Entry conditions (added 2026-09-21)
   version of a promoted work, building it is the first step; (iii) admission stops writing the
   defaults. Read `main_files.rel_path` for the documents, never a path composed from the key.
 - **Kam** names the topic and applies migrations BEFORE the run, none during.
-- **The measured defects of the loop, fixed before the run launches** (round 4, `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` — each a real
-  row set in hand, each with its kill, none a design): the quote locator refuses every
+- **The measured defects of the loop, fixed as this session's first work; the run does not launch
+  until the counters below read 0** (round 4, `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md`
+  — most a real row set in hand with a kill; the two BUILDS among them (the run identity, the
+  `review_check` read tool) and the CONSTRUCTED-only inputs are labelled as such; every number a
+  crawler produced about its own prototype is NOT acceptance evidence and the referee re-fires it): the quote locator refuses every
   ligature-damaged block the search index can now serve, because the ligature migration repaired the
   index only (fix in the locator and its trigger; kill: a quote spelling the ligature WRONGLY must still
-  refuse); the trigram search leg costs most of every search and returns nothing (an expression index
+  refuse); the anchor's single index — the database as the one authority (round 4 §1.2 R3, a defect
+  fix; kill: a CONSTRUCTED reference whose DOI is in the manifest but not among the identifiers must
+  not anchor); the trigram search leg costs most of every search and returns nothing (an expression index
   that recomputes the normaliser on recheck, and a similarity floor the corpus cannot reach — fix the
-  operator and store the normalised column; kill: the harness must reproduce the old numbers before any
-  new leg is scored); table blocks store empty text, so no evidence row on a table can exist while the
-  tool advertises the kind (honest refusal now; cell-addressed evidence after S5); backward-snowball
-  candidates are written with no workstream and reachable from none (one WHERE clause; kill: a fresh
-  workstream's candidate listing must return them); the seeding guard reads one file while the launch
-  kit is untracked and carried a work key when read, and a paper named by TITLE passes it (the guard
-  covers the whole launch kit by glob and a 13-gram check; kill: the constructed seeded template must
-  refuse); the run has no identity (a run id minted at freeze on the DATABASE clock, frozen fields
-  immutable, a heartbeat row, attempts and crash disposition declared as data, the spec as the run's
-  first artefact); K1 gains a deterministic numeric-containment rung (a magnitude in a claim absent from
-  its byte-identical quote → FAIL — it fires on the constructed mutation and on nothing in the real
-  corpus) and a notice for a cited work with no drop-off behind it; K2's rubric names its overreach
-  classes and the planted mutation stops being catchable by a regex; the review writer can ask
-  `review_check` as a read tool before it hands in; the evidence row records which match rung and what
+  operator and store the normalised column; kill: leg 3 deleted entirely → the gate goes RED, which
+  today it would not; and the harness must reproduce the old numbers before any new leg is scored); table blocks store empty text, so no evidence row on a table can exist while the
+  tool advertises the kind (honest refusal now; kill: a search asking for the table kind returning rows
+  → RED; cell-addressed evidence after S5); backward-snowball
+  candidates are written with no workstream and reachable from none (one WHERE clause AND one line in
+  the scout's tool list, or the scout still cannot see them; kills: a fresh workstream's candidate
+  listing must return them AND must NOT return another workstream's manual rows — leakage is RED); the seeding guard reads one file while the launch
+  kit is untracked and carried a work key when read (whether that was a violation is Kam's ruling,
+  recorded here and not adjudicated), and a paper named by TITLE passes it (the guard covers the whole
+  launch kit by glob and a 13-gram check; kill: the CONSTRUCTED seeded template must refuse); the run has no identity — a BUILD from the record's §1.9, UNVALIDATED: a run id minted at freeze on
+  the DATABASE clock, frozen fields immutable, a heartbeat row, attempts and crash disposition declared
+  as data, the spec as the run's first artefact (kill: a frozen field changed on resume → error, not a
+  silent new run); K1 gains a deterministic numeric-containment rung (a magnitude in a claim absent from
+  its byte-identical quote → FAIL; the crawler's own run on the real reviews is its prototype number,
+  not evidence — the referee re-fires it on the CONSTRUCTED mutation and on the real reviews) and a
+  notice for a cited work with no drop-off behind it; K2's rubric names its overreach classes and the
+  planted mutation stops being catchable by a regex — UNVALIDATED in those words, because no real
+  review carries a hedge to strip and the stronger mutation may come back SUPPORTED (a null result the
+  report states, never hides); the review writer can ask `review_check` as a read tool before it hands
+  in — a BUILD, whose kill runs against the EXISTING command first (the constructed writer prompt must
+  fail it before anything is wrapped); the evidence row records which match rung and what
   diff a quote passed on, a cross-page quote refuses with both block ids instead of missing silently,
-  and a refusal returns the matched prefix; discovery gains a recall counter against the tracker and a
-  stop rule with a number (kill: a seeded known-relevant work absent from the candidates → RED; the
-  capture-recapture estimator's refusal fires on the tracker's own rows already); the soak ledger gains
-  a START sentinel so a crashed night counts. Each fix is refereed by a non-proposer on the rows the
+  and a refusal returns the matched prefix; discovery gains a
+  recall counter against the tracker and a stop rule with a number (kill: a held-out extracted tracker
+  work absent from the candidates → RED; the capture-recapture estimator is an after-S5 build and no
+  S5 kill rests on it); the soak ledger gains a START sentinel so a crashed night counts; the approve
+  guards are fired on live-shaped rows in the next second session (one command, a pasted error —
+  before the run). Each fix is refereed by a non-proposer on the rows the
   record names; a mutation that ERRORS rather than answering worse is DID-NOT-FIRE.
 
 Work
@@ -1009,10 +1041,14 @@ Done-state
   `distinct_new_works>=5 bound=extracted=searchable` (over those new works)
   `missing_dropoff_outcomes=0 hunts_over_budget=0 citations_from_defective_rows=0 K1=PASS K2=FIRED
   claims_ungraded=0 overreach=0 operator_interventions=0 migrations_during_run=0
-  magnitude_not_in_quote=0 quotes_refused_on_ligature=0 search_leg3_zero_rows=0 orphan_candidates=0
-  prompt_contamination=0 runs_without_id=0 seeded_miss_unrefused=0`, with `expectations_unconfirmed`,
-  `dropoffs_not_acquired`, `discovery_recall`, `citations_outside_this_hunt` and `stop_rule_yield`
-  printed unbounded.
+  magnitude_not_in_quote=0 quotes_refused_on_ligature=0 search_seconds_over_budget=0
+  citation_candidates_unreachable=0 candidate_leakage=0 prompt_contamination=0 runs_without_id=0
+  seeded_miss_unrefused=0 table_kind_advertised=0 unvalidated_items=0` (the budget for a search call is
+  frozen in the manifest; `citation_candidates_unreachable` counts citation-sourced candidates a fresh
+  workstream's listing does not return; `unvalidated_items` counts the entry-condition items whose
+  referee report the manifest does not name or whose report has no `fired:` line), with
+  `expectations_unconfirmed`, `dropoffs_not_acquired`, `discovery_recall`, `citations_outside_this_hunt`,
+  `stop_rule_yield` and `search_leg3_rows` printed unbounded.
 - (c) the grader on a one-character mutation → FAIL (byte verification, re-fired not assumed); a
   claim mutated to assert **causation** while keeping its valid descriptive quote → the Codex
   stage must flag it (overreach is the K1 escape no deterministic grader closes); the protocol
@@ -1021,8 +1057,10 @@ Done-state
   `citations_from_defective_rows=1` if one prints; the run re-hunting a check-1 refusal bare → the
   protocol test goes RED; a claim carrying a magnitude its byte-identical quote lacks →
   `magnitude_not_in_quote=1`; a ligature-damaged real block quoted → accepted, and quoted with the
-  WRONG ligature → refused; the trigram leg's fix reverted → `search_leg3_zero_rows>0`; the candidate
-  WHERE clause reverted → `orphan_candidates>0`; the launch kit with a work key appended, or a paper
+  WRONG ligature → refused; the trigram leg's fix reverted → `search_seconds_over_budget>0`, and leg 3 deleted → RED; the candidate
+  WHERE clause reverted → `citation_candidates_unreachable>0`, and widened to every workstream →
+  `candidate_leakage>0`; a search asking for the table kind that returns rows →
+  `table_kind_advertised=1`; the launch kit with a work key appended, or a paper
   named by title → `prompt_contamination=1`; a run launched without a frozen id → `runs_without_id=1`;
   a held-out tracker work absent from discovery → `seeded_miss_unrefused=1`.
 
@@ -1050,9 +1088,9 @@ known-bad the kill criterion must be shown to reject before the design counts.
 | **Citation anchoring, in order**: a crosswalk instrument that makes the frozen reference gold joinable to the live base (today it cannot be); a raw-string validator behind the Semantic Scholar candidate; the resolution versioned so a ladder change re-runs it; a reader tool over the citation graph | anchoring is coverage-bound after S4's drain; nothing scores until the gold joins | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.2 (litkb's own tables; Crossref's reference matcher and the open citation indexes read in source) | the references table, the refmatcher branch's gold once joinable; negatives: the must-not-link book reviews in that gold, a reference mutated to another year | the gold stem prefixing two live keys → refused; a ladder change without a version bump → RED; a mutated year anchoring → RED |
 | **Discovery beyond recall**: capture-recapture estimation with a refusal below three arms; a keyless forward-chasing leg; a three-state candidate identity (merge, hold, distinct); query expansion from the base's own corpus with a random leg; a readable scout confidence | the scout's recall counter (S5) says how much is missed, these say what to do about it | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.1 (screening and snowballing tools read in source; two estimators fired on the tracker's own rows) | the tracker by search phase; the scout-run ledger; a held-out extracted tracker row | the estimator on too few arms → refuses; a forward leg returning nothing for a known-cited work → RED; the merge threshold lowered until a wrong pair merges → RED |
 | **Cell-addressed numeric evidence**: a cell address on the evidence row, a whole-cell verification branch in the trigger, header path and caption as their own rows, a numeric use kind with derived value, unit and scale; never a lowered quote-length floor | a quoted number becomes verifiable against a cell, not a text match the table block cannot give | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.5 (the base's own table cells; table-QA provenance repos read in source) | the table blocks and cells in the base; the tracker rows whose relevance quotes a number; the row whose numbers may belong to another paper | a number changed by one digit → FAIL; the same decimal from a different cell on the page → FAIL; a number that appears only in a caption → refused as a cell |
-| **Search, after the defect fixes**: hybrid fusion as one SQL statement; chunks built from blocks so a hit stays a quotable block with a page; a small ONNX cross-encoder rerank over a fused depth; query-side expansion deferred; the survey recommends AGAINST swapping in a scientific embedding model or a late-interaction index on this corpus | the parked vector leg, with the harness that must reproduce the old numbers first | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.3 | the P7 gold and floors; reference-only negatives | the harness on the old lexical legs must reproduce the report's numbers; a rerank that demotes every gold hit → RED |
-| **Promotion, the reversible half**: `withdraw_version` on a promoted version; the operator-bind gate once `litkb-from-file-version-state` is decided; the approve guards fired on live-shaped rows in the next second session | the promote stage has no live evidence yet | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.8 | the promoted admissions; the one proposal | the proposing session approving its own proposal → refused; a withdraw on a never-promoted version → refused |
-| **Replay cache fold**: fold litkb's three partial caches into the one recorder, last, because it touches the reference-resolution path anchoring depends on | one cache, one identity | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.10 | the register rows | a cassette edited → the staleness diff RED |
+| **Search, after the defect fixes**: hybrid fusion as one SQL statement; chunks built from blocks so a hit stays a quotable block with a page; a small ONNX cross-encoder rerank over a fused depth; query-side expansion deferred; the survey recommends AGAINST swapping in a scientific embedding model or a late-interaction index on this corpus | the parked vector leg, with the harness that must reproduce the old numbers first | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.3 | the P7 gold and floors — the gold cannot be replayed as-is (it anchors on character offsets into text dumps), so the re-anchoring is CONSTRUCTED and a referee builds it; reference-only negatives | the harness on the old lexical legs must reproduce the report's numbers; a rerank that demotes every gold hit → RED |
+| **Promotion, the reversible half**: `withdraw_version` on a promoted version; the operator-bind gate once `litkb-from-file-version-state` is decided (the approve guards themselves are fired BEFORE S5 — an S5 entry condition) | the promote stage has no live evidence yet | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.8 | the promoted admissions; the one proposal | the proposing session approving its own proposal → refused; a withdraw on a never-promoted version → refused |
+| **Replay cache fold**: fold litkb's partial caches (the disk cache, the caching client, the hand-built provenance envelope) into the one recorder, last, because it touches the reference-resolution path anchoring depends on | one cache, one identity | `Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.10 | the register rows; every PDF the reference path decodes | a PDF put through the folded cache must come back byte-identical — today it cannot, the decode path alters it — so that is the kill |
 | **Re-ingest cadences as SQL over the ledger, per-source scoring and the host blocklist** (survey guards 6 and 7 beyond the registry S4.6 moves the mirror lists into; the budget object, guard 12, is S4.5's) | retries that are hand-run today | survey E (sandcrawler's dump_reingest SQL, VERIFIED) | the ledger's typed misses | a permanently-dead sub-status selected by the re-ingest query → RED |
 
 #### Test-set commands (run from Scripts/, read-only)
@@ -1069,6 +1107,10 @@ py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=l
 ### S6 — The synthesis: what the literature means for this pipeline
 
 Work
+S6's measured pain is ZERO today (round 4 §1.7 says so in those words): every mechanism below is a
+RELAYED design and UNVALIDATED until the S5 brief exists and a referee scores it; the one measured
+item is the laundering surface.
+
 - docs/LITKB_SYNTHESIS_GRAMMAR.md: inputs = the brief's VERIFIED lines + `SCIENCE.md` +
   `decisions.yaml`; output under Reports/syntheses/; every inference sentence ends with
   `[work_key p.N #block]` (a VERIFIED line) or `[own reasoning]`; a closing section of
@@ -1076,10 +1118,12 @@ Work
 - `litkb synthesis-check` (K3): sentence coverage; every cited block VERIFIED in the workstream —
   read from the WORKSTREAM'S OWN LEDGER, never from the brief, because the brief admits promoted uses
   and the plan's laundering kill holds only while zero uses are promoted (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.7: the first
-  promotion Kam merges opens the surface with no code change); an EXPECTED line cited = FAIL; findings
+  promotion Kam merges opens the surface with no code change); an EXPECTED line cited = FAIL (its negative is CONSTRUCTED — the runs in hand hold no
+  such line — and the fixture says so); findings
   bound to source hashes by extending `review_context`; the `[own reasoning]` tag a typed token; a
   numeric-agreement check on every sentence ending in a locator (the same rung as K1's); a citation
-  cap per sentence with an overcite FAIL; a closing recommendation may be UNDETERMINED only if it names
+  cap per sentence (the constant `MAX_CITATIONS_PER_SENTENCE = 3`; over the cap is a FAIL) and an
+  overcite NOTICE, never a fail; a closing recommendation may be UNDETERMINED only if it names
   its gap; locators for `SCIENCE.md` and `decisions.yaml` resolvable by code; no invented certainty
   vocabulary. Known-bad fixture under qc/testdata/litkb_synthesis/ — and the hardest negative needs no
   construction: verified triples that exist only in run 1's workstream, cited from a synthesis that
@@ -1088,12 +1132,14 @@ Work
 Done-state
 - (a) the grammar; the checker + tests + fixture; the synthesis for S5's topic; the Codex report.
 - (b) `py -3.12 qc/instruments/litkb_acceptance.py synthesis --manifest <manifest>` →
-  `sentences_ungraded=0 unlabelled_inferences=0 expected_lines_cited=0 unsupported_attributions=0`.
+  `sentences_ungraded=0 unlabelled_inferences=0 expected_lines_cited=0 unsupported_attributions=0
+  laundered_citations=0 citations_over_cap=0 undetermined_without_gap=0 numeric_disagreements=0
+  unvalidated_items=0`, with `overcited_sentences` printed as a notice count.
 - (c) provenance laundering: cite a real block verified only in ANOTHER workstream (the run-1-only
   triples) → K3 RED, asserted on the finding CODE, not the exit status, and still RED after a
   promotion is merged; attach a valid VERIFIED citation to an inference the quote does not support →
   the Codex stage must flag it; drop one `[own reasoning]` tag → `unlabelled_inferences=1`; a sentence
-  stating a number its quote lacks → RED; four citations on one sentence → `citations_over_cap=1`; an
+  stating a number its quote lacks → RED; four citations on one sentence, the cap being three → `citations_over_cap=1`; an
   UNDETERMINED recommendation with an empty gap → `undetermined_without_gap=1`; one character of a
   `SCIENCE.md` pointer altered → RED.
 
@@ -1106,21 +1152,24 @@ Kam's ruling (2026-09-20): seven nights, STARTED EARLY. S1 installs the nightly 
 Work
 - `litkb doctor`: DB reachable; migration tip == repo tip; dump age < 26 h AND the dump RESTORES —
   a FULL restore to a scratch database or `pg_restore -f -`, never the list-only check, because round
-  4 fired the plan's own corrupt-dump known-bad three ways (a bit flip, a truncation, a zeroed block,
-  each re-stamped fresh) and the list-only check passed ALL of them (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.11; see
+  4 fired the plan's own corrupt-dump known-bad with inputs CONSTRUCTED from a real dump (a bit flip,
+  a truncation, a zeroed block, each re-stamped fresh) and the list-only check passed ALL of them (`Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md` §1.11; see
   `pipeline/litkb/ops/nightly_dump.py`); worker databases free or leased by advisory lock (the count
   is a query: `SELECT datname FROM pg_database WHERE datname LIKE 'litkb_test%'`); MCP server code
-  stamp == repo HEAD through a `litkb_version` tool carrying a build id, so the post-merge staleness
-  trap becomes a measurement; token present and valid; a registry of checks with `--only`, an unknown
+  stamp == the tree's, through a `litkb_version` tool carrying a CONTENT digest over the loaded litkb
+  modules' bytes (never their mtimes — a byte-identical checkout rewrites every mtime and must NOT
+  report a mismatch), so the post-merge staleness trap becomes a measurement; token present and valid; a registry of checks with `--only`, an unknown
   check named on exit; a timeout that names the check that hung. Fixture qc/fixtures/litkb_doctor.json
   mutates each check separately.
 - A scheduled nightly task runs `doctor` + a smoke hunt on a known-extracted key + a smoke
   search, appending to a soak CSV under Reports/ — writing a START sentinel row first, because a
   night that crashes before its end row writes nothing today and `incomplete_runs` is uncountable; the
   `soak` subcommand gains a consecutive-green clock and a scheduler witness. The agent boundary moves
-  from prompt to server: a fail-closed audit middleware, the role allowlist enforced at the server (the
-  library already ships the interceptor and middleware hooks the server never installs; every tool is
-  served to every client today), annotations on every tool, the role recorded on every write. The mutation ledger becomes a `check.py` rung
+  from prompt to server IF the library's interceptor bites in the installed server version — the
+  record could not verify that, so it is UNDETERMINED until the CONSTRUCTED wrong-role call is refused
+  — with a fail-closed audit middleware, the role allowlist enforced at the server (the hooks exist and
+  are never installed; every tool is served to every client today), annotations on every tool, the
+  role recorded on every write. The mutation ledger becomes a `check.py` rung
   (live-DB subset opt-in); the harness diffs against its baseline; the tolerated red and the
   census pins are retired or proven passing; `report_path` bounded + its decisions line; the
   drift gate covers `.claude/skills/literature/SKILL.md`; a cold-start test: a Sonnet agent given
@@ -1130,12 +1179,15 @@ Done-state
 - (a) doctor + fixture + tests; the scheduled task; the rung; docs; the soak CSV; the cold-start log.
 - (b) `py -3.12 qc/instruments/litkb_acceptance.py soak --log <soak.csv>` →
   `elapsed_hours>=168 missed_scheduled_runs=0 interventions=0 incomplete_runs=0` ·
-  `py -3.12 qc/check.py` → GREEN with no tolerated reds · `py -3.12 -m litkb doctor` → all OK.
+  `py -3.12 qc/check.py` → GREEN with no tolerated reds · `py -3.12 -m litkb doctor` → all OK ·
+  `incomplete_runs=0 restore_proof=full code_stamp_mismatch=0 wrong_role_calls_served=0
+  unvalidated_items=0`.
 - (c) each doctor check mutated in isolation → that check RED; a corrupt fresh dump (the three
   corruptions of round 4) → RED under the FULL restore, and the list-only check must be shown to pass
   them so nobody reinstates it; a night killed after its start sentinel → `incomplete_runs=1`; the
-  server's code stamp differing from HEAD → RED; an acquisition tool called under the review-writer
-  role → refused at the server, never by the prompt; `report_path` containing `..` → refused; a
+  server's code stamp differing from the tree's content → RED, and a byte-identical re-checkout
+  → NOT red; an acquisition tool called under the review-writer role (CONSTRUCTED) → refused at the
+  server, never by the prompt, `wrong_role_calls_served=1` if it runs; `report_path` containing `..` → refused; a
   SKILL.md route not in `ROUTES` → the drift gate RED.
 
 ---
@@ -1193,7 +1245,10 @@ rows both; the plan line keeps the word UNVALIDATED until the referee's report i
 Reports/ and the (c) known-bad has fired. A design may not be accepted on numbers it produced
 about itself, and a design validated on synthetic input only says so in those words. A mutation
 that ERRORS rather than answering worse is reported as DID-NOT-FIRE and the harness is restructured;
-a known-bad the plan says "already fires" is re-fired by the referee and its output pasted.
+a known-bad the plan says "already fires" is re-fired by the referee and its output pasted; numbers a
+proposer produced about its own prototype are not acceptance evidence (the round-4 record names its
+own); and a report that consumes a survey conclusion no different-model-family read has covered says
+so in those words.
 
 Inherited hazards (added 2026-09-21, each one bit a session): `py -3.12 -m litkb` from a worktree
 runs MAIN's editable install — use `PYTHONPATH=pipeline` from the worktree's Scripts/; a gate's

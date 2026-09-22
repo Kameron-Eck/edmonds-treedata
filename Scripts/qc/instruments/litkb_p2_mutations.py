@@ -258,6 +258,22 @@ replace("C9", f"{PKG}/admit/binding.py",
         "        lo, hi = 0, len(lines)\n", "D2: the author anywhere on the page counts as near the title")
 replace("C10", f"{PKG}/admit/binding.py", "MARKER_MIN_SURNAME = 5\n", "MARKER_MIN_SURNAME = 1\n",
         "D2: a glued one-letter marker accepted on short surnames (Park -> parks)")
+# ── E25 (Kam's ruling 2026-09-21): the preprint-stamp strip, one row per CALL SITE of scored_lines.
+# Each guard block is written so that REMOVING it leaves valid code that behaves exactly as the gate did
+# before the fix (`scored = list(lines)` stands above it), so what fires is the guard and not a NameError —
+# the lesson 0016 records about mutating a block into a syntax error.
+TESTS_E25 = [*TESTS, "qc/test_litkb_binding_stamps.py"]
+block("E25a", f"{PKG}/admit/binding.py", "guard: bind strips the preprint stamp before scoring",
+      "E25: bind() scores the printed line again, so the arXiv margin stamp pdftotext -layout glues onto "
+      "the title line puts a correct paper back at ratio 0.6842 and quarantine", tests=TESTS_E25)
+block("E25b", f"{PKG}/admit/binding.py", "guard: best_window strips the preprint stamp before scoring",
+      "E25: best_any_ratio is measured on the stamped line, so the evidence contradicts the verdict and a "
+      "reader cannot tell a stamped title from an absent one", tests=TESTS_E25)
+replace("E25c", f"{PKG}/admit/binding.py",
+        '_URL_ONLY = re.compile(r"(?:https?://|www\\.)\\S*", re.I)\n',
+        '_URL_ONLY = re.compile(r".*(?:https?://|www\\.).*", re.I)\n',
+        "E25: the URL rule matches a line that merely CONTAINS a URL, so a real title that prints a URL is "
+        "blanked and the paper is refused", tests=TESTS_E25)
 block("C11", MIG16, "guard: check 3 region and author-near evidence",
       "D2 DB: _check_binding stops requiring title_region / author_near_title")
 block("C12", MIG14, "guard: approve_admission locks the admitter's workstream open",

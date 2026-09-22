@@ -21,6 +21,10 @@ A file binds only when BOTH hold (referee fix D2, Reports/LITKB_P2_REFEREE_2026-
 The two line constants were measured on every held paper with a recorded title and first author
 (qc/instruments/litkb_binding_region.py -> Reports/litkb_binding_region_2026-09-14.csv).
 
+A window is scored on `title_text` of each of its lines, not on the printed line: `pdftotext -layout` glues
+arXiv's and bioRxiv's ROTATED margin stamp onto the title's own line, and a stamp is not title text. Nothing
+about POSITION changes — see the comment above `_ARXIV_STAMP` (register E25, Kam's ruling 2026-09-21).
+
 A first page with no text layer and no title match is `binding-pending`: it waits for OCR in P4
 (decisions.yaml §15.14). Anything else that fails is `binding-failed`. The evidence goes into files.binding; the
 database re-checks it (litkb._check_binding, migrations 0013 and 0014).
@@ -58,6 +62,60 @@ _COVER = re.compile(r"please\s+cite|to\s+cite\s+this|cite\s+this\s+article|citat
                     r"how\s+to\s+cite", re.I)
 # intra-word joiners: a hyphenated or apostrophised word is one token ("O'Neil-Dunne", "Li-ion")
 _JOINERS = "-'‐‑’ʼ"
+
+# What is provably not title text, removed from the string a title window is SCORED on (register E25,
+# Kam's ruling 2026-09-21; Reports/LITKB_HELD_QUEUE_2026-09-15.md:110-111).
+#
+# The mechanism, measured on both refused files rather than assumed: arXiv stamps its preprints in a
+# ROTATED strip down the left margin of page 1, and `pdftotext -layout` prints rotated text in the
+# y-band it occupies — which is the title's band. So page 1 line 0 of 2007.01434 is the single line
+#     "arXiv:2007.01434v1 [cs.LG] 2 Jul 2020 In Search of Lost Domain Generalization"
+# and it scores 0.6842 against the registry title, below BIND_RATIO. The stamp is not on a line of its
+# OWN that a line filter could drop: dropping the line would drop the title with it. It has to come off
+# the FRONT of the title's line. (1909.10155 is the same line, at 0.6337; there the window that won was
+# a bare URL line, "https://pypi.org/project/uncertainty-calibration", 0.641 — a whole-line case.)
+#
+# Two properties keep this from loosening the gate:
+#   * only the SCORED text changes. Every line keeps its index, so the title-region bound, the
+#     author-near distance and the reference-list neighbourhood are still counted over the lines
+#     0014 measured, and `_line_flags` still reads the printed line.
+#   * cleaning only ever REMOVES characters, so a window's ratio can rise only towards the title the
+#     line already printed. A page that does not print the registry title cannot be made to match it
+#     (asserted on a third arXiv paper: qc/test_litkb_binding_stamps.py).
+_ARXIV_STAMP = re.compile(r"arxiv:\s*(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?/\d{7})(?:v\d+)?"
+                          r"(?:\s*\[[\w.\-]+\])?"
+                          r"(?:\s*\d{1,2}\s+[a-z]{3,9}\.?\s+\d{4})?", re.I)
+# bioRxiv/medRxiv stamp the same margin, and the same way: "bioRxiv preprint doi:
+# https://doi.org/10.1101/… ; this version posted May 3, 2021. The copyright holder …"
+_PREPRINT_STAMP = re.compile(r"(?:bio|med)rxiv\s+preprint\b.*?this\s+version\s+posted\s+"
+                             r"\w+\s+\d{1,2},?\s+\d{4}\.?", re.I)
+# whole-line forms: a line that is ONLY a URL, or ONLY a DOI, carries no title. A URL *inside* a title
+# is not matched (fullmatch, and \S+ admits no spaces).
+_URL_ONLY = re.compile(r"(?:https?://|www\.)\S*", re.I)
+_DOI_ONLY = re.compile(r"(?:doi:\s*|https?://(?:dx\.)?doi\.org/)?10\.\d{4,9}/\S+", re.I)
+
+
+def title_text(line):
+    """`line` as a title window SCORES it: leading preprint stamps removed, and '' when the whole line is
+    a URL or a DOI. Never reorders or re-indexes anything — see the comment above."""
+    s = " ".join((line or "").split())
+    for _ in range(3):
+        m = _ARXIV_STAMP.match(s) or _PREPRINT_STAMP.match(s)
+        if not m or not m.end():
+            break
+        s = s[m.end():].lstrip(" .,;:|-–—")
+    if _URL_ONLY.fullmatch(s) or _DOI_ONLY.fullmatch(s):
+        return ""
+    return s
+
+
+def scored_lines(lines):
+    """`lines` as the title comparator reads them: same length, same order, same indices."""
+    return [title_text(ln) for ln in lines]
+
+
+def _window_text(scored, start, n):
+    return " ".join(s for s in scored[start:start + n] if s)
 
 
 def first_page_text(pdf_path):
@@ -175,12 +233,16 @@ def best_window(title, text):
     """-> (ratio, window): the best 1-3 consecutive-line window of `text` against `title`, ANY position (a
     diagnostic; binding itself uses only admissible windows)."""
     lines = page_lines(text)
+    scored = list(lines)
+    # BEGIN guard: best_window strips the preprint stamp before scoring
+    scored = scored_lines(lines)
+    # END guard: best_window strips the preprint stamp before scoring
     best, win = 0.0, ""
     for i in range(len(lines)):
         for n in (1, 2, 3):
             if i + n > len(lines):
                 break
-            w = " ".join(lines[i:i + n])
+            w = _window_text(scored, i, n)
             r = title_match_ratio(title, w)
             if r > best:
                 best, win = r, w
@@ -315,6 +377,12 @@ def bind(pdf_path, registry_title, first_author, *, page_text=None, info=None):
     info = pdf_info(pdf_path) if info is None else info
     text_layer = len(_norm_text(text)) >= MIN_TEXT_CHARS
     lines = page_lines(text)
+    scored = list(lines)
+    # BEGIN guard: bind strips the preprint stamp before scoring
+    scored = scored_lines(lines)
+    # END guard: bind strips the preprint stamp before scoring
+    # `flags` and `toks` stay on the PRINTED lines: the reference-list and citation-instruction rules are
+    # about what the page prints, and the author is a token of the page, not of a scored window.
     flags = _line_flags(lines)
     fam = surname_tokens(first_author)
     toks = [fold_tokens(ln) for ln in lines]
@@ -325,7 +393,7 @@ def bind(pdf_path, registry_title, first_author, *, page_text=None, info=None):
         for n in (1, 2, 3):
             if i + n > len(lines):
                 break
-            r = title_match_ratio(registry_title, " ".join(lines[i:i + n]))
+            r = title_match_ratio(registry_title, _window_text(scored, i, n))
             why = window_refusal(lines, i, n, flags)
             if why:
                 if r >= BIND_RATIO:
@@ -341,15 +409,20 @@ def bind(pdf_path, registry_title, first_author, *, page_text=None, info=None):
         # END guard: binding author near the title
 
     ratio, matched, source, line, author_near = 0.0, "", "page1", None, False
+    printed = ""
     if windows:
         ratio, line, n = windows[0]
-        matched = " ".join(lines[line:line + n])
+        # `matched` is what the ratio was MEASURED on; `matched_printed` is what the page prints, when a
+        # stamp made the two differ. Recording only one of them would hide either the number's basis or
+        # the page's own text.
+        matched, printed = _window_text(scored, line, n), " ".join(lines[line:line + n])
         author_near = near(line, n)
         for r, i, k in windows:
             if r < BIND_RATIO:
                 break
             if near(i, k):
-                ratio, line, matched, author_near = r, i, " ".join(lines[i:i + k]), True
+                ratio, line, author_near = r, i, True
+                matched, printed = _window_text(scored, i, k), " ".join(lines[i:i + k])
                 break
     meta_title = info.get("Title") or ""
     if meta_title and not (ratio >= BIND_RATIO and author_near):
@@ -362,6 +435,7 @@ def bind(pdf_path, registry_title, first_author, *, page_text=None, info=None):
                 any(tokens_contain(toks[j], fam) for j in region)
             if (mr >= BIND_RATIO and meta_author) or mr > ratio:
                 ratio, matched, source, line, author_near = mr, meta_title, "pdf-title", None, meta_author
+                printed = ""   # the metadata title is not a line of the page
     author_found = author_near or tokens_contain([t for ts in toks for t in ts], fam) or \
         tokens_contain(fold_tokens(info.get("Author") or ""), fam)
     v = verdict(ratio, author_near, text_layer)
@@ -369,6 +443,8 @@ def bind(pdf_path, registry_title, first_author, *, page_text=None, info=None):
            "line": line, "registry_title": registry_title, "first_author": first_author,
            "author_found": author_found, "author_near_title": author_near, "title_region": True,
            "text_layer": text_layer, "page1_chars": len(_norm_text(text)), "best_any_ratio": round(any_ratio, 4)}
+    if printed and printed != matched:
+        out["matched_printed"] = printed[:300]
     if refused:
         out["refused_windows"] = refused
     if v != "bound":

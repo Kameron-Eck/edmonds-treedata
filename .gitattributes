@@ -56,3 +56,14 @@
 # record. `binary` is the narrowest rule that stops it; the file is still
 # perfectly readable text, it is simply never rewritten.
 Scripts/qc/fixtures/*.html  binary
+
+# ── Extracted first-page text used as binding fixtures ────────────────────
+# Added 2026-09-21 with qc/testdata/litkb_binding_stamps/ (the arXiv margin-stamp
+# case, register E25). These files are what `pdftotext -f 1 -l 1 -layout` printed
+# for a named PDF, and the binding code reads them LINE BY LINE — a checkout that
+# turned them into CRLF would change the bytes a window is scored on, so a fixture
+# recorded on Windows and one on Linux would not be the same fixture. `text eol=lf`
+# is the narrowest rule that pins it and still diffs; the note at the top of this
+# file about eol= is about the global `*` rule, and `*.sh` below already sets the
+# precedent for a narrower one.
+Scripts/qc/testdata/litkb_binding_stamps/*.txt  text eol=lf

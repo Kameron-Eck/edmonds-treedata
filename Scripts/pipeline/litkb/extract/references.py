@@ -118,7 +118,13 @@ from litkb.admit.resolver import (ARXIV_DOI_PREFIX, REGISTRY_STAGES, RESOLVE_TIT
 from litkb.extract.grobid import NS, TEI_NS, parse_coords
 
 STAGE = "6-references"
-PIPELINE_VERSION = "litkb-p6-1"
+#: Part of the stage-6 run key (`references_ingest.run_key`: tool_version AND pipeline_version), so
+#: a bump makes every earlier run a superseded population that the S4 driver re-runs.
+#: litkb-p6-2 (S4 run 3 decision D12): commit 8829558 added `resolve_by_raw_search` to the ladder
+#: (2026-09-19 11:01) without touching this constant, while the 17 live `litkb-p6-1` runs were made
+#: 2026-09-15 20:57 under the ladder before it — two resolvers under one label
+#: (Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md §1.2, R1). Bump it on any ladder change.
+PIPELINE_VERSION = "litkb-p6-2"
 
 #: The reference list, and only it: the header's own biblStruct describes the paper, not a reference.
 BACK_LISTBIBL = ".//t:text/t:back//t:listBibl"

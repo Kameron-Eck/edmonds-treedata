@@ -61,6 +61,32 @@ here and run `qc/test_litkb_references_ingest.py` against `litkb_test`:
   * **P6-I3** is the §14 P5 kill re-expressed on stage 6: the references are committed BEFORE the
     rest of the paper, so a kill leaves a run with half a citation graph under it.
   * **P6-I4** removes the idempotence check, so a second load writes a second set of rows.
+
+And the S4 DRIVER rows, P6-D1..D7 (S4 run 3, builder D1): the file-keyed stage-6 driver
+(`qc/instruments/litkb_references_stage.py`) and the one predicate it shares with the REPORTED
+counters (`litkb/extract/references_coverage.py`). They run `qc/test_litkb_references_stage.py`
+against `LITKB_TEST_DB`:
+
+  * **P6-D1** breaks the owed-file filter itself: every file with stage-5 blocks counts as owing
+    stage 6, so `files_without_reference_stage` never falls and the driver re-selects finished
+    files (THE known-bad of the S4 brief).
+  * **P6-D2** drops `status = 'ok'` from "the stage ran": a killed run's `failed` carcass then
+    counts as done, and the file is never retried.
+  * **P6-D3** drops the params hash from the key: a run made under OLDER resolution thresholds
+    counts as the current one.
+  * **P6-D4** gives the anchor rate the WRONG denominator (every reference), the headline R4's kill
+    line says must fail review.
+  * **P6-D5** posts bytes that no longer hash to the file row, and caches the TEI under that row's sha.
+  * **P6-D6** stops GROBID at the end of a batch whether or not this driver started it.
+  * **P6-D7** lets a second driver run beside a detached one on the same database.
+  * **P6-D8** removes the rel-path citing-stem override: two files sharing a stem share one list.
+  * **P6-D9** drops `f.status = 'active'`: a quarantined/superseded version with blocks is owed.
+  * **P6-D10** starts a GROBID whose unit systemd says is running (a busy service missed the probe).
+  * **P6-D11** takes ownership of a GROBID on any successful launch, "already alive" included.
+
+THE HARNESS SCORES `rc != 0 and failed > 0` AS FIRED, so a mutant that makes the code ERROR (invalid
+SQL, a NameError) "fires" without showing the guard matters. Every P6-D row's failures must be
+read and be AssertionErrors (or a DID-NOT-RAISE) — the first P6-D3 was not (see its row).
 """
 import argparse
 import importlib.util
@@ -75,8 +101,12 @@ TESTS_P6 = ["qc/test_litkb_references.py"]
 TESTS_P6_RAWSEARCH = [*TESTS_P6, "qc/test_litkb_crossref_raw_search.py"]
 #: The ingest rows need a database; their set is the one that has one.
 TESTS_P6I = ["qc/test_litkb_references_ingest.py"]
+#: The S4 driver rows (P6-D*): the driver's own file, which seeds its own database rows.
+TESTS_P6D = ["qc/test_litkb_references_stage.py"]
 REFS = "pipeline/litkb/extract/references.py"
 REFING = "pipeline/litkb/extract/references_ingest.py"
+REFCOV = "pipeline/litkb/extract/references_coverage.py"
+REFDRV = "qc/instruments/litkb_references_stage.py"
 RESOLVER = "pipeline/litkb/admit/resolver.py"
 
 #: `normalize_doi(x)` -> `(x)`: the canonicalisation simply does not happen at that call.
@@ -85,7 +115,9 @@ PASSTHROUGH = "({a0})"
 IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-G6", "P6-G7", "P6-G8", "P6-G9", "P6-M1",
        "P6-R1", "P6-R2", "P6-R3",
        "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6", "P6-S7",
-       "P6-I1", "P6-I2", "P6-I3", "P6-I4"]
+       "P6-I1", "P6-I2", "P6-I3", "P6-I4",
+       "P6-D1", "P6-D2", "P6-D3", "P6-D4", "P6-D5", "P6-D6", "P6-D7",
+       "P6-D8", "P6-D9", "P6-D10", "P6-D11"]
 
 
 def register(block, replace, site):
@@ -159,6 +191,46 @@ def register(block, replace, site):
     replace("P6-I4", REFING, '    if existing and status == "ok":', "    if False:",
             "the idempotence check removed: a second load of the same paper at the same pipeline "
             "version writes a second set of rows", tests=TESTS_P6I)
+    # ── the S4 file-keyed driver and its counters (S4 run 3, builder D1) ─────────────────
+    replace("P6-D1", REFCOV, '_OWES_STAGE6 = f"NOT EXISTS ({_OK_STAGE6_AT_KEY})"', '_OWES_STAGE6 = "TRUE"',
+            "the owed-file filter broken: every file with stage-5 blocks counts as owing stage 6, so "
+            "files_without_reference_stage never falls and finished files are re-selected",
+            tests=TESTS_P6D)
+    replace("P6-D2", REFCOV, "\"AND r6.status = 'ok'\")", "\"AND TRUE\")",
+            "a killed stage-6 run's failed carcass counts as the stage having run", tests=TESTS_P6D)
+    # The condition is DROPPED, not replaced by a placeholder test: the first form of this row
+    # ("%(k_params_hash)s IS NOT NULL") was invalid SQL (psycopg IndeterminateDatatype on every
+    # query), so its 11 "failures" were errors, not the guard's absence — the S4 run 3 auditor of
+    # D1 scored it DID NOT FIRE. A mutant must answer WORSE, never fail to answer.
+    replace("P6-D3", REFCOV, '"AND r6.params_hash = %(k_params_hash)s AND r6.pipeline_version',
+            '"AND r6.pipeline_version',
+            "the params hash dropped from the key: a run under older thresholds counts as current",
+            tests=TESTS_P6D)
+    replace("P6-D4", REFCOV, '"       count(*) FILTER (WHERE held_doi), "', '"       count(*), "',
+            "the anchor rate's denominator becomes every reference (R4's kill line)", tests=TESTS_P6D)
+    block("P6-D5", REFDRV, "guard: the stage-6 driver posts only the bytes its file row names",
+          "bytes that no longer hash to the file row are posted and cached under the row's sha256",
+          tests=TESTS_P6D)
+    replace("P6-D6", REFDRV, "        if self.started_here and not self.stopped:",
+            "        if not self.stopped:",
+            "GROBID is stopped at the end of a batch even when another process started it",
+            tests=TESTS_P6D)
+    block("P6-D7", REFDRV, "guard: one stage-6 driver per database at a time",
+          "a second stage-6 driver runs beside a detached one on the same database", tests=TESTS_P6D)
+    # ── the S4 run 3 audit of D1: three guards the first campaign did not reach ───────────
+    block("P6-D8", REFDRV, "guard: the citing stem names THIS file, never another file sharing the stem",
+          "the rel-path override removed: two files sharing a stem get one reference list between "
+          "them, filed under whichever file held_index saw first", tests=TESTS_P6D)
+    replace("P6-D9", REFCOV, "\"f.status = 'active' AND cr.stage = %(stage5)s", "\"cr.stage = %(stage5)s",
+            "a quarantined or superseded current file version with blocks is selected and counted",
+            tests=TESTS_P6D)
+    block("P6-D10", REFDRV, "guard: a running GROBID unit someone else started is waited for, never started",
+          "a busy GROBID that misses the 5 s health probe is 'started' (grobid.sh restarts it under "
+          "the worker that owns it)", tests=TESTS_P6D)
+    replace("P6-D11", REFDRV, "        self.started_here = bool(ok and launched)",
+            "        self.started_here = bool(ok)",
+            "ownership taken whenever a launch succeeds, including 'already alive' (someone else's "
+            "GROBID), so the driver stops it at the end", tests=TESTS_P6D)
 
 
 def _p2():

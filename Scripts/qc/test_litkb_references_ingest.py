@@ -261,7 +261,8 @@ def test_a_small_corpus_loads_with_every_row_in_its_place(pg, tmp_path):
     run = pg.one("SELECT id, stage, tool, tool_version, pipeline_version, status, metrics, "
                  "artifact_path, host FROM litkb.extraction_runs WHERE file_id = %s",
                  (w["a"]["file_id"],))
-    assert run[1:6] == ("6-references", "litkb-references", "litkb-p6-1", "litkb-p6-1", "ok")
+    # the run key carries stage 6's CURRENT version (references.PIPELINE_VERSION), read, not re-spelled
+    assert run[1:6] == ("6-references", "litkb-references", RI._tool_version(), RI._tool_version(), "ok")
     assert run[6]["stem"] == w["citing"] and run[6]["tei"]["bytes"] == 1234
     assert run[6]["written"] == {"references": 4, "citation_mentions": 2, "citation_edges": 1,
                                  "candidates": 3}

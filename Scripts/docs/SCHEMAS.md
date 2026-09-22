@@ -2109,3 +2109,72 @@ schema uses and REFUSING any keyword it does not implement — `jsonschema` is i
 machine but is in neither requirements file, and the same-commit rule forbids a runtime dependency
 that a bootstrap does not install. `qc/test_litkb_codex_stage.py` cross-checks the two on every
 accept and reject case and skips where `jsonschema` is absent.
+
+## litkb stage-6 coverage counters (`litkb.extract.references_coverage`, S4 run 3)
+
+`reference_counters(conn, file_ids=None)` returns the S4 block's two REPORTED counters and their
+companions; `format_counters` prints them on one line, every ratio as `num/den(pct)`. Read-only (a
+`litkb_reader` connection is enough). The closed set of names:
+
+| name | numerator / denominator |
+|---|---|
+| `files_without_reference_stage` | files whose current run is an ok `5-reconcile` run with blocks and NO ok `6-references` run at the current run key / all such files |
+| `reference_anchor_rate` | references with `resolved_work_id` whose resolved DOI is a held work's ACTIVE DOI / references whose resolved DOI is a held work's ACTIVE DOI (R4's real denominator) |
+| `references_anchored` | references with `resolved_work_id` / all references |
+| `anchored_with_citation_edge` | anchored references that carry a `citation_edges` row / anchored references |
+| `citation_edges` | count of edges on the counted runs |
+| `anchored_outside_held_doi` | anchored references whose DOI is no longer a held active DOI (0 unless an identifier was retired after the ingest) |
+| `text_snapshot_files_with_blocks` | files whose current run is `5-text-snapshot` — out of stage 6's reach (no PDF), reported, never counted as owing |
+
+"The current run key" is `references_ingest.run_key` (stage, tool, tool_version, params_hash,
+pipeline_version); a `failed` run, or an ok run under another params hash or version, is NOT the
+stage having run. The reference population is the references of ok stage-6 runs at that key. The
+held-DOI set is `references_ingest.doi_index`. The driver's selector `pending_files` reads the SAME
+predicate (`_OWES_STAGE6`), so the driver takes exactly the files the first counter counts.
+
+## litkb stage-6 driver progress JSONL (`<LITKB_DERIVED>/p6/driver_progress.jsonl`, APPEND-ONLY, untracked)
+
+Written by `qc/instruments/litkb_references_stage.py`, one line per file as it finishes, so a
+detached run is followed by reading the file. Keys: `at` (UTC ISO), `rel_path` (the file's
+`main_files.rel_path`), `file_id`, `sha256`, `status`, `tei` (`cached` = the TEI came from
+`p6/tei/<sha256>.tei.xml` with a matching `.sha256` sidecar; `grobid` = posted now, with
+`includeRawCitations=1`), `seconds`, `references`, `resolved`, `anchored`, `citation_edges`,
+`error`. `status` is closed: `ok` (a stage-6 run was committed), `already` (the ingest found an ok
+run at the key — a race with another writer), `error` (`error` names the refusal: `file-missing`,
+`sha-mismatch` — the bytes at the rel_path no longer hash to the file row, so nothing is posted —
+`grobid: …`, or the exception), `aborted` (GROBID could not be started; the batch stops). The LAST
+line of a batch is `{"summary": {...}}`: `selected`, `files` (per-status tallies plus summed
+`references`/`resolved`/`anchored`/`citation_edges`), `seconds`, `aborted`,
+`grobid_started_here`, `grobid_stopped`, `stages_tripped` (a tripped Semantic Scholar/arXiv stage
+makes the resolution rate Crossref-only), `network_calls`, `counters` (the table above). Beside it,
+`p6/files/<sha256>/` holds each file's four stage-6 artifacts under the names
+`references_ingest.ARTIFACTS` reads.
+
+## litkb_preprint_stamp.csv (phase4/qc/, GENERATED — the bioRxiv stamp strip, measured)
+
+Written by `qc/instruments/litkb_preprint_stamp.py`: one row per (page, `pdftotext` program) of
+every held file whose active DOI starts `10.1101/` (one on 2026-09-22). Columns: `rel_path`,
+`pdftotext` (the program path — every distinct `pdftotext` on PATH is run, because a bare call
+resolves to different programs under different launchers), `pdftotext_version`, `page`,
+`stamp_present` (the INDEPENDENT detector: the page's pypdfium2 text contains `biorxiv`/`medrxiv`
+AND the file's own DOI), `detector_word`, `detector_doi`, `regex_hit` (`binding._PREPRINT_STAMP`
+matched at the start of a line of the page as the binder reads it), `regex_hit_lines`,
+`chars_stripped` (what `binding.title_text` removed), `regex_search_anywhere`, `lines_on_page`,
+`first_line_printed`, `first_line_scored` (each cut at 160 characters), and on page 1 only
+`p1_best_ratio_scored` / `p1_best_ratio_printed` (the best 1-3 line title window against the
+work's title, on the stripped vs the printed lines). The ratio is pages with `regex_hit` / pages
+with `stamp_present`, per program.
+
+## litkb_web_title_region.csv (phase4/qc/, GENERATED — TITLE_REGION_LINES on web snapshots)
+
+Written by `qc/instruments/litkb_web_title_region.py`: one row per `*.txt` under
+`_litkb_staging/web/` plus every `file_versions` row with `copy_kind = 'web snapshot'`. Columns:
+`rel_path`; `kind` (closed: `html-snapshot` — the `text_snapshot` sidecar sits beside it;
+`page1-text` — no sidecar, a PDF's page-1 text; `missing-on-disk`); `bytes`; `sha256_12`;
+`title_source` (closed: `binding.registry_title`, `printed-doi`, `file-stem`, `works.key`,
+`none`); `title`; `n_lines` (`binding.page_lines`); `first_index` (the smallest window start at
+which a 1-3 line window, scored the binder's way, reaches `BIND_RATIO`); `first_window_lines`;
+`first_ratio`; `within_region` (`first_index < TITLE_REGION_LINES`); `refusal_at_first`
+(`binding.window_refusal` of that window, empty when admissible); `best_index`; `best_ratio`;
+`binding_line` / `binding_ratio` (what a stored binding recorded, for the cross-check);
+`title_region_lines` (the constant's value when measured).

@@ -79,12 +79,16 @@ Update this block only. Everything else in the file changes when a session lands
   which is nobody's. `state='open'` is not a signal: every workstream row reads `open`
   (`SELECT state, count(*) FROM litkb.workstreams GROUP BY 1` as `litkb_reader`) because nothing
   ever closes one. Entry condition: the preflight command in "Per-session protocol", every counter
-  0. (2) **S4.5**, launched by S4 the way S4 was launched (a new window, bash + prompt file; S4 writes
-  _derived/s4-5/s4-5-prompt.txt from the "### S4.5" block; workstream slug `ladder-1`, the way S4's is
+  0. Its kit was regenerated FROM SCRATCH on 2026-09-22 from the "### S4" block (Kam: "i want to start
+  S4 from scratch"); the patched kit is archived beside it. (2) **S4.5**, launched by KAM and by nobody
+  else (`litkb-session-launch-authority`, 2026-09-22: a session never launches a session) — S4 ends by
+  WRITING _derived/s4-5/ (the prompt from the "### S4.5" block, mcp.json with LITKB_SESSION s4-5, the
+  launch script) and STOPPING; workstream slug `ladder-1`, the way S4's is
   `readability-2`, so the launch is verified by EFFECTS on that slug's workstreams row) — it now carries the Sci-Hub workaround's
   first rung (item 5b: freeze gate, bban, the three route fixes), pulled forward from S4.6 on the
   2026-09-22 diagnosis because the fix is the ledger vocabulary S4.5 owns. (3) **S4.6**, (4) **S4.7**, each launched
-  by the one before it; (5) **S5** once its entry condition is met. Then S6, S7.
+  by Kam from the kit the session before it wrote; (5) **S5** once its entry condition is met, launched
+  by Kam. Then S6, S7. No session launches the next: it writes the kit and stops.
 - **Ops residue, nobody's ruling** (`Reports/LITKB_RULED_HUNTS_2026-09-21.md` §9, re-measured
   2026-09-21): the fetched files of the ruled run's URL rows sit in `_litkb_staging/filed/` with no
   `file_versions` row — 187's protocol PDF and both copies of 235's report — UNBOUND; the reaper
@@ -124,9 +128,9 @@ Update this block only. Everything else in the file changes when a session lands
   a ScienceDirect 200, no Springer, no institutional profile), the coverage gate under definition (b).
   S4.7 — the T4 queue approved. S5 — entry conditions from the round-4 defects, the topic, the
   pre-run tracker edits. S6/S7 — as rewritten by round 4.
-- **Kam-side, still open:** `litkb-colab-page-boundary` — whether whole scan PAGES may leave the
-  laptop for S4.7's vision-language OCR rung, or only strips/tiles the way the formula worker crops
-  (the recommendation), or no Colab OCR at all; only that one rung waits on it; the nightly-dump task re-registration
+- **Kam-side, still open:** nothing in `decisions.yaml` — `litkb-colab-page-boundary` was decided
+  2026-09-22 on the orchestrator's judgement (strips, never whole pages; Kam: "Implement your best
+  judgement on S4.7"), and `litkb-session-launch-authority` records that only Kam launches a session; the nightly-dump task re-registration
   (below) is an action, not a ruling; the Elsevier key is in place but ScienceDirect refuses it as
   configured, re-keyed once with the same answer — Elsevier API support is the other open action (Stage H).
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided; S7 soak = seven nights started in S1. Kam
@@ -1064,10 +1068,11 @@ Work
    corrector only WITH its sliding-window vote (the survey's one clean number: positive with the vote,
    negative in every configuration without it); character error rate with a confidence interval per
    page against the gold; vision-language OCR on Colab under `litkb-s47-colab-queue` (ranked on the
-   old-scan axes, never on the overall score) — CONDITIONAL on `litkb-colab-page-boundary`, which is
-   OPEN: `litkb-s47-colab-queue` granted T4 time, not a data boundary, and this rung would ship whole
-   scan PAGES off the laptop where `pipeline/litkb/extract/colab_formula_worker.py` ships crops and
-   says the corpus stays local; nothing else in this session waits on that ruling — accepted at HIGH
+   old-scan axes, never on the overall score) — under `litkb-colab-page-boundary` (decided 2026-09-22 on the
+   orchestrator's judgement, Kam: "Implement your best judgement on S4.7"): only horizontal STRIPS
+   leave the laptop, cut the way `pipeline/litkb/extract/colab_formula_worker.py` crops formula regions
+   and keyed by page and order so the text comes back addressable; no page ever leaves whole; a strip
+   rung that cannot be built is reported UNDETERMINED, never a page shipped — accepted at HIGH
    tier only when it agrees with the
    classical consensus above a threshold — a fluent hallucination scores well on every coherency and
    dictionary gate, and only agreement catches it; the known-bad for that guard is a CONSTRUCTED
@@ -1405,7 +1410,12 @@ Headless launches: `Reports/LITKB_SCOUT_LAUNCH.md` §4 — bash, a prompt FILE, 
 `git rev-parse --abbrev-ref HEAD` prints `main` AND preflight's `main_not_at_parity=0` — the
 instrument compares local `main` to `github/main` and cannot see a checkout sitting on a work
 branch, so both halves are read. The launch kits inherit this line; a session launched off a work
-branch commits onto somebody else's branch.
+branch commits onto somebody else's branch. **Only Kam launches a session**
+(`litkb-session-launch-authority`, 2026-09-22): a session's LAST act is to write the next session's
+kit under _derived/<next>/ — the prompt from that session's plan block, mcp.json with its
+LITKB_SESSION, the launch script — say in "Where we are" that the kit is ready, and STOP; it never runs
+`claude`, never opens a window, never creates a runtime for another session. The 2026-09-20 chaining
+instruction is withdrawn.
 
 Orchestrator = the chat session; ≤ 3 agents. Opus **builder** in its own worktree with its own
 `litkb_test_wN` — free: w3, w7, w9; w2, w8, w10 and w11 are RESERVED (w8 by

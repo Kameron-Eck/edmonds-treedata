@@ -79,6 +79,14 @@ against `LITKB_TEST_DB`:
   * **P6-D5** posts bytes that no longer hash to the file row, and caches the TEI under that row's sha.
   * **P6-D6** stops GROBID at the end of a batch whether or not this driver started it.
   * **P6-D7** lets a second driver run beside a detached one on the same database.
+  * **P6-D8** removes the rel-path citing-stem override: two files sharing a stem share one list.
+  * **P6-D9** drops `f.status = 'active'`: a quarantined/superseded version with blocks is owed.
+  * **P6-D10** starts a GROBID whose unit systemd says is running (a busy service missed the probe).
+  * **P6-D11** takes ownership of a GROBID on any successful launch, "already alive" included.
+
+THE HARNESS SCORES `rc != 0 and failed > 0` AS FIRED, so a mutant that makes the code ERROR (invalid
+SQL, a NameError) "fires" without showing the guard matters. Every P6-D row's failures must be
+read and be AssertionErrors (or a DID-NOT-RAISE) — the first P6-D3 was not (see its row).
 """
 import argparse
 import importlib.util
@@ -108,7 +116,8 @@ IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-G6", "P6-G7", "P6-G8", "
        "P6-R1", "P6-R2", "P6-R3",
        "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6", "P6-S7",
        "P6-I1", "P6-I2", "P6-I3", "P6-I4",
-       "P6-D1", "P6-D2", "P6-D3", "P6-D4", "P6-D5", "P6-D6", "P6-D7"]
+       "P6-D1", "P6-D2", "P6-D3", "P6-D4", "P6-D5", "P6-D6", "P6-D7",
+       "P6-D8", "P6-D9", "P6-D10", "P6-D11"]
 
 
 def register(block, replace, site):
@@ -189,8 +198,12 @@ def register(block, replace, site):
             tests=TESTS_P6D)
     replace("P6-D2", REFCOV, "\"AND r6.status = 'ok'\")", "\"AND TRUE\")",
             "a killed stage-6 run's failed carcass counts as the stage having run", tests=TESTS_P6D)
-    replace("P6-D3", REFCOV, '"AND r6.params_hash = %(k_params_hash)s AND',
-            '"AND %(k_params_hash)s IS NOT NULL AND',
+    # The condition is DROPPED, not replaced by a placeholder test: the first form of this row
+    # ("%(k_params_hash)s IS NOT NULL") was invalid SQL (psycopg IndeterminateDatatype on every
+    # query), so its 11 "failures" were errors, not the guard's absence — the S4 run 3 auditor of
+    # D1 scored it DID NOT FIRE. A mutant must answer WORSE, never fail to answer.
+    replace("P6-D3", REFCOV, '"AND r6.params_hash = %(k_params_hash)s AND r6.pipeline_version',
+            '"AND r6.pipeline_version',
             "the params hash dropped from the key: a run under older thresholds counts as current",
             tests=TESTS_P6D)
     replace("P6-D4", REFCOV, '"       count(*) FILTER (WHERE held_doi), "', '"       count(*), "',
@@ -204,6 +217,20 @@ def register(block, replace, site):
             tests=TESTS_P6D)
     block("P6-D7", REFDRV, "guard: one stage-6 driver per database at a time",
           "a second stage-6 driver runs beside a detached one on the same database", tests=TESTS_P6D)
+    # ── the S4 run 3 audit of D1: three guards the first campaign did not reach ───────────
+    block("P6-D8", REFDRV, "guard: the citing stem names THIS file, never another file sharing the stem",
+          "the rel-path override removed: two files sharing a stem get one reference list between "
+          "them, filed under whichever file held_index saw first", tests=TESTS_P6D)
+    replace("P6-D9", REFCOV, "\"f.status = 'active' AND cr.stage = %(stage5)s", "\"cr.stage = %(stage5)s",
+            "a quarantined or superseded current file version with blocks is selected and counted",
+            tests=TESTS_P6D)
+    block("P6-D10", REFDRV, "guard: a running GROBID unit someone else started is waited for, never started",
+          "a busy GROBID that misses the 5 s health probe is 'started' (grobid.sh restarts it under "
+          "the worker that owns it)", tests=TESTS_P6D)
+    replace("P6-D11", REFDRV, "        self.started_here = bool(ok and launched)",
+            "        self.started_here = bool(ok)",
+            "ownership taken whenever a launch succeeds, including 'already alive' (someone else's "
+            "GROBID), so the driver stops it at the end", tests=TESTS_P6D)
 
 
 def _p2():

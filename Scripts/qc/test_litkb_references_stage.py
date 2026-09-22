@@ -26,11 +26,14 @@ every count is scoped to the files a test seeded (``file_ids=``), and the driver
   a kill between files resumes with the rest                        test_a_kill_between_files_resumes_with_the_rest
   the bytes posted are the bytes the row names                      test_a_file_whose_bytes_changed_is_refused_not_posted
   GROBID is never stopped unless this driver started it             test_grobid_is_stopped_only_when_started_here
+  a busy GROBID missing the probe is never (re)started or stopped   test_a_busy_grobid_that_misses_the_health_probe_is_never_started_or_stopped
+  two files sharing a stem file their own references                test_two_files_sharing_a_stem_each_file_their_own_references
+  a non-active file version is out of scope                         test_the_selector_reads_rel_path_including_staging
   one driver per database                                           test_a_second_driver_is_refused_while_one_holds_the_lock
   a real recorded TEI goes through parse + ingest                   test_a_real_recorded_tei_is_ingested_in_full
   the instruments run on copied real files                          test_preprint_stamp_instrument_smoke / test_web_title_region_instrument_smoke
 
-Mutation rows P6-D1..P6-D7 (`qc/instruments/litkb_p6_mutations.py`) weaken each guard; each must
+Mutation rows P6-D1..P6-D11 (`qc/instruments/litkb_p6_mutations.py`) weaken each guard; each must
 turn this file red.
 """
 import hashlib
@@ -188,7 +191,7 @@ def seed_work(pg, ws, *, doi=None):
     return work_id, key
 
 
-def seed_file(pg, ws, rel_path, *, data=None, blocks=True, current=True, doi=None):
+def seed_file(pg, ws, rel_path, *, data=None, blocks=True, current=True, doi=None, status="active"):
     """A held work and its file at `rel_path` (sha256 = that of `data` when given), with a current
     ok 5-reconcile run holding one block unless `blocks`/`current` say otherwise."""
     work_id, key = seed_work(pg, ws, doi=doi)
@@ -197,7 +200,7 @@ def seed_file(pg, ws, rel_path, *, data=None, blocks=True, current=True, doi=Non
         "SELECT entity_id FROM litkb._write_version('fact', 'file', NULL, %s, NULL, %s, NULL, %s, "
         "'setup', 'setup')",
         (_j(pg, {"sha256": sha}), _j(pg, {"work_id": str(work_id), "rel_path": rel_path,
-                                          "status": "active"}), ws))[0]
+                                          "status": status}), ws))[0]
     if current:
         run_id = pg.one(
             "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, params_hash, "
@@ -258,7 +261,12 @@ def test_the_selector_reads_rel_path_including_staging(pg):
     seed_stage6(pg, done["file_id"])
     blockless = seed_file(pg, ws, f"Validation/{uniq('Blockless_2017_x')}.pdf", blocks=False)
     unextracted = seed_file(pg, ws, f"Validation/{uniq('Bound_2016_x')}.pdf", current=False)
-    ids = [f["file_id"] for f in (staged, incoming, valid, done, blockless, unextracted)]
+    # audit fix 3: a current version that is not `active` (quarantined, superseded) is out of
+    # scope even with a current run and blocks. Mutation P6-D9 must turn this red.
+    quarantined = seed_file(pg, ws, f"Validation/{uniq('Quar_2015_x')}.pdf", status="quarantined")
+    superseded = seed_file(pg, ws, f"Validation/{uniq('Super_2014_x')}.pdf", status="superseded")
+    ids = [f["file_id"] for f in (staged, incoming, valid, done, blockless, unextracted,
+                                  quarantined, superseded)]
     got = RC.pending_files(reader(pg), file_ids=ids)
     assert [r["rel_path"] for r in got] == sorted([staged["rel_path"], incoming["rel_path"],
                                                    valid["rel_path"]])
@@ -286,7 +294,8 @@ def test_files_without_reference_stage_counts_what_owes_the_stage(pg):
     stale = seed_file(pg, ws, f"Validation/{uniq('Stale_2020_x')}.pdf")
     seed_stage6(pg, stale["file_id"], params_hash="0000000000000000")
     noblocks = seed_file(pg, ws, f"Validation/{uniq('Noblocks_2020_x')}.pdf", blocks=False)
-    ids = [f["file_id"] for f in (owes, ran, killed, stale, noblocks)]
+    inactive = seed_file(pg, ws, f"Validation/{uniq('Inactive_2020_x')}.pdf", status="quarantined")
+    ids = [f["file_id"] for f in (owes, ran, killed, stale, noblocks, inactive)]
 
     c = RC.reference_counters(reader(pg), file_ids=ids)
     assert c["files_without_reference_stage_ratio"] == (3, 4), c
@@ -444,6 +453,34 @@ def test_a_kill_between_files_resumes_with_the_rest(pg, drv, tmp_path):
 
 
 @pg_only
+def test_two_files_sharing_a_stem_each_file_their_own_references(pg, drv, tmp_path):
+    """Audit fix 2. Two held files of two works whose rel_paths share a STEM (a staging copy and a
+    Validation copy). `references_ingest.held_index` keys by stem, first row wins, so without the
+    driver's rel-path override both reference lists would be filed under ONE file and the other
+    would get `already` and no run. Each file must get its own stage-6 run and its own references,
+    citing its own work. Mutation P6-D8 (the override removed) must turn this red."""
+    ws = pg.ws()
+    stem = uniq("Twin_2019_shared-stem")
+    root = tmp_path / "lit"
+    files = []
+    for rel in (f"_litkb_staging/filed/{stem}.pdf", f"Validation/{stem}.pdf"):
+        data = f"%PDF-1.4 constructed twin {rel}".encode()
+        f = seed_file(pg, ws, rel, data=data)
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_bytes(data)
+        files.append(f)
+    conn = ingest(pg)
+    s = _run(drv, conn, root, tmp_path, files,
+             FakeGrobid(constructed_tei("10.9999/x.tw", "10.9999/y.tw")))
+    assert s["files"].get("ok") == 2, _progress(tmp_path)
+    for f in files:
+        assert stage6_runs(conn, f["file_id"]) == 1, f["rel_path"]
+        got = conn.execute('SELECT count(*), count(DISTINCT citing_work_id), min(citing_work_id::text) '
+                           'FROM litkb."references" WHERE file_id = %s', (f["file_id"],)).fetchone()
+        assert got == (3, 1, str(f["work_id"])), (f["rel_path"], got)
+
+
+@pg_only
 def test_a_cached_tei_is_reused_and_not_posted_again(pg, drv, tmp_path):
     """The TEI a killed ingest left behind (sidecar intact) is used as is: no second GROBID post."""
     root, files = _two_files(pg, tmp_path, "cached")
@@ -485,38 +522,121 @@ def test_a_missing_file_is_an_error_row_and_the_batch_goes_on(pg, drv, tmp_path)
 
 # ── GROBID and the lock ─────────────────────────────────────────────────────────────────
 
+class FakeService:
+    """A GROBID as `GrobidHold` sees it. `unit` is systemd's word for the unit; `probe_ok` says
+    whether `/api/isalive` answers within the probe (False = a busy service that misses it);
+    `launch` models `grobid.sh start`: from a stopped unit it brings the service up and says so
+    (`launched_here`), from a running one it reports `already alive`."""
+
+    def __init__(self, unit="inactive", probe_ok=True, launches_ok=True):
+        self.unit, self.probe_ok, self.launches_ok = unit, probe_ok, launches_ok
+        self.calls = []
+
+    def health(self, url):
+        self.calls.append("health")
+        return self.unit == "active" and self.probe_ok
+
+    def unit_state(self):
+        self.calls.append("unit_state")
+        return self.unit
+
+    def launch(self):
+        self.calls.append("launch")
+        if self.unit == "active":
+            return True, False                   # "already alive": someone else's
+        if not self.launches_ok:
+            return False, False
+        self.unit, self.probe_ok = "active", True
+        return True, True                        # "alive after Ns": this driver brought it up
+
+    def stop(self):
+        self.calls.append("stop")
+        self.unit = "inactive"
+
+    def hold(self, drv, **kw):
+        return drv.GrobidHold(health=self.health, unit_state=self.unit_state, launch=self.launch,
+                              stop=self.stop, hold=lambda: self.calls.append("hold"),
+                              process=lambda p, url, include_raw_citations: b"<TEI/>",
+                              sleep=lambda s: None, **kw)
+
+
 def test_grobid_is_stopped_only_when_started_here(drv):
     """`hunt` stops GROBID after every file and a queue worker may share the service: a GROBID
-    this driver found running is never stopped by it; one it started is stopped once, at the end.
+    this driver found running is never stopped by it; one it launched is stopped once, at the end.
     Mutation P6-D6 (stop whenever not yet stopped) must turn this red."""
-    calls = []
-
-    def hold_for(tag):
-        return drv.GrobidHold(health=lambda url: tag == "up", start=lambda url, wait: True,
-                              stop=lambda: calls.append(("stop", tag)),
-                              process=lambda p, url, include_raw_citations: b"<TEI/>",
-                              hold=lambda: calls.append(("hold", tag)))
-
-    found = hold_for("up")
+    up = FakeService(unit="active")
+    found = up.hold(drv)
     found.tei("x.pdf")
     found.close()
-    assert ("stop", "up") not in calls and not found.started_here
-    assert ("hold", "up") in calls, "the distro is held even when the service was already up"
-    mine = hold_for("down")
+    assert "stop" not in up.calls and "launch" not in up.calls and not found.started_here
+    assert "hold" in up.calls, "the distro is held even when the service was already up"
+    down = FakeService(unit="inactive")
+    mine = down.hold(drv)
     mine.tei("x.pdf")
     mine.tei("y.pdf")
     mine.close()
     mine.close()
-    assert calls.count(("stop", "down")) == 1 and mine.started_here
+    assert down.calls.count("launch") == 1 and down.calls.count("stop") == 1 and mine.started_here
+
+
+def test_a_busy_grobid_that_misses_the_health_probe_is_never_started_or_stopped(drv):
+    """Audit fix 4. Another worker's GROBID is UP but too busy to answer `/api/isalive` inside the
+    probe. The driver must not read that as "down": systemd says the unit is active, so it is
+    waited for -- never launched (`grobid.sh start` would `systemctl restart` it under the other
+    worker) -- and never stopped. A second case: the unit state is unreadable, the launch then
+    reports "already alive" (someone else won the race), and ownership is still NOT taken.
+    Mutations P6-D10 (the unit-state check removed) and P6-D11 (ownership taken whenever a launch
+    succeeds) must turn this red."""
+    busy = FakeService(unit="active", probe_ok=False)
+    probes = {"n": 0}
+
+    def slow_health(url):                        # misses the first two probes, then answers
+        probes["n"] += 1
+        busy.calls.append("health")
+        return probes["n"] > 2
+
+    g = drv.GrobidHold(health=slow_health, unit_state=busy.unit_state, launch=busy.launch,
+                       stop=busy.stop, hold=lambda: None,
+                       process=lambda p, url, include_raw_citations: b"<TEI/>",
+                       sleep=lambda s: None, wait=10, poll=1)
+    g.tei("x.pdf")
+    g.close()
+    assert "launch" not in busy.calls, "a running unit someone else started was (re)started"
+    assert "stop" not in busy.calls and not g.started_here, busy.calls
+
+    raced = FakeService(unit="active", probe_ok=False)
+    r = drv.GrobidHold(health=raced.health, unit_state=lambda: "", launch=raced.launch,
+                       stop=raced.stop, hold=lambda: None,
+                       process=lambda p, url, include_raw_citations: b"<TEI/>",
+                       sleep=lambda s: None, wait=2, poll=1)
+
+    def launch_then_answer():
+        out = raced.launch()                     # the unit is running: "already alive"
+        raced.probe_ok = True
+        return out
+
+    r._launch = launch_then_answer
+    r.tei("x.pdf")
+    r.close()
+    assert "launch" in raced.calls and "stop" not in raced.calls and not r.started_here, raced.calls
+
+
+def test_a_busy_unit_that_never_answers_ends_the_batch_without_a_stop(drv):
+    busy = FakeService(unit="active", probe_ok=False)
+    g = busy.hold(drv, wait=3, poll=1)
+    with pytest.raises(drv.GrobidUnavailable, match="not restarting"):
+        g.tei("x.pdf")
+    g.close()
+    assert "launch" not in busy.calls and "stop" not in busy.calls
 
 
 def test_grobid_that_cannot_start_ends_the_batch(drv):
-    g = drv.GrobidHold(health=lambda url: False, start=lambda url, wait: False, stop=lambda: None,
-                       process=lambda *a, **k: b"", hold=lambda: None, wait=0)
+    dead = FakeService(unit="inactive", launches_ok=False)
+    g = dead.hold(drv, wait=0)
     with pytest.raises(drv.GrobidUnavailable):
         g.tei("x.pdf")
     g.close()
-    assert not g.stopped
+    assert not g.stopped and "stop" not in dead.calls
 
 
 @pg_only

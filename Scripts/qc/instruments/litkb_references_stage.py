@@ -40,9 +40,10 @@ the connection, so a killed driver leaves nothing to clean up.
 
 GROBID IS HELD, NEVER STOLEN. The service is started only when a file actually needs a TEI
 (nothing on disk), the WSL distro is held for the batch (`grobid.hold_distro`), and at the end it
-is stopped ONLY if this driver started it: `hunt` stops GROBID after every file (its ``_finish``
-path), and a queue worker may be using the same service at the same time, so stopping a GROBID
-someone else brought up would fail their request mid-flight.
+is stopped ONLY if this driver's own start action launched it: `hunt` stops GROBID after every
+file (its ``_finish`` path), and a queue worker may be using the same service at the same time, so
+stopping a GROBID someone else brought up would fail their request mid-flight. Ownership comes from
+systemd's unit state and the launch's own output, never from a health probe (`GrobidHold`).
 
 THE NETWORK. A real run resolves over Crossref / Semantic Scholar / arXiv at the registries' own
 pacing (1 s Crossref) — the wall-clock spend the plan marks as Kam's and Kam ruled on
@@ -120,23 +121,52 @@ class GrobidUnavailable(RuntimeError):
 
 
 class GrobidHold:
-    """The service for one batch: started on first need, and stopped at the end ONLY if this
-    driver started it (module header). The callables are `litkb.extract.grobid`'s; a test passes
-    its own."""
+    """The service for one batch: started on first need, and stopped at the end ONLY if THIS
+    driver's own start action launched it (module header). The callables default to
+    `litkb.extract.grobid`'s; a test passes its own.
 
-    def __init__(self, url=None, *, health=None, start=None, stop=None, process=None, hold=None,
-                 wait=240):
+    OWNERSHIP IS NEVER INFERRED FROM A HEALTH PROBE (S4 run 3 audit of D1, fix 4). `health()` is a
+    5 s GET of ``/api/isalive``; a GROBID another worker started and is keeping busy can miss it.
+    Reading that miss as "down" and calling `grobid.start()` would be doubly wrong: `grobid.sh
+    start` itself re-probes and, on a miss, runs ``systemctl restart grobid`` — killing the other
+    worker's requests — and the driver would then think it owned the service and stop it at the
+    end. So on a failed probe the driver asks SYSTEMD (`grobid.sh status` -> ``systemctl
+    is-active grobid``): a unit that is ``active``/``activating`` belongs to someone else and is
+    only waited for, never started. Only when the unit is not running does the driver launch, and
+    it takes ownership only if that launch's own output says IT brought the service up
+    (``alive after Ns``, `grobid.sh`'s ``do_start``); ``already alive`` (a race another starter
+    won) or anything unreadable leaves ``started_here`` False. In doubt, it never stops.
+    """
+
+    #: `systemctl is-active` words that mean the unit is running or coming up under someone.
+    RUNNING = ("active", "activating", "reloading")
+
+    def __init__(self, url=None, *, health=None, unit_state=None, launch=None, stop=None,
+                 process=None, hold=None, wait=240, poll=2.0, sleep=None):
+        import time as _time
+
         from litkb.extract import grobid as G
 
         self.url = url or G.DEFAULT_URL
         self._hold = hold or G.hold_distro
         self._health = health or G.health
-        self._start = start or G.start
+        self._unit_state = unit_state or _unit_state
+        self._launch = launch or _launch
         self._stop = stop or G.stop
         self._process = process or G.process_pdf
-        self.wait = wait
+        self._sleep = sleep or _time.sleep
+        self.wait, self.poll = wait, poll
         self.started_here = False
         self.stopped = False
+
+    def _wait_alive(self):
+        waited = 0.0
+        while waited < self.wait:
+            if self._health(self.url):
+                return True
+            self._sleep(self.poll)
+            waited += self.poll
+        return self._health(self.url)
 
     def ensure(self):
         # Hold the WSL distro for as long as this process lives, EVEN when someone else's GROBID
@@ -145,9 +175,18 @@ class GrobidHold:
         self._hold()
         if self._health(self.url):
             return True
-        if not self._start(self.url, wait=self.wait):
+        # BEGIN guard: a running GROBID unit someone else started is waited for, never started
+        if (self._unit_state() or "").strip().lower() in self.RUNNING:
+            if self._wait_alive():
+                return True
+            raise GrobidUnavailable(f"the GROBID unit is running but {self.url} did not answer "
+                                    f"within {self.wait}s; not restarting a service this driver "
+                                    "did not start")
+        # END guard: a running GROBID unit someone else started is waited for, never started
+        ok, launched = self._launch()
+        self.started_here = bool(ok and launched)
+        if not (ok and self._wait_alive()):
             raise GrobidUnavailable(f"GROBID did not come up at {self.url} within {self.wait}s")
-        self.started_here = True
         return True
 
     def tei(self, pdf_path):
@@ -160,6 +199,30 @@ class GrobidHold:
             self._stop()
             self.stopped = True
         # END guard: the stage-6 driver never stops a GROBID it did not start
+
+
+def _unit_state():
+    """`grobid.sh status`'s first line: ``systemctl is-active grobid`` (active / inactive / failed
+    / activating …). '' when it cannot be read — which `ensure` treats as NOT running, and the
+    launch that follows then decides ownership from its own output."""
+    from litkb.extract import grobid as G
+
+    try:
+        r = G._manager("status", timeout=60)
+    except Exception:  # noqa: BLE001 - an unreadable state is "unknown", never "someone else's"
+        return ""
+    return ((r.stdout or "").strip().splitlines() or [""])[0]
+
+
+def _launch():
+    """`grobid.sh start` -> (ok, launched_here). ``launched_here`` is True only when the script
+    itself brought the service up (``alive after Ns``); ``already alive`` is someone else's."""
+    from litkb.extract import grobid as G
+
+    G.hold_distro()
+    r = G._manager("start")
+    out = (r.stdout or "") + (r.stderr or "")
+    return r.returncode == 0, "alive after" in out
 
 
 def _sha256(path):
@@ -240,8 +303,10 @@ def run_file(conn, row, *, root, derived, grobid, client, pacer, breaker, corpus
                  "log": {"stem": stem, "status": line["tei"], "rel_path": row["rel_path"],
                          "bytes": len(tei), "sha256": row["sha256"]}}
         index = dict(held)
+        # BEGIN guard: the citing stem names THIS file, never another file sharing the stem
         index[stem] = {"work_id": row["work_id"], "file_id": row["file_id"], "route": ROUTE,
                        "rel_path": row["rel_path"]}
+        # END guard: the citing stem names THIS file, never another file sharing the stem
         out = RI.ingest_paper(conn, paper, index, dois, artifact_path=tei_path, host=host)
         line.update(status="ok" if out["inserted"] else "already",
                     references=out["references"], citation_edges=out["citation_edges"],

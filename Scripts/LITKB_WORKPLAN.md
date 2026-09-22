@@ -108,9 +108,13 @@ Update this block only. Everything else in the file changes when a session lands
   (vision-language OCR is S4.7's); the S4 launch kit's work key is not a violation (the bed names
   works by design; the seeding guard protects S5); S5's topic, unless Kam renames it before launch:
   label transfer across years under seasonal difference.
+- **Sci-Hub, diagnosed 2026-09-22** after the reversal: the route's zero was sampling plus
+  mislabelling (19 of its 22 DOIs post-date the freeze; misses booked `blocked` and retried forever),
+  and the corpus is open from here — bban served 73/104 of the pre-2022 no-file backlog on one
+  keyless HEAD (`phase4/qc/litkb_acq_probe_bban.csv`). S4.6 Stage G carries the measured ladder.
 - **Kam-side, still open:** nothing in `decisions.yaml`; the nightly-dump task re-registration
   (below) is an action, not a ruling; the Elsevier key is in place but ScienceDirect refuses it as
-  configured — a key with the TDM Provisions box ticked is the other open action (Stage H).
+  configured, re-keyed once with the same answer — Elsevier API support is the other open action (Stage H).
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided; S7 soak = seven nights started in S1. Kam
   re-registers the nightly-dump scheduled task (Windows task name litkb-nightly-dump) against the
   merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
@@ -526,7 +530,7 @@ Work
    MEMBERSHIP TABLE — the public, sha256-pinned Sci-Hub DOI list and the LibGen article DOI table, which
    sit on GitHub and figshare as data files and contact no shadow host, so a `blocked` or `not-in-archive`
    row is typed out-of-corpus versus reachable BEFORE any mirror is spent (a Stage A rung; it needs no
-   ruling, and the shadow corpus's freeze date is the reason a post-2021 DOI is out-of-corpus by
+   ruling, and the shadow corpus's freeze date (2022-02-12) is the reason a later DOI is out-of-corpus by
    construction). Rows: the preprints among the archive misses (the probe instrument's baselines CSV
    lists them by Crossref type) must route to their native API; the Sci-Hub `blocked` rows typed by the
    membership table.
@@ -748,21 +752,38 @@ Work
    treated as portable across mirrors (G1b); the mirror lists moved from `run.py` constants to a
    versioned registry fetched at start (guard 7). `litkb-shadow-hosts` was decided 2026-09-22 for ALL of the following, each behind
    its own policy line and built in this session: LibGen's DOI-to-md5 lookup with its User-Agent trap
-   (G0a) and delivery (G1d); the `sci.bban.top` DOI path (G1a) beside Sci-Hub, NOT in its place — Kam
-   reversed the parking the same day (`litkb-scihub-parked`: "a massive loss if we table it"), so this
-   session ATTEMPTS THE WORKAROUND: the route is rebuilt from the diagnosis of why it has never
-   returned a file (the 2026-09-22 read-only probes under D:\tools\claude-config\jobs\litkb-scihub\,
-   which split the zero into code defect / egress block / corpus miss with counts) and the fronts to
-   the same corpus are tried in the order those probes rank them; a DOI published after the
-   2022-02-12 freeze is never sent to any front; Nexus/STC crosswalk first and delivery second (G0b/G1c);
+   (G0a) and delivery (G1d); the `sci.bban.top` DOI path (G1a) FIRST, beside Sci-Hub, not in its place — Kam
+   reversed the parking the same day (`litkb-scihub-parked`: "a massive loss if we table it") and the
+   diagnosis that evening (two read-only Opus probes under D:\tools\claude-config\jobs\litkb-scihub\; the
+   orchestrator's re-run `qc/instruments/litkb_acq_probe_bban.py` → `phase4/qc/litkb_acq_probe_bban.csv`)
+   settled the ladder. The route's zero was SAMPLING plus MISLABELLING, not a corpus loss: 19 of the 22
+   DOIs it was ever asked for post-date the 2022-02-12 freeze and the two eligible ones are confirmed
+   absent, while a miss page was booked `blocked` and `blocked` is not in `DEAD_STATUSES`
+   (`pipeline/litkb/acquire/run.py`), so every miss was retried until sci-hub.ru's ALTCHA rate gate. The
+   corpus itself is open from here: bban served 73/104 (70%) of the pre-2022 no-file backlog on
+   one keyless HEAD (D2: 73/104; D1: 12/20 random), LibGen.li's json.php→ads.php→get.php chain 75/104,
+   union 77/104. The rungs in the measured order, each with its kill: (1) FREEZE GATE — a DOI whose
+   work year is after 2021 is never sent to any front, `post_freeze_sent=0`; (2) bban — HEAD
+   `pdf/<doi>.pdf` as stored, on 404 once more with the suffix upper-cased (case-sensitive host;
+   7 of the 73 hits needed it), hit = 200/206 + application/pdf + `%PDF` on the GET, miss =
+   404 + text/html booked `not-in-corpus`, never `blocked`; (3) LibGen.li scimag by DOI → md5 →
+   delivery, the md5 kept as an identifier; (4) the sci-hub.* mirrors LAST, after three fixes — a
+   200-status Cloudflare page is a challenge (`is_challenge` in `pipeline/litkb/netutil.py` fires only at
+   403/503, so .ren/.wf pages were booked `no-pdf-link`), `blocked` joins the dead statuses so a DOI is
+   probed once per run, and a mirror's miss page ("not available through Sci-Hub"; .ren's Verification
+   page on out-of-corpus DOIs) is booked `not-in-corpus`; the parser has never seen a live delivery
+   page, so its first real one is the positive row; (5) NOT built, measured dead today: Anna's `/scidb`
+   (.org/.se NXDOMAIN, .li parked, .gl DDoS-Guard), Nexus/STC (no HTTP front), library.lol (seized),
+   Tor (no onion address in any source read — unaddressed, not unfetched). No solver: the route's
+   docstring forbids one and the ALTCHA page is a rate signal, not a corpus one; Nexus/STC crosswalk first and delivery second (G0b/G1c);
    a real browser session against Anna's only where the challenge-detection fix leaves a block (G3a);
    Tor (G5) only if a granted host is unreachable without it. Offline metadata dumps are data. The
    rungs as the survey read them, in code only until built: LibGen's DOI-to-md5 lookup with its
    User-Agent trap (G0a) and delivery (G1d), the `sci.bban.top` DOI path (G1a), Nexus/STC (G0b —
    VERIFIED but disputed, its gateway reported down in 2026; G1c), a real browser session against
    Anna's (G3a). Tor as a transport (G5) is graded verified as a mechanism and dead as an
-   implementation, and is not scheduled. The Sci-Hub corpus froze around 2021, so a post-2021
-   paywalled work in this tier ends `held/not-acquired` with `retriable=false`; the deferred-human-
+   implementation, and is not scheduled. The Sci-Hub corpus froze 2022-02-12, so a post-freeze
+   paywalled work in this tier ends `held/not-acquired` with `retriable=false` without a request; the deferred-human-
    fulfilment rung (G4) is the `--from-file` half of `litkb-blocked-works-grade` (decided:
    metadata-grade by default, the queue on demand), not code.
 4. **Stage H, credentialed and anti-block, each behind its ruling**: NO persistent logged-in browser profile
@@ -777,11 +798,10 @@ Work
    `AUTHENTICATION_ERROR` even at `view=META` on a GOLD open-access article, ScienceDirect Search and
    Metadata 401 — so as configured it buys NO full text, only Scopus metadata (EID, PII, `openaccess`
    flag, cited-by) for Stage A's crosswalk. H2 is built ONLY once a re-run of that instrument shows a
-   ScienceDirect 200 (Kam's open action: the key form carries TWO consent boxes, the API Service
-   Agreement and the TDM Provisions, and ScienceDirect is what the second enables — create a key with
-   both ticked, replace the file, re-run; Elsevier API support only if it still refuses: their page
-   says non-subscribers "can still retrieve free and open access content -- or speak to us about
-   non-subscriber access"); until then the expected first-page stub
+   ScienceDirect 200 (a replaced key the same evening answered IDENTICALLY, so the refusal is
+   Elsevier's non-subscriber key profile rather than the form's TDM box; Kam's open action is Elsevier
+   API support — their page says non-subscribers "can still retrieve free and open access content --
+   or speak to us about non-subscriber access"); until then the expected first-page stub
    (an unentitled key answering HTTP 200 with the stub announced only in `X-ELS-Status`, which S4.5's
    acceptance test refuses) stays CONSTRUCTED; Springer's API (H1) is NOT built — no Springer key,
    its open-access content stays on the Unpaywall rung; `curl_cffi` impersonation (H5) is NOT built — the
@@ -811,7 +831,10 @@ County page snapshot under `_litkb_staging/web/` — and the USFS and USGS class
 title hit whose page-1 title scores below 0.85 (the ruled run's row 235 cover measures 0.80 and is the
 row); a DDoS-Guard interstitial from the ledger's own `blocked` attempts; a request to a host outside
 the policy allowlist. NEGATIVE, CONSTRUCTED, in those words: a chapter DOI carrying an ISBN already
-attached to its book; a post-2021 DOI offered to the shadow tier.
+attached to its book. NEGATIVE, REAL: a post-freeze DOI offered to the shadow tier —
+`10.1016/j.rse.2024.114101` is in the base and bban answers it 404 — refused by the freeze gate before
+any request; a lower-cased DOI whose upper-suffix form serves at bban must land on the retry, not on
+`not-in-corpus`.
 
 Done-state
 - (a) the Stage D/F/G/H rungs that are ruled in, each with fixtures; the coverage instrument and its
@@ -819,7 +842,8 @@ Done-state
   report per rung class; tests + ledger rows; SCHEMAS rows; the manifest frozen by `ladder --freeze`.
 - (b) `py -3.12 qc/instruments/litkb_acceptance.py ladder --manifest <manifest>` → GATED:
   `grey_hits_below_title_gate=0` · `chapters_routed_to_scidb=0` · `challenge_booked_as_miss=0` (a
-  `not-in-archive` attempt whose terminal page title is DDoS-Guard) · `shadow_requests_outside_policy=0`
+  `not-in-archive` attempt whose terminal page title is DDoS-Guard) · `post_freeze_sent=0` ·
+  `shadow_miss_booked_blocked=0` (a bban or mirror miss page recorded as `blocked`) · `shadow_requests_outside_policy=0`
   · `new_hosts_without_ruling=0` · `credentials_stored=0` (any credential string in litkb's config or
   database) · `tdm_stubs_bound=0` · `coverage_rows_unclassified=0` (tracker rows the instrument could
   neither join nor mark) · `archive_misses_untyped=0` (archive-miss rows still carrying the bare word
@@ -827,7 +851,8 @@ Done-state
   (`litkb-coverage-target` under `litkb-coverage-definition`: pdf + jats + html-doc), reported
   UNDETERMINED rather than failed only if the session's report names the residue rows and the ruling
   that leaves them (metadata-grade or the human queue). REPORTED: `eligible_rows`, `coverage_pdf`,
-  `coverage_cached_or_snippet`, `paywalled_residue`, `manual_step_rows`.
+  `coverage_cached_or_snippet`, `paywalled_residue`, `manual_step_rows`, `bban_served` over
+  `bban_population` (the probe's number, re-measured by the session).
 - (c) row 235's cover fed to a Stage D hit → refused, `grey_hits_below_title_gate=1` if bound; the
   constructed chapter with the router off → `chapters_routed_to_scidb=1`; a ledger DDoS-Guard page fed
   to the archive route with the title check off → `challenge_booked_as_miss=1`; a request to a host
@@ -855,8 +880,8 @@ py -3.12 -c "import csv;r=list(csv.DictReader(open('../Reports/literature_tracke
 Kam: all of this block's rulings were decided 2026-09-22 — `litkb-institutional-access`,
 `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-crc-book`, `litkb-coverage-definition`,
 `litkb-blocked-works-grade`, `litkb-scihub-parked`, `litkb-e23-residue-copies`; the Elsevier key
-is in place but buys no full text as configured (Stage H cites the measurement); a key created with
-the TDM Provisions box ticked is Kam's open action; there is no Springer key.
+is in place but buys no full text as configured (Stage H cites the measurement); Kam's request to
+Elsevier API support for non-subscriber access is the open action (one re-key answered identically); there is no Springer key.
 
 ### S4.7 — Extraction agreement: repair the cause, tier the text, measure the scans, verify the math
 

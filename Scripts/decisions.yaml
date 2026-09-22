@@ -863,6 +863,17 @@ decisions:
       client-codebase parser, sci.bban.top, LibGen scimag by DOI, Anna's /scidb, Tor onion if a host
       is unreachable otherwise). A DOI published after the 2022-02-12 freeze is out of corpus by
       construction and is never sent to any of these fronts. Kam, 2026-09-22.
+      DIAGNOSED the same evening (two read-only Opus probes D1/D2 under the jobs folder litkb-scihub, and the
+      orchestrator's own re-run qc/instruments/litkb_acq_probe_bban.py → phase4/qc/litkb_acq_probe_bban.csv):
+      the ledger holds 26 attempts over 22 works, 25 `blocked`, 1 `bad-file`, 0 files; 19 of the 22 DOIs
+      post-date the freeze and the 2 eligible ones are confirmed absent — the zero was SAMPLING plus
+      MISLABELLING (a miss page booked `blocked`; `blocked` absent from DEAD_STATUSES so every miss was
+      retried until sci-hub.ru's ALTCHA rate gate), not a corpus loss. The corpus is open from this
+      machine: sci.bban.top served 73/104 (70%) of the pre-2022 no-file backlog on one keyless
+      HEAD (D2 measured 73/104, D1 12/20 random; case-sensitive host, suffix upper-cased on 404), LibGen.li's
+      json.php→ads.php→get.php chain 75/104, union 77/104. Anna's /scidb, Nexus/STC, library.lol and Tor
+      are dead or unaddressed today. The workaround: freeze gate, then bban, then LibGen.li, then the
+      sci-hub.* mirrors with three code fixes (S4.6 Stage G).
     why: >-
       Parked removes one probe and one 403 per hunt from a route that has only ever produced
       blocked rows; live keeps the standing grant intact in case a mirror starts answering. The
@@ -1062,8 +1073,10 @@ decisions:
       non-subscriber access". The likely cause (Kam: the form asked for a label and a website URL): the
       key form carries TWO consent boxes, the API Service Agreement and the TDM Provisions, and the
       ScienceDirect endpoints are what the second enables ("Text Mining API Keys" in Elsevier's settings
-      table); the website URL is optional. Open action, Kam's: create a key at dev.elsevier.com/apikey/create
-      with BOTH boxes ticked, replace the file, re-run the instrument; API support only if it still refuses.
+      table); the website URL is optional. Kam replaced the key the same evening and the re-run was
+      IDENTICAL (Scopus 200, every ScienceDirect endpoint refused), so the refusal is Elsevier's
+      non-subscriber key profile rather than the form. Open action, Kam's: Elsevier API support ("speak
+      to us about non-subscriber access"); H2 stays unbuilt until the instrument shows a ScienceDirect 200.
       First ruling, Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     blocked_by: [litkb-coverage-target]
     why: >-

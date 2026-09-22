@@ -46,6 +46,31 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-22  litkb SCI-HUB: parking reversed -> diagnosed -> workaround ladder measured; Elsevier key measured
+goal:    Kam: "I do want to attempt a work around for scihub. Scihub is a massive loss if we table it."; keys.
+found:   Sci-Hub (wf_88f4554c-1ee, D1 own-route + D2 fronts, 30 min, read-only): ledger 26 attempts / 22 works,
+         25 blocked 1 bad-file 0 files; 19/22 DOIs post-date the 2022-02-12 freeze, 2 eligible confirmed absent ->
+         zero = SAMPLING + MISLABELLING (miss page booked blocked; blocked not in DEAD_STATUSES -> retried until
+         sci-hub.ru ALTCHA rate gate). From here: .se DNS dead, .st/.box DDoS-Guard 403, .ren/.wf Cloudflare at
+         HTTP 200 (is_challenge fires only 403/503 -> booked no-pdf-link), only .ru serves. Corpus OPEN: bban
+         73/104 (D2) + 12/20 random (D1); LibGen.li json.php->ads.php->get.php 75/104; union 77/104; bban
+         case-SENSITIVE (as-given then suffix upper-cased, +7). Anna's /scidb dead today (.org/.se NXDOMAIN,
+         .li parked, .gl DDoS-Guard); Nexus/STC no HTTP front; library.lol seized; no onion address anywhere.
+         Orchestrator re-run qc/instruments/litkb_acq_probe_bban.py: 73/104 (70%) served, 7 via upper suffix,
+         %PDF magic 8/8 sampled -> phase4/qc/litkb_acq_probe_bban.csv.
+did:     litkb-scihub-parked REVERSED (Kam) + diagnosis appended; plan S4.6 Stage G = measured ladder (freeze gate,
+         bban, LibGen.li, mirrors last w/ 3 code fixes, dead fronts named), freeze date 2022-02-12 (was "around
+         2021"), (b) += post_freeze_sent=0, shadow_miss_booked_blocked=0, bban_served reported; real negative
+         10.1016/j.rse.2024.114101. Elsevier: key placed, re-keyed once, both times Scopus 200 / ScienceDirect
+         refused -> H2 gated on a ScienceDirect 200; open action Elsevier API support. No Springer key (Kam).
+killed:  Springer key (Kam); institutional access; a captcha/ALTCHA solver (route docstring forbids; rate gate
+         not corpus signal).
+files:   Scripts/decisions.yaml, Scripts/LITKB_WORKPLAN.md, qc/instruments/litkb_acq_probe_bban.py,
+         phase4/qc/litkb_acq_probe_bban.csv, qc/instruments/litkb_acq_probe_elsevier_key.py (+csv);
+         D:/tools/claude-config/jobs/litkb-scihub/ (D1, D2, probe scripts, raw JSON).
+next:    S4.6 builds the ladder (fixtures from the D1/D2 JSON); Kam: Elsevier API support; nightly dump task;
+         launch S4 run 3. Owed: Codex reads r2/r3/r4 + plan.
+
 ## 2026-09-22  litkb RULINGS: Kam ruled the eleven open ids in one message -> plan re-bound under them
 goal:    close the "Kam-side, open" list from survey rounds 1-4 (options + trade-offs conversation, then Kam's rulings).
 decided: (Kam, verbatim in each decisions.yaml `decision:`) litkb-coverage-definition B: pdf + jats + html-doc count, cached
@@ -72,8 +97,7 @@ found:   Elsevier key placed (secrets/, outside repo) and probed same hour: VALI
          litkb_acq_probe_elsevier_key.py -> phase4/qc/litkb_acq_probe_elsevier_key.csv. H2 not built until a re-run shows 200.
 files:   Scripts/decisions.yaml, Scripts/LITKB_WORKPLAN.md, _derived/s4/s4-prompt.txt (gitignored),
          qc/instruments/litkb_acq_probe_elsevier_key.py, phase4/qc/litkb_acq_probe_elsevier_key.csv.
-next:    Kam: re-create Elsevier key with BOTH boxes ticked (API Service Agreement + TDM Provisions), replace
-         secrets/Elsevier_key.txt, re-run the instrument; re-register nightly dump task; launch S4 run 3 (_derived/s4/launch-s4.sh). Owed: Codex
+next:    Kam: Elsevier API support for non-subscriber ScienceDirect access (re-keyed once same evening: identical refusal); re-register nightly dump task; launch S4 run 3 (_derived/s4/launch-s4.sh). Owed: Codex
          cross-family reads r2/r3/r4 + adversarial plan read (quota). Nothing litkb-… open in decisions.yaml.
 
 ## 2026-09-22  litkb SURVEY ROUNDS 3 + 4: shadow-library linkage + identifier coverage; the loop's twelve stages -> plan updated

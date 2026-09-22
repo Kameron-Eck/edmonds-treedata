@@ -2064,22 +2064,28 @@ with OCR off, or the scan post-condition below). The same guard (`queue.guard_fi
 ENQUEUE and again at CLAIM. One re-open, by design: a whole-file `scan-needs-ocr` refusal made with
 OCR OFF gets its page-range jobs from the next sweep made with OCR ON.
 
-**Routing** (`route`: `native` · `ocr`). A file is OCR-routed when ANY page carries fewer than
-`probe.MIN_PAGE_TEXT_CHARS` normalised native characters (`probe.page_text_chars`, stored per page
-in `page_chars`), never by the page-1 `file_versions.has_text_layer`. An OCR-routed file is split
+**Routing** (`route`: `native` · `ocr`). A file is OCR-routed when ANY page is an IMAGE page: zero
+native characters AND at least one raster image (S4 run 3 decision D13, `probe.image_pages`; its
+docstring holds the measured basis). The probe facts are stored on the job: `page_chars` (normalised
+native characters per page) and `image_pages` (their 1-based numbers). Never the page-1
+`file_versions.has_text_layer`. An OCR-routed file is split
 into ranges of at most `queue.OCR_CHUNK_PAGES` = 22 pages (S4 run 3 decision D3); a native file is
 one whole-file job. Docling emits ABSOLUTE page numbers for a page range (measured 2026-09-22), so
 assembly shifts no page; `queue.assemble` refuses ranges that do not tile 1..`pages` or that name a
 page outside themselves.
 
-**Scan post-condition.** OCR gain = Σ over image pages of max(0, normalised characters of the
-page's blocks − the page's `page_chars`). An OCR-routed file whose gain is 0 is refused
-`scan-needs-ocr`, never finished `ok` (`queue.ocr_gain`, `queue.scan_postcondition`).
+**Scan post-condition.** An OCR-routed file whose image pages ALL come back with no text is
+refused `scan-needs-ocr`, never finished `ok` (`queue.ocr_read_nothing`,
+`queue.scan_postcondition`). An image page has no native text, so every character on it is OCR's.
+Stated limit: a native paper whose only image pages are pictures with no text at all is refused if
+OCR finds nothing on them.
 
 **The lease.** `claim_jobs(worker, n, lease_seconds, files uuid[] DEFAULT NULL)` takes queued jobs
 or jobs whose lease has EXPIRED, one row at a time under `FOR UPDATE SKIP LOCKED`, shortest file
 first; each claim increments `attempts` and `lease_seq`, and returns a TOKEN in plaintext once —
-only `lease_token_hash` (sha256 hex) is stored. A job whose lease expired at every one of the
+only its sha256 is stored, in `extraction_job_lease_tokens` (job_id, seq, token_hash; written once,
+never changed), on which NO agent role holds any privilege (the rule `qc/test_litkb_p1.py` pins for
+every relation with a `token_hash` column). A job whose lease expired at every one of the
 ceiling's attempts is `dead` at the next claim. Every holder call presents the token; a token that
 is not the job's CURRENT lease, or whose lease a later claim superseded, is refused with
 **SQLSTATE `LKL01`** ("litkb lease refused"; `queue.LEASE_REFUSED`, raised in Python as
@@ -2089,7 +2095,7 @@ back. `queue.LEASE_SECONDS` = 375 (the longest single-job wall-clock in the exis
 JSONL); the heartbeat renews at half of it. `metrics` (jsonb) holds the JOB's own measurements.
 
 **`extraction_job_leases`** — append-only history, one row per claim: `job_id`, `seq`, `owner`,
-`token_hash`, `lease_seconds`, `claimed_at`, `expires_at` (moved by `renew_lease` while the lease is
+`lease_seconds`, `claimed_at`, `expires_at` (moved by `renew_lease` while the lease is
 live), `superseded_at` (set when a later claim took an expired lease), `released_at` + `outcome`
 (`finished` · `staged` · `failed` · `dead` · `refused`, set by the holder's own call). A trigger
 refuses DELETE and every rewrite (identity columns never change; `superseded_at`, `released_at`,
@@ -2112,7 +2118,9 @@ still hash as recorded is not extracted again.
 **`extraction_runs.metrics` keys the queue adds** (beside the reconciler's own): `seconds`
 (extraction + reconcile wall-clock), `pages`, `pages_per_s`, `peak_rss_bytes` (Docling's sampled
 peak), `peak_vram_mib` and `vram_baseline_mib` (whole-card `nvidia-smi` at 1 Hz; NULL off CUDA),
-`device`, `interpreter`, `ocr`, `ocr_engine`, `grobid_error`, `reconcile_seconds`, `jobs` (one entry
+`device`, `interpreter`, `ocr` (a JSON boolean on EVERY run the worker finishes — the key builder B's
+classifier reads for `extracted/ocr`), `ocr_engine`, `image_pages` (count),
+`ocr_chars_on_image_pages`, `grobid_error`, `reconcile_seconds`, `jobs` (one entry
 per job: `job_id`, `page_start`, `page_end`, `attempts`, …), `attempts` (their sum), `chunks` (the
 page ranges; `[]` for a whole-file job), `queue`.
 
@@ -2127,5 +2135,5 @@ bare (page_no, text) repeat is not counted because correct current runs repeat a
 digest differs from the database's blocks or from the reference; an unrecomputable reference
 counts) · `books_extracted` (files of a main `type='book'` work with any block) · `over_cap_bound`
 (files over `EXTRACT_PAGE_CAP` by `file_versions.pages` or `extraction_jobs.pages` with any block) ·
-`scans_ocr_unrouted` (OCR-routed files whose current run has OCR gain 0). Known-bads that move each
+`scans_ocr_unrouted` (OCR-routed files whose current run carries no text on any image page). Known-bads that move each
 one: `pipeline/litkb/extract/queue_fire.py`.

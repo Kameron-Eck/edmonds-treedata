@@ -115,7 +115,9 @@ def test_guard_decides_every_refusal_on_constructed_files(tmp_path):
     corrupt = F.corrupt_pdf(tmp_path / "corrupt.pdf")
     html = tmp_path / "page.pdf"
     html.write_bytes(b"<html><body>sign in</body></html>")
-    over = F.constructed_pdf(tmp_path / "over.pdf", P.EXTRACT_PAGE_CAP + 1, text=False)
+    over = F.constructed_pdf(tmp_path / "over.pdf", P.EXTRACT_PAGE_CAP + 1, text=False, raster=False)
+    empty = F.constructed_pdf(tmp_path / "empty.pdf", 2, text=False, raster=False)
+    mixed = F.constructed_pdf(tmp_path / "mixed.pdf", 4, scan_pages=(3,))
     sha = Q.sha256_file
 
     def g(path, work_type="article", ocr=True, digest=None):
@@ -134,6 +136,11 @@ def test_guard_decides_every_refusal_on_constructed_files(tmp_path):
     assert (f.refusal, f.route, f.pages) == (None, "ocr", 3)
     f = g(native)
     assert (f.refusal, f.route, f.image_pages) == (None, "native", [])
+    f = g(empty)                                  # D13: a blank page with no raster is NOT an image page
+    assert (f.refusal, f.route, f.image_pages) == (None, "native", [])
+    f = g(mixed)
+    assert (f.refusal, f.route, f.image_pages) == (None, "ocr", [3])
+    assert g(mixed, ocr=False).refusal == "scan-needs-ocr"
 
 
 def test_chunk_ranges_cover_the_file_in_ocr_chunk_pages():
@@ -168,10 +175,14 @@ def test_assemble_keeps_absolute_pages_and_refuses_a_bad_tiling(tmp_path):
         Q.assemble([(1, 2, F.synthetic_doc(pdf, (1, 3))), (3, 5, parts[1][2])], 5)
 
 
-def test_ocr_gain_is_text_beyond_the_native_layer():
-    chars = [160, 0, 500]                                        # pages 1-2 are image pages
-    assert Q.ocr_gain(chars, [(1, "x" * 158), (3, "y" * 900)]) == 0
-    assert Q.ocr_gain(chars, [(1, "x" * 158), (2, "an ocr word")]) > 0
+def test_the_post_condition_reads_the_image_pages_only():
+    """Anderson 1957's shape: page 1 is a cover with a native text layer (NOT an image page, D13),
+    pages 2-22 are image pages. Text on page 1 alone is not OCR having read anything."""
+    img = list(range(2, 23))
+    assert Q.ocr_read_nothing(img, [(1, "x" * 158)]) is True
+    assert Q.ocr_read_nothing(img, [(1, "x" * 158), (5, "read")]) is False
+    assert Q.ocr_read_nothing([], [(1, "")]) is False                   # no image page: not judged
+    assert Q.ocr_chars(img, [(1, "abc"), (2, "def"), (30, "zz")]) == 3
 
 
 def test_a_cuda_request_the_interpreter_cannot_serve_is_refused_by_name(monkeypatch, tmp_path):
@@ -537,6 +548,7 @@ def test_an_ocr_file_is_extracted_in_ranges_and_assembled_into_one_run(pg, root)
     assert pages == list(range(1, 51))
     m = pg.one("SELECT metrics FROM litkb.extraction_runs WHERE id = %s", (run,))[0]
     assert m["chunks"] == [[1, 22], [23, 44], [45, 50]] and len(m["jobs"]) == 3 and m["ocr"] is True
+    assert m["image_pages"] == 50 and m["ocr_chars_on_image_pages"] > 0
     assert Q.blocks_digest(Q.run_rows(pg.conn, run)) == Q.blocks_digest(F.synthetic_reference(root / "Validation" / "Chunked.pdf"))
 
 
@@ -580,6 +592,27 @@ def test_a_reclaimed_job_reuses_its_recorded_artifact(pg, root):
         k.close()
     rep = _work(root, [f], extractor=counting)
     assert rep["outcomes"] == {"done": 1} and calls == ["whole.s1"]
+
+
+@pg_only
+def test_a_scan_whose_image_pages_stay_empty_is_refused_even_with_ocr_on(pg, root):
+    """CONSTRUCTED: a mixed file (image page 3 of 4), OCR on, and the tool reads nothing on the
+    image page -> refused `scan-needs-ocr`, no run; the same file shape with the image page read
+    -> done, with `ocr` true and the image-page characters in the run's metrics."""
+    ws = F.open_ws(pg.conn)
+    silent = F.add_file(pg.conn, ws, F.add_work(pg.conn, ws), F.constructed_pdf(
+        root / "Validation" / "MixedSilent.pdf", 4, scan_pages=(3,), note=uuid.uuid4().hex), root)
+    read = F.add_file(pg.conn, ws, F.add_work(pg.conn, ws), F.constructed_pdf(
+        root / "Validation" / "MixedRead.pdf", 4, scan_pages=(3,), note=uuid.uuid4().hex), root)
+    assert _sweep(root, [silent, read])["enqueued"] == 2
+    rep = _work(root, [silent], extractor=F.SyntheticExtractor(silent_pages={3}))
+    assert rep["outcomes"] == {"refused": 1}, rep
+    assert _jobs(pg, silent)[0][:2] == ("refused", "scan-needs-ocr")
+    assert pg.one("SELECT count(*) FROM litkb.extraction_runs WHERE file_id = %s", (silent,))[0] == 0
+    assert _work(root, [read])["outcomes"] == {"done": 1}
+    m = pg.one("SELECT r.metrics FROM litkb.extraction_runs r JOIN litkb.files f "
+               "ON f.current_run_id = r.id WHERE f.id = %s", (read,))[0]
+    assert m["ocr"] is True and m["image_pages"] == 1 and m["ocr_chars_on_image_pages"] > 0
 
 
 @pg_only

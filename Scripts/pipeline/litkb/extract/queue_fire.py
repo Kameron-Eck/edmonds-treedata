@@ -54,27 +54,37 @@ def _esc(s):
     return s.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
 
-def constructed_pdf(path, pages, *, text=True, note=""):
+def constructed_pdf(path, pages, *, text=True, raster=None, note="", scan_pages=()):
     """CONSTRUCTED: a hand-written PDF of ``pages`` US-letter pages, Helvetica, one xref.
 
-    ``text=True`` puts four lines of prose on every page (well over ``probe.MIN_PAGE_TEXT_CHARS``, so
-    the file routes ``native``); ``text=False`` makes every page blank (so every page is an IMAGE
-    page by the probe's rule and the file routes ``ocr``). ``note`` goes into a trailing comment, so
-    two otherwise identical fixtures have different bytes and therefore different file rows."""
+    ``text=True`` puts four lines of prose on every page (the file routes ``native``).
+    ``text=False`` leaves the text layer empty; with ``raster`` (default: ``not text``) each page
+    also draws one 8x8 grey raster image over the whole page — an IMAGE page by decision D13 (zero
+    native characters AND a raster image), so the file routes ``ocr``; ``raster=False`` makes the
+    pages truly BLANK (neither), which D13 does NOT route to OCR. ``scan_pages`` (1-based) turns
+    those pages of a text file into image pages — a mixed document. ``note`` goes into a trailing
+    comment, so two otherwise identical fixtures have different bytes and different file rows."""
+    raster = (not text) if raster is None else raster
     objs = {1: b"<< /Type /Catalog /Pages 2 0 R >>",
-            3: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"}
+            3: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            4: (b"<< /Type /XObject /Subtype /Image /Width 8 /Height 8 /ColorSpace /DeviceGray "
+                b"/BitsPerComponent 8 /Length 64 >>\nstream\n" + bytes(range(64, 128)) + b"\nendstream")}
     kids = []
     for i in range(pages):
-        pn, cn = 4 + 2 * i, 5 + 2 * i
+        pn, cn = 5 + 2 * i, 6 + 2 * i
         kids.append(f"{pn} 0 R")
-        if text:
+        scan = (i + 1) in scan_pages or (not text and raster)
+        if text and (i + 1) not in scan_pages:
             lines = [f"Page {i + 1}. {_LINE}"] * 4
             body = "BT /F1 10 Tf 72 720 Td 14 TL " + " ".join(f"({_esc(ln)}) Tj T*" for ln in lines) + " ET"
+        elif scan:
+            body = "q 612 0 0 792 0 0 cm /Im1 Do Q"
         else:
             body = ""
         data = body.encode("latin-1")
         objs[pn] = (b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-                    b"/Resources << /Font << /F1 3 0 R >> >> /Contents " + f"{cn} 0 R".encode() + b" >>")
+                    b"/Resources << /Font << /F1 3 0 R >> /XObject << /Im1 4 0 R >> >> /Contents "
+                    + f"{cn} 0 R".encode() + b" >>")
         objs[cn] = b"<< /Length " + str(len(data)).encode() + b" >>\nstream\n" + data + b"\nendstream"
     objs[2] = f"<< /Type /Pages /Kids [{' '.join(kids)}] /Count {pages} >>".encode()
     out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
@@ -155,19 +165,27 @@ def synthetic_doc(pdf, page_range=None):
 
 class SyntheticExtractor:
     """CONSTRUCTED. Writes :func:`synthetic_doc` as the job's Docling artifact; no GROBID, no GPU.
-    ``delay`` seconds of sleep per job give the kill test a window in which to kill a worker."""
+    ``delay`` seconds of sleep per job give the kill test a window in which to kill a worker;
+    ``silent_pages`` are pages the tool reads NOTHING on (an OCR pass that found no text)."""
 
     device, python = "synthetic", None
 
-    def __init__(self, delay=0.0):
+    def __init__(self, delay=0.0, silent_pages=()):
         self.delay = float(delay)
+        self.silent_pages = set(silent_pages)
 
     def __call__(self, job):
         if self.delay:
             time.sleep(self.delay)
         out = job.out_dir / f"{job.prefix}.docling.json"
-        Q.write_atomic(out, json.dumps(synthetic_doc(job.pdf, job.page_range),
-                                       sort_keys=True).encode("utf-8"))
+        doc = synthetic_doc(job.pdf, job.page_range)
+        if self.silent_pages:
+            keep = [t for t in doc["texts"] if t["prov"][0]["page_no"] not in self.silent_pages]
+            for i, t in enumerate(keep):
+                t["self_ref"] = f"#/texts/{i}"
+            doc["texts"] = keep
+            doc["body"]["children"] = [{"$ref": t["self_ref"]} for t in keep]
+        Q.write_atomic(out, json.dumps(doc, sort_keys=True).encode("utf-8"))
         return {"tei": None, "docling": str(out)}, {"device": "synthetic", "interpreter": None,
                                                     "ocr": job.route == "ocr", "ocr_engine": None}
 
@@ -326,7 +344,8 @@ def sql_guard_off(conn, signature, marker):
 # ── the fire functions ──────────────────────────────────────────────────────────────────
 
 def fire_cap(conn, workdir):
-    """(c3) CONSTRUCTED: ``EXTRACT_PAGE_CAP + 1`` blank pages. Guarded -> refused `over-page-cap`,
+    """(c3) CONSTRUCTED: ``EXTRACT_PAGE_CAP + 1`` blank pages (no text, no raster: under decision D13
+    a native file, so the mutated arm is ONE whole-file job). Guarded -> refused `over-page-cap`,
     never claimed; the cap guard off -> it is extracted -> ``over_cap_bound`` 1."""
     refuse_live(conn)
     root = Path(workdir)
@@ -334,7 +353,7 @@ def fire_cap(conn, workdir):
     out = {"baseline": {"over_cap_bound": Q.over_cap_bound(conn)}}
     for arm in ("guarded", "mutated"):
         pdf = constructed_pdf(root / "Validation" / f"Cap_{arm}.pdf", P.EXTRACT_PAGE_CAP + 1,
-                              text=False, note=f"fire_cap {arm}")
+                              text=False, raster=False, note=f"fire_cap {arm}")
         fid = add_file(conn, ws, add_work(conn, ws), pdf, root)
         guard = python_guard_off("over-page-cap") if arm == "mutated" else contextlib.nullcontext()
         with guard:
@@ -359,7 +378,7 @@ def fire_book(conn, workdir):
                 stack.enter_context(python_guard_off("book"))
                 stack.enter_context(sql_guard_off(
                     conn, "litkb.enqueue_extraction(uuid, text, text, text, text, text, integer, "
-                          "integer, text, integer, integer[], text, text)",
+                          "integer, text, integer, integer[], integer[], text, text)",
                     "guard: enqueue_extraction refuses a book's file"))
                 stack.enter_context(sql_guard_off(
                     conn, "litkb.claim_jobs(text, integer, integer, uuid[])",
@@ -428,7 +447,7 @@ def fire_lease(conn, workdir, lease=1):
             with guard:
                 try:
                     Q._ingest(k, t1, fid, str(pdf), tei, doc, [part], [entry], t1.route,
-                              t1.page_chars, t1.pages)
+                              t1.image_pages, t1.pages)
                 except Q.LeaseLost as e:
                     raised = str(e)
             blocks_after_t1 = blocks_of(conn, fid)
@@ -539,7 +558,7 @@ def synthetic_reference(pdf):
     """The UNINTERRUPTED reference for the synthetic path: the same documents, reconciled once."""
     from litkb.extract import ingest as ING
 
-    route = "ocr" if P.image_pages(P.page_text_chars(pdf)) else "native"
+    route = "ocr" if P.image_page_numbers(pdf) else "native"
     pages = P.probe_pages(pdf)
     if route == "native":
         doc = synthetic_doc(pdf)

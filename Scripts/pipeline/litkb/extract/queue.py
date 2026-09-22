@@ -19,19 +19,23 @@ refused): ``book`` (litkb-book-policy, also decided in SQL), ``bad-file`` (missi
 ``over-page-cap`` (more than ``probe.EXTRACT_PAGE_CAP`` pages, Kam ruling litkb-extract-page-cap) and
 ``scan-needs-ocr`` (an image page with OCR switched off).
 
-SCAN ROUTING is per page (``probe.page_text_chars``): any page under ``probe.MIN_PAGE_TEXT_CHARS``
-makes the file OCR-routed, never the stored page-1 ``has_text_layer`` flag (code survey C8, data
-survey D2). An OCR-routed file is split into page-range jobs of at most :data:`OCR_CHUNK_PAGES`;
+SCAN ROUTING is per page: ANY image page makes the file OCR-routed — an image page being S4 run 3
+decision D13's, ZERO native characters AND at least one raster image (``probe.image_pages``; its
+docstring holds the measured basis) — never the stored page-1 ``has_text_layer`` flag (code survey
+C8, data survey D2). An OCR-routed file is split into page-range jobs of at most :data:`OCR_CHUNK_PAGES`;
 each range stores its own artifact, and the LAST range to finish assembles all of them into ONE run
 in ONE transaction (design §12.5). Measured 2026-09-22 on a copy of Anderson 1957 (OCR, CUDA,
 ``pages=[3,5]``): Docling emits ABSOLUTE page numbers for a range — ``pages`` keys 3, 4, 5 and every
 ``prov.page_no`` in 3..5 — so the offset back to the file's own numbering is zero, and
 :func:`assemble` REFUSES a range whose pages fall outside it rather than assuming that holds.
 
-THE SCAN POST-CONDITION (:func:`ocr_gain`): an OCR-routed file whose image pages carry no text
-beyond their native layer is refused ``scan-needs-ocr``, never finished ok. Measured on Anderson
-1957's recorded Docling artifacts (reconciled here, CPU): OCR off, the 22 image pages carry 158
-characters against a native layer of 160 -> gain 0; OCR on, 44,627 -> gain 44,467.
+THE SCAN POST-CONDITION (:func:`ocr_read_nothing`): an OCR-routed file whose image pages ALL come
+back with no text is refused ``scan-needs-ocr``, never finished ok. Measured on Anderson 1957's
+recorded Docling artifacts (reconciled here, CPU): OCR off, its image pages (2-22 — page 1 is the
+JSTOR cover, 160 native characters, a text page) carry 0 characters; OCR on, 40,923. Its stated
+limit: a native paper whose only image pages are pictures with no text at all would be refused if
+OCR finds nothing on them; on the S4 bed no file has such a page (the four OCR-routed files are the
+four scans — builder-A report).
 """
 from __future__ import annotations
 
@@ -223,10 +227,7 @@ class Facts:
     pages: int | None = None
     page_chars: list | None = None
     route: str | None = None
-
-    @property
-    def image_pages(self):
-        return P.image_pages(self.page_chars) if self.page_chars else []
+    image_pages: list | None = None
 
 
 def guard_file(path, sha256, work_type, *, ocr):
@@ -249,14 +250,15 @@ def guard_file(path, sha256, work_type, *, ocr):
     # END guard: the bytes on disk are the bound file
     try:
         pages, chars, probe_error = P.probe_pages(path), P.page_text_chars(path), None
+        images = P.image_pages(chars, P.page_raster_images(path))
     except P.ProbeError as e:
-        pages, chars, probe_error = None, None, str(e)
+        pages, chars, images, probe_error = None, None, None, str(e)
     # BEGIN guard: a page count that cannot be read is probe-error
     if probe_error is not None:
         return Facts("probe-error", f"the page probe failed: {probe_error}")
     # END guard: a page count that cannot be read is probe-error
-    route = "ocr" if chars and P.image_pages(chars) else "native"
-    facts = Facts(None, None, pages, chars, route)
+    route = "ocr" if images else "native"
+    facts = Facts(None, None, pages, chars, route, images or [])
     # BEGIN guard: a file over the extraction page cap is never started
     if pages is not None and pages > P.EXTRACT_PAGE_CAP:
         facts.refusal = "over-page-cap"
@@ -266,8 +268,8 @@ def guard_file(path, sha256, work_type, *, ocr):
     # BEGIN guard: an OCR-routed file with OCR off is refused, never started
     if route == "ocr" and not ocr:
         facts.refusal = "scan-needs-ocr"
-        facts.error = (f"{len(facts.image_pages)} of {pages} pages carry under "
-                       f"{P.MIN_PAGE_TEXT_CHARS} native characters and OCR is off")
+        facts.error = (f"{len(facts.image_pages)} of {pages} pages are image pages (no native "
+                       f"text, a raster image) and OCR is off")
         return facts
     # END guard: an OCR-routed file with OCR off is refused, never started
     return facts
@@ -278,31 +280,28 @@ def chunk_ranges(pages, size=OCR_CHUNK_PAGES):
     return [(lo, min(lo + size - 1, pages)) for lo in range(1, pages + 1, size)]
 
 
-def ocr_gain(page_chars, rows):
-    """Characters the extraction put on the file's IMAGE pages beyond their native layer.
-
-    ``rows`` are ``(page_no, text)``. Per image page: normalised characters of its blocks minus the
-    page's native characters (``probe.page_text_chars``), floored at 0; summed. Zero means OCR
-    added nothing — the scan post-condition refuses that, and ``scans_ocr_unrouted`` counts it."""
+def ocr_chars(image_pages, rows):
+    """Normalised characters the extraction put on the IMAGE pages. ``rows`` are ``(page_no, text)``.
+    An image page has no native text (decision D13), so every character here is OCR's."""
     from litkb.admit.resolver import _norm_text
 
-    img = set(P.image_pages(page_chars or []))
-    got = {}
-    for page, text in rows:
-        if page in img:
-            got[page] = got.get(page, 0) + len(_norm_text(text or ""))
-    return sum(max(0, got.get(p, 0) - page_chars[p - 1]) for p in img)
+    img = set(image_pages or [])
+    return sum(len(_norm_text(t or "")) for p, t in rows if p in img)
 
 
-def scan_postcondition(route, page_chars, canonical):
-    """-> (refusal, detail) or (None, None). See :func:`ocr_gain`."""
+def ocr_read_nothing(image_pages, rows):
+    """True when the file HAS image pages and the extraction put no text on any of them. The scan
+    post-condition refuses that; ``scans_ocr_unrouted`` counts it."""
+    return bool(image_pages) and ocr_chars(image_pages, rows) == 0
+
+
+def scan_postcondition(route, image_pages, canonical):
+    """-> (refusal, detail) or (None, None). See :func:`ocr_read_nothing`."""
     if route != "ocr":
         return None, None
-    gain = ocr_gain(page_chars, [(c.page, c.text) for c in canonical])
-    if gain == 0:
+    if ocr_read_nothing(image_pages, [(c.page, c.text) for c in canonical]):
         return ("scan-needs-ocr",
-                f"OCR-routed, and its {len(P.image_pages(page_chars))} image pages carry no text "
-                f"beyond their native layer")
+                f"OCR-routed, and its {len(image_pages)} image pages came back with no text")
     return None, None
 
 
@@ -349,14 +348,15 @@ def _jobs_at_key(conn, file_id, key):
 
 
 _ENQUEUE = ("SELECT job_id, inserted FROM litkb.enqueue_extraction(%s, %s, %s, %s, %s, %s, %s, %s, "
-            "%s, %s, %s, %s, %s)")
+            "%s, %s, %s, %s, %s, %s)")
 
 
 def enqueue(conn, file_id, lo, hi, facts, refusal=None, error=None):
     k = run_key(file_id)
     return conn.execute(_ENQUEUE, (file_id, k["stage"], k["tool"], k["tool_version"],
                                    k["params_hash"], k["pipeline_version"], lo, hi, facts.route,
-                                   facts.pages, facts.page_chars, refusal, error)).fetchone()
+                                   facts.pages, facts.page_chars, facts.image_pages, refusal,
+                                   error)).fetchone()
 
 
 def sweep(conn, root=None, *, workstreams=(), ocr=None, files=None):
@@ -407,6 +407,7 @@ class Claim:
     route: str | None
     pages: int | None
     page_chars: list | None
+    image_pages: list | None
     lease_expires_at: object
 
     @property
@@ -754,13 +755,13 @@ def _run_metrics(parts, prep_seconds, pages, jobs):
             "queue": "litkb.extract.queue"}
 
 
-def _ingest(conn, c, file_id, pdf, tei, doc, parts, jobs, route, page_chars, pages):
+def _ingest(conn, c, file_id, pdf, tei, doc, parts, jobs, route, image_pages, pages):
     """Reconcile, check the scan post-condition, ingest + finish_job in ONE transaction."""
     t0 = time.monotonic()
     prep = ING.prepare(pdf, tei, doc)
     prep_s = time.monotonic() - t0
     # BEGIN guard: an OCR-routed file whose image pages come back empty is never finished ok
-    why, detail = scan_postcondition(route, page_chars, prep["canonical"])
+    why, detail = scan_postcondition(route, image_pages, prep["canonical"])
     if why:
         _sql(conn, "SELECT litkb.refuse_job(%s, %s, %s, %s)", (c.job_id, c.token, why, detail))
         _trace("refuse", job=c.job_id, refusal=why, at_claim=False)
@@ -770,6 +771,8 @@ def _ingest(conn, c, file_id, pdf, tei, doc, parts, jobs, route, page_chars, pag
 
     stats = dict(prep["stats"])
     stats.update(_run_metrics(parts, prep_s, pages, jobs))
+    stats.update(image_pages=len(image_pages or []),
+                 ocr_chars_on_image_pages=ocr_chars(image_pages, [(x.page, x.text) for x in prep["canonical"]]))
     res = ING.ingest_file(conn, file_id, prep["canonical"], prep["disagreements"], stats,
                           pages=prep["pages"], artifact_path=parts[-1].get("artifact_path"),
                           host="local", pipeline_version=R.PIPELINE_VERSION,
@@ -854,7 +857,7 @@ def run_job(conn, c, *, root, extractor, derived, ocr):
         tei, doc = load_artifacts(man)
         part = dict(man.get("metrics") or {}, artifact_path=man["artifact_path"])
         return _ingest(conn, c, c.file_id, str(pdf), tei, doc, [part], [job_entry],
-                       c.route, c.page_chars, c.pages)
+                       c.route, c.image_pages, c.pages)
     last = _sql(conn, "SELECT litkb.stage_chunk(%s, %s)", (c.job_id, c.token)).fetchone()[0]
     if not last:
         _trace("stage", job=c.job_id, label=c.label)
@@ -867,7 +870,7 @@ def run_job(conn, c, *, root, extractor, derived, ocr):
              "extract_seconds": (m.get("metrics") or {}).get("extract_seconds"),
              "peak_vram_mib": (m.get("metrics") or {}).get("peak_vram_mib")}
             for j, lo, hi, a, m in ranges]
-    return _ingest(conn, c, c.file_id, str(pdf), None, doc, parts, jobs, c.route, c.page_chars, c.pages)
+    return _ingest(conn, c, c.file_id, str(pdf), None, doc, parts, jobs, c.route, c.image_pages, c.pages)
 
 
 def work(connect_fn, root=None, *, worker=None, max_jobs=None, lease=LEASE_SECONDS, ocr=None,
@@ -980,17 +983,17 @@ def over_cap_bound(conn):
 
 
 def scans_ocr_unrouted(conn):
-    """OCR-routed FILES (a stage-5 job with route `ocr`) whose CURRENT run has zero OCR gain on its
-    image pages (:func:`ocr_gain`, from the job's recorded ``page_chars``)."""
+    """OCR-routed FILES (a stage-5 job with route `ocr`) whose CURRENT run carries no text on any of
+    its image pages (:func:`ocr_read_nothing`, from the job's recorded ``image_pages``)."""
     n = 0
     files = conn.execute(
-        "SELECT DISTINCT ON (j.file_id) j.file_id, j.page_chars, f.current_run_id "
+        "SELECT DISTINCT ON (j.file_id) j.file_id, j.image_pages, f.current_run_id "
         "FROM litkb.extraction_jobs j JOIN litkb.files f ON f.id = j.file_id "
-        "WHERE j.route = 'ocr' AND j.page_chars IS NOT NULL AND f.current_run_id IS NOT NULL "
+        "WHERE j.route = 'ocr' AND j.image_pages IS NOT NULL AND f.current_run_id IS NOT NULL "
         "ORDER BY j.file_id, j.enqueued_at").fetchall()
     for _fid, chars, run in files:
         rows = conn.execute("SELECT page_no, text FROM litkb.blocks WHERE run_id = %s", (run,)).fetchall()
-        if ocr_gain(list(chars), rows) == 0:
+        if ocr_read_nothing(list(chars), rows):
             n += 1
     return n
 

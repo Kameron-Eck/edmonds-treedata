@@ -80,7 +80,8 @@ Update this block only. Everything else in the file changes when a session lands
   (`SELECT state, count(*) FROM litkb.workstreams GROUP BY 1` as `litkb_reader`) because nothing
   ever closes one. Entry condition: the preflight command in "Per-session protocol", every counter
   0. (2) **S4.5**, launched by S4 the way S4 was launched (a new window, bash + prompt file; S4 writes
-  _derived/s4-5/s4-5-prompt.txt from the "### S4.5" block) — it now carries the Sci-Hub workaround's
+  _derived/s4-5/s4-5-prompt.txt from the "### S4.5" block; workstream slug `ladder-1`, the way S4's is
+  `readability-2`, so the launch is verified by EFFECTS on that slug's workstreams row) — it now carries the Sci-Hub workaround's
   first rung (item 5b: freeze gate, bban, the three route fixes), pulled forward from S4.6 on the
   2026-09-22 diagnosis because the fix is the ledger vocabulary S4.5 owns. (3) **S4.6**, (4) **S4.7**, each launched
   by the one before it; (5) **S5** once its entry condition is met. Then S6, S7.
@@ -123,7 +124,9 @@ Update this block only. Everything else in the file changes when a session lands
   a ScienceDirect 200, no Springer, no institutional profile), the coverage gate under definition (b).
   S4.7 — the T4 queue approved. S5 — entry conditions from the round-4 defects, the topic, the
   pre-run tracker edits. S6/S7 — as rewritten by round 4.
-- **Kam-side, still open:** nothing in `decisions.yaml`; the nightly-dump task re-registration
+- **Kam-side, still open:** `litkb-colab-page-boundary` — whether whole scan PAGES may leave the
+  laptop for S4.7's vision-language OCR rung, or only strips/tiles the way the formula worker crops
+  (the recommendation), or no Colab OCR at all; only that one rung waits on it; the nightly-dump task re-registration
   (below) is an action, not a ruling; the Elsevier key is in place but ScienceDirect refuses it as
   configured, re-keyed once with the same answer — Elsevier API support is the other open action (Stage H).
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided; S7 soak = seven nights started in S1. Kam
@@ -373,8 +376,11 @@ Work
   stays `unverified` (`litkb-second-formula-decoder`).
 - **A database-visible quarantine state** (survey E, adapted; the classifier is its natural home).
   Measured 2026-09-21: `_quarantine/` is a directory; `Store.to_quarantine`
-  (`pipeline/litkb/acquire/store.py`) writes status and sha into the FILENAME, which no code reads
-  back, and a `.reason.json` sidecar, which is the only machine-readable copy;
+  (`pipeline/litkb/acquire/store.py`) writes status and sha into the FILENAME and NOTHING else — no
+  code reads that name back, and the `.reason.json` sidecar is written by `quarantine_new`, the
+  challenge path, alone, so the four acquisition callers in `pipeline/litkb/acquire/run.py` and
+  `pipeline/litkb/hunt.py` leave no
+  machine-readable copy at all (S4.5 item 8 makes every quarantine write one);
   `file_versions.status` already allows `quarantined` (migration 0001) and has never held it;
   `file_versions.state` has no such value; a refused file is invisible to `litkb_work`. S4 gives
   every file the classifier refuses (`bad-file`, `zero-content`) and every download the
@@ -421,11 +427,18 @@ Done-state
 - (b) `py -3.12 qc/instruments/litkb_acceptance.py readability --manifest <manifest>` (all
   workstreams in the manifest, not main only) → `unclassified_acquired_files=0 stale_leases=0
   duplicate_blocks=0 resumed_content_hash_mismatches=0 books_extracted=0
-  quarantined_without_db_state=0`.
+  quarantined_without_db_state=0 over_cap_bound=0 scans_ocr_unrouted=0 mutated_leases_accepted=0` —
+  the last three are the counters the cap, scan and lease known-bads move, so a cold session can
+  re-fire them. REPORTED: `files_without_reference_stage` and `reference_anchor_rate` (the anchor rate
+  against its real denominator, which the drain above names; nothing else catches their omission).
 - (c) kill mid-batch, rerun → block **content hashes** equal, 0 duplicates; a lease token mutated
-  so an expired worker commits after reassignment → the ownership gate goes RED; a cap+1 PDF
-  whose page-count probe FAILS → extraction refused (fail-closed), not started; a scan with OCR
-  off → `scan-needs-ocr`, never "extracted, 0 chars"; a `type=book` record pushed through the
+  so an expired worker commits after reassignment → the ownership gate goes RED and
+  `mutated_leases_accepted=1` if the commit lands; a PDF whose page count EXCEEDS the cap → refused
+  with the `over-page-cap` reason, never started, `over_cap_bound=1` if it is extracted; a PDF whose
+  page-count probe ERRORS → `unclassified` and never bound (fail-closed), a different path from the
+  row above; a scan with OCR
+  off → `scan-needs-ocr`, never "extracted, 0 chars", `scans_ocr_unrouted=1` if it lands as extracted
+  with zero characters; a `type=book` record pushed through the
   queue → the `book` class and `books_extracted=1` the moment a block lands; a file placed in
   `_quarantine/` with no database row → `quarantined_without_db_state=1`.
 
@@ -456,8 +469,10 @@ only if it is free, and reported as measured-zero. S4.6 builds the tiers that wa
 `litkb-institutional-access`, `litkb-shadow-hosts` and `litkb-tdm-keys`. Every rung is a RELAYED
 design (CLAUDE.md §3.4c) and is UNVALIDATED until an independent referee scores it on the rows named
 here and the report is tracked under Reports/; a kill criterion counts once it has FIRED. Referees:
-one per RUNG CLASS, sequentially, inside the protocol's three-agent cap — the classes are the
-substrate, the vocabulary, Stage A, Stage B, Stage C and Stage E. Spelled S4.5 because the plan gate
+one per RUNG CLASS, sequentially — the classes are the ones `unvalidated_items` enumerates in (b),
+which is their one home; the protocol's three-agent cap is a cap on CONCURRENT referee agents, and
+one referee may take several classes in turn. Workstream slug: `ladder-1` (the entry condition is the
+preflight command in "Per-session protocol", then `litkb_ws_open` on that slug). Spelled S4.5 because the plan gate
 recognises a session heading by `### S<digits>`. Rung and guard ids are the survey report's.
 
 Work
@@ -509,7 +524,10 @@ Work
    for identity, with E06 as an ADMISSION negative (a page with no confirmed identifier, title-near an
    existing work, must still refuse `duplicate-review` — it exercises the duplicate check, not an
    acquisition rung); 187's record for the key rule and its filed PDF for the landing; 194's proposal
-   for the verb. The back-off's known-bad, the relation probe's, the key rule's and the verb's are in
+   for the verb. The OPERATOR-BIND GATE is built here beside that verb, under
+   `litkb-from-file-version-state`: a `--from-file` bind lands as a `proposed` version, adjudicated
+   like any other proposal, and NEVER as the version of record — counter `operator_binds_unproposed=0`
+   in (b), with its known-bad in (c). The back-off's known-bad, the relation probe's, the key rule's and the verb's are in
    (c) below; the other substrate counters are REPORTED, not gated, until a known-bad is written for
    each — the block says so rather than claiming gates it has not fired.
 2. **The ledger vocabulary the ladder needs** (survey §3.4; migration numbers reserved first; every
@@ -524,8 +542,13 @@ Work
    sub-typed `not_in_corpus` (the freeze gate, or a shadow front's miss page — bban's 404 + text/html, a
    mirror's "not available" page) · `no_pdf_link`. Two route rules the 2026-09-22 Sci-Hub diagnosis
    measured as MISSING and this item supplies: a challenge page is a challenge at ANY status
-   (`Client.is_challenge` in `pipeline/litkb/netutil.py` fires only at 403/503, so .ren/.wf Cloudflare
-   pages at HTTP 200 were booked `no-pdf-link`), and `blocked` is DEAD for a route within a run
+   (`Client.is_challenge` in `pipeline/litkb/netutil.py` fires only at 403/503, so `.wf`'s Cloudflare
+   page at HTTP 200 — "Checking your browser" — is a challenge the client does not recognise, and it
+   was recorded under the `no-pdf-link` tried token in `pipeline/litkb/acquire/scihub.py`, which is a
+   token appended to `tried` and NOT a status; `.ren`'s "Verification" page is that mirror's MISS page
+   rather than a challenge — D2 measured four DOIs, the one in-corpus DOI reaching the article page
+   and the three out-of-corpus DOIs reaching Verification, a correlation this session confirms on one
+   more in-corpus DOI before booking it `not_in_corpus`), and `blocked` is DEAD for a route within a run
    (`DEAD_STATUSES` in `pipeline/litkb/acquire/run.py` omits it, so every blocked DOI was retried until
    sci-hub.ru's rate gate). Also
    `terminal_url`, `terminal_status_code`, `terminal_dt` on every attempt; `word_count` on every landed
@@ -612,13 +635,22 @@ Work
    every route, miss = 404 + `text/html` booked `not_in_corpus`, never `blocked`, never retried in the
    run; (iii) the three route fixes of item 2 applied to `pipeline/litkb/acquire/scihub.py` — challenge
    at any status, `blocked` dead within a run, a mirror's miss page ("not available through Sci-Hub";
-   .ren's Verification page on an out-of-corpus DOI) booked `not_in_corpus` — the mirrors themselves
+   `.ren`'s "Verification" page, which is that mirror's MISS page and not a challenge — item 2 carries
+   the four-DOI correlation and the one extra in-corpus DOI that confirms it) booked `not_in_corpus`,
+   while `.wf`'s "Checking your browser" page at HTTP 200 is a challenge — the mirrors themselves
    LAST in the ladder and otherwise untouched (no solver: the route's docstring forbids one and the
-   ALTCHA page is a rate signal). Fixtures are the pages recorded under the jobs folder on
-   2026-09-22, real, not constructed. POSITIVE, REAL: the 73 `served` rows of the probe CSV, each
+   ALTCHA page is a rate signal). Fixtures: the jobs folder holds each probe's METADATA and the first
+   ~300 characters of each body, not the bodies, so it cannot be replayed through the client; this
+   rung's FIRST network step records the full pages itself — one GET per mirror per test DOI, inside
+   the grant — and stores those bodies as test fixtures in the repo beside every other litkb fixture
+   (`qc/fixtures/`, the home `qc/instruments/litkb_edge_run.py` and `qc/test_litkb_edges.py` read
+   `qc/fixtures/litkb_hunt_edge_cases.json` from), under qc/fixtures/litkb_scihub_pages/. Those
+   recordings are the rung's fixtures, real and not constructed; the jobs JSON is the expected
+   metadata they are checked against. POSITIVE, REAL: the 73 `served` rows of the probe CSV, each
    landing as a file (the acceptance-test refusals among them named, never silent). NEGATIVE, REAL:
-   its 31 `not-in-corpus` rows, each ending `not_in_corpus` with ONE attempt row; the 7 rows whose
-   `tried` differs from `doi`, which must land on the retry and not on `not_in_corpus`;
+   its 31 `not-in-corpus` rows, each ending `not_in_corpus` with ONE attempt row; the 7 `served` rows
+   whose `tried` differs from `doi` (23 `not-in-corpus` rows also carry the retry; they are misses
+   either way), which must land on the retry and not on `not_in_corpus`;
    `10.1016/j.rse.2024.114101` (post-freeze, in the base) refused before any request. LibGen.li, the
    mirror rebuild and the dead fronts stay S4.6 Stage G's.
 6. **Stage E, recovery**: the Wayback availability API and CDX with the `id_` raw-bytes modifier (E1 —
@@ -644,6 +676,11 @@ Work
    kilobyte where the bytes were kept (the store kept them for only a few of these rows; the rest have
    `detail` alone) and its length; type each into item 2's vocabulary; the count of causes that are free
    to fix is this session's first tracked number, written by the probe instrument into phase4/qc/.
+   The reason so many of those rows carry `detail` alone: `Store.to_quarantine`
+   (`pipeline/litkb/acquire/store.py`) writes only the FILENAME — the `.reason.json` sidecar is written
+   by `quarantine_new`, the challenge path, and by nothing the four acquisition callers reach. This item
+   makes EVERY quarantine write that sidecar beside the bytes, next to the database row S4 gives it:
+   counter `quarantines_without_reason=0` in (b).
 
 Test set (the rows are named by the probe instrument's CSVs under phase4/qc/ — see the commands —
 never by a number here). POSITIVE, MEASURED: the `no-oa-copy` rows whose probe verdict is `FREE-PDF`
@@ -668,7 +705,10 @@ whose bibliography carries the requested DOI; all four under qc/testdata/litkb_a
 written), each labelled constructed in its name.
 
 Done-state
-- (a) the migrations; the ledger columns and values; the Stage A/B/C/E rungs with their rule fixtures;
+- (a) the `hardening` subcommand of `qc/instruments/litkb_acceptance.py` itself, built FIRST from the
+  `edges` subcommand's shape (the "The acceptance instrument" section assigns `hardening` to this
+  session; nothing else can print (b) until it exists); the migrations; the ledger columns and values;
+  the Stage A/B/C/E rungs with their rule fixtures;
   the bad-file re-typing CSV under phase4/qc/; a report under Reports/ (LITKB_LADDER1_<date>); one
   referee report per rung class under Reports/; tests + ledger rows; `docs/SCHEMAS.md` rows for every
   column, value and sub-status; the manifest frozen by `hardening --freeze` before the run, as `edges`
@@ -679,8 +719,12 @@ Done-state
   `key_derivation_crashes=0` (admissions ending `crashed/admit:CheckViolation`) ·
   `known_bad_relands=0` (landings whose sha matches a rejected row) · `proposals_unadjudicated=0`
   (`proposed` admissions older than the run with neither verb applied) · `bad_file_untyped=0`
-  (`bad-file` attempts with NULL `sub_status`) · `blocked_untyped=0` · `preprints_sent_to_shadow=0`
-  (attempts on a shadow route for a work whose Crossref type is `posted-content`) ·
+  (`bad-file` attempts with NULL `sub_status`) · `blocked_untyped=0` · `quarantines_without_reason=0`
+  (a quarantined file with no `.reason.json` sidecar) · `operator_binds_unproposed=0` (a `--from-file`
+  bind that became the version of record instead of a `proposed` version) · `preprints_sent_to_shadow=0`
+  (attempts on a shadow route for a work whose `main_works.type` is `preprint` OR whose `cr_type` in
+  `phase4/qc/litkb_acq_probe_crosswalk.csv` is `posted-content` — litkb's own type vocabulary holds no
+  `posted-content` value, so the crosswalk CSV is the other half of the measurement) ·
   `post_freeze_sent=0` (a shadow-front request for a work with year after 2021) ·
   `shadow_miss_booked_blocked=0` (a bban or mirror miss page recorded as `blocked`) ·
   `bban_probe_hits_not_landed=0` (a `served` row of the probe CSV with no file after the run, the
@@ -688,7 +732,9 @@ Done-state
   page replayed through the client without a `challenge_or_bot_check` row) ·
   `landing_pages_booked_bad_file=0` (`html_response` attempts whose page carried `citation_pdf_url`
   and no Stage C attempt followed) · `stubs_bound=0` · `volumes_bound_as_article=0` (a bound file with
-  `pages >= 60` against a Crossref page range under 60) · `free_ceiling_measured_unconverted=0` (the
+  `pages >= 60` against a Crossref page range under 60, the range parsed from an `a-b` digit form
+  ONLY; a row whose `pages` does not parse is neither a hit nor a pass and is REPORTED
+  `page_ranges_unparsed`) · `free_ceiling_measured_unconverted=0` (the
   `FREE-PDF` and Wayback rows still without a file) · `budget_exceeded_silently=0` (a work whose ladder
   ran past the budget with no `budget` attempt row) · `stage_b_rungs_unmeasured=0` (Stage B rungs
   with no yield line in the report) · `crosswalk_rows_without_identifier=0` (works the probe CSV gives
@@ -699,7 +745,11 @@ Done-state
   replay, the bad-file read — whose referee report the manifest does not name or whose report has no
   `fired: <counter>=<value> on <input>` line) · `replay_rows_graded_against_stubs=0` (register rows
   graded by a synthetic acquirer return) · `replay_network_calls=0` · `cassettes_stale=0` ·
-  `promotions_committed>=1` (the first end-to-end promotion on a constructed chain). REPORTED, unbounded: `transient_rows_unretried`, `relation_edges_missing`,
+  `promotions_prepared>=1` (the first end-to-end promotion prepared on a CONSTRUCTED chain, in those
+  words). REPORTED, unbounded: `promotions_committed` — the commit cannot be reached inside this
+  session, because `promote.commit` (`pipeline/litkb/promote.py`) calls `verify_merge` and there is no
+  merge commit until Kam has merged the branch, so the committed number is verified in the session
+  AFTER that merge; `page_ranges_unparsed`; `transient_rows_unretried`, `relation_edges_missing`,
   `identifier_first_refusals`, `books_without_isbn`, `attempts_without_sha`, `unowned_landings`,
   `attempts_without_terminal`, `files_without_word_count`, `hits_without_version`,
   `bronze_landing_unconverted`, `manual_step_rows`.
@@ -720,8 +770,12 @@ Done-state
   dropped from the manifest → `unvalidated_items=1`; a cassette's 403 edited to 200 (CONSTRUCTED) →
   the replay disagrees with the register → RED; a socket opened during a replay → refused,
   `replay_network_calls=1` if it connects; the synthetic acquirer return reinstated →
-  `replay_rows_graded_against_stubs>0`; the proposing session approving its own constructed chain →
-  refused, and the chain committed by a second session → `promotions_committed=1`.
+  `replay_rows_graded_against_stubs>0`; the sidecar write removed and a bad download quarantined →
+  `quarantines_without_reason=1`; a `--from-file` bind made the version of record with the proposal
+  path disabled, i.e. landing without a second session's approval → `operator_binds_unproposed=1`;
+  the proposing session approving its own CONSTRUCTED chain → refused, and the chain PREPARED by that
+  session → `promotions_prepared=1` (the commit is Kam's merge; the session after it reports
+  `promotions_committed`).
 
 #### Test-set commands (run from Scripts/, read-only)
 `py -3.12 qc/instruments/litkb_acq_probe_bban.py` — the bban yield over the pre-2022 no-file
@@ -858,7 +912,8 @@ Work
    retry, cannot return a PDF (its solution is HTML), and stays a landing-page solve only. No commercial
    anti-bot proxy.
 5. **The coverage account** the finish line reads: an instrument under `qc/instruments/` that joins the
-   tracker to main by identifier, applies the record-class filter, and prints per grade (`pdf` ·
+   tracker (`Reports/literature_tracker.csv`) to main by identifier, applies the record-class filter,
+   and prints per grade (`pdf` ·
    `jats` · `html-doc` · `cached_text` · `snippet` · metadata-only · none) the share of eligible
    tracker rows in each, plus the paywalled residue by publisher and year, into a CSV under phase4/qc/ — with the residue
    split three ways by the offline membership table: out-of-corpus (no shadow library ever held it),
@@ -866,7 +921,13 @@ Work
    without that split the residue column silently absorbs works no shadow rung could have reached.
    Which grades count toward the target is `litkb-coverage-definition` (decided 2026-09-22: PDF, JATS
    and full-text HTML count; cached text and snippets are reported, never counted), so the session's
-   (b) carries the bound on the full-text grades.
+   (b) carries the bound on the full-text grades. THE DENOMINATOR, written down before anything is
+   built: eligible = every row of `Reports/literature_tracker.csv` not retired by
+   `litkb-e23-residue-copies` or `litkb-crc-book`. A row with NO DOI stays IN — the tracker's URL-only
+   rows and its agency reports are exactly Stage D's targets, and dropping them would score the
+   session on the works it can already reach. The class filter A0 is S4.5's; until it exists the
+   instrument classes rows by the tracker's OWN columns and says so in the report. The counts are a
+   command (the tracker line under "Test-set commands"), never a number written here.
 
 Test set, POSITIVE: the archive-miss rows by Crossref type (the probe instrument's baselines output
 under phase4/qc/ lists them: the preprints must never reach this tier — S4.5's router owns them; the
@@ -892,15 +953,22 @@ Done-state
   `grey_hits_below_title_gate=0` · `chapters_routed_to_scidb=0` · `challenge_booked_as_miss=0` (a
   `not-in-archive` attempt whose terminal page title is DDoS-Guard) · `post_freeze_sent=0` ·
   `shadow_miss_booked_blocked=0` (a bban or mirror miss page recorded as `blocked`) · `shadow_requests_outside_policy=0`
-  · `new_hosts_without_ruling=0` · `credentials_stored=0` (any credential string in litkb's config or
-  database) · `tdm_stubs_bound=0` · `coverage_rows_unclassified=0` (tracker rows the instrument could
+  · `new_hosts_without_ruling=0` · `tdm_stubs_bound=0` · `coverage_rows_unclassified=0` (tracker rows the instrument could
   neither join nor mark) · `archive_misses_untyped=0` (archive-miss rows still carrying the bare word
   after the five-way re-read) · `shadow_misses_from_concurrent_probes=0` · `unvalidated_items=0` (the five rung classes). GATED by the rulings: `coverage_fulltext>=0.95` over the eligible tracker rows
-  (`litkb-coverage-target` under `litkb-coverage-definition`: pdf + jats + html-doc), reported
-  UNDETERMINED rather than failed only if the session's report names the residue rows and the ruling
-  that leaves them (metadata-grade or the human queue). REPORTED: `eligible_rows`, `coverage_pdf`,
+  (`litkb-coverage-target` under `litkb-coverage-definition`: pdf + jats + html-doc) — `ladder` EXITS
+  NON-ZERO below 0.95 unless `--residue-ruled <csv>` names every residue row with the ruling id that
+  leaves it (metadata-grade or the human queue), in which case it prints UNDETERMINED and exits 0. No
+  prose is read: a report that names residue rows in sentences does not move this gate.
+  The population query behind `coverage_fulltext` and the bban re-run are EXECUTED BY THE REFEREE
+  agent, not by the builder, and (b) reads the referee's numbers — the builder writes the instrument
+  that computes its own gate, which is what §3.4c forbids as acceptance evidence.
+  REPORTED: `eligible_rows`, `coverage_pdf`,
   `coverage_cached_or_snippet`, `paywalled_residue`, `manual_step_rows`, `bban_served` over
-  `bban_population` (the probe's number, re-measured by the session).
+  `bban_population` (the probe's number, re-measured by the referee), and `credentials_stored` — a
+  TEXT SCAN of source and database rows, best effort and bypassable (a key in an env var or a
+  differently shaped string leaves it at 0), so it is reported beside the SQL-checked counters and
+  never gates.
 - (c) row 235's cover fed to a Stage D hit → refused, `grey_hits_below_title_gate=1` if bound; the
   constructed chapter with the router off → `chapters_routed_to_scidb=1`; a ledger DDoS-Guard page fed
   to the archive route with the title check off → `challenge_booked_as_miss=1`; a request to a host
@@ -958,8 +1026,11 @@ Work
    or the name does not", the overlong-`/BBox` repair that turns a silently empty page back into a page
    (so OCR never transcribes a blank), and the abandon rule — more than half the codes unmapped → return
    nothing and fall through. `litkb-ligature-repair` becomes the downstream normaliser of what survives.
-   Rows: the ligature-damaged files that ruling's referee report names; plus a CONSTRUCTED corrupted
-   CMap, in those words.
+   Rows: the ligature-damaged files and blocks enumerated by file_id and block_id in
+   `Reports/litkb_ligature_c0_2026-09-19.csv`, with the quote-hazard rows of
+   `Reports/litkb_ligature_quote_hazard_2026-09-19.csv` beside them (that ruling's referee report
+   names none of them — `grep -ci ligature` on it returns 0, so the CSVs are the row home); plus a
+   CONSTRUCTED corrupted CMap, in those words.
 2. **Bind-time validity gates** carried from S4.5's acceptance test into extraction: `qpdf --check` with
    its exit codes read correctly; the vector-complexity pre-filter (10,000 graphics ops AND a 20:1
    ratio) rewritten to FAIL CLOSED — the reference implementation fails open on any exception — because
@@ -977,8 +1048,15 @@ Work
    current reconciliation is KNOWN to have chosen wrong: S2's Copernicus PDF, for which Docling produced
    nothing and GROBID carried the work (`Reports/LITKB_FIRST_WORK_2026-09-21.md`) — shared with S4's
    bed.
-4. **Scans, measured before adopted**: on the corpus's no-text-layer scans (the command below lists
-   them; S4's first scan rows) a hand-corrected gold page each; then Tesseract 5 variants, docTR and
+4. **Scans, measured before adopted** — and the harness is the size of a handful of files today, with
+   NO OCR engine installed on this machine (docTR, RapidOCR and Tesseract are all absent; the command
+   below counts the rows and a `py -3.12 -c "import importlib.util; ..."` probe answers the engines),
+   so the session's FIRST step is to enlarge the harness from the base's own scans (`has_text_layer`
+   false in `main_files`) and install the engines, or to report the scan class UNDETERMINED in those
+   words rather than score three engines on a handful of pages: on the corpus's no-text-layer scans (the command below lists
+   them; S4's first scan rows) a hand-corrected gold page each, AUTHORED BY THE REFEREE and not by the
+   builder that scores engines against it (a gold page written by the scorer, or read off the page
+   image by a model, is a correlated reading, not ground truth); then Tesseract 5 variants, docTR and
    RapidOCR on the T2000, with old-scan layout segmentation shared across engines (eynollah in WSL) so
    line-level alignment is possible at all; LV-ROVER's arbitration SHAPE with the lexicon built from
    litkb's own registry metadata used as a SHIELD (an anchor word in the lexicon is never overridden;
@@ -986,7 +1064,11 @@ Work
    corrector only WITH its sliding-window vote (the survey's one clean number: positive with the vote,
    negative in every configuration without it); character error rate with a confidence interval per
    page against the gold; vision-language OCR on Colab under `litkb-s47-colab-queue` (ranked on the
-   old-scan axes, never on the overall score) accepted at HIGH tier only when it agrees with the
+   old-scan axes, never on the overall score) — CONDITIONAL on `litkb-colab-page-boundary`, which is
+   OPEN: `litkb-s47-colab-queue` granted T4 time, not a data boundary, and this rung would ship whole
+   scan PAGES off the laptop where `pipeline/litkb/extract/colab_formula_worker.py` ships crops and
+   says the corpus stays local; nothing else in this session waits on that ruling — accepted at HIGH
+   tier only when it agrees with the
    classical consensus above a threshold — a fluent hallucination scores well on every coherency and
    dictionary gate, and only agreement catches it; the known-bad for that guard is a CONSTRUCTED
    fluent invention (a page whose VLM transcript is a plausible paragraph the scan does not contain),
@@ -996,11 +1078,14 @@ Work
    2026-09-19: the second decoder is dropped; pix2tex is out on nondeterminism; the re-open condition
    is a review whose conclusion depends on a mathematical claim, and the entry bar is a seeded,
    deterministic protocol). This session does NOT re-open it. What it builds is the verification
-   ladder on the ONE decoder's output (`litkb.equations.latex_status` today only flags), stopping at
+   ladder on the ONE decoder's output — `latex_status` is a COLUMN of the table `litkb.equations`, not
+   a Python module, and its live values are unverified · stable · contaminated · degenerate ·
+   unstable · NULL (the command under "Test-set commands" counts them) — stopping at
    the first rung that decides: KaTeX parse → pdflatex compile with a kill timer → degeneracy check →
    an image check of the rendering against the ACTUAL crop — the rung that needs no second reading and
-   catches a wrong one — so `latex_status` gains `verified` and `held` beside `unverified`, per
-   formula. Free triage first by math font names and math-unicode ratio, so the report can say how
+   catches a wrong one — so `latex_status` gains `verified` and `held` BESIDE the four values it
+   already holds, which keep their meaning and are not migrated away, per formula; NULL means the
+   ladder has never run on that formula and is REPORTED as `latex_status_null`, never rewritten. Free triage first by math font names and math-unicode ratio, so the report can say how
    many math-bearing works are born-digital and how many are scans — a question two survey rounds
    could not answer without the corpus. IF the re-open condition is met, the second decoder enters
    under the ruling's bar — greedy decoding with a fixed seed; sampling-based self-consistency does not
@@ -1316,10 +1401,17 @@ Done-state
 counter is the session's first task, not a note. Then `/mcp` reconnect if the open session
 predates the last merge (not measurable by the instrument; it prints the HEAD it checked).
 Headless launches: `Reports/LITKB_SCOUT_LAUNCH.md` §4 — bash, a prompt FILE, the first
-`ws_open` slug checked within the minute.
+`ws_open` slug checked within the minute. **Launch only with the tree on `main` at parity**:
+`git rev-parse --abbrev-ref HEAD` prints `main` AND preflight's `main_not_at_parity=0` — the
+instrument compares local `main` to `github/main` and cannot see a checkout sitting on a work
+branch, so both halves are read. The launch kits inherit this line; a session launched off a work
+branch commits onto somebody else's branch.
 
 Orchestrator = the chat session; ≤ 3 agents. Opus **builder** in its own worktree with its own
-`litkb_test_wN` (check it is free first) → Opus **auditor** re-runs every claim from source on a
+`litkb_test_wN` — free: w3, w7, w9; w2, w8, w10 and w11 are RESERVED (w8 by
+`qc/instruments/litkb_s3a2_mutations.py`, w10 by `qc/instruments/litkb_edge_run.py` and
+`qc/test_litkb_edges.py`), and taking a reserved one collides with the one-pytest-per-worker-database
+hazard below → Opus **auditor** re-runs every claim from source on a
 fresh worker DB (every real defect so far came from an auditor) → fix → `py -3.12 qc/landed.py`
 → commit on `work/<date>-<slug>` → landed per CLAUDE.md §3.1 → Kam applies any migration. Codex
 reviews every grammar and is the last stage of every proving run. Worker reports:

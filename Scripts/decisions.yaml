@@ -1177,3 +1177,48 @@ decisions:
     evidence:
       - Scripts/LITKB_WORKPLAN.md
       - Scripts/CHATLOG.md
+  - id: litkb-live-migration-by-session
+    question: >-
+      Who applies a merged litkb migration to the LIVE database — Kam by hand (the per-session protocol's
+      "Kam applies any migration"; the auto-mode classifier refused Claude in S3), or the session that
+      merged it?
+    owner: kam
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      THE SESSION APPLIES IT. Only after an independent auditor has passed the MERGED candidate and the
+      merge is on main, the orchestrator applies it with the project's own runner from the main tree
+      (`py -3.12 -m litkb.db.migrate --db litkb`) and verifies it by preflight's migration_mismatch=0.
+      Never from a builder's branch, never before the audit. Kam, 2026-09-22, verbatim, typed into the
+      S4 run-3 terminal in reply to "live migrations are Kam's to apply": "I should not be doing anything
+      by hand". Not read into it: session launches stay Kam's (litkb-session-launch-authority).
+    why: >-
+      A step only Kam can take is a step every session waits on: S3 opened with 0028 unapplied and ran its
+      URL rows only after Kam applied it by hand. The audit of the merged candidate is the check a human
+      application stood in for.
+    evidence:
+      - Scripts/LITKB_WORKPLAN.md
+      - Scripts/pipeline/litkb/db/migrate.py
+  - id: litkb-extract-page-cap
+    question: >-
+      The extraction page cap S4 must enforce fail-closed has no value in code or docs (S4 run 3 code
+      survey C4). Which value — (a) 400, the one reasoned page ceiling the code holds
+      (binding.OCR_BIND_MAX_PAGES, "a book is not a cover sheet"); (b) 100, which makes the real 101-page
+      Riva_2017 report a positive row but refuses an in-scope report nobody ruled out; (c) another? And
+      after how many failed attempts does a queue job go dead (recommended 3)?
+    owner: kam
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      (a) EXTRACT_PAGE_CAP = 400 pages (pipeline/litkb/extract/probe.py, one constant every site
+      imports); MAX_JOB_ATTEMPTS = 3. First adopted by recommendation under the 10-min rule (the
+      question was put in the S4 run-3 terminal with options and the recommendation first), then
+      CONFIRMED by Kam in the same terminal, 2026-09-22, verbatim: "400 is fine, keep going" The corpus's longest active file is 101 pages, so the cap refuses book-sized
+      volumes only; its known-bad is a CONSTRUCTED cap+1-page PDF. A different answer from Kam changes
+      one line.
+    why: >-
+      The plan asks for an enforced, fail-closed cap, and the rule is never to invent a number: this one
+      reuses the only reasoned ceiling in the code rather than picking one.
+    evidence:
+      - Scripts/pipeline/litkb/extract/probe.py
+      - Scripts/pipeline/litkb/admit/binding.py

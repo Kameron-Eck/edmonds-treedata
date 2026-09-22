@@ -749,7 +749,7 @@ Work
    (G0a) and delivery (G1d); the `sci.bban.top` DOI path (G1a) beside Sci-Hub, NOT in its place — Kam
    reversed the parking the same day (`litkb-scihub-parked`: "a massive loss if we table it"), so this
    session ATTEMPTS THE WORKAROUND: the route is rebuilt from the diagnosis of why it has never
-   returned a file (the 2026-09-22 read-only probes under D:	ools\claude-config\jobs\litkb-scihub\,
+   returned a file (the 2026-09-22 read-only probes under D:\tools\claude-config\jobs\litkb-scihub\,
    which split the zero into code defect / egress block / corpus miss with counts) and the fronts to
    the same corpus are tried in the order those probes rank them; a DOI published after the
    2022-02-12 freeze is never sent to any front; Nexus/STC crosswalk first and delivery second (G0b/G1c);

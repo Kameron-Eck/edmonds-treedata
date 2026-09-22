@@ -25,9 +25,9 @@ from litkb.admit.binding import MIN_TEXT_CHARS
 from litkb.admit.resolver import _norm_text
 
 #: The extraction page cap (plan "### S4": "an enforced, fail-closed extraction page cap"). A file
-#: with more pages than this is never started: it is classed `over-page-cap`. SOURCE — S4 run 3
-#: decision D1, PROVISIONAL pending Kam under his away-mode rule: no extraction cap value existed in
-#: code or docs (code survey C4); this is the one reasoned page ceiling the code already holds,
+#: with more pages than this is never started: it is classed `over-page-cap`. SOURCE — the ruling
+#: `litkb-extract-page-cap` (Kam, 2026-09-22): no extraction cap value existed in code or docs (S4
+#: run 3 code survey C4); this is the one reasoned page ceiling the code already holds,
 #: `binding.OCR_BIND_MAX_PAGES` ("a book is not a cover sheet"). The corpus's longest active file is
 #: 101 pages (data survey D3), so the cap refuses book-sized volumes only.
 EXTRACT_PAGE_CAP = 400

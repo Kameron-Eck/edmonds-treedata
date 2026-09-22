@@ -46,6 +46,29 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-21  litkb S3 WRAP-UP: Kam's six rulings encoded and MEASURED; 13 proposals promoted; E25 gate fixed; clean S4 launch kit
+goal:    Kam: rulings E20-E25 + the 13 tracker-era proposals ("do the recommendation ... take care of everything else ... do not come back to me"); S4 to rerun clean, launched by Kam.
+did:     3 Opus workers in own worktrees + 1 Opus auditor. APPROVE (s3-approve-2, ws approve-2): 13/13 manual proposals approved = promoted (Chrisman's file IS the 1982 paper; no DOI exists);
+         Reports/LITKB_APPROVE_SESSION_2026-09-21b.md. TITLE HUNTS (ws title-hunts-1): 37 tracker rows + book + preprint + Chrisman, 40 rows, 556 s, Anna's downloads 0, Sci-Hub 1;
+         Reports/LITKB_TITLE_HUNTS_2026-09-21.{md,csv}. E25 (ws e25-rebind-1): binding.py prefix-strips the ROTATED arXiv margin stamp that pdftotext -layout puts on the title's
+         own line (Gulrajani 0.6842->1.0, Kumar 0.6410->1.0; sweep 254 files 0 regressions/4 fixed/2 moves; both re-bound live, bound-unextracted); auditor MERGE, every number
+         reproduced + a 2778-bind cross-title probe (the strip never binds another work). decisions.yaml: litkb-book-policy, litkb-sibling-edition. Register: E20/E21/E22 executable
+         with MEASURED pairs, E25 not-a-hunt, E23/E24 ruled + held with the residue question; final freeze at merged head, replay executed=22 mismatches=0 tracebacks=0
+         (Reports/LITKB_EDGE_RUN_2026-09-21_replay-rulings.csv, _derived/edges/rulings-manifest.json). S4 kit: clean-start prompt, LITKB_SESSION=s4-run3, slug readability-2,
+         launcher names Git's bash.exe; preflight all 0. All 8 wt-* checkouts parked/removed (S3's six were clean+merged+parity), tokens vaulted (approve-2, title-hunts-1, e25-rebind-1).
+found:   E23: 0/15 resolve by title (the low-confidence skip was right). E24: 0/22 - STRUCTURAL: resolve_title -> admit/resolver.py judge_candidate re-applies check 1's three tests to
+         the TRACKER's claim, so a title hunt can never rescue a row whose author/year is what's wrong; 16 matched title >=0.85 to the SAME stored DOI; 7 DOI corrections corroborated
+         (2,33,48,55,67, crossed pair 177/178); 187's 10.5067 DOI is 404 at Crossref but live in the handle system. E20 book: blocked/403, Crossref carries ISBN 9781466568419 (e-only).
+         E21 preprint: OA 200, bound as ITS OWN work, no duplicate refusal. E22: refused/ambiguous-title (crossref best 0.52 Lloyd 1976), gate 0 before admission. The 13 promoted works'
+         metadata is poor (authors first+last only, given empty, venue NULL, one title truncated, Krahenbuhl_2011 year unconfirmed) - identity right, citations not. Auditor notes:
+         builder-e25's own known-bad test monkeypatches the strip in the test (the OTHER tests gate: 4 red under mutation); DB check 3 is a record check; test_experiments
+         pointer gate was red in every worktree (gitignored 18 MB product) -> fixed here (_git_ignored; proven red->green in the worktree). file_versions.state='promoted' with
+         promotion_id NULL is what 0003_write_functions.sql sets for every bind - not an anomaly. Two overlapped pytest runs on one worker DB gave a phantom F (lesson in memory).
+decided: "acquire the book and don't spend" read as no EXTRACTION spend (recorded in decisions.yaml for correction). Two works for sibling editions. Not-a-hunt for a binding-gate row.
+         E23/E24 residue stays Kam's; no registry-overrules-claim path built (S5). No blocked back-off (S5). Kam launches S4 run 3 himself.
+next:    Kam: `wt.exe -w new "C:\Program Files\Git\bin\bash.exe" -lc /d/edmonds-pipeline/treedata/_derived/s4/launch-s4.sh`; rulings on E23/E24 residue when convenient.
+         S5 carry-ins in LITKB_WORKPLAN.md "### S5" (ISBN harvest + annas ISBN->md5, relation edge, blocked back-off, annas bad-file x3, quarantine DB state, metadata fix, E24 path).
+
 ## 2026-09-21  litkb S3 independently re-verified; register hash guard fixed (content, not bytes)
 goal:    Kam: "Can S3 be trusted? I didn't monitor any of its work" -> re-run S3's gates myself, not read its report; wrap up what S3 left.
 did:     REPRODUCED on main: `edges --replay` w10 -> executed=19 mismatches=0 tracebacks=0 exit 0; pytest -k litkb 1579 passed/25 skipped/3 xfailed;

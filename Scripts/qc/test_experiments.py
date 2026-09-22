@@ -207,6 +207,20 @@ def test_retrospective_is_a_bool(path):
 
 # ------------------------------------------------------------ provenance gates
 
+def _git_ignored(rel):
+    """A pointer git IGNORES is a regenerated product, not provenance: it exists only in the tree
+    that last regenerated it, so its presence proves nothing and its absence is not a dead path.
+    Found 2026-09-21: crown_state_model's `phase4/qc/crown_state_intervals.csv` (18 MB, ~100 s to
+    regenerate, .gitignore) made this gate green in the main tree and red in every worktree, clone
+    and CI — the E25 builder's ladder failed on it. `git check-ignore` is the one authority on
+    what git ignores; an unreadable answer (no git) counts as not ignored, the strict direction."""
+    try:
+        return subprocess.run(["git", "-C", str(REPO), "check-ignore", "-q", rel],
+                              capture_output=True).returncode == 0
+    except OSError:
+        return False
+
+
 @pytest.mark.parametrize("path", _specs(), ids=lambda p: p.stem)
 def test_pointer_paths_resolve(path):
     """Repo-relative pointers must exist. A registry of dead paths is worse than no
@@ -217,6 +231,8 @@ def test_pointer_paths_resolve(path):
             rel = str(rel)
             if rel.startswith(_UNCHECKABLE) or "*" in rel:
                 continue                        # lake path / glob: not checkable here
+            if _git_ignored(rel):
+                continue                        # regenerated product: see _git_ignored
             assert (REPO / rel).exists() or (SCRIPTS / rel).exists(), (
                 f"{path.name}: {field} points at {rel!r}, which does not exist "
                 f"(tried {REPO / rel} and {SCRIPTS / rel})")

@@ -55,10 +55,20 @@ def is_pdf_magic(path):
 
 
 def _open(path):
+    """The document, opened on a file handle THIS function owns (S4 run 3, builder-B): handed a path,
+    pypdfium2 5.13.0 leaves the file open after a FAILED load, and on Windows the file then cannot be
+    renamed for the life of the process (measured: `os.rename` -> WinError 32, also after
+    `gc.collect()`), so a bind-path refusal could not move the bytes to `_quarantine/`. Handed a
+    handle, it holds nothing after a failure, and `autoclose` closes the handle with the document."""
     import pypdfium2 as pdfium
     try:
-        return pdfium.PdfDocument(str(path))
-    except Exception as exc:  # pdfium raises PdfiumError; a missing path raises FileNotFoundError
+        fh = open(path, "rb")
+    except OSError as exc:    # a missing or unreadable path
+        raise ProbeError(f"{type(exc).__name__}: {exc}") from exc
+    try:
+        return pdfium.PdfDocument(fh, autoclose=True)
+    except Exception as exc:  # pdfium raises PdfiumError
+        fh.close()
         raise ProbeError(f"{type(exc).__name__}: {exc}") from exc
 
 

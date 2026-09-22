@@ -64,6 +64,33 @@ def test_constructed_corrupt_pdf_raises_probe_error_not_a_count(tmp_path):
         probe.page_text_chars(bad)
 
 
+def test_a_failed_probe_leaves_the_file_free_to_move(tmp_path):
+    """CONSTRUCTED: a %PDF- header and %%EOF trailer around a catalog whose /Pages is not a
+    dictionary. The probe must raise AND release the file: the bind path quarantines exactly this
+    file by MOVING it, and on Windows a handle pdfium kept after the failed load made that move fail
+    with WinError 32 (builder-B, S4 run 3)."""
+    import os
+
+    objs = [b"<< /Type /Catalog /Pages 2 0 R >>", b"(not a dict)"]
+    body, offs = bytearray(b"%PDF-1.4\n"), []
+    for i, o in enumerate(objs, 1):
+        offs.append(len(body))
+        body += f"{i} 0 obj\n".encode() + o + b"\nendobj\n"
+    x = len(body)
+    body += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode()
+    body += b"".join(f"{o:010d} 00000 n \n".encode() for o in offs)
+    body += f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{x}\n%%EOF\n".encode()
+    bad = tmp_path / "CONSTRUCTED_unopenable_catalog.pdf"
+    bad.write_bytes(bytes(body))
+    assert probe.is_pdf_magic(bad)
+    for fn in (probe.probe_pages, probe.page_text_chars):
+        with pytest.raises(probe.ProbeError):
+            fn(bad)
+        moved = bad.with_name(bad.stem + ".moved.pdf")
+        os.rename(bad, moved)
+        os.rename(moved, bad)
+
+
 def test_a_missing_file_raises_and_is_not_pdf(tmp_path):
     missing = tmp_path / "nothing_here.pdf"
     assert not probe.is_pdf_magic(missing)

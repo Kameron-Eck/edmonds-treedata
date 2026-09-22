@@ -854,16 +854,15 @@ decisions:
     status: decided
     decided: "2026-09-22"
     decision: >-
-      PARKED: Sci-Hub stays in ROUTES but is skipped unless a hunt asks for it; sci.bban.top
-      (`litkb-shadow-hosts` (b)) is the DOI-path rung in its place. Zero files in every attempt ever;
-      the back-off bounds its cost regardless. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
-    why: >-
-      Parked removes one probe and one 403 per hunt from a route that has only ever produced
-      blocked rows; live keeps the standing grant intact in case a mirror starts answering. The
-      back-off lands in S4.5 either way; only the default is Kam's to set.
-    evidence:
-      - Reports/LITKB_EDGES_2026-09-21.md
-      - Reports/LITKB_RULED_HUNTS_2026-09-21.md
+      NOT PARKED — REVERSED the same day. Kam's first ruling (accepting the recommendation to park)
+      stood for a few hours; then, verbatim: "I do want to attempt a work around for scihub. Scihub is
+      a massive loss if we table it." So: Sci-Hub stays a LIVE rung, and S4.6 Stage G attempts the
+      workaround — first the diagnosis of why the route has never returned a file (code defect, egress
+      block, or corpus miss: the D1/D2 read-only probes of 2026-09-22, jobs/litkb-scihub/), then the
+      fronts to the SAME corpus in the order the probes rank them (the sci-hub.* mirrors with the
+      client-codebase parser, sci.bban.top, LibGen scimag by DOI, Anna's /scidb, Tor onion if a host
+      is unreachable otherwise). A DOI published after the 2022-02-12 freeze is out of corpus by
+      construction and is never sent to any of these fronts. Kam, 2026-09-22.
 
   - id: litkb-tracker-corrections
     question: >-

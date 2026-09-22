@@ -805,7 +805,11 @@ decisions:
       `--from-file` from a copy Kam has. Does Kam have copies; and if not, are the three retired
       from the tracker's scope, or kept as held rows the register carries indefinitely?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      RETIRE tracker rows 53 and 369 unless a review's claim comes to depend on them (no registry
+      confirms either; one is in Chinese); E20's book follows `litkb-crc-book`. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     why: >-
       Until answered the three sit as held or blocked register rows that every replay carries and
       every session re-reads. A copy makes each a normal bind in S4's measurement bed; a "no"
@@ -824,7 +828,13 @@ decisions:
       survey's "deferred human fulfilment" rung (G4 — a request queue a human answers) is the
       `--from-file` half of this question, not code. Which grade, and for which rows?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      METADATA-GRADE by default — admitted, citable by its record, never quotable, every
+      expectation on it UNCONFIRMED — with the human queue (the survey's G4: a request answered by a
+      person, `--from-file`) on demand only for the works a review's claim actually needs. The coverage
+      instrument reports them as metadata-grade so the number stays honest. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     why: >-
       A quote needs a file; a review that cites a metadata-grade work can only say what the
       record says. Without a grade, S4.5's back-off keeps probing these works once per run and
@@ -841,7 +851,12 @@ decisions:
       probe per run. Should the route ALSO be parked by default (kept in ROUTES, skipped unless a
       hunt asks for it), or stay live as the last rung of the ladder Kam granted?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      PARKED: Sci-Hub stays in ROUTES but is skipped unless a hunt asks for it; sci.bban.top
+      (`litkb-shadow-hosts` (b)) is the DOI-path rung in its place. Zero files in every attempt ever;
+      the back-off bounds its cost regardless. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     why: >-
       Parked removes one probe and one 403 per hunt from a route that has only ever produced
       blocked rows; live keeps the standing grant intact in case a mirror starts answering. The
@@ -860,7 +875,14 @@ decisions:
       corrected to the registry's values, the 177/178 pair swapped, and 194's ref re-pointed —
       and by whom, since the tracker is a project document, not a litkb table?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      A CORRECTED COLUMN beside the original: the tracker keeps its claimed author and year as the
+      record of what a person believed, and gains a registry-corrected column carrying the values the
+      ruled run admitted under; the crossed 177/178 DOIs are a data error, not a belief, and are fixed
+      in place; 194's ref is re-pointed in the corrected column with its reason. A one-time edit before
+      S5's first run. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     why: >-
       The tracker's claims are the drop-offs' priors; a wrong prior contradicts forever.
       Correcting the tracker makes the register's E23/E24 carriers match their source rows;
@@ -880,7 +902,13 @@ decisions:
       by hand is not. Should an operator-supplied file be a `proposed` version behind the same
       second-session gate, or stay a direct bind?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      THE PROPOSAL PATH: an operator-supplied file (`--from-file`) lands as a `proposed` version a
+      second session approves, like a web snapshot, with approvals BATCHED so one headless session
+      clears many. The gate exists so a file's identity is confirmed by someone who did not bind it.
+      Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     why: >-
       The second-session gate exists so a file's identity is confirmed by someone who did not bind
       it. Today it covers pages and manual records but not hand-supplied PDFs, so a wrong
@@ -929,7 +957,14 @@ decisions:
       html-doc, cached_text, snippet — counts, with the grade recorded, and quote-grade text is a
       separate tier from searchable text.
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      (b): "has the study" means ANY full text with verifiable quotes — a PDF, a JATS XML
+      full text, or a full-text HTML document — with the grade recorded per work; cached page text and
+      snippets are REPORTED separately and never counted toward `litkb-coverage-target`. The coverage
+      instrument prints both numbers; the bound is on the full-text grades. Quote-grade text on old
+      scans is a separate tier from searchable text (S4.7). Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     blocked_by: [litkb-coverage-target]
     why: >-
       Under (a) the target needs the shadow tier or credentials to be reachable at all; under (b)
@@ -947,7 +982,14 @@ decisions:
       manual-step rows and the paywalled remainder by legitimate means; without it their catch is
       zero. No round asked this question.
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      (b): NO institutional access. litkb drives no logged-in profile; the survey's H10/H11 rungs
+      are not built; the manual-step rows and the paywalled remainder fall to the shadow tier
+      (`litkb-shadow-hosts`), to the human queue of `litkb-blocked-works-grade`, or to
+      metadata-grade. The target's arithmetic is therefore the open-access ladder plus the shadow tier
+      plus the definition ruled in `litkb-coverage-definition`. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     blocked_by: [litkb-coverage-target]
     why: >-
       If yes, it is the single largest converter in the whole survey and S4.6 builds Stage H around
@@ -969,7 +1011,17 @@ decisions:
       of them, and under what policy switch (the survey's PolicyDecision object makes each host an
       auditable line, not a code path)?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      ALL FOUR: (a) Anna's Archive and Sci-Hub stay granted; (b) LibGen's DOI lookup and delivery
+      mirrors and the sci.bban.top DOI path are granted; (c) Nexus/STC delivery and Tor as a transport
+      are granted; (d) a real browser session driven against Anna's Archive is granted. Offline metadata
+      dumps (an Anna's derived-mirror torrent, a LibGen SQL dump) are DATA, not contact with a host, and
+      may be fetched. Every host is one auditable line in the pre-fetch policy object; the tier runs only
+      after every legitimate rung has missed; the corpus froze in early 2022 so a later DOI is
+      out-of-corpus by construction; Tor is built only if a granted host is unreachable without it
+      (the survey grades it verified as a mechanism, dead as an implementation). Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     blocked_by: [litkb-coverage-target]
     why: >-
       These are the strongest mechanical route to the pre-2021 paywalled slice and they are also the
@@ -987,7 +1039,13 @@ decisions:
       without institutional access. Expected yield on the paywalled residue is near zero; the keys
       matter for hybrid and bronze articles the landing-page rule cannot reach.
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      KEYS FOR BOTH: Kam registers Elsevier's and Springer's free text-and-data-mining keys for
+      litkb. Both buy open-access and bronze content only; an unentitled Elsevier answer is a first-page
+      stub the acceptance test refuses; Springer's API resolves but hands URLs on the walled host. Their
+      yield is recorded the first time each runs. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     blocked_by: [litkb-coverage-target]
     why: >-
       Registration is Kam's identity on a publisher's account; the yield is small and measured; the
@@ -1003,7 +1061,12 @@ decisions:
       or archive source holds it, and the survey (section 4) calls it a purchase or interlibrary-loan
       decision, not a ladder gap. Buy it, borrow it, supply a copy, or retire it from the tracker?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      RETIRE the book from the tracker unless a review's claim comes to depend on it, in which case
+      an interlibrary loan is the copy (the recommendation Kam accepted). Stage F therefore has no real
+      book row and stays UNVALIDATED until one exists. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     why: >-
       It is the only book, so it decides whether the book path (S4.6 Stage F) has a real test row at
       all; every other answer is a rung that will never fire.
@@ -1022,7 +1085,12 @@ decisions:
       hours, and a cost of a single runtime's compute units — without a further ask, or must the
       queue wait for Kam to read S4.7's report first?
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      APPROVED, T4, unbounded: S4.7 may create Colab T4 runtimes for its vision-language OCR rungs
+      as it needs without a further ask (Kam: "as much T4 time as you need, its cheap"). The plan's
+      two-A100 ceiling and the one-queue-per-runtime rule are unchanged; a larger tier still asks. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     why: >-
       Without the queue S4.7 still lands its CPU and T2000 items and reports the vision-language
       rungs UNDETERMINED; with it the scan-tier measurement is complete in one session instead of

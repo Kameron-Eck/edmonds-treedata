@@ -20,6 +20,7 @@ every count is scoped to the files a test seeded (``file_ids=``), and the driver
   rule                                                              test
   the selector reaches a staging path, by rel_path, not by key      test_the_selector_reads_rel_path_including_staging
   KNOWN-BAD: a file with blocks and no stage-6 run moves the count  test_files_without_reference_stage_counts_what_owes_the_stage
+  a run under the previous resolver version (litkb-p6-1) is owed    test_a_run_under_the_previous_resolver_version_is_superseded
   anchor rate = anchored / refs whose DOI is a held work's          test_the_anchor_rate_uses_the_real_denominator
   a rerun is idempotent: nothing re-selected, no duplicate refs     test_the_driver_runs_then_a_rerun_writes_nothing
   a kill between files resumes with the rest                        test_a_kill_between_files_resumes_with_the_rest
@@ -209,15 +210,15 @@ def seed_file(pg, ws, rel_path, *, data=None, blocks=True, current=True, doi=Non
     return {"file_id": file_id, "work_id": work_id, "key": key, "rel_path": rel_path, "sha256": sha}
 
 
-def seed_stage6(pg, file_id, *, status="ok", params_hash=None):
-    """A stage-6 run row at the current key (or at another `params_hash`), as a finished or a
-    killed (`failed`) run would leave it."""
+def seed_stage6(pg, file_id, *, status="ok", params_hash=None, version=None):
+    """A stage-6 run row at the current key (or at another `params_hash` / `version`), as a
+    finished or a killed (`failed`) run would leave it."""
     k = RC.current_key()
     pg.conn.execute(
         "INSERT INTO litkb.extraction_runs (file_id, stage, tool, tool_version, params_hash, "
         "pipeline_version, host, status) VALUES (%s, %s, %s, %s, %s, %s, 'local', %s)",
-        (file_id, k["stage"], k["tool"], k["tool_version"], params_hash or k["params_hash"],
-         k["pipeline_version"], status))
+        (file_id, k["stage"], k["tool"], version or k["tool_version"], params_hash or k["params_hash"],
+         version or k["pipeline_version"], status))
 
 
 def uniq(stem):
@@ -298,6 +299,24 @@ def test_files_without_reference_stage_counts_what_owes_the_stage(pg):
     assert c2["files_without_reference_stage_ratio"] == (4, 5), c2
     line = RC.format_counters(c2)
     assert "files_without_reference_stage=4/5(80.0%)" in line and "reference_anchor_rate=0/0(n/a)" in line
+
+
+@pg_only
+def test_a_run_under_the_previous_resolver_version_is_superseded(pg):
+    """S4 run 3 decision D12: `references.PIPELINE_VERSION` moved to litkb-p6-2 because commit
+    8829558 changed the resolution ladder after the 17 live litkb-p6-1 runs were made. A file whose
+    only stage-6 run is an ok litkb-p6-1 run OWES the stage, and that run's references are NOT in
+    the anchor-rate population — only the current key is read, by the counters and the selector."""
+    from litkb.extract import references_ingest as RI
+
+    assert RC.current_key()["pipeline_version"] == R.PIPELINE_VERSION == RI._tool_version() != "litkb-p6-1"
+    ws = pg.ws()
+    old = seed_file(pg, ws, f"Validation/{uniq('Old_2015_resolver')}.pdf")
+    seed_stage6(pg, old["file_id"], version="litkb-p6-1")
+    c = RC.reference_counters(reader(pg), file_ids=[old["file_id"]])
+    assert c["files_without_reference_stage_ratio"] == (1, 1), c
+    assert c["references"] == 0 and c["reference_anchor_rate"] == (0, 0), c
+    assert [r["file_id"] for r in RC.pending_files(reader(pg), file_ids=[old["file_id"]])] == [old["file_id"]]
 
 
 @pg_only

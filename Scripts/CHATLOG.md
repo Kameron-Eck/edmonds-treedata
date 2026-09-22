@@ -46,6 +46,29 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-22  litkb RULINGS: Kam ruled the eleven open ids in one message -> plan re-bound under them
+goal:    close the "Kam-side, open" list from survey rounds 1-4 (options + trade-offs conversation, then Kam's rulings).
+decided: (Kam, verbatim in each decisions.yaml `decision:`) litkb-coverage-definition B: pdf + jats + html-doc count, cached
+         text/snippets reported never counted; litkb-institutional-access B: NONE, H10/H11 not built, manual-step rows -> shadow
+         tier / human queue / metadata-grade; litkb-shadow-hosts a,b,c,d: LibGen DOI lookup + mirrors, sci.bban.top, Nexus/STC
+         delivery, Tor transport, browser session vs Anna's — all granted behind policy lines, offline dumps = data;
+         litkb-tdm-keys: "Keys for both" (Elsevier + Springer, Kam registers); litkb-s47-colab-queue: "as much T4 time as you
+         need, its cheap"; "the rest of the reccomendations" accepted: scihub-parked PARK, blocked-works-grade METADATA-GRADE +
+         queue on demand, e23-residue-copies RETIRE 53/369 unless load-bearing, crc-book RETIRE (ILL if needed),
+         tracker-corrections CORRECTED COLUMN + crossed DOIs fixed in place, from-file-version-state PROPOSAL PATH batched;
+         reference stage runs in S4 detached over every file w/ blocks; classical OCR on T2000 first, VLM OCR in S4.7; S4 kit
+         work key not a violation; S5 topic = label transfer across years under seasonal difference unless Kam renames.
+did:     decisions.yaml 11 entries open -> decided 2026-09-22 (zero litkb-… open). Plan 15 edits: Where-we-are Kam list ->
+         rulings list; S4 Kam line ruled; S4.5 Kam line -> operator-bind gate built in item 1; S4.6 Stage G builds LibGen/
+         sci.bban.top/Nexus-STC/Anna's-browser/Tor rungs (Sci-Hub parked), Stage H drops H10/H11, both TDM keys granted,
+         coverage instrument GATED coverage_fulltext>=0.95 under definition (b) w/ coverage_cached_or_snippet reported; S4.7
+         Colab queue approved T4; after-S5 promotion row -> operator-bind gate is S4.5's; S5 names the topic + the pre-run
+         tracker edits. Launch kit _derived/s4/s4-prompt.txt line 4 -> the ruled list. Gates: plan 0/0, docs+decisions 29 pass,
+         edges 21 pass. Landed main 2ca4869 (plan + decisions); CHATLOG in the follow-up commit.
+files:   Scripts/decisions.yaml, Scripts/LITKB_WORKPLAN.md, _derived/s4/s4-prompt.txt (gitignored).
+next:    Kam: register both TDM keys; re-register nightly dump task; launch S4 run 3 (_derived/s4/launch-s4.sh). Owed: Codex
+         cross-family reads r2/r3/r4 + adversarial plan read (quota). Nothing litkb-… open in decisions.yaml.
+
 ## 2026-09-22  litkb SURVEY ROUNDS 3 + 4: shadow-library linkage + identifier coverage; the loop's twelve stages -> plan updated
 goal:    Kam: (r3) "review all the github pages that use ... annas archive, lib gen, scihub ... how they link records ... maximize
          identifier coverage"; (r4) "engineering crawls for the lit review pipeline ... launch all 8, and the lower list items".

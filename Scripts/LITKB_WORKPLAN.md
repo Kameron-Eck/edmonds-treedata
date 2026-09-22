@@ -27,68 +27,75 @@ Conventions this file obeys, so it does not become a fifth "living state":
 Update this block only. Everything else in the file changes when a session lands.
 
 - **Finish line:** `litkb-finish-line` — topic → graded review → synthesis, unattended.
-- **Current session:** the PLAN-REVISION session landed 2026-09-21
-  (`work/20260921-litkb-plan-revision`; report `Reports/LITKB_PLAN_REVISION_2026-09-21.md` — every
-  change with its source and whether that source was verified or asserted, the starting hypotheses
-  it rejected, the questions it raised, the Codex adversarial findings and what was done with each).
-  No code changed. It edited THIS file from the S3 wrap-up's evidence
-  (`Reports/LITKB_EDGES_2026-09-21.md`, `Reports/LITKB_TITLE_HUNTS_2026-09-21.md`,
-  `Reports/LITKB_RULED_HUNTS_2026-09-21.md`, `Reports/LITKB_APPROVE_SESSION_2026-09-21b.md`, the
-  E25 builder/auditor pair under jobs/litkb-s3-wrap) and the GitHub survey
-  (D:\tools\claude-config\jobs\litkb-s3-wrap\github-survey\SYNTHESIS.md), after six read-only Opus
-  auditors re-derived every fact from the files and the read-only database (their reports under
-  jobs/litkb-plan-revision). What changed: S4 gained the `book` residue class, the database-visible
-  quarantine state and a named measurement bed; a NEW session **S4.5** (acquisition hardening) sits
-  between S4 and S5 and holds only what protects S5's unattended run and has a real test set today;
-  S5 gained an entry condition (the promoted tracker-era metadata) and a per-hunt time budget; the
-  survey's other designs are scheduled after S5 as improvements, each UNVALIDATED with its test set
-  named; the S5 carry-in list is reconciled — every item is in a session block with its test set,
-  or kept with the reason; the open-items register lost the rows S2 and the Codex stage had already
-  closed; "The survey's verdicts" below records what each verdict rests on. The questions the
-  revision raised are `decisions.yaml` open entries: `litkb-e23-residue-copies`,
-  `litkb-blocked-works-grade`, `litkb-scihub-parked`, `litkb-tracker-corrections`,
-  `litkb-from-file-version-state`.
-- **Rulings 2026-09-21** (ids; never restated here): `litkb-book-policy`, `litkb-sibling-edition`,
-  `litkb-registry-over-claim`. The register carries E20–E24 as executable rows with MEASURED
-  expectations and E25 as a ruled non-hunt row; no row is held:
+- **Current session (2026-09-22, the same chat that landed the 2026-09-21 revision):** Kam set the
+  acquisition target (`litkb-coverage-target`) and asked for a survey of how other codebases get PDFs
+  from every free source and extract them, with multi-engine agreement for OCR and LaTeX. Two rounds
+  ran — eleven and then six Opus crawlers by source class and extraction layer, two Codex forum
+  searches in round one (round two's Codex pass died on an exhausted quota and is OWED), a blacklist of
+  every URL between rounds, a synthesizer each round — and the orchestrator measured the ladger's own
+  miss rows against the resolvers, read-only. The record is
+  `Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md` (its §M the measurements, §1 the ladder by stage,
+  §5 the extraction ladder, §6 the coverage projection; every URL the crawlers visited in
+  `Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22_urls.csv`). What changed in this
+  file: S4.5 was rewritten as part 1 of the ladder (the substrate, the ledger vocabulary, the free
+  rungs of Stages A–C and E); S4.6 (grey literature, books, the shadow tier under the existing grant,
+  credentials behind their rulings, the coverage instrument) and S4.7 (extraction agreement: the CMap
+  repair layer, text tiers, scans measured before adopted, math verified without ground truth) were
+  inserted; the improvements table lost the rows the sessions absorbed; `decisions.yaml` gained the entries
+  this session raised (`grep -c '^  - id: litkb-' decisions.yaml` counts them all) — `litkb-coverage-target`
+  decided from Kam's words, and `litkb-coverage-definition`, `litkb-institutional-access`,
+  `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-crc-book`, `litkb-s47-colab-queue` open. The
+  2026-09-21 revision's record stays `Reports/LITKB_PLAN_REVISION_2026-09-21.md`.
+- **The honest number, as the survey grades it** (its §M is MEASURED on litkb's rows by the probe
+  instruments under `qc/instruments/`, whose CSVs sit under phase4/qc/; its §6.3 is an EXTERNAL
+  self-reported figure from a review of the same shape): of the ledger's open-access misses, litkb's
+  own resolver answers for the Elsevier bronze rows with their landing page, Semantic Scholar supplies
+  free arXiv siblings for a few IEEE and Springer papers, a dead author copy is in Wayback (its
+  sibling on another host never was), and everything else is a paywall page or a token-gated
+  endpoint. The external review reached about 86 percent by legitimate automated means; the gap
+  to the target is closed by rulings, not by more open-access indexes.
+- **Rulings 2026-09-21** (ids): `litkb-book-policy`, `litkb-sibling-edition`,
+  `litkb-registry-over-claim`; the register carries E20–E24 as executable rows and E25 as a ruled
+  non-hunt row, no row held —
   `LITKB_TEST_DB=litkb_test_w10 py -3.12 qc/instruments/litkb_acceptance.py edges --manifest ../_derived/edges/rulings-manifest.json --replay`
   → `state_or_reason_mismatches=0 tracebacks=0 held_for_ruling=0` (from Scripts/; `--replay`
   EXECUTES the register against the named worker database — one process on that database at a
   time, like pytest).
 - **Next, in order:** (1) **S4 run 3 — Kam launches it himself** from a new terminal window:
   `wt.exe -w new "C:\Program Files\Git\bin\bash.exe" -lc /d/edmonds-pipeline/treedata/_derived/s4/launch-s4.sh`
-  (`_derived/s4/s4-prompt.txt` matches the revised "### S4" block; `LITKB_SESSION=s4-run3`;
-  workstream slug `readability-2`). Runs 1 and 2 are PARKED untrusted on
+  (`_derived/s4/s4-prompt.txt` matches the "### S4" block; `LITKB_SESSION=s4-run3`; workstream slug
+  `readability-2`). Runs 1 and 2 are PARKED untrusted on
   `github/archive/2026-09-21-litkb-s4-{q1,q2,r}-untrusted` — nothing merged, no migration applied,
   no `extraction_jobs` table exists; their one live trace is the `readability-1` workstream row,
   which is nobody's. `state='open'` is not a signal: every workstream row reads `open`
   (`SELECT state, count(*) FROM litkb.workstreams GROUP BY 1` as `litkb_reader`) because nothing
   ever closes one. Entry condition: the preflight command in "Per-session protocol", every counter
-  0 (measured 0 at revision time). (2) **S4.5**, launched by S4 the way S4 was launched (a new
-  window, bash + prompt file; S4 writes _derived/s4-5/s4-5-prompt.txt from the "### S4.5" block).
-  (3) **S5** once its entry condition is met, launched by S4.5. Then S6, S7.
-- **Ops residue, nobody's ruling** (`Reports/LITKB_RULED_HUNTS_2026-09-21.md` §9, re-measured at
-  revision time): the fetched files of the ruled run's URL rows sit in `_litkb_staging/filed/`
-  with no `file_versions` row — 187's protocol PDF and both copies of 235's report — UNBOUND; the reaper counts them `owned`
-  because a refused admission's checks name them (`py -3.12 -m litkb reap --dry-run` → `orphans=0`),
-  so nothing quarantines them and nothing binds them either (S4.5 item 3 is the landing fix; 235's
-  manual admission needs a second session's sign-off and check 3 measures 0.80 on its five-line
-  cover — **do not lower 0.85**). 194's
-  proposal is to be REFUSED by a second session (its page holds no document) — and NO refuse verb
-  exists for a `proposed` admission (`litkb approve` takes only an admission id;
-  `litkb._refuse_admission` writes a fresh row at admission time): S4.5 item 4 builds it. The arXiv
-  rows of the ruled run (`grep -c ',registry-transient,' ../Reports/LITKB_RULED_HUNTS_2026-09-21.csv`)
-  re-run when arXiv answers 200; whether litkb's own client is the defect (urllib 406 while curl
-  gets 429/200) is UNDETERMINED and S4.5 item 1 measures it. The E25 `.download` files sit at the
-  root of `_litkb_staging/`, outside the reaper's walk (builder-e25 §9.4). The drop-offs of workstream `title-hunts-1` stand `open`
-  beside `ruled-hunts-1`'s for the same tracker rows; no rule retires the superseded one (S5
-  protocol work).
-- **Kam-side, open** (ids; the questions live in `decisions.yaml`): `litkb-e23-residue-copies`,
-  `litkb-blocked-works-grade`, `litkb-scihub-parked`, `litkb-tracker-corrections`,
-  `litkb-from-file-version-state`; the OCR strategy (S4's Kam line); S5's topic.
-- **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided; S7 soak = seven nights
-  started in S1. Kam re-registers the nightly-dump scheduled task (Windows task name
-  litkb-nightly-dump) against the merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
+  0. (2) **S4.5**, launched by S4 the way S4 was launched (a new window, bash + prompt file; S4 writes
+  _derived/s4-5/s4-5-prompt.txt from the "### S4.5" block). (3) **S4.6**, (4) **S4.7**, each launched
+  by the one before it; (5) **S5** once its entry condition is met. Then S6, S7.
+- **Ops residue, nobody's ruling** (`Reports/LITKB_RULED_HUNTS_2026-09-21.md` §9, re-measured
+  2026-09-21): the fetched files of the ruled run's URL rows sit in `_litkb_staging/filed/` with no
+  `file_versions` row — 187's protocol PDF and both copies of 235's report — UNBOUND; the reaper
+  counts them `owned` because a refused admission's checks name them (`py -3.12 -m litkb reap --dry-run`
+  → `orphans=0`), so nothing quarantines them and nothing binds them either (S4.5 item 1 is the
+  landing fix; 235's manual admission needs a second session's sign-off and check 3 measures 0.80 on
+  its five-line cover — **do not lower 0.85**). 194's proposal is to be REFUSED by a second session
+  (its page holds no document) — and NO refuse verb exists for a `proposed` admission: S4.5 item 1
+  builds it. The arXiv rows of the ruled run
+  (`grep -c ',registry-transient,' ../Reports/LITKB_RULED_HUNTS_2026-09-21.csv`) re-run when arXiv
+  answers 200; whether litkb's own client is the defect is UNDETERMINED and S4.5 item 1 measures it.
+  The E25 `.download` files sit at the root of `_litkb_staging/`, outside the reaper's walk. The
+  drop-offs of workstream `title-hunts-1` stand `open` beside `ruled-hunts-1`'s for the same tracker
+  rows; no rule retires the superseded one (S5 protocol work). Codex's round-two GitHub pass and its
+  adversarial read of THIS revision are owed when its quota returns (an Opus adversary stood in).
+- **Kam-side, open** (ids; the questions live in `decisions.yaml`): `litkb-coverage-definition`,
+  `litkb-institutional-access`, `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-crc-book`,
+  `litkb-e23-residue-copies`, `litkb-blocked-works-grade`, `litkb-scihub-parked`,
+  `litkb-tracker-corrections`, `litkb-from-file-version-state`; the OCR strategy (S4's Kam line);
+  S5's topic.
+- **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided; S7 soak = seven nights started in S1. Kam
+  re-registers the nightly-dump scheduled task (Windows task name litkb-nightly-dump) against the
+  merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
 
 ---
 
@@ -113,7 +120,7 @@ Beyond the line, on Kam's track (so no session re-proposes them): promotion on l
 (`litkb-operational-verdict`), the vector leg (P7 bake-off report on `work/20260915-embeddings`),
 citation anchoring and the second gate path (`litkb-crossref-raw-proposer`),
 MinerU/native-layer stages (`LITERATURE_KB_DESIGN_2026-09-13.md` §14). The preprint↔published
-relation scheme, listed here until 2026-09-21, is now S4.5 item 2 under `litkb-sibling-edition`.
+relation scheme, listed here until 2026-09-21, is now S4.5 item 1 under `litkb-sibling-edition`.
 
 ---
 
@@ -121,8 +128,9 @@ relation scheme, listed here until 2026-09-21, is now S4.5 item 2 under `litkb-s
 
 Loop stages, in order: **discover → drop-off → resolve+admit → acquire+bind → extract+ingest →
 search+record → brief+review → synthesis → promote**, plus **ops**. Sessions **S0–S7**, plus
-**S4.5** (inserted 2026-09-21 between S4 and S5; written with a point, not ½, because the plan
-gate recognises a session heading by `### S<digits>`).
+**S4.5**, **S4.6** and **S4.7** (inserted 2026-09-21 and 2026-09-22 between S4 and S5; written with
+a point because the plan gate recognises a session heading by `### S<digits>`, so each is graded as
+an S4 block).
 
 Crosswalk for reading older reports (nothing is renamed there):
 
@@ -143,7 +151,7 @@ Crosswalk for reading older reports (nothing is renamed there):
 per session, reading a manifest frozen BEFORE the run, printing named counters, exit 0 only
 when every counter meets its bound. It is what lets a cold session verify a session without
 trusting the session's own report. Subcommands land with their sessions: `plan` and
-`disposition` (S0), `scout` (S1), `first-work` (S2), `edges` (S3), `readability` (S4), `hardening` (S4.5), `run`
+`disposition` (S0), `scout` (S1), `first-work` (S2), `edges` (S3), `readability` (S4), `hardening` (S4.5), `ladder` (S4.6), `agreement` (S4.7), `run`
 (S5), `synthesis` (S6), `soak` (S7).
 
 ---
@@ -157,7 +165,9 @@ trusting the session's own report. Subcommands land with their sessions: `plan` 
 | S2 | ONE unknown work crosses the whole loop, bounded | ½–1 (may share S1's sitting) | network |
 | S3 | every hunt ends in a named, adjudicated state | 2 | live routes once; Kam's rulings on the held rows |
 | S4 | every acquired file is readable or classified; bulk resumes | 1–2 + unattended local compute | T2000 / WSL GROBID; the book ruling |
-| S4.5 | a blocked work costs seconds, siblings link by registry edge, re-served bad bytes are refused on sight, a proposal can be refused — each referee-scored on real rows | 1 | S4's quarantine state; an independent referee |
+| S4.5 | the substrate (back-off, identity, hash, refuse verb), the ledger vocabulary, and the free rungs of Stages A–C and E — the survey's measured free ceiling converts; every miss typed | 2–3 | S4's quarantine state; an independent referee per rung class |
+| S4.6 | grey literature, books, the shadow tier under the existing grant, credentials behind their rulings; the coverage instrument prints the number against `litkb-coverage-target` | 2 | `litkb-institutional-access`, `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-coverage-definition` |
+| S4.7 | the CMap repair layer, text in tiers, scans measured before adopted, math verified without ground truth | 2 + Colab for the vision-language rungs | gold pages for the scans; Colab spend by name |
 | S5 | proving run 3 from the open web, graded against a frozen manifest | 1 | one headless run; Kam's topic; the metadata repair |
 | S6 | synthesis graded by K3 | 1 | Codex |
 | S7 | seven nights unattended | 1 + seven calendar nights | the scheduler |
@@ -337,7 +347,7 @@ Work
   every file the classifier refuses (`bad-file`, `zero-content`) and every download the
   acquisition guard quarantines a database row — a status plus the sha256 of the refused bytes
   plus the reason, never a directory alone. Reserve a migration number first if a column or table
-  is needed. S4.5 item 3 reads this state to refuse re-served bytes.
+  is needed. S4.5 item 1 reads this state to refuse re-served bytes.
 - **The measurement bed**, named so the classifier is scored on real files, not synthetic ones:
   every active file in main with no blocks, by work key (the query under "Test-set commands");
   the `--no-extract` binds of the wrap-up and the ruled run
@@ -386,162 +396,425 @@ Done-state
 py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute(\"SELECT w.key, f.rel_path FROM litkb.main_files f JOIN litkb.main_works w ON w.work_id=f.work_id WHERE f.status='active' AND NOT EXISTS (SELECT 1 FROM litkb.blocks b WHERE b.file_id=f.file_id) ORDER BY 1\").fetchall())"
 # the base's bioRxiv files (DOI prefix 10.1101/), for the stamp strip's bioRxiv branch
 py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute(\"SELECT w.key FROM litkb.main_identifiers i JOIN litkb.main_works w ON w.work_id=i.work_id WHERE i.scheme='doi' AND i.value LIKE '10.1101/%'\").fetchall())"
-# the quarantine's size today (a directory; no database state until S4 lands)
-py -3.12 -c "import pathlib;print(sum(1 for _ in pathlib.Path('D:/edmonds-pipeline/Literture/_quarantine').iterdir()))"
 ```
 
 Kam: the OCR strategy (recommendation: page-range chunks on the T2000).
 
-### S4.5 — Acquisition hardening (acquire+bind · resolve+admit identity · the second session)
+### S4.5 — The acquisition ladder, part 1: the substrate and the free rungs (Stages A–C and E)
 
-Inserted 2026-09-21 by the plan revision, between S4 and the proving run. It holds ONLY what
-protects S5's unattended run and has a real test set today; everything else the survey proposed
-is under "Improvements after S5". Every item below is a RELAYED design (CLAUDE.md §3.4c): a
-crawler read the mechanism in external source, nobody has run it on litkb's rows, and the
-external reading is one crawler's, unreplicated. Each item is UNVALIDATED until an independent
-referee (never its builder) scores it on the rows named here and the referee's report is tracked
-under Reports/; a kill criterion counts only once it has FIRED on the known-bad. Spelled S4.5,
-not S4½, because the plan gate recognises a session heading by `### S<digits>`.
+Rewritten 2026-09-22 after the PDF-sources survey (`Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md`:
+its §M is the orchestrator's read-only measurements on litkb's own rows, its §1 the ladder by stage,
+its §2 the per-publisher rule table, its §3.4 the ledger vocabulary, its §6 the coverage projection).
+The target is `litkb-coverage-target` (decided); the survey's demonstrated number for a corpus of this
+shape by legitimate automated means is lower — an EXTERNAL self-reported figure, not litkb's — and the
+gap is closed by rulings, not rungs. This session builds only rungs that cost nothing on a miss and
+are VERIFIED in source or MEASURED on litkb's rows; a rung the survey measured at zero here is kept
+only if it is free, and reported as measured-zero. S4.6 builds the tiers that wait on
+`litkb-institutional-access`, `litkb-shadow-hosts` and `litkb-tdm-keys`. Every rung is a RELAYED
+design (CLAUDE.md §3.4c) and is UNVALIDATED until an independent referee scores it on the rows named
+here and the report is tracked under Reports/; a kill criterion counts once it has FIRED. Referees:
+one per RUNG CLASS, sequentially, inside the protocol's three-agent cap — the classes are the
+substrate, the vocabulary, Stage A, Stage B, Stage C and Stage E. Spelled S4.5 because the plan gate
+recognises a session heading by `### S<digits>`. Rung and guard ids are the survey report's.
 
 Work
-1. **Per-route back-off and in-run retry** (survey C, Zotero's per-host record, adapted — the
-   Zotero commit is UNPINNED in the survey; the mechanism is what is adopted, not the code).
-   Measured: the dead-skip in `pipeline/litkb/acquire/run.py` is a literal set keyed on the
-   status word alone (`DEAD_STATUSES`); `blocked`, `quota-stop`, `bad-file` and `api-error` are
-   in no route's set; `prior_attempts()` returns `at` and the skip decision never reads it (the
-   printed skip message does). The statuses that ARE dead show no repeat legs in the ledger; the
-   `blocked` legs do — the contrast, not "every hunt", is the finding (the census command under
-   "Test-set commands"; E13's `seconds` in `Reports/LITKB_EDGE_RUN_2026-09-21.csv` is the worst
-   single row, the ruled run's blocked rows cost under a minute each). The attempt row already
-   holds `route`, `status`, `http_codes` and `at`, so a back-off needs no schema change: key it on
-   (route, status, http codes, at) — never on the hunt's state word, because `pipeline/litkb/hunt.py`
-   folds `quota-stop` into `blocked` too. A plain 403 on a route is dead for the rest of the run on that route; a bot challenge is
-   told by the body, not the code (`is_challenge` in `pipeline/litkb/netutil.py`), gets one
-   solver retry, then is dead for the run — that precedence is the rule item 3's sub-typing
-   records; a registry transient (`api-error/registry-transient`) is retried on a schedule inside
-   the run, never by hand; a skipped route is logged as a skip, never an attempt; dead-ness carries
-   a date, not a permanent mark, because mirrors change. Sci-Hub's default is
-   `litkb-scihub-parked` (open): the back-off bounds its cost to one probe per route per run
-   either way; the default flips only when the id is decided. The retry is also the arXiv
-   discriminator: when the ruled run's `registry-transient` rows re-run, a `curl` probe of the same
-   endpoint in the same minute is recorded beside litkb's own response — a 200 to curl and a 406
-   to litkb names the client as the defect.
-   Test set: E13 (`10.1145/3534678.3539043`) re-hunted twice in one run; the `registry-transient`
-   rows of `../Reports/LITKB_RULED_HUNTS_2026-09-21.csv`; and a control that must still spend —
-   E21's preprint (its route answered 200 live, `Reports/LITKB_TITLE_HUNTS_2026-09-21.csv`)
-   re-hunted under the back-off reaches its route.
-2. **Identity from the registry, not from titles** (survey B, adapted; `litkb-sibling-edition`,
-   `litkb-book-policy`). Measured: `parse_crossref` in `pipeline/litkb/admit/registry.py` receives
-   the `relation` field and never reads it, and no raw registry response is stored anywhere, so a
-   backfill costs one Crossref call per confirmed DOI (`SELECT scheme, verified_by, count(*) FROM
-   litkb.main_identifiers GROUP BY 1,2` sizes it) and the field's YIELD over this corpus is
-   unmeasured (the survey's own live probe of a bioRxiv preprint returned `relation:{}`). So:
-   FIRST a sampled live probe over the base's DOIs, recorded as a measured CSV under phase4/qc/ by
-   an instrument (CLAUDE.md §3.4b); THEN record `relation` (isPreprintOf / hasPreprint /
-   isVersionOf) and the arXiv record's DOI as identifier-to-identifier edges with a third state
-   for "no relation returned" (absence of the field is not evidence of absence), at admission going
-   forward and by backfill as the probe's yield justifies. Order the duplicate check
-   identifier-first so a DIFFERENT confirmed DOI is "a different record, possibly related", never
-   `duplicate-review` (`_title_duplicates`, migration 0013, at 0.70/±1 y today). Harvest `ISBN` at
-   admission canonicalised to ISBN-13 and scope it by type — shared ISBN is identity only between
-   two `book` records, because chapters share the book's ISBN. Give `make_key` in
-   `pipeline/litkb/admit/front.py` a rule for long creator strings: measured, the crash is LENGTH,
-   not corporateness — a surname segment long enough that `key[:59]` cuts away the `_YYYY_slug`
-   tail violates `works_key_check` (row 187's DataCite creator; "King County GIS Center" derives a
-   valid key today). Derive a compact key (an initialism, as the manual `LPVSubgroup_2025_…` did)
-   when the segment would overflow, and if derivation still fails REFUSE with a named reason —
-   never `crashed/admit:CheckViolation`. Migration numbers reserved first.
-   Test set — positive: E21's pair (`litkb-sibling-edition`): the probe records the registry's
-   answer for both DOIs — an edge if one is returned, the third state if `relation` comes back
-   empty; either passes, a title-inferred edge is the refusal — and the preprint DOI keeps
-   admitting as its own work under identifier-first ordering; E20's book
-   (`10.1201/9781315374321`) gains its ISBN at admission; 187's DataCite record admits with a
-   derived key and no `--key`; the ruled run's arXiv rows, once arXiv answers, each record their
-   DOI field or its absence. Negative: E06 in `qc/fixtures/litkb_hunt_edge_cases.json` (a page
-   with no confirmed identifier, title-near an existing work) must STILL refuse
-   `duplicate-review`; a `journal-article` record given E20's ISBN must not be its duplicate —
-   CONSTRUCTED, because the base holds no chapter, and this line says so; a creator string one
-   character past the measured length threshold (admit-audit's synthetic surname) must derive a
-   key, never crash.
-3. **The served bytes' hash on every attempt row, and a landing that never strands a file**
-   (survey E, sandcrawler's ledger, adapted; the rejected-sha lookup is litkb's own design — nothing
-   external refuses a known-bad hash). Measured: only the Anna's route guards a known md5
-   (`known_md5` in `pipeline/litkb/acquire/annas.py`), and it looks up the ARCHIVE-DECLARED md5,
-   which the served bytes by construction never carry, so a served hash can never suppress the
-   request that produced it; a hash mismatch quarantines the bytes (their md5 is in the disk index)
-   but nothing consults it; a re-served quarantined file is NOT `duplicate-held` — the disk dedupe
-   leg drops `_quarantine/`, so the same bytes are re-landed and re-quarantined (the identical
-   Anna's rows for E13); the open-access route writes `detail->'sha256'` on some failures and not
-   others. Record the sha256 of what a route served on its `acquisition_attempts` row for EVERY
-   route; add a (route, identifier, sha) → rejected-because lookup over S4's quarantine state so a
-   re-served known-bad file is a skip, and N distinct bad hashes make the (route, identifier) pair
-   dead; sub-type `blocked` into login-wall (dead) and bot-challenge (retryable). The identifier
-   scope is the only achievable one (a hash cannot be known before the bytes arrive). First step,
-   before any spend: diagnose the Anna's `bad-file` repeats (the query under "Test-set commands"
-   lists every repeated DOI) against the archive record's md5 — a wrong
-   record and a wrong gate need different fixes. Same item, the landing defect the ruled run
-   surfaced: a fetched file whose URL admission is refused `duplicate-review` is OFFERED to the
-   work it duplicates through the normal binding gate (check 3 on the file against that work's
-   record — a bind, never an assumption; if check 3 refuses, the file is quarantined with the
-   reason) and is never left unowned on disk (187's protocol PDF in `_litkb_staging/filed/`; the
-   `.download`-path workaround retired).
-   Test set: E13's Anna's rows (re-served bytes skipped); a control — E21's preprint's bytes
-   re-served must NOT be refused (its hash is bound, not rejected); the sub-typing set — the
-   `challenge` and `403` attempts in the census (`http_codes` + `detail`), with a login wall
-   UNVALIDATED until one is recorded; 187's filed PDF and 235's copies bound through check 3 or
-   quarantined with a reason — never left under `filed/`.
-4. **A second-session REFUSE verb** (litkb's own gap, measured 2026-09-21): `litkb approve` takes
-   only an admission id and `litkb._refuse_admission` only INSERTs a fresh refusal at admission
-   time, so a `proposed` admission can be approved or left forever — never refused. S5 creates
-   proposals (web snapshots, manual admissions) that a second session must adjudicate both ways.
-   Build the verb and the function that moves `proposed` → `refused` under the approver's labels,
-   guarded like `approve_admission`, and make BOTH guards fire on a known-bad (the approve guard
-   has been read by two sessions and never made to fire — a §3.4c gap on the path the whole second
-   session rests on).
-   Test set: 194's proposal (`01a0c730-fa16-7d45-baf8-0fce8c8ad084`; the `proposed` admissions are
-   the command below) refused by a second session; the approve guard fired on a known-bad
-   (`approve` invoked by the session that made the proposal → refused).
+1. **The substrate carried from the 2026-09-21 revision** (the four items that block were: back-off,
+   registry identity, the served-bytes hash, the refuse verb — all of them are THIS item now):
+   per-route back-off and in-run transient retry keyed on (route, status, http codes, at), never the
+   state word, with AIMD decay on every 2xx (guard 2: the survey's starting constants are a 1 s decay
+   against a 2× multiplier and a 300 s ceiling, the refusal ladder 15 min → 6 h → 48 h — calibrated
+   on the ledger, never taken as given) and NO host suppression on a single 403 (guard 29 — MDPI answers
+   403 per article and is the corpus's largest slice); dead-ness a per-attempt `retriable` fact
+   (guard 15). Registry identity: the Crossref `relation` probe first, then edges with a third state,
+   identifier-first duplicates, type-scoped ISBN-13, a key-LENGTH rule for `make_key`. The served-bytes
+   sha on every attempt row, a rejected-hash lookup over S4's quarantine state, and a landing that
+   offers a refused-duplicate file to its work through check 3. A second-session REFUSE verb with both
+   guards fired. Rows: E13 and the ruled run's `registry-transient` rows for the back-off; E21's pair
+   for identity, with E06 as an ADMISSION negative (a page with no confirmed identifier, title-near an
+   existing work, must still refuse `duplicate-review` — it exercises the duplicate check, not an
+   acquisition rung); 187's record for the key rule and its filed PDF for the landing; 194's proposal
+   for the verb. The back-off's known-bad, the relation probe's, the key rule's and the verb's are in
+   (c) below; the other substrate counters are REPORTED, not gated, until a known-bad is written for
+   each — the block says so rather than claiming gates it has not fired.
+2. **The ledger vocabulary the ladder needs** (survey §3.4; migration numbers reserved first; every
+   column and value a `docs/SCHEMAS.md` row). NOT new words in the hunt's closed `STATES`/`REASONS`
+   tuples — those stay as S3 left them, and the acceptance instrument's `CLOSED_STATES` pin stays
+   green — but a `sub_status` column on `acquisition_attempts`, carried into `route_detail`, so a hunt
+   that lands nothing still ends `held/not-acquired` while the attempt says WHY: `bad-file` sub-typed
+   `html_response` · `too_small` · `missing_pdf_header` · `corrupt_pdf_header` ·
+   `early_eof_with_trailing_payload` · `stub_not_article` · `volume_not_article` ·
+   `cited_document_not_this_article` · `compressed_or_archived_payload`; `blocked` sub-typed
+   `identity_required` · `challenge_or_bot_check` · `not_found` · `html_or_reader`. Also
+   `terminal_url`, `terminal_status_code`, `terminal_dt` on every attempt; `word_count` on every landed
+   file (`pages` already exists); `retriable` per attempt; `kind` (`pdf` · `jats` · `text` ·
+   `html-doc` · `cached_text` · `snippet`); the version of record carried by EXTENDING
+   `file_versions.copy_kind` (its `publisher` · `author manuscript` · `preprint` values already say
+   published · accepted · submitted; guard 23) rather than a new column; an `unverified_keep` outcome
+   (guard 17); a skip is an attempt with a reason, never silence (guard 14); a declarative BUDGET over
+   the whole ladder — total seconds, attempts, concurrency — checked between every stage and rung
+   (guard 12); a pre-fetch `PolicyDecision` so a tier is an auditable switch (guard 21).
+3. **Stage A, zero network**: the record-class filter (A0); identifier canonicalisation (A1); the
+   work-class router (A2 — paper · chapter · book · report · thesis · HTML-only; it is what stops a
+   preprint or a book being sent to the scidb-by-DOI archive path, the routing error §M measured);
+   the DOI-prefix router (A3); deterministic publisher URL construction (A4); EarthArXiv's OAI map of
+   published DOI to preprint PDF (A7, MEASURED in the survey's round 2). Rows: the preprints among the
+   archive misses (the probe instrument's baselines CSV lists them by Crossref type) must route to
+   their native API.
+4. **Stage B, metadata fan-out, all rungs CONCURRENT** (wall-clock is the slowest, never the sum),
+   every rung asked for EVERY `no-oa-copy` row so its yield on this corpus is MEASURED by the run and
+   written into the report — zero is an allowed answer, and a rung is kept only while its cost per miss
+   is one free call: the identifier already carrying the file (B1 — MEASURED in §M: Semantic Scholar's
+   `openAccessPdf` yields the arXiv siblings); OpenAlex `best_oa_location` and every `pdf_url` (B3 —
+   DISPUTED in the survey, measured elsewhere at zero net-new over Unpaywall; kept because it is free);
+   Crossref `link[]` with the correct filter — `pdf` in the content type OR the URL path, because MDPI's
+   is `unspecified` (B4); Semantic Scholar's record (B5); DataCite (B6); CORE v3 (B7); DOAJ (B8);
+   OpenAIRE (B9); the arXiv host rewrite to `export.arxiv.org` (B10); OSF (B11); Europe PMC (B12 —
+   MEASURED ZERO on the survey's controls; kept only if it costs no quota); the conference-venue ladder
+   (B13); Zenodo, HAL and figshare direct (B14). NASA ADS (B15) is NOT built here — the survey never
+   probed its gateway; it is probed, not built, and enters the after-S5 table if it answers.
+5. **Stage C, landing page to bytes** — the single highest-yield missing rung: `citation_pdf_url` and
+   its `bepress_` and `eprints.` variants matched by suffix, `link rel=alternate type=application/pdf`
+   (C2); URL rewrites (C3); a DECLARATIVE per-publisher rule table for this corpus's publishers ported
+   from the Zotero translator corpus (survey §2: MDPI's CDN `mdpi-res.com/d_attachment` answers
+   `application/pdf` where `www.mdpi.com` answers 403; Elsevier's `pii` to `pdfft` for bronze articles;
+   Springer, Wiley, IEEE, IOP, Cambridge, OUP, Copernicus, Frontiers, PLOS, USFS Treesearch — each with
+   its validity check, and a challenge signature where the survey characterised one, which for
+   Cambridge and eLife it did not), each rule shipping its example page as a regression fixture and its
+   `lastUpdated` as a freshness prior (guard 25); an `Accept: application/pdf` header, and the Referer
+   policy of guard 24 (the landing page if same-origin, else its origin, never a search engine). THE
+   ACCEPTANCE TEST replaces today's `%PDF-` header plus `%%EOF` trailer with: lstrip-tolerant magic, a
+   5,000-byte floor, libmagic MIME, transparent decompression of gzip and tar payloads, `%%EOF` within
+   8 KiB of the end, `qpdf --check` (exit 0 clean, 3 recoverable, 2 damaged; the `--is-encrypted` exit
+   codes mean something else), the stub detectors (fewer than 3,000 characters with no reference
+   section; Elsevier's `X-ELS-Status` header; `page_count >= 60` against a Crossref page range shorter
+   than that for a volume; `DOI_PAGES=3` so a bibliography cannot fake a DOI match), Crossref page-range
+   as an identity signal, and never a delete on a verdict whose metadata could not be fetched (guard 18).
+   Before spending anything, the 4 KB Range probe (C6/C13) types a refusal into the `blocked`
+   sub-statuses.
+6. **Stage E, recovery**: the Wayback availability API and CDX with the `id_` raw-bytes modifier (E1 —
+   §M's census.gov author copy is its positive row; §M's IIASA copy, never archived, is its real
+   NEGATIVE); Internet Archive item search and download (E3) and the Common Crawl index (E5) have no
+   litkb row today and are built as free fan-out members whose yield the run measures. fatcat's API is
+   dead server-side (the survey settled it) and is not a rung.
+7. **The measurement that comes FIRST**: read every `bad-file` row's `detail`, its stored bytes' first
+   kilobyte where the bytes were kept (the store kept them for only a few of these rows; the rest have
+   `detail` alone) and its length; type each into item 2's vocabulary; the count of causes that are free
+   to fix is this session's first tracked number, written by the probe instrument into phase4/qc/.
+
+Test set (the rows are named by the probe instrument's CSVs under phase4/qc/ — see the commands —
+never by a number here). POSITIVE, MEASURED: the `no-oa-copy` rows whose probe verdict is `FREE-PDF`
+(the arXiv siblings, through B1) and the Wayback row (through E1) — these MUST convert; the Elsevier
+bronze rows whose Unpaywall answer is a landing page — through Stage C, ESTIMATED by the survey at
+zero to all of them because Elsevier's `/pdfft` may sit behind a challenge, so they are REPORTED, and
+if they end `challenge_or_bot_check` the converter is S4.6's browser rung. Every `bad-file` row
+re-typed; every open-access `blocked` row typed by the Range probe (an MDPI row among them is a
+MEASURED conversion through the CDN rule); the preprints among the archive misses routed by Stage A.
+NEGATIVE, REAL: the paywalled remainder of the `no-oa-copy` rows (§M measured every Springer, Wiley,
+OUP, IOP and Cambridge link as HTML or a token-gated endpoint) must end typed `identity_required` or
+`html_or_reader`, never bound; E13's challenge bytes must type `challenge_or_bot_check`; the IIASA
+link must end `not_found` at E1; the publisher PREVIEW that E20's own `citation_pdf_url` serves — a
+valid PDF of a few pages that is not the book (§M; the head probe marks it `PREVIEW-PDF`) — must
+type `stub_not_article`, never bind. NEGATIVE, CONSTRUCTED — and this line says so in those words, per
+§3.4c, because the base holds none of them: a valid PDF whose body starts with a BOM; a first-page TDM
+stub with the `X-ELS-Status` header; a 60-page proceedings volume bound to a 12-page record; a PDF
+whose bibliography carries the requested DOI; all four under qc/testdata/litkb_acq_negatives/ (to be
+written), each labelled constructed in its name.
 
 Done-state
-- (a) the migrations; the back-off, the edge recorder + probe CSV, the hash on the attempt row,
-  the refuse verb; a hardening CSV + report under Reports/ (LITKB_HARDENING_<date>); one referee
-  report per item under Reports/; tests + ledger rows; `docs/SCHEMAS.md` rows for every new column,
-  state and sub-type.
-- (b) `py -3.12 qc/instruments/litkb_acceptance.py hardening --manifest <manifest>` →
-  `rehunt_route_spends=0 transient_rows_unretried=0 relation_probe_rows>=1 relation_edges_missing=0
-  identifier_first_refusals=0 books_without_isbn=0 key_derivation_crashes=0 attempts_without_sha=0
-  known_bad_relands=0 unowned_landings=0 proposals_unadjudicated=0 unvalidated_items=0`. Meanings,
-  fixed here: `rehunt_route_spends` counts attempts on a (route, work) whose previous attempt on
-  that route is inside its back-off window and is not a scheduled transient retry;
-  `attempts_without_sha` counts attempts whose `detail` records bytes received and no sha (an
-  attempt that received no bytes is out of scope); `known_bad_relands` counts landings whose sha
-  matches a rejected (route, identifier, sha) row; `unvalidated_items` counts items whose referee
-  report the manifest does not name OR whose report carries no `fired:` line for the item's
-  known-bad.
-- (c) the back-off window set to zero → E13's second hunt spends every route again (none of
-  E13's statuses is a permanent dead status) → `rehunt_route_spends>0`; a relation edge asserted from a title match with no registry `relation`
-  → refused; an ISBN shared by a `book` and a `journal-article` record → not a duplicate; the key
-  rule reverted → 187's record ends `crashed`, `key_derivation_crashes=1`; E13's bad bytes
-  re-served with the lookup disabled → `known_bad_relands=1`; the refuse verb invoked on an
-  admission already `approved` → refused by its guard, and `approve` or `refuse` invoked by the
-  session that made the proposal → refused; a referee report dropped from the manifest →
-  `unvalidated_items=1`.
+- (a) the migrations; the ledger columns and values; the Stage A/B/C/E rungs with their rule fixtures;
+  the bad-file re-typing CSV under phase4/qc/; a report under Reports/ (LITKB_LADDER1_<date>); one
+  referee report per rung class under Reports/; tests + ledger rows; `docs/SCHEMAS.md` rows for every
+  column, value and sub-status; the manifest frozen by `hardening --freeze` before the run, as `edges`
+  does it.
+- (b) `py -3.12 qc/instruments/litkb_acceptance.py hardening --manifest <manifest>` → GATED (each with
+  a (c) that fires): `rehunt_route_spends=0` (attempts on a route inside its back-off window that are
+  not a scheduled transient retry) · `relation_probe_rows>=1` (rows in the probe CSV) ·
+  `key_derivation_crashes=0` (admissions ending `crashed/admit:CheckViolation`) ·
+  `known_bad_relands=0` (landings whose sha matches a rejected row) · `proposals_unadjudicated=0`
+  (`proposed` admissions older than the run with neither verb applied) · `bad_file_untyped=0`
+  (`bad-file` attempts with NULL `sub_status`) · `blocked_untyped=0` · `preprints_sent_to_shadow=0`
+  (attempts on a shadow route for a work whose Crossref type is `posted-content`) ·
+  `landing_pages_booked_bad_file=0` (`html_response` attempts whose page carried `citation_pdf_url`
+  and no Stage C attempt followed) · `stubs_bound=0` · `volumes_bound_as_article=0` (a bound file with
+  `pages >= 60` against a Crossref page range under 60) · `free_ceiling_measured_unconverted=0` (the
+  `FREE-PDF` and Wayback rows still without a file) · `budget_exceeded_silently=0` (a work whose ladder
+  ran past the budget with no `budget` attempt row) · `stage_b_rungs_unmeasured=0` (Stage B rungs
+  with no yield line in the report) · `unvalidated_items=0` (rung classes — the six above — whose
+  referee report the manifest does not name or whose report has no `fired: <counter>=<value> on
+  <input>` line). REPORTED, unbounded: `transient_rows_unretried`, `relation_edges_missing`,
+  `identifier_first_refusals`, `books_without_isbn`, `attempts_without_sha`, `unowned_landings`,
+  `attempts_without_terminal`, `files_without_word_count`, `hits_without_version`,
+  `bronze_landing_unconverted`, `manual_step_rows`.
+- (c) the back-off window set to zero → E13's second hunt re-spends (none of its statuses is a
+  permanent dead status) → `rehunt_route_spends>0`; the probe CSV emptied → `relation_probe_rows=0`;
+  the key rule reverted → 187's record → `key_derivation_crashes=1`; E13's bytes re-served with the
+  lookup disabled → `known_bad_relands=1`; the refuse verb removed and 194 left → 
+  `proposals_unadjudicated=1`; the typing step disabled → `bad_file_untyped>0` and `blocked_untyped>0`;
+  the router disabled and a preprint hunted → `preprints_sent_to_shadow=1`; Stage C disabled on a page
+  with `citation_pdf_url` → `landing_pages_booked_bad_file=1`; the constructed TDM stub, and E20's REAL preview PDF → `stubs_bound=1`
+  if either binds; the constructed volume → `volumes_bound_as_article=1` if it binds; the B1 rung disabled
+  → `free_ceiling_measured_unconverted>0`; the budget object removed → `budget_exceeded_silently=1`;
+  a Stage B rung's yield line deleted from the report → `stage_b_rungs_unmeasured=1`; a referee report
+  dropped from the manifest → `unvalidated_items=1`.
 
 #### Test-set commands (run from Scripts/, read-only)
 
 ```
 # the acquisition census, all time, by route and status — never quote a cell, run this
-py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute('SELECT route,status,count(*) FROM litkb.acquisition_attempts GROUP BY 1,2 ORDER BY 1,2').fetchall())"
-# repeat legs per (route, status): a status that is dead shows one attempt per work
-py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute('SELECT route,status,count(*) AS attempts,count(DISTINCT work_id) AS works FROM litkb.acquisition_attempts GROUP BY 1,2 HAVING count(*)>count(DISTINCT work_id) ORDER BY 1,2').fetchall())"
-# the Anna's bad-file repeats, by identifier
-py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute(\"SELECT identifier_used,count(*),min(at)::date,max(at)::date FROM litkb.acquisition_attempts WHERE route='annas' AND status='bad-file' GROUP BY 1 ORDER BY 2 DESC\").fetchall())"
-# the proposed admissions (194 today); then the reaper's verdict on every staging file
-py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute(\"SELECT id,state FROM litkb.admissions WHERE state='proposed'\").fetchall())"
-py -3.12 -m litkb reap --dry-run
+py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute('SELECT route,status,count(*) AS rows,count(DISTINCT identifier_used) AS identifiers FROM litkb.acquisition_attempts GROUP BY 1,2 ORDER BY 1,2').fetchall())"
+# coverage today: works in main, with an active file, with searchable blocks
+py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute('SELECT (SELECT count(*) FROM litkb.main_works),(SELECT count(DISTINCT work_id) FROM litkb.main_files WHERE status=%s),(SELECT count(DISTINCT f.work_id) FROM litkb.main_files f WHERE f.status=%s AND EXISTS (SELECT 1 FROM litkb.blocks b WHERE b.file_id=f.file_id))',('active','active')).fetchone())"
+# the tracker denominator and its identifier mix (before the record-class filter)
+py -3.12 -c "import csv,re,collections;r=list(csv.DictReader(open('../Reports/literature_tracker.csv',encoding='utf-8-sig')));m=collections.Counter('doi' if re.search(r'10\.\d{4,9}/',x['DOI/URL']) else 'arxiv' if re.search(r'arxiv|\b\d{4}\.\d{4,5}\b',x['DOI/URL'],re.I) else 'url' if x['DOI/URL'].startswith('http') else 'text' if x['DOI/URL'].strip() else 'empty' for x in r);print(len(r),dict(m))"
+# the survey's read-only probes as repository instruments (metadata and HEAD only; nothing downloaded);
+# they write phase4/qc/litkb_acq_probe_no_oa_copy.csv, litkb_acq_probe_head.csv, litkb_acq_probe_baselines.md
+py -3.12 qc/instruments/litkb_acq_probe_no_oa_copy.py && py -3.12 qc/instruments/litkb_acq_probe_head.py && py -3.12 qc/instruments/litkb_acq_probe_baselines.py
+# the MEASURED free-ceiling rows (must convert) and the bronze landing-page rows (reported)
+py -3.12 -c "import csv;h=list(csv.DictReader(open('../phase4/qc/litkb_acq_probe_head.csv',encoding='utf-8')));print('free',sorted({r['doi'] for r in h if r['verdict']=='FREE-PDF'}));n=list(csv.DictReader(open('../phase4/qc/litkb_acq_probe_no_oa_copy.csv',encoding='utf-8')));print('bronze-landing',[r['doi'] for r in n if r['unpaywall_url'].startswith('https://doi.org/')])"
 ```
 
-Kam: `litkb-scihub-parked`; `litkb-blocked-works-grade`; `litkb-from-file-version-state`.
+Kam: `litkb-blocked-works-grade`; `litkb-from-file-version-state`.
+
+### S4.6 — The acquisition ladder, part 2: grey literature, books, the shadow tier and credentials (Stages D, F, G, H)
+
+Inserted 2026-09-22. These rungs reach what Stages A–C and E cannot: works with no DOI (agency and
+city reports, theses), books and chapters (a namespace litkb's scidb-by-DOI route cannot address by
+construction — the survey report §4), the pre-2021 paywalled slice (the shadow tier under Kam's
+existing grant; new hosts and a browser against a shadow host only under `litkb-shadow-hosts`), and
+the paywalled remainder that only credentials reach (`litkb-institutional-access`, `litkb-tdm-keys`).
+The survey's §6 says which of these closes the gap to `litkb-coverage-target` and under what ruling;
+this session builds what is ruled in and reports the rest UNDETERMINED, never as a miss. Every rung
+is a RELAYED design and UNVALIDATED under the S4.5 protocol (referee per rung class: Stage D, Stage F,
+Stage G, Stage H, the coverage instrument); shadow rungs are read through code and documentation only
+until Kam's grant names the host. Rung ids are the survey report's.
+
+Work
+1. **Stage D, title-keyed grey literature** (fires on the work-class router's `report` and `thesis`
+   hints; every hit passes the title-on-page identity check at 0.85, never lower, because these works
+   have no DOI to corroborate): USFS Treesearch through its sitemap (D1, VERIFIED by the survey's A8
+   measurement — enumerable records, `citation_pdf_url` on every page, HEAD `application/pdf`); USGS
+   Publications Warehouse (D2); DOE OSTI (D3); NASA NTRS (D4); govinfo (D5); DSpace 5/6 and EPrints
+   through OAI-PMH `metadataPrefix=mets`, which returns the bitstream URL with its MD5 and byte size so
+   a file is verified BEFORE download and often a pre-extracted text sibling (D6; the installed OAI
+   connector is NOT reused, D7); DSpace 7 through its REST bitstream walk instead (B16 with C20 — a
+   direct file route the survey calls strictly better for any repository upgraded since 2022); King
+   County and city document portals (D8); OpenAlex title search (D9); a multi-engine exact-title
+   `filetype:pdf` search (D10); Google Scholar's `eprint_url` (D11); ArcGIS Online item search with
+   `type:"PDF"` (D12 — MEASURED: a city canopy assessment was its first result); the state-library
+   DSpace class, Washington State Library unprobed (D13). Budget the layer at the Internet Archive's
+   own repository-harvesting rate (survey §3 — the archive's number on its own pipeline, NOT this
+   corpus's), which is far below its open-access rate.
+2. **Stage F, books and chapters — UNVALIDATED with no real test row until `litkb-crc-book` yields
+   one**: the ISBN namespace — and the harvest S4.5 schedules cannot produce E20's ISBN, because
+   Crossref holds none for it and the one that exists came from a publisher page, so the harvest gains
+   a publisher-page ISBN source or a manual identifier; `isbnlib.editions` clustering so one ISBN
+   becomes the edition set; Open Library to an Internet Archive item; chapter routing where a chapter
+   DOI carries the book's ISBN — the ISBN attaches to the BOOK work only (the identifier index is
+   unique per active scheme and value) and a chapter links to it by a `part_of` edge from S4.5's edge
+   mechanism; EPUB and DjVu to PDF conversion where a copy arrives in another format. DOAB and OAPEN
+   (F4), HathiTrust (F5) and Google Books (F6) are graded MIXED by the survey — a Cloudflare 403 on
+   the REST path, partner access the project does not have, and no PDF logic in Zotero's own
+   translators for them — so they are PROBED, not built. The corpus's CRC Press book has NO automated
+   route (Taylor and Francis needs a browser-session token).
+3. **Stage G, the shadow tier under the EXISTING grant** (Anna's Archive and Sci-Hub; every request
+   behind guard 21's `PolicyDecision`): detect DDoS-Guard by the page `<title>` FIRST, so a block is
+   booked `challenge_or_bot_check` and never `not-in-archive` (G0d; the survey reads the archive misses
+   as mostly false negatives for this reason); Anna's quota-free record endpoint from an md5 (G2a);
+   Sci-Hub's Altcha challenge distinguished from a genuine miss (G0c) and its resolved storage path
+   treated as portable across mirrors (G1b); the mirror lists moved from `run.py` constants to a
+   versioned registry fetched at start (guard 7). NEW rungs are NOT built until `litkb-shadow-hosts` is
+   decided, and the plan records them as read in code only: LibGen's DOI-to-md5 lookup with its
+   User-Agent trap (G0a) and delivery (G1d), the `sci.bban.top` DOI path (G1a), Nexus/STC (G0b —
+   VERIFIED but disputed, its gateway reported down in 2026; G1c), a real browser session against
+   Anna's (G3a). Tor as a transport (G5) is graded verified as a mechanism and dead as an
+   implementation, and is not scheduled. The Sci-Hub corpus froze around 2021, so a post-2021
+   paywalled work in this tier ends `held/not-acquired` with `retriable=false`; the deferred-human-
+   fulfilment rung (G4) is the `--from-file` half of `litkb-blocked-works-grade`, not code.
+4. **Stage H, credentialed and anti-block, each behind its ruling**: a persistent logged-in browser
+   profile driven by Playwright (H10, and H11 — the one rung that survives the Elsevier JS redirect;
+   together the only converters of the `manual-step` rows; conditional on `litkb-institutional-access`;
+   no credential is ever stored or scripted by litkb); Springer's API (H1 — resolves, but hands URLs on
+   the walled host) and Elsevier's (H2 — free keys buy open-access content only; an unentitled key
+   answers HTTP 200 with a first-page stub announced only in `X-ELS-Status`, which S4.5's acceptance
+   test refuses), both under `litkb-tdm-keys`; `curl_cffi` impersonation (H5) is NOT built — the
+   survey measured it AGAINST twice in production, on MDPI and on Springer — and is recorded as
+   measured-against; FlareSolverr (H6) already exists in `pipeline/litkb/netutil.py` as the challenge
+   retry, cannot return a PDF (its solution is HTML), and stays a landing-page solve only. No commercial
+   anti-bot proxy.
+5. **The coverage account** the finish line reads: an instrument under `qc/instruments/` that joins the
+   tracker to main by identifier, applies the record-class filter, and prints per grade (`pdf` ·
+   `jats` · `html-doc` · `cached_text` · `snippet` · metadata-only · none) the share of eligible
+   tracker rows in each, plus the paywalled residue by publisher and year, into a CSV under phase4/qc/.
+   Which grades count toward the target is `litkb-coverage-definition`; until it is decided the
+   instrument REPORTS and the session's (b) carries no coverage bound.
+
+Test set, POSITIVE: the archive-miss rows by Crossref type (the probe instrument's baselines output
+under phase4/qc/ lists them: the preprints must never reach this tier — S4.5's router owns them; the
+chapters and the book go through Stage F only if a copy can exist; the rows no registry holds end
+`refused/unresolved` with the reason, never `not-in-archive`); the Sci-Hub `blocked` rows re-typed
+(challenge · miss · storage path found on another mirror); the grey rows whose files are ALREADY on
+disk but not in main — 235's Seattle canopy report under `_litkb_staging/filed/` and 194's King
+County page snapshot under `_litkb_staging/web/` — and the USFS and USGS class by title; the
+`manual-step` rows ONLY if `litkb-institutional-access` is decided yes. NEGATIVE, REAL: a Stage D
+title hit whose page-1 title scores below 0.85 (the ruled run's row 235 cover measures 0.80 and is the
+row); a DDoS-Guard interstitial from the ledger's own `blocked` attempts; a request to a host outside
+the policy allowlist. NEGATIVE, CONSTRUCTED, in those words: a chapter DOI carrying an ISBN already
+attached to its book; a post-2021 DOI offered to the shadow tier.
+
+Done-state
+- (a) the Stage D/F/G/H rungs that are ruled in, each with fixtures; the coverage instrument and its
+  CSV under phase4/qc/ (CLAUDE.md §3.4b); a report under Reports/ (LITKB_LADDER2_<date>); one referee
+  report per rung class; tests + ledger rows; SCHEMAS rows; the manifest frozen by `ladder --freeze`.
+- (b) `py -3.12 qc/instruments/litkb_acceptance.py ladder --manifest <manifest>` → GATED:
+  `grey_hits_below_title_gate=0` · `chapters_routed_to_scidb=0` · `challenge_booked_as_miss=0` (a
+  `not-in-archive` attempt whose terminal page title is DDoS-Guard) · `shadow_requests_outside_policy=0`
+  · `new_hosts_without_ruling=0` · `credentials_stored=0` (any credential string in litkb's config or
+  database) · `tdm_stubs_bound=0` · `coverage_rows_unclassified=0` (tracker rows the instrument could
+  neither join nor mark) · `unvalidated_items=0` (the five rung classes). REPORTED: `eligible_rows`,
+  `coverage_pdf`, `coverage_source`, `paywalled_residue`, `manual_step_rows` — bounded only once
+  `litkb-coverage-definition` is decided; until then the session reports them and says UNDETERMINED
+  against `litkb-coverage-target`.
+- (c) row 235's cover fed to a Stage D hit → refused, `grey_hits_below_title_gate=1` if bound; the
+  constructed chapter with the router off → `chapters_routed_to_scidb=1`; a ledger DDoS-Guard page fed
+  to the archive route with the title check off → `challenge_booked_as_miss=1`; a request to a host
+  outside the allowlist → refused before the network, `shadow_requests_outside_policy=1` if it reaches
+  it; the `sci.bban.top` rung enabled with `litkb-shadow-hosts` open → `new_hosts_without_ruling=1`;
+  a credential planted in config → `credentials_stored=1`; the constructed Elsevier first-page response
+  → `tdm_stubs_bound=1` if bound; a tracker row whose identifier matches no work →
+  `coverage_rows_unclassified=1` unless marked; a referee report dropped → `unvalidated_items=1`.
+
+#### Test-set commands (run from Scripts/, read-only)
+
+```
+# the archive misses, Sci-Hub blocked rows and open-access bad-file rows by Crossref type (writes phase4/qc/litkb_acq_probe_baselines.md)
+py -3.12 qc/instruments/litkb_acq_probe_baselines.py
+# the manual-step rows (the browser route), by work
+py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute(\"SELECT count(*),count(DISTINCT work_id) FROM litkb.acquisition_attempts WHERE route='browser' AND status='manual-step'\").fetchone())"
+# the grey rows already on disk and not in main
+py -3.12 -m litkb reap --dry-run
+# the tracker rows the coverage instrument must classify (the record-class filter's input)
+py -3.12 -c "import csv;r=list(csv.DictReader(open('../Reports/literature_tracker.csv',encoding='utf-8-sig')));print(len(r),sorted({x['Status'] for x in r}))"
+```
+
+Kam: `litkb-institutional-access`; `litkb-shadow-hosts`; `litkb-tdm-keys`; `litkb-crc-book`;
+`litkb-coverage-definition`; `litkb-blocked-works-grade`; `litkb-scihub-parked`;
+`litkb-e23-residue-copies`.
+
+### S4.7 — Extraction agreement: repair the cause, tier the text, measure the scans, verify the math
+
+Inserted 2026-09-22 from the survey report §5. Every item is a RELAYED design and UNVALIDATED under
+the S4.5 protocol (referee per rung class: the CMap layer, the gates, the text referee, the scan
+harness, the math ladder). S4 makes every acquired file readable or classified; this session makes
+the reading TRUSTWORTHY in tiers, because a verbatim quote with a page number is the base's whole
+contract and today `extracted: true` says nothing about how good the text is. Two boundaries the
+survey measured and the plan adopts in those words: a searchable text layer on nearly every scan is
+achievable; quote-grade accuracy on the 1950s–90s scans is NOT demonstrated by any system on any
+benchmark (every one scores far lower on old scans than on everything else), so a quote is promotable
+only from HIGH-tier text and a LOW-tier page is search-only. And the OCR voting precedent COLLAPSED on
+inspection: the cited gain was five configurations of one engine, and the same arbitration on an
+untuned corpus measured inside the noise — so this session MEASURES voting on the corpus's own scans
+before adopting anything, and reports UNDETERMINED if the effect is inside the noise (CLAUDE.md §3.5).
+GPU: the T2000 runs the classical engines, the coherency referee and the whole math-verification
+layer; every vision-language rung is a Colab queue, and that queue is `litkb-s47-colab-queue` (open) —
+without it the session runs the CPU and T2000 parts and reports the vision-language rungs UNDETERMINED.
+
+Work
+1. **The CMap repair layer, above every ligature fix** (survey §5.2; one repository's Rust, ported onto
+   pikepdf, whose qpdf bindings reach a font's `/ToUnicode` stream — pypdfium2 cannot): the
+   five-source ToUnicode fallback ladder (the stream's CMap → a sequential remap → the encoding's glyph
+   names → the embedded TrueType cmap → the CID collection), the `ControlDestination` repair that is the
+   named CAUSE of ligature garble, glyph-name decomposition at source with "every component must read,
+   or the name does not", the overlong-`/BBox` repair that turns a silently empty page back into a page
+   (so OCR never transcribes a blank), and the abandon rule — more than half the codes unmapped → return
+   nothing and fall through. `litkb-ligature-repair` becomes the downstream normaliser of what survives.
+   Rows: the ligature-damaged files that ruling's referee report names; plus a CONSTRUCTED corrupted
+   CMap, in those words.
+2. **Bind-time validity gates** carried from S4.5's acceptance test into extraction: `qpdf --check` with
+   its exit codes read correctly; the vector-complexity pre-filter (10,000 graphics ops AND a 20:1
+   ratio) rewritten to FAIL CLOSED — the reference implementation fails open on any exception — because
+   GIS classification maps and contour plots are what hangs the text extractor; `word_count` stored on
+   every file beside the existing `pages`; the stub and volume detectors run again on the extracted
+   text. Rows: the files the run itself finds over the pre-filter's constants, recorded as it goes.
+3. **Text agreement in tiers**: an LM-coherency referee (a small CPU language model's mean per-token
+   log-likelihood over each candidate's page) chooses among GROBID, Docling, `pdftotext` and `pdfium`,
+   because the current rule-based reconciliation cannot tell when it was wrong and a dictionary
+   hit-ratio would reject good OCR of the maths-heavy statistics papers; per work the base records the
+   winning rung, every rejection with its reason, the pairwise character error among candidates and a
+   quality TIER; the LOW-tier quote refusal is ENFORCED in SQL, in the same SECURITY DEFINER shape as
+   `add_evidence`, never in Python alone. No general multi-extractor reconciler exists to adopt; this
+   is a small piece of original work, and the survey names the merge rules to borrow. Row where the
+   current reconciliation is KNOWN to have chosen wrong: S2's Copernicus PDF, for which Docling produced
+   nothing and GROBID carried the work (`Reports/LITKB_FIRST_WORK_2026-09-21.md`) — shared with S4's
+   bed.
+4. **Scans, measured before adopted**: on the corpus's no-text-layer scans (the command below lists
+   them; S4's first scan rows) a hand-corrected gold page each; then Tesseract 5 variants, docTR and
+   RapidOCR on the T2000, with old-scan layout segmentation shared across engines (eynollah in WSL) so
+   line-level alignment is possible at all; LV-ROVER's arbitration SHAPE with the lexicon built from
+   litkb's own registry metadata used as a SHIELD (an anchor word in the lexicon is never overridden;
+   never shorten; never touch short tokens or numbers; edit distance ≤ 2); a trained character
+   corrector only WITH its sliding-window vote (the survey's one clean number: positive with the vote,
+   negative in every configuration without it); character error rate with a confidence interval per
+   page against the gold; vision-language OCR on Colab under `litkb-s47-colab-queue` (ranked on the
+   old-scan axes, never on the overall score) accepted at HIGH tier only when it agrees with the
+   classical consensus above a threshold — a fluent hallucination scores well on every coherency and
+   dictionary gate, and only agreement catches it; the known-bad for that guard is a CONSTRUCTED
+   fluent invention (a page whose VLM transcript is a plausible paragraph the scan does not contain),
+   in those words. Preprocessing is a VARIANT rung, never mandatory. If the arbitration's gain is
+   inside the interval, the report says UNDETERMINED and the tier stays LOW.
+5. **Math verified without a second decoder** — under `litkb-second-formula-decoder` (DECIDED
+   2026-09-19: the second decoder is dropped; pix2tex is out on nondeterminism; the re-open condition
+   is a review whose conclusion depends on a mathematical claim, and the entry bar is a seeded,
+   deterministic protocol). This session does NOT re-open it. What it builds is the verification
+   ladder on the ONE decoder's output (`litkb.equations.latex_status` today only flags), stopping at
+   the first rung that decides: KaTeX parse → pdflatex compile with a kill timer → degeneracy check →
+   an image check of the rendering against the ACTUAL crop — the rung that needs no second reading and
+   catches a wrong one — so `latex_status` gains `verified` and `held` beside `unverified`, per
+   formula. Free triage first by math font names and math-unicode ratio, so the report can say how
+   many math-bearing works are born-digital and how many are scans — a question two survey rounds
+   could not answer without the corpus. IF the re-open condition is met, the second decoder enters
+   under the ruling's bar — greedy decoding with a fixed seed; sampling-based self-consistency does not
+   qualify — and CDM agreement (render both readings with per-token colours, match token boxes, score
+   F1; it needs no truth) becomes the stage before the image check. Compare renderings, never LaTeX
+   source, and never a computer-algebra equivalence. Thresholds are the survey's PROPOSAL, calibrated
+   here on a CONSTRUCTED known-bad formula set (dropped subscripts, mismatched delimiters, matrix
+   environments), in those words, before any is a gate.
+
+Done-state
+- (a) the CMap layer and its tests; the gates; the referee and the tier column with its SQL guard; the
+  scan harness with its gold pages and its CER report; the math ladder and its calibration; a report
+  under Reports/ (LITKB_AGREEMENT_<date>); referee reports; SCHEMAS rows for tier, `word_count` and
+  the `latex_status` values; the manifest frozen by `agreement --freeze`.
+- (b) `py -3.12 qc/instruments/litkb_acceptance.py agreement --manifest <manifest>` → GATED:
+  `cmap_abandon_rule_silent=0` (files whose decode had more than half the codes unmapped and no
+  fall-through recorded) · `complex_pdfs_hung=0` (extraction runs past the timeout on a file the
+  pre-filter should have refused) · `works_without_tier=0` · `quotes_from_low_tier=0` ·
+  `scan_pages_without_cer=0` · `vlm_pages_at_high_without_agreement=0` ·
+  `formulas_verified_without_image_check=0` · `formulas_verified_by_source_diff=0` ·
+  `unvalidated_items=0` (the five rung classes). REPORTED: `files_without_word_count`, the scan
+  arbitration's effect as a value and an interval, the born-digital versus scan split of math-bearing
+  works, and the vision-language rungs' status (UNDETERMINED without the queue).
+- (c) a good PDF with its ToUnicode CMap corrupted (constructed) → the abandon rule fires AND the
+  repair recovers the text, both asserted; the abandon rule's fall-through record suppressed →
+  `cmap_abandon_rule_silent=1`; the complexity pre-filter given a raising input → refused (fail closed),
+  never `False`, and with the rewrite reverted a vector-heavy file → `complex_pdfs_hung=1`; a quote
+  recorded from a LOW-tier page → refused by the SQL guard, `quotes_from_low_tier=1` if it lands; the
+  constructed fluent invention accepted with the agreement check disabled →
+  `vlm_pages_at_high_without_agreement=1`; a formula marked `verified` with the image check disabled →
+  `formulas_verified_without_image_check=1`; two LaTeX strings differing only in style compared by
+  source → `formulas_verified_by_source_diff=1`; the constructed dropped-subscript formula → `held` or
+  `unverified`, never `verified`.
+
+#### Test-set commands (run from Scripts/, read-only)
+
+```
+# the no-text-layer files in main (the scan harness's rows), by work key
+py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute(\"SELECT w.key, f.rel_path, f.pages FROM litkb.main_files f JOIN litkb.main_works w ON w.work_id=f.work_id WHERE f.status='active' AND f.has_text_layer=false ORDER BY 1\").fetchall())"
+# files with formula LaTeX today, and the latex_status values the ladder must upgrade
+py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute('SELECT count(DISTINCT file_id) FROM litkb.blocks WHERE latex IS NOT NULL').fetchone(), c.execute('SELECT latex_status, count(*) FROM litkb.equations GROUP BY 1').fetchall())"
+```
+
+Kam: `litkb-s47-colab-queue`; `litkb-coverage-definition` (its searchable-versus-quote-grade half);
+`litkb-second-formula-decoder` stays decided unless its re-open condition is met.
 
 ### S5 — Proving run 3: a topic becomes a graded review, unknown works included
 
@@ -596,8 +869,10 @@ Work
   that records the drop-off's claim as a discrepancy instead of re-injecting it; test set the E24
   carriers of the register and a drop-off whose claim is wrong; fires on: the flag invoked with no
   human sign-off → refused, and the flag absent → the claim still refuses at check 1.
-- THE RUN: headless, topic named by Kam; scout → hunts with real acquisitions → record → brief →
-  writer → `review-check` → Codex. K2 fires per `litkb-k2-no-seeding` (decided). An expectation can go
+- THE RUN: headless, topic named by Kam; scout → hunts with real acquisitions through the whole ladder
+  (S4.5–S4.6) → record → brief → writer → `review-check` → Codex. K2 fires per `litkb-k2-no-seeding`
+  (decided). Every drop-off's outcome carries its `kind` and `articleVersion`; a quote is recorded
+  only from HIGH-tier text (S4.7). An expectation can go
   UNCONFIRMED without its paper being acquired; the counters separate the two.
 
 Done-state
@@ -635,11 +910,10 @@ known-bad the kill criterion must be shown to reject before the design counts.
 |---|---|---|---|---|
 | **Two-tier title resolution**: above a measured title-ratio cut, waive the first-author test and record the author disagreement as a discrepancy row; keep the per-candidate judgements in `resolver_detail` (today only the refusal detail is reduced to the highest-ratio candidate — every candidate IS judged). Measured: the E24 refusals split two ways — on the AUTHOR for every row but tracker 293, which refuses on the YEAR at a gap of 2 at the resolver's fourth leg — so the author waiver and the year rule are two decisions, scored separately; and a record with no parseable year can never resolve (row 369). | the structural limit of `Reports/LITKB_TITLE_HUNTS_2026-09-21.md` — a conjunction confirms, never corrects | survey A: paper-qa's rule, VERIFIED in source at a pinned commit; its licence ASSERTED. The cut is MEASURED on litkb's rows, never taken from paper-qa (its 1.00 cut resolves only part of the set) | POSITIVE: the `registry-quirk` rows of `../Reports/LITKB_TITLE_HUNTS_2026-09-21.csv` (command below), which must resolve to their stored DOI with a discrepancy row; NEGATIVE: the `unresolved` rows of the same file and register rows E11, E12, which must still refuse. Scored BLIND by a non-proposer | a NEGATIVE row resolving → RED; the cut lowered until a frozen wrong-work candidate passes → the identity test RED (S1 (c) already fires on `RESOLVE_TITLE_RATIO`) |
 | **doi.org content negotiation** before the Crossref → DataCite ladder in `pipeline/litkb/admit/registry.py` | DOIs of agencies neither registry serves (mEDRA, JaLC, KISTI) | survey A: Manubot, VERIFIED in source, licence VERIFIED (LICENSE read) | none in the base today — find one such DOI on the open web and add it to the register as a row FIRST; control: a Crossref DOI already in the register (E11's class) must still resolve through Crossref, and doi.org's record for a DOI both serve must agree with Crossref's | the ladder with the doi.org rung removed → that row refuses; the control resolving through doi.org instead of Crossref → RED |
-| **Binding: identifier-in-file ladder, a font-size title test, a post-extraction content gate.** Measured: check 3 rests on title + surname only — the registry's DOI or arXiv id is never passed into `bind()`; `pdf_shape` tests a `%PDF-` header and a `%%EOF` trailer and nothing else; there is no entropy, printable-ratio or minimum-text test anywhere; and the metadata fallback binds a page with ZERO extractable characters at ratio 1.0 on `/Title` + `/Author` alone (latent: every live bind that took the `pdf-title` path has a text layer). Row 235 is a WINDOWING limit (a title split over more lines than the scoring window covers), not a threshold. | stamp-robust binding; `bad-file` detection on every route; the blank-page bind | survey D: pdf2doi's ladder (VERIFIED, licence from setup.py), JabRef's TitleExtractorByFontSize (VERIFIED at a pinned commit; licence ASSERTED), paper-qa's `maybe_is_text` (VERIFIED). Whether the arXiv stamp's font is smaller than the title's on a REAL page is UNMEASURED — measure it on the E25 PDFs first | PREREQUISITE: the corpus title-ratio sweep becomes an instrument under qc/instruments/ writing a CSV under phase4/qc/ (CLAUDE.md §3.4b) — the E25 sweep's per-file output exists at no path and its population has already drifted. Then: `qc/testdata/litkb_binding_stamps/` fixtures via `qc/test_litkb_binding_stamps.py`; the E25 PDFs; 235's filed PDF; a challenge page's bytes (the Sci-Hub attempt detail in `Reports/LITKB_EDGE_RUN_2026-09-21.csv` names the mirrors); a stub PDF with matching `/Title` + `/Author` and an empty page | the content gate given challenge bytes behind a `%PDF-` header → refused, never bound; the stub with matching metadata → `binding-pending`, never `bound`; the ladder given a PDF whose embedded DOI is another work's → refused (auditor-e25's cross-title probe is the shape); a page whose largest font is a running head or journal name (235's cover is the real case) → the font-size candidate refused by check 3's ratio, never bound on font size alone |
+| **Binding: identifier-in-file ladder and a font-size title test** (the post-extraction content gate moved into S4.5's acceptance test and S4.7's bind-time gates; what stays here is identity-by-embedded-identifier and the font-size title heuristic). Measured: check 3 rests on title + surname only — the registry's DOI or arXiv id is never passed into `bind()`; `pdf_shape` tests a `%PDF-` header and a `%%EOF` trailer and nothing else; there is no entropy, printable-ratio or minimum-text test anywhere; and the metadata fallback binds a page with ZERO extractable characters at ratio 1.0 on `/Title` + `/Author` alone (latent: every live bind that took the `pdf-title` path has a text layer). Row 235 is a WINDOWING limit (a title split over more lines than the scoring window covers), not a threshold. | stamp-robust binding; `bad-file` detection on every route; the blank-page bind | survey D: pdf2doi's ladder (VERIFIED, licence from setup.py), JabRef's TitleExtractorByFontSize (VERIFIED at a pinned commit; licence ASSERTED), paper-qa's `maybe_is_text` (VERIFIED). Whether the arXiv stamp's font is smaller than the title's on a REAL page is UNMEASURED — measure it on the E25 PDFs first | PREREQUISITE: the corpus title-ratio sweep becomes an instrument under qc/instruments/ writing a CSV under phase4/qc/ (CLAUDE.md §3.4b) — the E25 sweep's per-file output exists at no path and its population has already drifted. Then: `qc/testdata/litkb_binding_stamps/` fixtures via `qc/test_litkb_binding_stamps.py`; the E25 PDFs; 235's filed PDF; a challenge page's bytes (the Sci-Hub attempt detail in `Reports/LITKB_EDGE_RUN_2026-09-21.csv` names the mirrors); a stub PDF with matching `/Title` + `/Author` and an empty page | the content gate given challenge bytes behind a `%PDF-` header → refused, never bound; the stub with matching metadata → `binding-pending`, never `bound`; the ladder given a PDF whose embedded DOI is another work's → refused (auditor-e25's cross-title probe is the shape); a page whose largest font is a running head or journal name (235's cover is the real case) → the font-size candidate refused by check 3's ratio, never bound on font size alone |
 | **Both identifiers on one admission**: check 1 requires EVERY passed identifier to confirm, so `admit --arxiv X --doi 10.48550/arXiv.X` refuses although the DOI form confirms, and admitting by the DOI alone stores no arXiv id, so a later arXiv hunt is a duplicate | `Reports/LITKB_RULED_HUNTS_2026-09-21.md` §8 (measured once) | litkb's own code | the ruled run's arXiv rows; negative — 187's confirmed DOI paired with a CONSTRUCTED wrong arXiv id, stated as constructed | an admission storing an identifier no registry confirmed → refused; the constructed pair → refused |
 | **HTML snapshot → searchable blocks, live**. A live HTML-only hunt of an unknown work is DONE (row 194); its snapshot holds no blocks because extraction was off | `docs/SCHEMAS.md` "A web source that is a page" proved in replay only | litkb's own code | positive today: 194's existing snapshot run through extraction → searchable blocks (no live fetch needed); negative: the register's URL-HTML-only rows replayed (E06's class); a live unknown page only if S5's scout drops one off | a page with no claimed title, author and year → `refused/incomplete-record`; 194's snapshot with its text emptied → `zero-content`, never searchable |
-| **A database home for hunt outcomes** (today the run ledgers are CSVs and `ledger_word` is the one chooser) | `Reports/LITKB_EDGES_2026-09-21.md` §6 names it | litkb's own design | the edge-run ledgers replayed into it, row for row | a state word outside `STATES` → refused by the constraint |
-| **Route ordering, blocklist and re-ingest cadences from the ledger**: mirror scoring from attempt rows; `citation_pdf_url` parsing reused on open-access landing pages; a commented static host blocklist; re-ingest cadences as SQL over `acquisition_attempts` | route order; HTML-only OA sources; hosts that never answer; retries that are hand-run today | survey C (SciDownl, paperscraper — VERIFIED; licences ASSERTED) and E (sandcrawler's blocklist and its dump_reingest SQL, VERIFIED; the repository has no LICENSE file) | the Sci-Hub attempt details in the edge-run ledgers; the `no-oa-copy` rows' landing pages; the census before and after | a mirror with no success ranked above one with successes → the scorer's test RED; a host with a success in the ledger placed on the blocklist → RED; a permanently-dead sub-status selected by the re-ingest query → RED |
+| **Re-ingest cadences as SQL over the ledger, per-source scoring and the host blocklist** (survey guards 6 and 7 beyond the registry S4.6 moves the mirror lists into; the budget object, guard 12, is S4.5's) | retries that are hand-run today | survey E (sandcrawler's dump_reingest SQL, VERIFIED) | the ledger's typed misses | a permanently-dead sub-status selected by the re-ingest query → RED |
 
 #### Test-set commands (run from Scripts/, read-only)
 
@@ -720,6 +994,9 @@ numbers reserved in `pipeline/litkb/db/migrations/_reserved.txt` first. Concurre
 rules: `litkb-p0-foundation`. Base brief: `docs/LITKB_AGENT_BASE_BRIEF.md`.
 
 **Codex stage** (the adversarial read, last stage of every proving run; built between S1 and S2).
+When Codex's quota is exhausted (it was, 2026-09-22 05:06 PDT, mid-survey), the read is OWED, not
+skipped: an Opus adversary stands in, the plan and the report say so in those words, and the Codex
+read runs when the quota returns.
 Three commands, not a conversation. `py -3.12 -m litkb review-context <review.md> --out <ctx.md>`
 writes the whole block behind every citation — the file that run 2 had by hand — and exits 1 on a
 block the workstream cannot see. `qc/instruments/litkb_codex_review.py --review --context --out
@@ -793,12 +1070,14 @@ fresh checkouts, by construction, and `qc/test_experiments.py` skips gitignored 
 
 | item | owner |
 |---|---|
-| no extraction queue, no fail-closed page cap, zero-content/multi-file works, cross-page `page_no`, metrics in JSONL, superseded run sets, the `book` residue class, a quarantine with no database state; the no-text-layer scans; the L4 formula re-crop of Reynolds_2000 and Montgomery_1991 never ran | S4 |
-| `blocked` in no route's `DEAD_STATUSES`; registry transients re-run by hand; the arXiv-client question; Crossref `relation` dropped and its yield unmeasured; a different DOI called a duplicate at 0.70; no ISBN scheme; a long creator string crashes the key rule; no served-bytes hash on the attempt row; a re-served bad file re-quarantined, never skipped; a refused-duplicate landing left unowned on disk; no second-session refuse verb; the approve guard never made to fire | S4.5 |
+| no extraction queue, no fail-closed page cap, zero-content/multi-file works, cross-page `page_no`, metrics in JSONL, superseded run sets, the `book` residue class, a quarantine with no database state; the no-text-layer scans | S4 |
+| the substrate: `blocked` in no route's `DEAD_STATUSES`; registry transients re-run by hand; the arXiv-client question; Crossref `relation` dropped and its yield unmeasured; a different DOI called a duplicate at 0.70; no ISBN scheme; a long creator string crashes the key rule; no served-bytes hash on the attempt row; a re-served bad file re-quarantined, never skipped; a refused-duplicate landing left unowned on disk; no second-session refuse verb; the approve guard never made to fire. The ladder: an untyped `bad-file`/`blocked` ledger where mature codebases carry typed sub-states; no landing-page-to-PDF rung (Unpaywall's own answers are landing pages litkb books as `bad-file`); no record-class filter, no work-class router (preprints sent to the archive route); Crossref `link[]` never read; no Semantic Scholar or OpenAlex PDF lookup; no Wayback rung; the `bad-file` rows never read | S4.5 |
+| no grey-literature rung at all (USFS, USGS, NTRS, OSTI, DSpace with MD5, ArcGIS Online, city portals); the book namespace unreachable by construction (scidb by DOI); DDoS-Guard blocks booked as `not-in-archive`; Sci-Hub mirror lists compiled into `run.py`; no credentialed rung and no ruling on institutional access; no coverage instrument against the tracker | S4.6 |
+| ligature repair at the symptom, not the CMap; the vector-complexity pre-filter absent (GIS figures hang the extractor); `extracted: true` with no quality tier, so a LOW-tier scan can supply a quote; no measured OCR arbitration on the corpus's own scans; formula LaTeX `unverified` with no verification ladder; the L4 formula re-crop of Reynolds_2000 and Montgomery_1991 never ran; no `word_count` on files | S4.7 |
 | run-2 review fails the tightened grader; no run protocol; the promoted tracker-era metadata; no per-hunt time budget; no rule retiring a superseded drop-off; the two builds the rulings assign to S5 (ISBN → md5; registry-over-claim on a human's say-so) | S5 |
 | no synthesis grammar or K3 | S6 |
 | no doctor; ledger not a `check.py` rung; harness `run_one` calls any failure FIRED (no per-row baseline diff); `report_path` unbounded; nightly dump task points at an old worktree | S7 (dump task: Kam, now) |
-| the survey's remaining designs and litkb's own: two-tier resolution, doi.org negotiation, the binding ladder + content gate (with the sweep instrument as its prerequisite), both identifiers on one admission, snapshot → blocks live, a database home for hunt outcomes, route ordering from the ledger | after S5 (table above) |
+| the survey's remaining designs and litkb's own: two-tier resolution, doi.org negotiation, the identifier-in-file binding ladder (with the sweep instrument as its prerequisite), both identifiers on one admission, snapshot → blocks live, re-ingest cadences | after S5 (table above) |
 
 Adjudicated 2026-09-20 (S0, read-only against code): of the survey's twelve POSSIBLY-STALE items
 CLOSED R4 A5 B7 E6 E11 O9 O11 (A5 had misnamed the ref — `::b10` is Hall_1985, Burnicki's two
@@ -808,6 +1087,16 @@ O8 → S7, rows above.
 ---
 
 ## The survey's verdicts (2026-09-21) — with what each rests on
+
+**Superseded for acquisition and extraction on 2026-09-22** by
+`Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md` — two crawler rounds, a merged ladder graded per rung
+(VERIFIED / MEASURED / ASSERTED), a per-publisher landing-page rule table, external base rates, the
+extraction and OCR ladder with its agreement designs, and a coverage projection built on the
+orchestrator's read-only measurements of litkb's own miss rows. The rows below stand for the
+resolve+admit and binding questions the 2026-09-21 survey answered; where the two disagree the later
+file wins, and it names the disagreement (its §7). Where a row below says "→ S4.5 item N" or "→ after
+S5" for an ACQUISITION mechanism, the later file's stage table is the schedule; the row is kept for
+its provenance columns only.
 
 Five Opus crawlers read external source and litkb's own files (synthesis and reports A–E under
 D:\tools\claude-config\jobs\litkb-s3-wrap\github-survey); a sixth, read-only auditor re-checked
@@ -826,22 +1115,22 @@ current tree and holds; report D was written after the E25 change and cites the 
 | A | doi.org content negotiation | Manubot, manubot/cite/doi.py | pinned · BSD-2-Clause-Plus-Patent VERIFIED (LICENSE read) | VERIFIED | the ladder in `pipeline/litkb/admit/registry.py` is Crossref then DataCite, no doi.org rung | ADOPT → after S5 |
 | A | biblio-glutton's averaged record distance | biblio-glutton, LookupEngine.java | pinned · Apache-2.0 ASSERTED (badge) | VERIFIED | — | report A says ADAPT as a tie-break; the synthesis body drops it. Not scheduled: an averaged vote cannot say which field it forgave |
 | A | "keep more than the top candidate" | glutton's pairwise ranking | as above | VERIFIED | the PREMISE is wrong — `resolve_doi` judges every candidate; only the refusal DETAIL is reduced to the highest-ratio one | reduced to "keep per-candidate judgements in `resolver_detail`" → after S5, with the two-tier rule |
-| B identity | Crossref `relation` as a typed edge, with a third state for an empty field | the Crossref API (no repository) | n/a | LIVE (the field exists; a real bioRxiv preprint returned it EMPTY) | `parse_crossref` in `pipeline/litkb/admit/registry.py` never reads it; no raw response is stored, so a backfill is one call per DOI; the yield over this corpus is UNMEASURED | ADOPT, probe first → S4.5 item 2 |
-| B | the arXiv record's DOI field | Manubot, manubot/cite/arxiv.py (the field); export.arxiv.org (the behaviour) | pinned · VERIFIED | VERIFIED for the field; ASSERTED for live behaviour (the crawler's call returned an empty body) | `arxiv_record` parses title, author, published only | ADOPT → S4.5 item 2 |
-| B | identifier-first duplicate ordering; type-scoped ISBN; ISBN-13 canonicalisation | JabRef, DuplicateCheck.java; Zotero, duplicates.js; Manubot, isbn.py | JabRef pinned in A and D, UNPINNED in B · MIT from the GitHub API, LICENSE not read; Zotero PINNED in B with AGPL-3.0-or-later read from the file header (A, C, D, E read Zotero unpinned and asserted its licence) | VERIFIED (call sites; the ISBN helper bodies not read — a submodule) | `_title_duplicates` (migration 0013) calls a different DOI a duplicate at 0.70/±1 y; no `isbn` ref scheme (`REF_REFUSALS` in `pipeline/litkb/hunt.py`) | ADAPT → S4.5 item 2 (design only from Zotero — AGPL) |
-| B | a corporate-author field mode | Zotero, duplicates.js | pinned in B · AGPL read from header | VERIFIED | `make_key` in `pipeline/litkb/admit/front.py` crashes on a LONG creator string, not a corporate one — the discriminator is length | ADAPT as a length rule → S4.5 item 2 |
+| B identity | Crossref `relation` as a typed edge, with a third state for an empty field | the Crossref API (no repository) | n/a | LIVE (the field exists; a real bioRxiv preprint returned it EMPTY) | `parse_crossref` in `pipeline/litkb/admit/registry.py` never reads it; no raw response is stored, so a backfill is one call per DOI; the yield over this corpus is UNMEASURED | ADOPT, probe first → S4.5 item 1 |
+| B | the arXiv record's DOI field | Manubot, manubot/cite/arxiv.py (the field); export.arxiv.org (the behaviour) | pinned · VERIFIED | VERIFIED for the field; ASSERTED for live behaviour (the crawler's call returned an empty body) | `arxiv_record` parses title, author, published only | ADOPT → S4.5 item 1 |
+| B | identifier-first duplicate ordering; type-scoped ISBN; ISBN-13 canonicalisation | JabRef, DuplicateCheck.java; Zotero, duplicates.js; Manubot, isbn.py | JabRef pinned in A and D, UNPINNED in B · MIT from the GitHub API, LICENSE not read; Zotero PINNED in B with AGPL-3.0-or-later read from the file header (A, C, D, E read Zotero unpinned and asserted its licence) | VERIFIED (call sites; the ISBN helper bodies not read — a submodule) | `_title_duplicates` (migration 0013) calls a different DOI a duplicate at 0.70/±1 y; no `isbn` ref scheme (`REF_REFUSALS` in `pipeline/litkb/hunt.py`) | ADAPT → S4.5 item 1 (design only from Zotero — AGPL) |
+| B | a corporate-author field mode | Zotero, duplicates.js | pinned in B · AGPL read from header | VERIFIED | `make_key` in `pipeline/litkb/admit/front.py` crashes on a LONG creator string, not a corporate one — the discriminator is length | ADAPT as a length rule → S4.5 item 1 |
 | B | OpenAlex `locations[].version` | the OpenAlex API; pyalex not cloned | n/a · pyalex MIT ASSERTED | LIVE for the model | — | not adopted: the relation edge suffices |
 | B | recordlinkage / dedupe | — | — | — | — | IGNORE: needs labelled pairs; an unexplainable verdict fails §3.4c |
 | C acquisition | per-host back-off, Retry-After cap, 403 never retried, park-and-continue | Zotero, attachments.js | UNPINNED (branch head) · AGPL ASSERTED (C: "LICENSE not fetched") | VERIFIED | `DEAD_STATUSES` in `pipeline/litkb/acquire/run.py` keyed on the status word; `blocked` in no set; `at` unused by the skip decision | ADAPT the mechanism, never the code → S4.5 item 1 |
-| C | mirror scoring from persisted failure rates | SciDownl, core/chooser.py | pinned · LICENSE presence ASSERTED | VERIFIED | a fixed mirror order (`SCIHUB_MIRRORS` in `pipeline/litkb/config.py`) | ADAPT → after S5 |
-| C | `citation_pdf_url` with landing-page cookies + Referer | paperscraper, pdf/pdf.py | pinned · MIT ASSERTED | VERIFIED | `pdf_link` in `pipeline/litkb/acquire/scihub.py` already parses it — reuse on OA pages | reuse → after S5 |
+| C | mirror scoring from persisted failure rates | SciDownl, core/chooser.py | pinned · LICENSE presence ASSERTED | VERIFIED | a fixed mirror order (`SCIHUB_MIRRORS` in `pipeline/litkb/config.py`) | superseded: S4.6 Stage G moves the lists to a registry; scoring stays after S5 |
+| C | `citation_pdf_url` with landing-page cookies + Referer | paperscraper, pdf/pdf.py | pinned · MIT ASSERTED | VERIFIED | `pdf_link` in `pipeline/litkb/acquire/scihub.py` already parses it — reuse on OA pages | superseded: S4.5 Stage C builds it |
 | C | retry only 500/504; negative examples (PyPaperBot, unpywall) | paper-qa; PyPaperBot; unpywall | pinned | VERIFIED | — | none refuses a known-bad hash — nothing to adopt |
 | D binding | embedded-identifier ladder (metadata → text → filename), each candidate validated at the registry | pdf2doi, finders.py, patterns.py | pinned · MIT from setup.py, LICENSE not read | VERIFIED | the registry id is never passed into `bind()` | ADAPT the ladder, not the Google fallback → after S5 |
 | D | font-size title extraction | JabRef, PdfContentImporter.java | pinned · MIT ASSERTED | VERIFIED | — ; whether a stamp's font is smaller than a title's on a REAL page is UNMEASURED | ADAPT, measure first → after S5 |
 | D | entropy + stub content gate | paper-qa, utils.py and docs.py | pinned · Apache-2.0 ASSERTED | VERIFIED | `pdf_shape` in `pipeline/litkb/acquire/store.py` tests a header and a trailer only; no text gate exists; the metadata fallback binds an empty page | ADOPT → after S5 |
 | D | throw on a zero-text page | Zotero, recognizeDocument.js | UNPINNED · AGPL | VERIFIED | `bind_any_with_ocr` is AHEAD (OCR where there is nothing to read) | IGNORE as code; the ordering lesson only |
 | D | pdftitle | — | GPL-3 | — | — | IGNORE as a dependency |
-| E outcomes | the content hash on the attempt row; rejected-hash lookup; `blocked` sub-types; a commented static host blocklist; re-ingest cadences as SQL over the ledger | IA sandcrawler, ingest_file.py and its SQL | pinned · NO LICENSE FILE at the root (E: asserted internal) | VERIFIED (the Kafka layer ASSERTED) | `record_attempt` has no sha column; `_quarantine/` has no database state; `REASONS["blocked"]` is 403 · challenge · quota-stop | ADAPT → S4 (the state) + S4.5 item 3 (the ledger); the blocklist and cadences → after S5 |
+| E outcomes | the content hash on the attempt row; rejected-hash lookup; `blocked` sub-types; a commented static host blocklist; re-ingest cadences as SQL over the ledger | IA sandcrawler, ingest_file.py and its SQL | pinned · NO LICENSE FILE at the root (E: asserted internal) | VERIFIED (the Kafka layer ASSERTED) | `record_attempt` has no sha column; `_quarantine/` has no database state; `REASONS["blocked"]` is 403 · challenge · quota-stop | ADAPT → S4 (the state) + S4.5 item 2 (the ledger); the blocklist and cadences → after S5 |
 
 Asserted only, per the synthesis and the audit: the Zotero commit outside report B; the licences
 of Zotero (outside B), paper-qa, JabRef, paperscraper and sandcrawler; star and contributor

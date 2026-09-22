@@ -820,8 +820,9 @@ decisions:
       open access holds no copy, the archive does not hold them, Sci-Hub answers 403 (the rows
       whose hunt_state is `blocked` in Reports/LITKB_RULED_HUNTS_2026-09-21.csv). Two grades are
       possible: METADATA-grade (admitted, citable by its record, never quotable — every drop-off
-      expectation on it stays UNCONFIRMED) or a copy supplied by `--from-file`. Which grade, and
-      for which rows?
+      expectation on it stays UNCONFIRMED) or a copy supplied by `--from-file`. The PDF-sources
+      survey's "deferred human fulfilment" rung (G4 — a request queue a human answers) is the
+      `--from-file` half of this question, not code. Which grade, and for which rows?
     owner: kam
     status: open
     why: >-
@@ -889,3 +890,139 @@ decisions:
     evidence:
       - pipeline/litkb/db/migrations/0003_write_functions.sql
       - Reports/LITKB_EDGES_2026-09-21.md
+
+
+  - id: litkb-coverage-target
+    question: >-
+      What share of the tracker's studies must litkb hold as a PDF, and by what means, for the
+      acquisition work to be done? The 2026-09-21 plan named no number; the survey report's
+      measured table (Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md section M) shows about half
+      of the works in main with a file.
+    owner: kam
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      NINETY-FIVE PERCENT of the tracker's studies with a PDF, by AUTOMATED means, through a LAYERED
+      ladder where each rung may catch only a few but together they catch nearly all. Kam's words:
+      "The goal it to get the pdf by all means in an automated way. So we may have some methods that
+      may only work for a sparse amount of pdfs, but collecteivly we want to be able to catch the
+      pdfs … We are aiming for 95 percent of the studies having pdfs." Recorded with the survey's
+      measured caveat, so the target is not mistaken for a forecast: the demonstrated number for a
+      corpus of this shape by legitimate automated means is about 86 percent (the survey report,
+      section 6.3), and the difference is closed by the rulings this entry blocks, not by more
+      open-access indexes. The denominator is the tracker after the record-class filter; which
+      grades of "has the study" count is `litkb-coverage-definition`.
+    why: >-
+      A target with no number cannot be measured, and a number with no stated means invites a
+      shadow-library route to be built by default. Both halves are Kam's; the plan builds to them.
+    blocks: [litkb-coverage-definition, litkb-institutional-access, litkb-shadow-hosts, litkb-tdm-keys]
+    evidence:
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+
+  - id: litkb-coverage-definition
+    question: >-
+      Does "has the study" mean a PDF file, or a searchable, quotable source of any kind? The
+      survey (section 6.2) shows works that will never exist as PDFs — agency reports served as HTML,
+      articles where only a full-text XML or a quotable snippet is free — and works whose PDF exists
+      but whose text can never reach quote-grade (1950s–90s scans, section 5.8). Two definitions:
+      (a) PDF-only, so those works stay misses; (b) any source with a verifiable quote — pdf, jats,
+      html-doc, cached_text, snippet — counts, with the grade recorded, and quote-grade text is a
+      separate tier from searchable text.
+    owner: kam
+    status: open
+    blocked_by: [litkb-coverage-target]
+    why: >-
+      Under (a) the target needs the shadow tier or credentials to be reachable at all; under (b)
+      the grey-literature and XML rungs count and the OCR boundary is stated honestly. The coverage
+      instrument prints both numbers either way; the ruling decides which one is the bound.
+    evidence:
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+
+  - id: litkb-institutional-access
+    question: >-
+      Does Kam have institutional access to any publisher (a university or agency login, a proxy,
+      a browser profile already signed in), and may litkb drive that logged-in browser profile
+      (Playwright over the user's own profile; no credential stored or scripted by litkb) as the
+      credentialed rung? The survey (section 6.1) finds it the ONLY rung that converts the ledger's
+      manual-step rows and the paywalled remainder by legitimate means; without it their catch is
+      zero. No round asked this question.
+    owner: kam
+    status: open
+    blocked_by: [litkb-coverage-target]
+    why: >-
+      If yes, it is the single largest converter in the whole survey and S4.6 builds Stage H around
+      it; if no, S4.6 drops the rung and the paywalled remainder falls to the shadow tier or to
+      copies, and the target's feasibility changes.
+    evidence:
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+
+  - id: litkb-shadow-hosts
+    question: >-
+      Kam's standing grant covers Anna's Archive and Sci-Hub as last-resort routes. The survey
+      (section 1, Stage G) read four more shadow rungs in code, never contacted: LibGen's JSON DOI
+      lookup and delivery mirrors, the sci.bban.top DOI path (no bot check, clean 404), the
+      Nexus/STC gateway, Tor as a transport for blocked mirrors, and a real browser session driven
+      against Anna's Archive itself (the survey's G3a). Does the grant extend to any of them, and
+      under what policy switch (the survey's PolicyDecision object makes each host an
+      auditable line, not a code path)?
+    owner: kam
+    status: open
+    blocked_by: [litkb-coverage-target]
+    why: >-
+      These are the strongest mechanical route to the pre-2021 paywalled slice and they are also the
+      ones a plan must not build by default. The Sci-Hub corpus froze around 2021, so the ceiling is
+      the old slice; nothing in this tier reaches the agency reports or theses.
+    evidence:
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+
+  - id: litkb-tdm-keys
+    question: >-
+      Springer and Elsevier issue free text-and-data-mining API keys; Wiley and IEEE have TDM
+      endpoints too. Should Kam register keys for litkb? The survey (section 6.2) measured what they
+      buy: open-access content only — an unentitled Elsevier key answers HTTP 200 with a first-page
+      stub announced only in a response header, and the IEEE endpoint returns a URL but no bytes
+      without institutional access. Expected yield on the paywalled residue is near zero; the keys
+      matter for hybrid and bronze articles the landing-page rule cannot reach.
+    owner: kam
+    status: open
+    blocked_by: [litkb-coverage-target]
+    why: >-
+      Registration is Kam's identity on a publisher's account; the yield is small and measured; the
+      stub hazard is real and S4.5's acceptance test already refuses it. Worth deciding once so no
+      session re-proposes it.
+    evidence:
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+
+  - id: litkb-crc-book
+    question: >-
+      The corpus's one book (E20, VanDenHout_2016, CRC Press, ISBN 9781466568419, electronic only)
+      has NO automated route: the publisher's platform needs a browser-session token, no open-access
+      or archive source holds it, and the survey (section 4) calls it a purchase or interlibrary-loan
+      decision, not a ladder gap. Buy it, borrow it, supply a copy, or retire it from the tracker?
+    owner: kam
+    status: open
+    why: >-
+      It is the only book, so it decides whether the book path (S4.6 Stage F) has a real test row at
+      all; every other answer is a rung that will never fire.
+    evidence:
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+      - Reports/LITKB_TITLE_HUNTS_2026-09-21.md
+
+  - id: litkb-s47-colab-queue
+    question: >-
+      S4.7's vision-language OCR rungs (olmOCR or Chandra ranked on the old-scan axes; a
+      Swin-transformer or PaddleOCR formula decoder only if `litkb-second-formula-decoder` is
+      re-opened) do not fit the local 4 GB T2000 and run only on Colab. CLAUDE.md section 3.4 says
+      Claude asks before the FIRST launch of each queue, and S4.7 is launched unattended by S4.6.
+      May S4.7 create ONE Colab queue — GPU tier L4 (T4 if L4 is unavailable), one runtime, the
+      no-text-layer scans of the measurement bed as its input, an expected wall-clock of a few
+      hours, and a cost of a single runtime's compute units — without a further ask, or must the
+      queue wait for Kam to read S4.7's report first?
+    owner: kam
+    status: open
+    why: >-
+      Without the queue S4.7 still lands its CPU and T2000 items and reports the vision-language
+      rungs UNDETERMINED; with it the scan-tier measurement is complete in one session instead of
+      two. The ask is recorded here so the unattended chain does not stall on it.
+    evidence:
+      - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md

@@ -2138,7 +2138,15 @@ _EXPECTED_EXECUTE = {
                      # canonical_newlines: 0026 grants the three roles in one line, ingest
                      # included, so the rule a block is later matched by is not defined
                      # differently for the role that wrote the block
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # the extraction queue (migration 0029, qc/test_litkb_queue.py; design §12.3,
+                     # S4). extraction_jobs and extraction_job_leases grant INSERT to NOBODY, so
+                     # these eight are their only writers; every holder call presents the lease
+                     # token (finish_job is the ownership gate). The five helpers they call
+                     # (_job_max_attempts, _lease_hash, _job_file_is_book, _job_lease_current,
+                     # _job_siblings) are granted to no role.
+                     "enqueue_extraction", "claim_jobs", "renew_lease", "record_artifact",
+                     "stage_chunk", "finish_job", "fail_job", "refuse_job"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

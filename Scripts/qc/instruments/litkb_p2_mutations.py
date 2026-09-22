@@ -2075,6 +2075,77 @@ hu(site, "RD19", "litkb/acquire/events.py::record_url_landing::redact", "{a0}",
         "fetched — a key in its query string is written to the row and printed by every later "
         "reader of the attempt (record_attempt redacts the DETAIL, RD14/RD16, and not this column)")
 
+# ── EQ: the extraction queue (S4 run 3; migration 0029, litkb/extract/queue.py) ──────────────
+# Every guard the queue added, one row per site. The lease gate is presented by SIX holder
+# functions and each has its OWN guard block (EQ1-EQ6), so removing any one of them is seen by the
+# parametrised holder test. The three real-tool tests are deselected (-k "not real"): they need a
+# GPU and LITKB_REAL_EXTRACT=1, and a baseline may not skip.
+MIG29 = f"{MIG}/0029_extraction_jobs.sql"
+TESTS_QUEUE = ["qc/test_litkb_queue.py", "-k", "not real"]
+QPY = f"{PKG}/extract/queue.py"
+
+
+def eq(fn, *a, **kw):
+    fn(*a, **kw)
+    M[-1]["tests"] = TESTS_QUEUE
+
+
+for _i, _fn in enumerate(("renew_lease", "record_artifact", "stage_chunk", "fail_job", "refuse_job"), 1):
+    eq(block, f"EQ{_i}", MIG29, f"guard: {_fn} presents the job's current lease",
+       f"{_fn} stops presenting the lease token: a worker whose lease was reclaimed (or a forged "
+       f"token) can still move the job")
+eq(block, "EQ6", MIG29, "guard: finish_job accepts only the job's current, unsuperseded lease",
+   "THE OWNERSHIP GATE: an expired worker that wakes after reassignment commits its blocks and "
+   "finishes a job another worker holds (plan S4 (c), mutated_leases_accepted=1)")
+eq(block, "EQ7", MIG29, "guard: finish_job points a job only at an ok run of its own file and run key",
+   "a job can be marked done against another file's run, or none: the queue says a file is "
+   "extracted when its own blocks never landed")
+eq(block, "EQ8", MIG29, "guard: enqueue_extraction refuses a book's file",
+   "the SQL half of litkb-book-policy at enqueue: a book's file enqueued with no refusal is queued")
+eq(block, "EQ9", MIG29, "guard: claim_jobs never hands out a book's job",
+   "a work retyped to book after its job was queued is still handed to a worker")
+eq(block, "EQ10", MIG29, "guard: a job whose every lease expired dies at the attempt ceiling",
+   "a file that kills its worker every time is handed out forever")
+eq(block, "EQ11", MIG29, "guard: the lease history is append-only",
+   "the lease history can be rewritten after the fact: which claim finished a job stops being "
+   "knowable, and mutated_leases_accepted has nothing to read")
+eq(replace, "EQ12", MIG29, "       AND (p_files IS NULL OR j.file_id = ANY (p_files))\n     ORDER BY j.pages NULLS LAST, j.enqueued_at, j.page_start NULLS FIRST, j.id\n     LIMIT 1 FOR UPDATE SKIP LOCKED;",
+   "       AND (p_files IS NULL OR j.file_id = ANY (p_files))\n     ORDER BY j.pages NULLS LAST, j.enqueued_at, j.page_start NULLS FIRST, j.id\n     LIMIT 1 FOR UPDATE;",
+   "claim_jobs waits on a row another claim holds instead of skipping it (design §14 P5 kill (c))")
+eq(replace, "EQ13", MIG29, "     WHERE (j.state = 'queued' OR (j.state = 'leased' AND j.lease_expires_at <= v_now))",
+   "     WHERE (j.state = 'queued' OR j.state = 'leased')",
+   "a LIVE lease is reclaimable: two workers hold one job (design §14 P5 kill (d))")
+eq(block, "EQ14", QPY, "guard: a book's file is never extracted",
+   "the Python half of litkb-book-policy (the only one a workstream-only file has)")
+eq(block, "EQ15", QPY, "guard: the bytes on disk are the bound file",
+   "a missing file, a non-PDF or bytes whose sha256 is not files.sha256 go to the extractor")
+eq(block, "EQ16", QPY, "guard: a page count that cannot be read is probe-error",
+   "a PDF whose page count cannot be read is queued as a native file instead of refused probe-error")
+eq(block, "EQ17", QPY, "guard: a file over the extraction page cap is never started",
+   "a file over EXTRACT_PAGE_CAP is extracted (plan S4 (c), over_cap_bound=1)")
+eq(block, "EQ18", QPY, "guard: an OCR-routed file with OCR off is refused, never started",
+   "with OCR off, a scan is queued and started instead of refused scan-needs-ocr")
+eq(block, "EQ19", QPY, "guard: an OCR-routed file whose image pages come back empty is never finished ok",
+   "the scan post-condition: an OCR pass that read nothing lands as an ok run with no text on its "
+   "image pages (plan S4 (c), scans_ocr_unrouted=1)")
+eq(block, "EQ20", QPY, "guard: page ranges assemble only when they tile the file and stay inside themselves",
+   "page ranges with a gap, a short end, or pages outside themselves are assembled into one run")
+eq(replace, "EQ21", QPY, "        refusal, error = facts.refusal, facts.error\n",
+   "        refusal, error = None, None\n",
+   "CALL SITE sweep: the enqueue ignores guard_file's verdict and queues every file")
+eq(replace, "EQ22", QPY, "    why, detail = facts.refusal, facts.error\n",
+   "    why, detail = None, None\n",
+   "CALL SITE _recheck: the claim-time re-check ignores guard_file's verdict (a job enqueued "
+   "before a guard changed is extracted)")
+eq(replace, "EQ23", f"{PKG}/extract/ingest.py",
+   "        if before_commit is not None:\n            before_commit(conn, run_id)\n",
+   "",
+   "CALL SITE ingest_file: the ownership gate is never called inside the ingest transaction, so "
+   "blocks commit whatever the lease says")
+eq(block, "EQ24", f"{PKG}/extract/docling.py", "guard: a cuda request the interpreter cannot serve fails closed",
+   "device=cuda under an interpreter without CUDA reaches docling (S2's Maiti_2022: a failed "
+   "metrics row and a GROBID-only run)")
+
 
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.

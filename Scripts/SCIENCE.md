@@ -130,9 +130,9 @@ count beside it.
 
 A gap here is a record, not a backlog — some acquisitions are deliberately out of scope. `phase4/qc/coverage_map.md` has the matrix.
 
-## 5. What is blocked, and on whom (17 open)
+## 5. What is blocked, and on whom (23 open)
 
-**Ready now (11) — nothing above them:**
+**Ready now (17) — nothing above them:**
 
 - `synthesis-session` [kam] — Sit down with the full evidence table and set the story: what does the project claim about Edmonds canopy dire
 - `k4-signoff` [kam] — Sign off or amend the documented findings block — review corrections, bootstrap CIs, canopy definition §6 and 
@@ -145,6 +145,12 @@ A gap here is a record, not a backlog — some acquisitions are deliberately out
 - `litkb-scihub-parked` [kam] — Sci-Hub has delivered no file on any hunt since the route was built (all-time census: litkb.acquisition_attemp
 - `litkb-tracker-corrections` [kam] — The ruled run admitted works under the registry's authors and years where the tracker's claims were wrong (Rep
 - `litkb-from-file-version-state` [kam] — Every operator bind — `acquire --from-file`, and every route landing — writes file_versions.state='promoted' w
+- `litkb-coverage-definition` [kam] — Does "has the study" mean a PDF file, or a searchable, quotable source of any kind? The survey (section 6.2) s
+- `litkb-institutional-access` [kam] — Does Kam have institutional access to any publisher (a university or agency login, a proxy, a browser profile 
+- `litkb-shadow-hosts` [kam] — Kam's standing grant covers Anna's Archive and Sci-Hub as last-resort routes. The survey (section 1, Stage G) 
+- `litkb-tdm-keys` [kam] — Springer and Elsevier issue free text-and-data-mining API keys; Wiley and IEEE have TDM endpoints too. Should 
+- `litkb-crc-book` [kam] — The corpus's one book (E20, VanDenHout_2016, CRC Press, ISBN 9781466568419, electronic only) has NO automated 
+- `litkb-s47-colab-queue` [kam] — S4.7's vision-language OCR rungs (olmOCR or Chandra ranked on the old-scan axes; a Swin-transformer or PaddleO
 
 **Waiting (6):** `ccap-bias-quantification` after k1-labelling, `thirtysix-run-go` after champion-designations, k4-signoff, `city-statement` after synthesis-session, k4-signoff, `paper-scope` after synthesis-session, k4-signoff, `forward-monitoring` after city-statement, `selection-metric-calibration` after augmentation-seeding
 

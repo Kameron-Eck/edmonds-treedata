@@ -46,6 +46,66 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-22  litkb PDF-SOURCES + OCR SURVEY (2 rounds, 19 crawlers) -> plan overhauled: S4.5 rewritten, S4.6 + S4.7 inserted, 95 % target ruled
+goal:    Kam: "how are we closing the gap between the hunter and actual pdfs" -> "massive github crawls ... all free sources ...
+         books, studies ... layered pipeline ... 95 percent ... lit review on OCR ... agreement esp. latex ... codex on reddit ...
+         second round with a blacklist ... overhaul this plan".
+did:     Round 1 (wf_87c486af-659, 63 min): 11 Opus crawlers (A1-A7 sources/orchestration, E1-E4 extraction/OCR/math/QA) + 2 Codex
+         forum searches (C1 acquisition, C2 OCR) + synthesizer -> SYNTHESIS-r1 (73 rungs), blacklist-round1 (1796 URLs).
+         Round 2 (wf_3c9146c7-518, 55 min): 6 Opus crawlers on r1's unread leads (Zotero translators 748 counted, waterfalls,
+         landing-page extractors, calibration/codeless sources, extraction/OCR, GitHub topics) + 2 Codex GitHub searches ->
+         Codex QUOTA EXHAUSTED 05:06 PDT, both died with zero findings (owed). Synthesizer-r2 -> merged 125 rungs (52 new,
+         32 re-graded), blacklist-round2 (2505). Tracked record: Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md (+ _urls.txt).
+         Orchestrator probes (read-only; jobs/litkb-acquisition-survey/probe_*.py): litkb's own Unpaywall resolver on all 35
+         no-oa-copy DOIs -> 4 answers, all Elsevier bronze LANDING PAGES; OpenAlex/Crossref link/S2/citation_pdf_url + HEAD ->
+         exactly 4 FREE PDFs (S2 -> arXiv siblings); 1 dead author copy in Wayback; every Springer/Wiley/OUP/IOP/Cambridge "pdf"
+         = paywall/HTML/token. Baselines: tracker 460 rows (DOI 406 / arXiv 42 / URL 2 / text 10); main_works 486, 263 with file
+         (54 %), 233 with blocks; annas misses by Crossref type: 16 article / 5 PREPRINT (routing error) / 3 chapter / 1 book /
+         1 proc / 7 no-registry.
+         PLAN: S4.5 -> "acquisition ladder part 1" (substrate + ledger vocabulary: typed bad-file x5, blocked x4, stub/volume/
+         cited/compressed states, terminal_url/status/dt, page_count/word_count, retriable per attempt, kind, articleVersion,
+         unverified_keep, BUDGET + PolicyDecision; Stage A router/canonicalise/class filter; Stage B concurrent fan-out incl.
+         S2/OpenAlex/Crossref link[]/CORE/EuropePMC/DataCite/EarthArXiv/NASA ADS; Stage C citation_pdf_url + per-publisher
+         rule table ported from Zotero translators incl. MDPI CDN + Elsevier pii->pdfft + the acceptance test replacing
+         %PDF-+128B; Stage E Wayback/IA/CommonCrawl; the bad-file rows READ FIRST). NEW S4.6 (Stage D grey/agency: USFS sitemap,
+         USGS, OSTI, NTRS, govinfo, DSpace OAI mets w/ MD5, ArcGIS Online, city portals; Stage F ISBN namespace; Stage G under
+         EXISTING grant: DDoS-Guard <title> detection, Sci-Hub UA/storage-path/Altcha, Anna's quota-free record; NEW hosts gated
+         on litkb-shadow-hosts; Stage H behind litkb-institutional-access / litkb-tdm-keys; the coverage instrument vs the
+         tracker). NEW S4.7 (CMap repair layer above ligature fix; qpdf/complexity gates FAIL CLOSED; LM-coherency referee +
+         quality TIER, quotes only from HIGH; scans MEASURED before adopted w/ gold pages + CI; math verified w/o ground truth:
+         2 independent decoders + KaTeX parse/compile/degeneracy/normalised exact/CDM F1/image-vs-crop/VLM referee).
+         decisions.yaml: litkb-coverage-target DECIDED (Kam's words; 95 %, automated, layered) + OPEN litkb-coverage-definition,
+         litkb-institutional-access, litkb-shadow-hosts, litkb-tdm-keys, litkb-crc-book. s4-prompt.txt: S4 launches S4.5.
+found:   Round-1 finding "census = broken instrument, re-run = biggest jump" REFUTED by measurement (4/35 answer, all landing
+         pages); mechanism (missing email / 5-min outage retires the route forever) SURVIVES. Highest-yield missing rung =
+         landing-page->PDF (citation_pdf_url; MDPI CDN mdpi-res.com serves application/pdf where www.mdpi.com 403s).
+         External base rates (IA ingest notes): OA URLs ~80 % first pass; OAI harvesting ~35 %; no-pdf-link mostly NOT a
+         parser bug. finnschwall 582-paper review: ~86 %, 65/82 misses closed-access w/ no free copy. Elsevier TDM key returns
+         HTTP 200 first-page STUB (X-ELS-Status). OCR voting precedent COLLAPSED (LV-ROVER = 5 Tesseract configs; untuned
+         corpus dCER 0.001, p=0.66 -> UNDETERMINED); post-OCR corrector +5.11 % only WITH sliding-window vote, negative without.
+         No 4 GB-GPU scientific-OCR config exists anywhere; T2000 = classical OCR + orchestration; VLM rungs = Colab.
+         Dead leads: api.fatcat.wiki ECONNREFUSED, ArcGIS Hub datasets 0 docs, OpenDOAR/ROAR Cloudflare, DTIC PNG decoy,
+         allenai/dolma no PDF pipeline, internetarchive/pdftrio absent.
+decided: honest bottom line in the plan: ~86 % legitimate-automated demonstrated; 95 % needs institutional access OR shadow
+         tier (pre-2021) OR grey layer OR a broader "has the study" definition -> Kam's rulings, recorded as ids, not prose.
+         New shadow hosts NOT built until ruled. Codex adversarial read OWED (Opus adversary + builder-read stood in).
+         REVIEW (Codex owed): Opus adversary 83 findings (A10 B2 C16 D7 E15 F20 G5 H8) + Opus builder-read (4/17 items
+         buildable as written) -> fix pass: 6 stale "S4.5 item N" pointers; free-ceiling counter split MEASURED (must convert)
+         vs bronze ESTIMATED (reported); Stage B rows = every no-oa-copy DOI, yield MEASURED by the run, B3/B12 carried as
+         measured-zero, NASA ADS probe-not-build; E11/E12 replaced by real acquisition negatives + CONSTRUCTED ones labelled;
+         G3a -> litkb-shadow-hosts, G4 -> litkb-blocked-works-grade (questions amended); H5 measured-AGAINST not built; H6
+         already in netutil; sub_status column not new state words; copy_kind extended not articleVersion column; pages
+         exists (word_count only); volumes_bound_as_article; ISBN attaches to the book, chapter by part_of edge; S4.7 honours
+         litkb-second-formula-decoder (verification ladder on ONE decoder; no re-open); LOW-tier refusal in SQL; probes moved
+         into qc/instruments (3.4b) writing phase4/qc/litkb_acq_probe_*; litkb-s47-colab-queue open; §M heading in the survey.
+killed:  "more OA indexes reach 95 %" (24-tool union added one source: NASA ADS). Cross-engine OCR voting as a given.
+files:   Scripts/LITKB_WORKPLAN.md, Scripts/decisions.yaml, Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md (+_urls.txt),
+         _derived/s4/s4-prompt.txt, jobs/litkb-acquisition-survey/{STATE,SYNTHESIS-r1,SYNTHESIS-r2,A*,E*,C*,R2*,probe_*}.
+         Branch work/20260922-litkb-acquisition-ladder.
+next:    Kam: rule litkb-coverage-definition / institutional-access / shadow-hosts / tdm-keys / crc-book (survey §6 is the
+         reading); launch S4 run 3 (unchanged line). Codex: re-run R2C-github-{acquisition,ocr} + adversarial read when quota
+         returns. First measurement of S4.5: read the bad-file rows.
+
 ## 2026-09-21  litkb PLAN REVISED in place: S4 extended, S4.5 inserted, S5 entry condition, post-S5 table, survey verdicts with provenance
 goal:    Kam (22:00, then bed): "an exhaustive plan. It will edit the current plan" — LITKB_WORKPLAN.md revised from the wrap-up evidence
          + GitHub survey; no code; STOP after, Kam launches S4 run 3 himself.

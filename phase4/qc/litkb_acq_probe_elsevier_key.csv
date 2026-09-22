@@ -1,24 +1,24 @@
 ts_utc,endpoint,doi,oa_status_openalex,http_status,x_els_status,content_type,bytes_seen,starts_pdf
-2026-09-22T18:16:00Z,scopus-search,10.1016/j.jag.2022.102806,gold,200,OK,application/json;charset=UTF-8,2048,False
-2026-09-22T18:16:00Z,sciencedirect-search-v2,10.1016/j.jag.2022.102806,gold,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-metadata-search,10.1016/j.jag.2022.102806,gold,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-META,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-META_ABS,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-FULL,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-pdf,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
-2026-09-22T18:16:00Z,article-pii-pdf,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
-2026-09-22T18:16:00Z,scopus-search,10.1016/j.rse.2019.111261,bronze,200,OK,application/json;charset=UTF-8,2048,False
-2026-09-22T18:16:00Z,sciencedirect-search-v2,10.1016/j.rse.2019.111261,bronze,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-metadata-search,10.1016/j.rse.2019.111261,bronze,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-META,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-META_ABS,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-FULL,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-pdf,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
-2026-09-22T18:16:00Z,article-pii-pdf,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
-2026-09-22T18:16:00Z,scopus-search,10.1016/j.rse.2010.07.008,closed,200,OK,application/json;charset=UTF-8,2048,False
-2026-09-22T18:16:00Z,sciencedirect-search-v2,10.1016/j.rse.2010.07.008,closed,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-metadata-search,10.1016/j.rse.2010.07.008,closed,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-META,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-META_ABS,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-view-FULL,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
-2026-09-22T18:16:00Z,article-pdf,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
+2026-09-22T18:22:53Z,scopus-search,10.1016/j.jag.2022.102806,gold,200,OK,application/json;charset=UTF-8,2048,False
+2026-09-22T18:22:53Z,sciencedirect-search-v2,10.1016/j.jag.2022.102806,gold,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-metadata-search,10.1016/j.jag.2022.102806,gold,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-META,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-META_ABS,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-FULL,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-pdf,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
+2026-09-22T18:22:53Z,article-pii-pdf,10.1016/j.jag.2022.102806,gold,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
+2026-09-22T18:22:53Z,scopus-search,10.1016/j.rse.2019.111261,bronze,200,OK,application/json;charset=UTF-8,2048,False
+2026-09-22T18:22:53Z,sciencedirect-search-v2,10.1016/j.rse.2019.111261,bronze,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-metadata-search,10.1016/j.rse.2019.111261,bronze,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-META,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-META_ABS,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-FULL,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-pdf,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
+2026-09-22T18:22:53Z,article-pii-pdf,10.1016/j.rse.2019.111261,bronze,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False
+2026-09-22T18:22:53Z,scopus-search,10.1016/j.rse.2010.07.008,closed,200,OK,application/json;charset=UTF-8,2048,False
+2026-09-22T18:22:53Z,sciencedirect-search-v2,10.1016/j.rse.2010.07.008,closed,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-metadata-search,10.1016/j.rse.2010.07.008,closed,401,AUTHORIZATION_ERROR - The requestor is not authorized to access the requested view or fields of the resource,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-META,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-META_ABS,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-view-FULL,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,application/json;charset=UTF-8,0,False
+2026-09-22T18:22:53Z,article-pdf,10.1016/j.rse.2010.07.008,closed,403,AUTHENTICATION_ERROR - Requestor configuration settings insufficient for access to this resource.,text/xml,0,False

@@ -52,7 +52,8 @@ decided: (Kam, verbatim in each decisions.yaml `decision:`) litkb-coverage-defin
          text/snippets reported never counted; litkb-institutional-access B: NONE, H10/H11 not built, manual-step rows -> shadow
          tier / human queue / metadata-grade; litkb-shadow-hosts a,b,c,d: LibGen DOI lookup + mirrors, sci.bban.top, Nexus/STC
          delivery, Tor transport, browser session vs Anna's — all granted behind policy lines, offline dumps = data;
-         litkb-tdm-keys: "Keys for both" (Elsevier + Springer, Kam registers); litkb-s47-colab-queue: "as much T4 time as you
+         litkb-tdm-keys: "Keys for both", amended same evening to ELSEVIER ONLY (key placed in
+         secrets/; "We wont be getting a springer api key"); litkb-s47-colab-queue: "as much T4 time as you
          need, its cheap"; "the rest of the reccomendations" accepted: scihub-parked PARK, blocked-works-grade METADATA-GRADE +
          queue on demand, e23-residue-copies RETIRE 53/369 unless load-bearing, crc-book RETIRE (ILL if needed),
          tracker-corrections CORRECTED COLUMN + crossed DOIs fixed in place, from-file-version-state PROPOSAL PATH batched;
@@ -66,7 +67,7 @@ did:     decisions.yaml 11 entries open -> decided 2026-09-22 (zero litkb-… op
          tracker edits. Launch kit _derived/s4/s4-prompt.txt line 4 -> the ruled list. Gates: plan 0/0, docs+decisions 29 pass,
          edges 21 pass. Landed main 2ca4869 (plan + decisions); CHATLOG in the follow-up commit.
 files:   Scripts/decisions.yaml, Scripts/LITKB_WORKPLAN.md, _derived/s4/s4-prompt.txt (gitignored).
-next:    Kam: register both TDM keys; re-register nightly dump task; launch S4 run 3 (_derived/s4/launch-s4.sh). Owed: Codex
+next:    Kam: re-register nightly dump task; launch S4 run 3 (_derived/s4/launch-s4.sh). Owed: Codex
          cross-family reads r2/r3/r4 + adversarial plan read (quota). Nothing litkb-… open in decisions.yaml.
 
 ## 2026-09-22  litkb SURVEY ROUNDS 3 + 4: shadow-library linkage + identifier coverage; the loop's twelve stages -> plan updated

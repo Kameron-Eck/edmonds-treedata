@@ -863,7 +863,13 @@ decisions:
       client-codebase parser, sci.bban.top, LibGen scimag by DOI, Anna's /scidb, Tor onion if a host
       is unreachable otherwise). A DOI published after the 2022-02-12 freeze is out of corpus by
       construction and is never sent to any of these fronts. Kam, 2026-09-22.
-
+    why: >-
+      Parked removes one probe and one 403 per hunt from a route that has only ever produced
+      blocked rows; live keeps the standing grant intact in case a mirror starts answering. The
+      back-off lands in S4.5 either way; only the default is Kam's to set.
+    evidence:
+      - Reports/LITKB_EDGES_2026-09-21.md
+      - Reports/LITKB_RULED_HUNTS_2026-09-21.md
   - id: litkb-tracker-corrections
     question: >-
       The ruled run admitted works under the registry's authors and years where the tracker's

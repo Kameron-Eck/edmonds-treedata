@@ -1052,7 +1052,19 @@ decisions:
       wont be getting a springer api key"); no Springer key, so H1 is not built and Springer open-access
       content stays on the Unpaywall rung. The Elsevier key buys open-access and bronze content only; an
       unentitled answer is a first-page stub the acceptance test refuses; its yield is recorded the first
-      time it runs. First ruling, Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
+      time it runs. MEASURED 2026-09-22 within the hour of placement (qc/instruments/litkb_acq_probe_elsevier_key.py →
+      phase4/qc/litkb_acq_probe_elsevier_key.csv): the key is VALID — Scopus Search answers 200 — but every
+      ScienceDirect endpoint refuses it at the key-configuration level: Article Retrieval 403
+      AUTHENTICATION_ERROR "Requestor configuration settings insufficient" even at view=META on a GOLD
+      open-access article, ScienceDirect Search and Metadata 401 AUTHORIZATION_ERROR. As configured the key
+      buys Scopus metadata (EID, PII, openaccess flag, cited-by), not full text. Elsevier's own page says
+      non-subscribers "can still retrieve free and open access content -- or speak to us about
+      non-subscriber access". The likely cause (Kam: the form asked for a label and a website URL): the
+      key form carries TWO consent boxes, the API Service Agreement and the TDM Provisions, and the
+      ScienceDirect endpoints are what the second enables ("Text Mining API Keys" in Elsevier's settings
+      table); the website URL is optional. Open action, Kam's: create a key at dev.elsevier.com/apikey/create
+      with BOTH boxes ticked, replace the file, re-run the instrument; API support only if it still refuses.
+      First ruling, Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     blocked_by: [litkb-coverage-target]
     why: >-
       Registration is Kam's identity on a publisher's account; the yield is small and measured; the

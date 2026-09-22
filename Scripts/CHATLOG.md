@@ -66,8 +66,14 @@ did:     decisions.yaml 11 entries open -> decided 2026-09-22 (zero litkb-… op
          Colab queue approved T4; after-S5 promotion row -> operator-bind gate is S4.5's; S5 names the topic + the pre-run
          tracker edits. Launch kit _derived/s4/s4-prompt.txt line 4 -> the ruled list. Gates: plan 0/0, docs+decisions 29 pass,
          edges 21 pass. Landed main 2ca4869 (plan + decisions); CHATLOG in the follow-up commit.
-files:   Scripts/decisions.yaml, Scripts/LITKB_WORKPLAN.md, _derived/s4/s4-prompt.txt (gitignored).
-next:    Kam: re-register nightly dump task; launch S4 run 3 (_derived/s4/launch-s4.sh). Owed: Codex
+found:   Elsevier key placed (secrets/, outside repo) and probed same hour: VALID (Scopus Search 200) but every ScienceDirect
+         endpoint refuses it at key-config level (Article Retrieval 403 AUTHENTICATION_ERROR even view=META on gold OA;
+         SD Search + Metadata 401) -> buys Scopus metadata, NO full text. Instrument qc/instruments/
+         litkb_acq_probe_elsevier_key.py -> phase4/qc/litkb_acq_probe_elsevier_key.csv. H2 not built until a re-run shows 200.
+files:   Scripts/decisions.yaml, Scripts/LITKB_WORKPLAN.md, _derived/s4/s4-prompt.txt (gitignored),
+         qc/instruments/litkb_acq_probe_elsevier_key.py, phase4/qc/litkb_acq_probe_elsevier_key.csv.
+next:    Kam: re-create Elsevier key with BOTH boxes ticked (API Service Agreement + TDM Provisions), replace
+         secrets/Elsevier_key.txt, re-run the instrument; re-register nightly dump task; launch S4 run 3 (_derived/s4/launch-s4.sh). Owed: Codex
          cross-family reads r2/r3/r4 + adversarial plan read (quota). Nothing litkb-… open in decisions.yaml.
 
 ## 2026-09-22  litkb SURVEY ROUNDS 3 + 4: shadow-library linkage + identifier coverage; the loop's twelve stages -> plan updated

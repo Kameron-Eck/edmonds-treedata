@@ -796,3 +796,96 @@ decisions:
     evidence:
       - Reports/LITKB_TITLE_HUNTS_2026-09-21.md
       - Reports/LITKB_RULED_HUNTS_2026-09-21.md
+
+  - id: litkb-e23-residue-copies
+    question: >-
+      Register row E23's residue — tracker rows 53 (a Chinese-language journal article) and 369
+      (Matheron's 1986 internal note) — and E20's book (10.1201/9781315374321) have either no
+      identifier any registry holds or no public copy on any route. Each admits or binds only by
+      `--from-file` from a copy Kam has. Does Kam have copies; and if not, are the three retired
+      from the tracker's scope, or kept as held rows the register carries indefinitely?
+    owner: kam
+    status: open
+    why: >-
+      Until answered the three sit as held or blocked register rows that every replay carries and
+      every session re-reads. A copy makes each a normal bind in S4's measurement bed; a "no"
+      retires them from every list that names them, including the plan.
+    evidence:
+      - Reports/LITKB_RULED_HUNTS_2026-09-21.md
+      - Reports/LITKB_TITLE_HUNTS_2026-09-21.md
+
+  - id: litkb-blocked-works-grade
+    question: >-
+      The ruled run of 2026-09-21 left a set of admitted, registry-confirmed works with no file:
+      open access holds no copy, the archive does not hold them, Sci-Hub answers 403 (the rows
+      whose hunt_state is `blocked` in Reports/LITKB_RULED_HUNTS_2026-09-21.csv). Two grades are
+      possible: METADATA-grade (admitted, citable by its record, never quotable — every drop-off
+      expectation on it stays UNCONFIRMED) or a copy supplied by `--from-file`. Which grade, and
+      for which rows?
+    owner: kam
+    status: open
+    why: >-
+      A quote needs a file; a review that cites a metadata-grade work can only say what the
+      record says. Without a grade, S4.5's back-off keeps probing these works once per run and
+      S5's counters carry them as unconfirmed for the life of the base.
+    evidence:
+      - Reports/LITKB_RULED_HUNTS_2026-09-21.md
+
+  - id: litkb-scihub-parked
+    question: >-
+      Sci-Hub has delivered no file on any hunt since the route was built (all-time census:
+      litkb.acquisition_attempts grouped by route and status — every scihub row is blocked or
+      not-in-archive; Reports/LITKB_EDGES_2026-09-21.md records the four mirrors answering
+      blocked or no-pdf-link live). S4.5's per-route back-off bounds the route's cost to one
+      probe per run. Should the route ALSO be parked by default (kept in ROUTES, skipped unless a
+      hunt asks for it), or stay live as the last rung of the ladder Kam granted?
+    owner: kam
+    status: open
+    why: >-
+      Parked removes one probe and one 403 per hunt from a route that has only ever produced
+      blocked rows; live keeps the standing grant intact in case a mirror starts answering. The
+      back-off lands in S4.5 either way; only the default is Kam's to set.
+    evidence:
+      - Reports/LITKB_EDGES_2026-09-21.md
+      - Reports/LITKB_RULED_HUNTS_2026-09-21.md
+
+  - id: litkb-tracker-corrections
+    question: >-
+      The ruled run admitted works under the registry's authors and years where the tracker's
+      claims were wrong (Reports/LITKB_RULED_HUNTS_2026-09-21.md section 4 lists them), found
+      rows 177 and 178 with their DOIs crossed in the tracker's own DOI/URL column, and found row
+      194's relevance sentence quoting a different page from its ref. Nothing in
+      Reports/literature_tracker.csv was edited (the job's brief forbade it). Are the tracker rows
+      corrected to the registry's values, the 177/178 pair swapped, and 194's ref re-pointed —
+      and by whom, since the tracker is a project document, not a litkb table?
+    owner: kam
+    status: open
+    why: >-
+      The tracker's claims are the drop-offs' priors; a wrong prior contradicts forever.
+      Correcting the tracker makes the register's E23/E24 carriers match their source rows;
+      leaving it keeps the admissions' discrepancy rows as the record of the disagreement, which
+      is also defensible. Either way the answer is a rule the next tracker-driven run follows.
+    evidence:
+      - Reports/LITKB_RULED_HUNTS_2026-09-21.md
+      - Reports/LITKB_TITLE_HUNTS_2026-09-21.md
+      - Reports/literature_tracker.csv
+
+  - id: litkb-from-file-version-state
+    question: >-
+      Every operator bind — `acquire --from-file`, and every route landing — writes
+      file_versions.state='promoted' with promotion_id NULL (0003_write_functions.sql sets it for
+      every bind; the E25 auditor confirmed it is not an anomaly). A web snapshot or a manual
+      admission is a `proposed` version that a SECOND session approves; a PDF the operator supplies
+      by hand is not. Should an operator-supplied file be a `proposed` version behind the same
+      second-session gate, or stay a direct bind?
+    owner: kam
+    status: open
+    why: >-
+      The second-session gate exists so a file's identity is confirmed by someone who did not bind
+      it. Today it covers pages and manual records but not hand-supplied PDFs, so a wrong
+      `--from-file` binds straight into main. Gating it costs one more approval per copy Kam
+      supplies (the E23 residue, the blocked works); not gating it keeps `--from-file` the
+      one-command path it is now.
+    evidence:
+      - pipeline/litkb/db/migrations/0003_write_functions.sql
+      - Reports/LITKB_EDGES_2026-09-21.md

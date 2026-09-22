@@ -247,7 +247,10 @@ def test_kill_a_register_edited_after_the_freeze_is_refused_before_anything_is_g
     # and the same manifest with the file's REAL hash grades normally
     good, _p2 = _manifest(tmp_path, [], path, fixture_sha256=A._register_sha256(FIXTURE))
     counters, _off = A.check_edges(good, csv_path=path)
-    assert counters["held_for_ruling"] >= 1, counters
+    # the grade ran over the REAL register: with an empty run CSV every executable row is
+    # `skipped` and every held row is counted — either proves the file was read. It used to
+    # assert held_for_ruling >= 1, which broke the day the last ruling landed (2026-09-21).
+    assert counters["skipped"] + counters["held_for_ruling"] >= 1, counters
 
 
 def test_kill_the_register_hash_is_content_not_bytes_crlf_passes_one_edit_refuses(
@@ -275,7 +278,10 @@ def test_kill_the_register_hash_is_content_not_bytes_crlf_passes_one_edit_refuse
     assert A._register_sha256(crlf) == frozen, "a newline rewrite is not an edit"
     m, _p = _manifest(tmp_path, [], path, fixture=str(crlf), fixture_sha256=frozen)
     counters, _off = A.check_edges(m, csv_path=path)
-    assert counters["held_for_ruling"] >= 1, counters
+    # the grade ran over the REAL register: with an empty run CSV every executable row is
+    # `skipped` and every held row is counted — either proves the file was read. It used to
+    # assert held_for_ruling >= 1, which broke the day the last ruling landed (2026-09-21).
+    assert counters["skipped"] + counters["held_for_ruling"] >= 1, counters
 
     edited = tmp_path / "register_edited.json"
     reg = json.loads(lf.decode("utf-8"))

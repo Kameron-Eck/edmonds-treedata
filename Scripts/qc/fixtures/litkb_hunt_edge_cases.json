@@ -1220,43 +1220,117 @@
   {
    "id": "E23",
    "class": "held-queue-skipped-low",
-   "ref": "tracker:25,28,49,50,53,57,117,122,132,174,193,194,235,242,369",
-   "ref_scheme": "tracker",
-   "held_for_ruling": {
-    "question": "The fifteen resolved to NOTHING by title. Leave them unresolved, or supply a DOI by hand per row? No hunt can settle a row whose reference is the tracker's own words.",
-    "evidence": "Reports/LITKB_TITLE_HUNTS_2026-09-21.md section E23 (per row: best candidate DOI, ratio, registry first author/year); tracker ids 25, 28, 49, 50, 53, 57, 117, 122, 132, 174, 193, 194, 235, 242, 369."
-   },
+   "ref": "10.3390/s8042161",
+   "ref_scheme": "doi",
    "live": {
-    "mode": "held-for-ruling",
-    "why": "the expected state IS the ruling",
-    "spend": false
+    "mode": "execute",
+    "why": "a cached lookup with extraction off (bound 2026-09-21)",
+    "spend": false,
+    "inputs": {
+     "extract": false
+    },
+    "inputs_why": "the live path passes exactly these to hunt(); extract=False because S4 owns extraction"
    },
    "ruling": {
     "ruled_by": "Kam",
     "date": "2026-09-21",
-    "ruling": "Resolve title+author+year through the registries and hunt whatever resolves (b).",
-    "measured": "done 2026-09-21 (Reports/LITKB_TITLE_HUNTS_2026-09-21.md): 15/15 refused/ambiguous-title - no candidate reached gate 0's 0.85; the S1 low-confidence skip was right. 15 drop-offs recorded, all resolution_state=open, work_id null."
+    "ruling": "(b) resolve by title - measured 0/15; then Kam 2026-09-21 (litkb-registry-over-claim): hunt by the identifiers the wrap-up found (8 arXiv ids in the tracker's source column or by arXiv search, 2 DOIs), drop 50 (the tracker's own duplicate), propose 194/235 by URL, hold 53/369 (no identifier anywhere).",
+    "measured": "ruled run 2026-09-21 (Reports/LITKB_RULED_HUNTS_2026-09-21.md): 25 and 57 bound-unextracted/fresh-bound under the registry record (25: Coulter & Stow 2008 - the tracker said Stow 2013); the 8 arXiv rows api-error/registry-transient (arXiv answered 406 on 24 consecutive calls over 30 min; retry, not a ruling); 235 refused check 3 (cover splits the title over 5 lines, ratio 0.80); 194's page holds NO document - proposal to be REFUSED by a second session. the recipe that worked (ruled-hunts-1): a drop-off carrying the tracker's claim verbatim, then a BARE identifier hunt (no claim - admission lands on the registry record), then `hunt --hunt-request <id> --no-spend` which links from the DB cache. `--hunt-request` alone re-injects the claim into check 1 (litkb.hunt.fill_from_request) and refuses exactly like the title run.",
+    "residue_question_at_ruling": "The fifteen resolved to NOTHING by title. Leave them unresolved, or supply a DOI by hand per row? No hunt can settle a row whose reference is the tracker's own words.",
+    "evidence_at_ruling": "Reports/LITKB_TITLE_HUNTS_2026-09-21.md section E23 (per row: best candidate DOI, ratio, registry first author/year); tracker ids 25, 28, 49, 50, 53, 57, 117, 122, 132, 174, 193, 194, 235, 242, 369.",
+    "residue": "53 (Chinese-language journal) and 369 (Matheron 1986 internal note): held unless Kam has a copy; the 8 arXiv rows: re-run when arXiv answers 200; 235: manual admission + second session, or the title-region gate learns multi-line cover titles (survey D)."
+   },
+   "source": "held-queue skipped-low tracker 25 (Reports/held_queue_results.csv), tracker row 25 'Stow, D. et al. 2013' - registry: Coulter & Stow 2008, Sensors, 10.3390/s8042161; bound by the ruled run (Reports/LITKB_RULED_HUNTS_2026-09-21.csv row 25, work Coulter_2008_assessment-spatial-co-registration, work_id 01a0c722-b25d-75aa-a158-80ec90f89e69).",
+   "expected": {
+    "state": "bound-unextracted",
+    "reason": "already-bound"
+   },
+   "adjudication": {
+    "builder": "[orchestrator, S3 wrap-up 2026-09-21, from the MEASURED live pair] the class's carrier is the one skipped-low row that resolved once an identifier was found for it; first live hunt answered fresh-bound, so the stable pair is already-bound (E08's shape). The other fourteen are in the ledger, each in its own named state."
+   },
+   "replay": {
+    "inputs": {
+     "spend": false,
+     "extract": false
+    },
+    "seed": {
+     "scheme": "doi",
+     "value": "10.3390/s8042161",
+     "state": "bound-unextracted"
+    },
+    "registry": {
+     "kind": "none"
+    },
+    "fetch": {
+     "kind": "explode"
+    },
+    "routes": {
+     "kind": "none"
+    },
+    "extract": {
+     "kind": "off"
+    }
+   },
+   "asserts": {
+    "new_admissions": 0
    }
   },
   {
    "id": "E24",
    "class": "held-queue-refused-check1",
-   "ref": "10.3390/rs15030765,10.1080/17538947.2023.2257636,10.1016/j.jag.2022.102909,10.5067/doc/ceoswgcv/lpv/lc.001,10.2139/ssrn.4979539,10.1016/j.rse.2010.07.008,10.1137/1.9781611978032.28,10.1175/aies-d-22-0055.1,10.1016/j.tfp.2025.100146,10.3390/rs5041397,10.1016/j.rse.2025.114632,10.48550/arxiv.2511.07976,10.3390/rs17112050",
+   "ref": "10.1145/3347146.3359068",
    "ref_scheme": "doi",
-   "held_for_ruling": {
-    "question": "For the 14 rows where the registry's first author or year must OVERRULE the tracker's claim, does Kam accept the registry record (then an admission path that trusts the registry over the claim is needed - none exists; check 1 and the resolver both side with the claim)? Swap 177/178's DOIs? 187: the 10.5067 DOI is 404 at Crossref but live in the handle system (lpvs.gsfc.nasa.gov) - a manual proposal? 20/131/186/239/274: truncated titles to complete by hand?",
-    "evidence": "Reports/LITKB_TITLE_HUNTS_2026-09-21.md section E24 and section 5 (the question per row); Reports/held_queue_results.csv outcome=refused-check1; LITKB_HELD_QUEUE_2026-09-15.md:123-144."
-   },
    "live": {
-    "mode": "held-for-ruling",
-    "why": "the expected state IS the ruling",
-    "spend": false
+    "mode": "execute",
+    "why": "a cached lookup with extraction off (bound 2026-09-21)",
+    "spend": false,
+    "inputs": {
+     "extract": false
+    },
+    "inputs_why": "the live path passes exactly these to hunt(); extract=False because S4 owns extraction"
    },
    "ruling": {
     "ruled_by": "Kam",
     "date": "2026-09-21",
-    "ruling": "Human review is acceptable; produce the table (tracker claim vs registry record) and rule from it. (Kam also asked whether an LLM comparison of OCR text against the hunter's source info would help - it cannot here: no file exists for any of the 22.)",
-    "measured": "done 2026-09-21 (Reports/LITKB_TITLE_HUNTS_2026-09-21.md): 22/22 refused/ambiguous-title. STRUCTURAL: resolve_title delegates to admit/resolver.py judge_candidate, which re-applies check 1's three tests (ratio >= 0.85, first-author family, year +/-1) to the TRACKER'S claim, so 16 rows matched the title at >= 0.85, landed on the DOI already stored, and were refused again on author/year. 'registry-quirk' is never formatting: 13 rows have a registry first author absent from the tracker's author string, 2 are the crossed LandTrendr pair 177/178 (each title resolves 1.00 to the OTHER row's DOI), 1 (293) is a 2-year AMS gap. 7 corrections corroborated against the tracker's DOI column (2, 33, 48, 55, 67, 177/178)."
+    "ruling": "Kam 2026-09-21 (litkb-registry-over-claim): the registry record is authoritative over the tracker's claimed author/year for all 21 rows whose title matches and whose relevance sentence describes that paper; 177/178 swapped; 187 via DataCite.",
+    "measured": "ruled run 2026-09-21 (Reports/LITKB_RULED_HUNTS_2026-09-21.md): 8 bound-unextracted/fresh-bound (20,22,24,52,177,178,186,239); 13 blocked/403 (no OA copy, Anna's not-in-archive, Sci-Hub 403 on every mirror) - admitted under the registry record, no file; 187 admitted through DataCite (Crossref 404) but the corporate creator CRASHED the key rule (works_key_check) until --key was given, and its PDF from lpvs.gsfc.nasa.gov ended UNBOUND on disk (URL leg refused duplicate-review, from-file refused duplicate-held). Over the 24 rows with a record: tracker first author wrong in 17, year wrong in 8, both right in 3. the recipe that worked (ruled-hunts-1): a drop-off carrying the tracker's claim verbatim, then a BARE identifier hunt (no claim - admission lands on the registry record), then `hunt --hunt-request <id> --no-spend` which links from the DB cache. `--hunt-request` alone re-injects the claim into check 1 (litkb.hunt.fill_from_request) and refuses exactly like the title run.",
+    "residue_question_at_ruling": "For the 14 rows where the registry's first author or year must OVERRULE the tracker's claim, does Kam accept the registry record (then an admission path that trusts the registry over the claim is needed - none exists; check 1 and the resolver both side with the claim)? Swap 177/178's DOIs? 187: the 10.5067 DOI is 404 at Crossref but live in the handle system (lpvs.gsfc.nasa.gov) - a manual proposal? 20/131/186/239/274: truncated titles to complete by hand?",
+    "evidence_at_ruling": "Reports/LITKB_TITLE_HUNTS_2026-09-21.md section E24 and section 5 (the question per row); Reports/held_queue_results.csv outcome=refused-check1; LITKB_HELD_QUEUE_2026-09-15.md:123-144.",
+    "residue": "the 13 blocked works: no public route; a copy from Kam binds via --from-file. 187's unbound PDF: the self-dedupe hazard is a defect (carry-in). 177/178: a tracker edit. Row 33's numbers: verify at extraction."
+   },
+   "source": "held-queue refused-check1 tracker 22 (Reports/held_queue_results.csv; LITKB_HELD_QUEUE_2026-09-15.md:123-144): tracker 'Chen, B. et al. 2019' - registry: Liu, Yang, Lunga 2019, ACM SIGSPATIAL, 10.1145/3347146.3359068 (the claimed author is not on the paper; the relevance sentence is); bound by the ruled run (Reports/LITKB_RULED_HUNTS_2026-09-21.csv row 22, work Liu_2019_misregistration-tolerant-change-detection, work_id 01a0c71c-a172-7005-89c4-a25aae67b3a0).",
+   "expected": {
+    "state": "bound-unextracted",
+    "reason": "already-bound"
+   },
+   "adjudication": {
+    "builder": "[orchestrator, S3 wrap-up 2026-09-21, from the MEASURED live pair] the class's carrier is the strongest instance of the ruling - a claimed author absent from the paper, the paper still the one meant - admitted under the registry record and bound; first live hunt fresh-bound, stable pair already-bound. The tracker's claim stays linked as hunt_request; the other twenty-one rows are in the ledger."
+   },
+   "replay": {
+    "inputs": {
+     "spend": false,
+     "extract": false
+    },
+    "seed": {
+     "scheme": "doi",
+     "value": "10.1145/3347146.3359068",
+     "state": "bound-unextracted"
+    },
+    "registry": {
+     "kind": "none"
+    },
+    "fetch": {
+     "kind": "explode"
+    },
+    "routes": {
+     "kind": "none"
+    },
+    "extract": {
+     "kind": "off"
+    }
+   },
+   "asserts": {
+    "new_admissions": 0
    }
   },
   {

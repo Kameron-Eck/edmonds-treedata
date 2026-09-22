@@ -762,3 +762,37 @@ decisions:
     evidence:
       - Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md
       - Reports/LITKB_EDGES_2026-09-21.md
+
+  - id: litkb-registry-over-claim
+    question: >-
+      Twenty-two held-queue rows (register row E24) and fifteen more (E23) could not be admitted
+      because the tracker's claimed first author or year contradicts the registry record for a
+      DOI whose title matches at >= 0.85. Check 1 and the title resolver both side with the
+      claim, so no hunt of any kind can settle them. Which side is authoritative?
+    owner: kam
+    status: decided
+    decided: "2026-09-21"
+    decision: >-
+      THE REGISTRY RECORD, when the title matches and the tracker's own relevance sentence
+      describes that paper. Measured before ruling (Reports/LITKB_TITLE_HUNTS_2026-09-21.md and
+      the wrap-up's Crossref check): of the fourteen "registry-quirk" rows, four name a coauthor
+      as first author, one is an AMS early-release year gap, and ten name an author who is not on
+      the paper at all — yet in all ten the tracker's relevance sentence matches the registry
+      abstract or record. The tracker is an LLM-drafted table that got the paper right and the
+      byline wrong. The recipe, as it actually ran (Reports/LITKB_RULED_HUNTS_2026-09-21.md):
+      a drop-off carrying the TRACKER'S claim verbatim; then a BARE hunt by IDENTIFIER (DOI /
+      arXiv id / URL) with no claimed metadata, so admission lands on the registry record; then
+      `hunt --hunt-request <id> --no-spend`, which links the drop-off from the cache. NOT
+      `--hunt-request` on the first hunt: it re-injects the claim into check 1 and refuses like
+      the title run did. (admit_registry already has a `registry_only` mode, migration 0020 —
+      the generalised path S5 owes is that mode behind a human's say-so.) Rows whose
+      identifier no registry holds (a Chinese-language journal, an internal 1986 note) stay held
+      unless a copy exists for --from-file. Row 33's quoted numbers may belong to a different
+      paper by the tracker's named author (Wagner 2024) — verified at extraction, not assumed.
+    why: >-
+      A title hunt re-applies the admission gate's own tests to the claim it was given, so it can
+      only confirm the claim, never correct it; correction needs a human to say which record is
+      the paper, and the evidence for that (title, abstract, relevance) exists without a file.
+    evidence:
+      - Reports/LITKB_TITLE_HUNTS_2026-09-21.md
+      - Reports/LITKB_RULED_HUNTS_2026-09-21.md

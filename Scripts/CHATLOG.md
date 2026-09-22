@@ -46,6 +46,29 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-21  litkb E23/E24 RULED + RUN; GitHub survey of resolve+admit / acquire+bind; plan-revision prompt for Kam
+goal:    Kam: "Lets work on the E23/E24 rulings" -> bring the table, rule, run; then "how do other repos solve this" (Fable -> 5 Opus crawlers); then a prompt
+         for a plan-revision session Kam starts himself ("you just give me the prompt").
+did:     Pre-ruling measurement: Crossref author lists for the 14 registry-quirk rows (4 coauthor-as-first, 1 AMS year gap, 10 claimed author NOT on the paper) and
+         relevance-vs-abstract for the 10 (all describe the registry paper); 187 is in DataCite; 4 E23 rows carry arXiv ids in the tracker's source column, 4 more
+         found by arXiv search, 2 by Crossref. Kam ruled: registry authoritative for all 21; 187 admit; E23 10 hunts + 2 URL proposals, drop 50, hold 53/369.
+         decisions.yaml litkb-registry-over-claim. RUN (ws ruled-hunts-1, 34 rows, 35 result rows): bound-unextracted 10 (9 PDFs + 194's page), blocked/403 15,
+         api-error/registry-transient 8 (arXiv 406 x24 over 30 min), refused 2 (187-URL duplicate-review; 235 check3 0.80). 24 works admitted fresh under registry
+         records; Anna's downloads 7; Sci-Hub 15/15 blocked. Register: E23 carrier tracker 25 (Coulter_2008), E24 carrier tracker 22 (Liu_2019), both
+         bound-unextracted/already-bound; held_for_ruling now 0; freeze at merged head + replay executed=24 mismatches=0 (Reports/LITKB_EDGE_RUN_2026-09-21_replay-rulings.csv).
+         SURVEY: jobs/litkb-s3-wrap/github-survey/{SYNTHESIS,A..E}.md - source-verified at commits; my spot-checks of its litkb claims held (relation dropped by
+         parse_crossref; quota-stop folded into blocked; blocked not in DEAD_STATUSES). Pinned in WORKPLAN S5 carry-ins. Plan-revision prompt written
+         (_derived/plan-revision/plan-revision-prompt.txt, pasted to Kam); launcher/mcp beside it unneeded.
+found:   `--hunt-request` FILLS the drop-off claim into check 1 (hunt.py fill_from_request) -> the brief's recipe refused; worker adapted: bare hunt, then link
+         --no-spend (25/34 linked). admit_registry has a `registry_only` mode (0020) = Kam's ruling already in code. Corporate creator crashes works_key_check
+         (187 needed --key). 187's 7.6 MB PDF UNBOUND (duplicate-review then duplicate-held). 194's King County page holds NO document - proposal to be refused.
+         Tracker vs registry over 24 rows: first author wrong 17, year wrong 8, both right 3. Survey: A two-tier rule (test set = 16 E24 rows), B relation edges
+         + JabRef dedupe order + ISBN-13, C Zotero per-host back-off keyed (route,status,codes) + park Sci-Hub (0/9 all-time), D pdf2doi id-in-file + font-size
+         title + content gate, E hash on attempt row + quarantine as ledger. ALL relayed, none re-run on real rows (3.4c).
+decided: Kam: "don't change the plan yet" -> findings recorded as carry-ins; the plan-revision session edits the plan. Kam launches that session and S4 himself.
+next:    Kam: paste the plan-revision prompt into a fresh session in Scripts\; after it, launch S4 (launch-s4.sh). Ops: re-run the 8 arXiv rows when arXiv answers 200;
+         a second session REFUSES 194's proposal; 235 manual admission; 187's PDF bind. Kam: copies of 53/369/E20 if he has them.
+
 ## 2026-09-21  litkb S3 WRAP-UP: Kam's six rulings encoded and MEASURED; 13 proposals promoted; E25 gate fixed; clean S4 launch kit
 goal:    Kam: rulings E20-E25 + the 13 tracker-era proposals ("do the recommendation ... take care of everything else ... do not come back to me"); S4 to rerun clean, launched by Kam.
 did:     3 Opus workers in own worktrees + 1 Opus auditor. APPROVE (s3-approve-2, ws approve-2): 13/13 manual proposals approved = promoted (Chrisman's file IS the 1982 paper; no DOI exists);

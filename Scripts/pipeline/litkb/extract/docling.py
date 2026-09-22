@@ -117,6 +117,11 @@ class Block:
     frame: str = "cropbox"            # "cropbox" as docling emits it; "mediabox" after to_mediabox()
     order_index: int = -1             # position in the document's reading order
     content_layer: str = "body"
+    #: THIS box's own share of the element's ``text`` — the slice Docling's ``charspan`` names
+    #: for this ``prov`` entry (:func:`prov_pieces`) — or None where the spans cannot be read
+    #: back exactly. ``text`` stays the WHOLE element's: matching compares the two tools' whole
+    #: readings of one element, and only a fragment's STORED text is cut to its own box.
+    piece: str | None = None
 
     @property
     def width(self):
@@ -295,13 +300,72 @@ def iter_blocks(doc, kinds=None, body_only=False):
             continue
         provs = item.get("prov") or []
         text = item.get("text") or ""
+        pieces = prov_pieces(item) if len(provs) > 1 else None
         for i, prov in enumerate(provs):
             page = int(prov["page_no"])
             h = page_size(doc, page)
             x0, y0, x1, y1 = to_canonical(prov["bbox"], h[1] if h else None)
             yield Block(page=page, x0=x0, y0=y0, x1=x1, y1=y1, kind=label, text=text,
                         element_id=item.get("self_ref"), box_index=i, box_count=len(provs),
-                        order_index=order, content_layer=layer)
+                        order_index=order, content_layer=layer,
+                        piece=pieces[i] if pieces is not None else None)
+
+
+def prov_pieces(item):
+    """-> [str per ``prov`` entry] that TILE ``item["text"]`` exactly, or None.
+
+    What the tool records, read rather than assumed. Docling joins the pieces of one element
+    that its reading-order model merged across a page or column break in
+    ``ReadingOrderModel._merge_elements`` (docling 2.127.0,
+    ``docling/models/stages/reading_order/readingorder_model.py:657-686``, read 2026-09-22 in
+    ``venv-docling``): the first piece's prov gets ``charspan (0, len(its text))``; each merged
+    piece gets ``(len(text so far) + 1, len(text so far) + 1 + len(piece))`` — computed BEFORE the
+    join — and is then appended either after ONE space or, when the text so far ends with a soft
+    hyphen or with a hyphen before a lower-case continuation, onto the text with that last
+    character removed and no space. So a merged piece's ``charspan[0]`` is exact after a space
+    join and two characters too far after a hyphen join, and WHICH join happened is read off the
+    length the text had afterwards: the NEXT piece's ``charspan[0] - 1``, or the final text's
+    length for the last piece — ``charspan[1]`` after a space join, ``charspan[1] - 2`` after a
+    hyphen join.
+
+    MEASURED on the 260 stored Docling artifacts under ``litkb_derived`` (2026-09-22, builder-D2
+    report): ``charspan`` is populated on every ``prov`` of every text item; 1,956 items carry
+    more than one ``prov``, 1,358 of them on more than one page; on 1,845 the last span ends at
+    ``len(text)`` and on the other 111 two characters past it — the hyphen join.
+
+    The first piece's own ``charspan[1]`` is NOT used: a list item's text is re-written by the
+    list-item processor after that span is taken (it equals ``len(orig)``, not ``len(text)``, on
+    12,066 single-prov items of the same 260 files), so piece 0 simply ends where piece 1
+    begins. The space a join inserted stays at the END of the earlier piece, which is what makes
+    the pieces tile the text; ``"".join(pieces) == item["text"]`` is checked before returning.
+    Anything that does not read back exactly returns None, and the caller keeps the element's
+    whole text for that element — the old behaviour, never a guessed cut.
+    """
+    provs = item.get("prov") or []
+    text = item.get("text") or ""
+    try:
+        spans = [(int(p["charspan"][0]), int(p["charspan"][1])) for p in provs]
+    except (KeyError, TypeError, IndexError, ValueError):
+        return None
+    if len(spans) < 2 or spans[0][0] != 0:
+        return None
+    starts = [0]
+    for k in range(1, len(spans)):
+        s, e = spans[k]
+        after = spans[k + 1][0] - 1 if k + 1 < len(spans) else len(text)
+        if after == e:                                   # appended after one space
+            if s < 1 or s > len(text) or text[s - 1] != " ":
+                return None
+            starts.append(s)
+        elif after == e - 2:                             # appended onto a removed hyphen
+            starts.append(s - 2)
+        else:
+            return None
+    starts.append(len(text))
+    if any(b <= a for a, b in zip(starts, starts[1:])):
+        return None
+    pieces = [text[a:b] for a, b in zip(starts, starts[1:])]
+    return pieces if "".join(pieces) == text else None
 
 
 def blocks(doc, kinds=None, body_only=False):

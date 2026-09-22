@@ -123,6 +123,10 @@ class Block:
     box_index: int = 0                # position within a multi-box ";" coords value
     box_count: int = 1
     frame: str = "cropbox"            # "cropbox" as GROBID emits it; "mediabox" after to_mediabox()
+    #: The part of the element's text that BEGINS on this line box, read from the element's
+    #: ``<s>`` children (:func:`sentence_pieces`), or None where they cannot say. Same field, same
+    #: rule as :attr:`litkb.extract.docling.Block.piece`: ``text`` stays the whole element's.
+    piece: str | None = None
 
     @property
     def width(self):
@@ -197,9 +201,95 @@ def iter_blocks(tei, kinds=None, subtree=None):
         boxes = parse_coords(coords)
         text = " ".join("".join(el.itertext()).split())
         eid = el.get("{http://www.w3.org/XML/1998/namespace}id")
+        pieces = sentence_pieces(el, boxes) if len(boxes) > 1 else None
         for i, (page, x0, y0, x1, y1) in enumerate(boxes):
             yield Block(page=page, x0=x0, y0=y0, x1=x1, y1=y1, kind=kind, text=text,
-                        element_id=eid, box_index=i, box_count=len(boxes))
+                        element_id=eid, box_index=i, box_count=len(boxes),
+                        piece=pieces[i] if pieces is not None else None)
+
+
+def sentence_pieces(el, boxes):
+    """-> [raw str per box of ``boxes``] that TILE ``"".join(el.itertext())``, or None.
+
+    GROBID records NO text per line: an element's ``coords`` is one box per line and its text is
+    one string. What it does record, with ``segmentSentences=1`` (the default here), is a
+    ``coords`` value on every ``<s>`` child — so the text can be cut, at SENTENCE granularity, by
+    the line box each sentence begins in. A sentence whose lines cross the page break is kept
+    WHOLE on the page where it BEGINS: the tool gives no position inside a sentence, and a cut
+    there would be a guess. MEASURED on the 229 stored P5 TEIs (2026-09-22, builder-D2 report):
+    1,870 ``<p>`` elements have line boxes on more than one page; 351 break between sentences and
+    1,519 inside one, so on most cross-page paragraphs the page-N fragment ends with the whole
+    sentence that runs over the break, and page N+1's begins with the next one. This function
+    reads back 1,869 of the 1,870 (the one left: a sentence whose first box shares no line with
+    any of the element's line boxes). The 4 cross-page ``<head>`` / ``<note>`` have no ``<s>``
+    at all and keep their whole text.
+
+    A fragment in whose lines NO sentence begins gets an EMPTY piece — its words are stored
+    under the page where their sentence begins. Its box is kept: coverage and reading order are
+    read from boxes, and the region is still printed there.
+
+    Each direct child (a sentence, or anything else, with its ``tail``) is a chunk of the raw
+    string; the element's leading text goes with the first chunk, a child with no coords of its
+    own goes with the chunk before it. A sentence is placed in the line box, on the page of its
+    FIRST box, that overlaps that box horizontally and most vertically. The chunks must land in
+    non-decreasing box order, or the cut would reorder the text, and every chunk must land — any
+    failure returns None and the caller keeps the element's whole text (the old behaviour).
+    """
+    kids = list(el)
+    if not any(k.tag.split("}")[-1] == "s" for k in kids):
+        return None
+    chunks = []          # [box_index | None, raw text]
+    lead = el.text or ""
+    for k in kids:
+        raw = "".join(k.itertext()) + (k.tail or "")
+        where = None
+        if k.tag.split("}")[-1] == "s":
+            sb = parse_coords(k.get("coords") or "")
+            if not sb:
+                return None
+            where = _line_of(sb[0], boxes)
+            if where is None:
+                return None
+        chunks.append([where, raw])
+    # a child with no position of its own rides with the chunk before it; the leading text and
+    # anything before the first sentence ride with the first sentence
+    first = next(c[0] for c in chunks if c[0] is not None)
+    last = first
+    for c in chunks:
+        if c[0] is None:
+            c[0] = last
+        last = c[0]
+    order = [c[0] for c in chunks]
+    if order != sorted(order):
+        return None
+    pieces = [""] * len(boxes)
+    pieces[first] = lead
+    for where, raw in chunks:
+        pieces[where] += raw
+    return pieces if "".join(pieces) == "".join(el.itertext()) else None
+
+
+def _line_of(box, boxes):
+    """Index of the line box in ``boxes`` that holds ``box``, or None.
+
+    Same page and overlapping vertically; among those, one that also overlaps in x wins, then the
+    larger vertical overlap, then the nearer in x. The x fallback is not slack, it is measured: an
+    element's ``coords`` leave OUT the inline ``<ref>`` spans, so a line reads as two boxes with a
+    gap where a citation sits, and a sentence that BEGINS with a citation ("Dai and Khorram
+    (1997) used ...") begins in that gap — 80 sentences of 60 cross-page ``<p>`` in the 229 P5
+    TEIs (2026-09-22) had no x-overlapping line box, every one of them in such a gap.
+    """
+    page, x0, y0, x1, y1 = box
+    best, best_key = None, None
+    for i, (p, a0, b0, a1, b1) in enumerate(boxes):
+        v = min(y1, b1) - max(y0, b0)
+        if p != page or v <= 0:
+            continue
+        xo = min(x1, a1) - max(x0, a0)
+        key = (xo > 0, v, -max(0.0, -xo))
+        if best_key is None or key > best_key:
+            best, best_key = i, key
+    return best
 
 
 def blocks(tei, kinds=None):

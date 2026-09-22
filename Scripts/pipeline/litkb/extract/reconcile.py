@@ -145,7 +145,29 @@ GROBID_BODY_REGIONS = tuple(k for k in GROBID_REGIONS if k != "figure")
 #: per region (:func:`_merge_regions`), a page fragment's own text rather than its element's
 #: (:func:`reconcile`'s ``text_for``), and the three header kinds. Every one of those changes the
 #: rows a file produces, so the identity has to move with them.
-PIPELINE_VERSION = "stage5-3"
+#:
+#: Bumped to "stage5-4" on 2026-09-22 (litkb S4 run 3, builder-D2): a fragment on the TOOL-text
+#: path — an OCR page, or a page with no native layer — carries its own boxes' share of the
+#: element's text as the tool recorded it (Docling's per-prov ``charspan``, GROBID's ``<s>``
+#: coordinates; :func:`union_boxes`, ``provenance.page_text``), where stage5-3 stored the WHOLE
+#: element under every page of it. That changes the rows such a file produces, so the run key
+#: moves. What that does and does not do: every existing run keeps its key, its rows and its
+#: place (an ``ok`` run is immutable, and ``files.current_run_id`` is untouched); a file extracted
+#: from now on — by ``litkb hunt`` or the bulk pass, both of which read this constant — gets a
+#: ``stage5-4`` run beside any older one; NOTHING is re-extracted by this change.
+PIPELINE_VERSION = "stage5-4"
+
+#: ``provenance.page_text`` on a fragment whose text came from the TOOL, not the native layer —
+#: which text it carries (closed vocabulary, docs/SCHEMAS.md "litkb.blocks.provenance.page_text"):
+#: its own prov's slice of Docling's text, per ``charspan``;
+PAGE_TEXT_CHARSPAN = "charspan"
+#: the GROBID sentences that BEGIN in its line boxes (a sentence over the break stays whole on
+#: the page where it begins);
+PAGE_TEXT_SENTENCE = "sentence"
+#: the element's WHOLE text, because the tool's record could not be read back exactly — the
+#: stage5-3 behaviour, now labelled rather than silent.
+PAGE_TEXT_ELEMENT = "element"
+PAGE_TEXT = (PAGE_TEXT_CHARSPAN, PAGE_TEXT_SENTENCE, PAGE_TEXT_ELEMENT)
 
 
 class ReconcileError(RuntimeError):
@@ -503,6 +525,11 @@ def union_boxes(blocks_in):
         the largest single contributor to §4's 3,120 duplicate-text rows.
 
     :func:`reconcile` reads ``box_count > 1`` and takes the fragment's own native-layer slice.
+
+    A fragment's ``text`` is still the element's; what it gains (stage5-4, 2026-09-22) is
+    ``piece``, its own boxes' share of that text as the TOOL recorded it — used where there is no
+    native layer to slice (an OCR page, a page with no text layer), which is the one path the
+    native-slice fix above could not reach.
     """
     groups, cur = [], None
     for b in blocks_in:
@@ -518,9 +545,15 @@ def union_boxes(blocks_in):
         frags = []
         for page, bs in by_page.items():
             for col in _column_groups(bs):
+                # the fragment's OWN share of the element's text, where the tool recorded one per
+                # box (docling.prov_pieces, grobid.sentence_pieces): its boxes' pieces, in box
+                # order. One box without a piece and the fragment has none — never a partial cut.
+                pieces = [getattr(b, "piece", None) for b in col]
                 frags.append(dataclasses.replace(
                     col[0], page=page, x0=min(b.x0 for b in col), y0=min(b.y0 for b in col),
-                    x1=max(b.x1 for b in col), y1=max(b.y1 for b in col)))
+                    x1=max(b.x1 for b in col), y1=max(b.y1 for b in col),
+                    **({"piece": ("".join(pieces) if all(p is not None for p in pieces) else None)}
+                       if hasattr(col[0], "piece") else {})))
         out.extend(dataclasses.replace(f, box_index=i, box_count=len(frags))
                    for i, f in enumerate(frags))
     return out
@@ -651,7 +684,23 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
     def add(page, box, kind, subkind, source, text, tool_text, conf, element_id, extractor,
             payload=None, latex=None, tool_order=-1, anchored=False, of=None):
         info = frag.get(id(of)) if of is not None else None
-        chosen, how = text_for(page, box, text, fragment=bool(info))
+        piece = getattr(of, "piece", None) if info else None
+        # A FRAGMENT's tool text is its own boxes' share of the element (stage5-4), never the
+        # whole element's: on a page with no native layer the tool's text is what gets stored,
+        # and the element's whole text there put every page's words under each page of it
+        # (Abdulkader_2020 p49 and p52, 8,740 characters each, survey-code C3).
+        # Docling's piece is its own characters plus the one joining space (strip it, keep the
+        # rest verbatim, as the whole element's text was); GROBID's text is whitespace-collapsed
+        # everywhere (grobid.iter_blocks), so its piece is collapsed the same way.
+        own = (None if piece is None else piece.strip() if isinstance(of, D.Block)
+               else " ".join(piece.split()))
+        chosen, how = text_for(page, box, own if own is not None else text, fragment=bool(info))
+        if info and how != "native":
+            # which text a fragment on the TOOL path carries, so a reader can tell a page's own
+            # words from an element's that could not be cut (PAGE_TEXT, top of this module)
+            extractor = dict(extractor, page_text=(
+                PAGE_TEXT_ELEMENT if own is None
+                else PAGE_TEXT_SENTENCE if isinstance(of, G.Block) else PAGE_TEXT_CHARSPAN))
         if info:
             # `continues_from` / `continues_to` name the PAGE the neighbouring fragment of this
             # element is printed on, so a reader holding a quote that runs off the bottom of the
@@ -822,8 +871,21 @@ def reconcile(pdf_path, tei=None, doc=None, record=None, ocr_pages=(), frames=No
         "captions_unduplicated": captioned, "header_kinds": headered,
         "blocks": len(canonical), "disagreements": len(dis),
         "by_kind": _count(canonical),
+        # stage5-4: which text each TOOL-path fragment carries (PAGE_TEXT); `element` is the
+        # count of fragments whose tool record could not be cut and that still hold the whole
+        # element's text
+        "fragment_page_text": _count_page_text(canonical),
     }
     return canonical, dis, stats
+
+
+def _count_page_text(blocks_in):
+    out = {}
+    for b in blocks_in:
+        v = (b.extractor or {}).get("page_text")
+        if v is not None:
+            out[v] = out.get(v, 0) + 1
+    return dict(sorted(out.items()))
 
 
 def _fragment_info(blocks_in):

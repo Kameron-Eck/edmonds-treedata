@@ -1929,6 +1929,84 @@ Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a re
 `--dry-run` is the default. Counters, one line: `scanned owned young orphans quarantined
 skipped_errors`.
 
+## `litkb.run_retirement_ops` · `litkb.run_retirements` (litkb, migration 0031)
+
+Where the knowledge base answers **which superseded extraction runs a deliberate op has
+retired**. Retirement MARKS, it never deletes (S4 run 3 decision D6): the run row and its blocks,
+pages and references stay, `files.current_run_id` is untouched, and every reader that already
+reads only a file's current run (search, `use.locate_quote`, promotion's `run_is_current`) keeps
+its meaning. Both tables grant INSERT to nobody; their ONE writer is the SECURITY DEFINER function
+`litkb.retire_extraction_runs(runs uuid[], session text, reason text, keys jsonb)`, EXECUTE to
+`litkb_ingest` alone. SELECT to `litkb_reader` and `litkb_ingest`.
+
+| table | column | meaning |
+|---|---|---|
+| `run_retirement_ops` | `op_id` | one id per `--apply` (uuidv7) |
+| | `retired_at` · `retired_by` | when, and the LOGIN (`session_user`, never the definer) |
+| | `session_label` · `reason` | who (the `LITKB_SESSION` label) and why; both non-blank |
+| | `runs` | how many runs the op retired (>= 1) |
+| | `keys` | the stage keys the op was given, so the verdict can be re-read |
+| `run_retirements` | `run_id` (PK) · `op_id` | a run is retired at most once, by one op |
+| | `file_id` · `stage` | whose run, at which stage |
+| | `superseded_by` | the run that superseded it when it was retired (never itself) |
+| | `blocks` · `pages` · `reference_rows` | the run's rows at retirement — marked, not moved |
+
+**THE VERDICT, one home: `litkb.run_retirement_status(keys jsonb, runs uuid[])`** (SECURITY
+INVOKER, EXECUTE to `litkb_reader`): one row per run with `is_current`, `was_current`,
+`evidence_rows`, `superseded_by`, `retired_op` and `refusal`. SUPERSEDED means, for a run that
+was EVER current (a `file_current_run` row names it — every `5-reconcile` run the pointer left),
+that the file's pointer now names ANOTHER ok run of the SAME stage; for a run that was NEVER
+current (stage `6-references`, which never moves the pointer), that the file holds a NEWER ok run
+at the stage's CURRENT key, which the caller names in `keys` (the CLI reads it from
+`litkb.extract.references_ingest.run_key`). A key naming an OLDER run as current supersedes
+nothing. Only ok runs are ever superseded. `refusal` is the closed vocabulary, first match wins:
+`current` · `evidence` (a `use_evidence` row cites the run or one of its blocks) ·
+`already-retired` · `not-superseded`; NULL means retirable now (`litkb.ops.retire.REFUSALS` is a
+read of it, pinned by `qc/test_litkb_retire.py`). `retire_extraction_runs` re-checks the facts
+guard by guard before it writes and refuses the whole op on any one run.
+
+**The op: `py -3.12 -m litkb runs retire [--apply --reason R] [--json] [--out PATH]`**
+(`litkb.ops.retire`). The dry run is the default and writes nothing; it reads as `litkb_reader`
+and lists what an op would retire PER STAGE (runs, files, blocks, pages, references, versions),
+what it EXCLUDES by refusal, and names each evidence-held run by work key. `--apply` needs a
+session label and `--reason`, sends the whole eligible list in ONE call (one op id) through the
+ingest login. REPORTED counters: `superseded_runs_unretired` (retirable now;
+`litkb.ops.retire.superseded_runs_unretired(conn)`; an `--apply` takes it to 0),
+`superseded_runs_held_by_evidence`, `runs_already_retired`, `current_runs`.
+
+## `litkb.blocks.provenance.page_text` and reconcile `stage5-4` (litkb, S4 run 3)
+
+`reconcile.PIPELINE_VERSION` moved `stage5-3` -> `stage5-4` (2026-09-22): a FRAGMENT of a
+multi-page or multi-column element whose text comes from the TOOL — an OCR page, or a page whose
+native slice is empty — now carries its own boxes' share of the element's text, not the whole
+element's. What changes: files extracted from now on get a `stage5-4` run key. What does not:
+every existing run keeps its key, rows and place, no pointer moves, nothing is re-extracted. A
+fragment on the tool path records which text it holds in `provenance.page_text`, closed
+vocabulary (`reconcile.PAGE_TEXT`):
+
+| value | the fragment's text is |
+|---|---|
+| `charspan` | its own Docling `prov` slice, read from `charspan` (`docling.prov_pieces`) |
+| `sentence` | the GROBID `<s>` sentences that BEGIN in its line boxes; a sentence over the break stays whole where it begins, and a fragment in which none begins is EMPTY (`grobid.sentence_pieces`) |
+| `element` | the element's WHOLE text: the tool's record could not be read back exactly (the stage5-3 behaviour, now labelled) |
+
+Absent on a fragment whose text is the native-layer slice, and on any non-fragment. The run's
+`metrics.fragment_page_text` counts the three.
+
+## LITKB_FRAGMENT_TEXT_&lt;date&gt;.csv (Reports/, GENERATED — the stage5-4 before/after)
+
+Written by `qc/instruments/litkb_fragment_text.py --compare`, from two runs of the same
+instrument over the SAME stored artifacts, once on main's `pipeline/` (`before`, `stage5-3`) and
+once on the branch's (`after`, `stage5-4`). Population, read from live current runs as
+`litkb_reader`: `why=identical` (fragment blocks > 40 characters whose text is identical on two or
+more pages of one run — survey-code C3's set) and `why=tool-cross-page` (every cross-page fragment
+whose text came from the tool). One row per DB block: `work_key`, `group`, `page`, `source`,
+`db_text_source`, `db_len` (the stored block), `tei_on_disk` (False: a hunt-path file whose TEI
+was never written, re-run Docling-only, so its rows are `unmatched`), then per side `*_match`
+(`matched` / `unmatched` / `ambiguous`, by page and box within 0.01 pt), `*_len`, `*_page_text`,
+`*_group_identical` (all members matched and one text), `*_blocks_in_file`, and
+`before_reproduces_db` (the re-run's length equals the stored block's).
+
 ## LITKB_EDGE_RUN_&lt;date&gt;.csv (Reports/, GENERATED — the edge-case register's ledger)
 
 Written by `qc/instruments/litkb_edge_run.py` from the manifest that

@@ -1033,45 +1033,189 @@
    "class": "book",
    "ref": "10.1201/9781315374321",
    "ref_scheme": "doi",
-   "held_for_ruling": {
-    "question": "What terminal state is correct for a DOI-only BOOK with no obtainable copy, and may a hunt SPEND on books at all (open access, the archive, Sci-Hub)?",
-    "evidence": "The corpus holds exactly one book: VanDenHout_2016_multi-state-survival-models, `Multi-State Survival Models for Interval-Censored Data`, Chapman and Hall/CRC, identifiers doi:10.1201/9781315374321 and tracker:443, work_versions.type='book'. Zero file_versions — admitted, nothing bound (survey-data §5; re-measured 2026-09-21: in main_identifiers, 0 main_files). No ISBN identifier exists anywhere in the corpus and `hunt_requests.ref_scheme` allows `isbn` with zero rows using it. There is NO pending book ruling in Scripts/decisions.yaml — survey-data §5 measured that the brief's premise about a decision id is false; `grep -in book decisions.yaml` hits only line 403, inside litkb-crossref-raw-proposer."
-   },
    "live": {
-    "mode": "held-for-ruling",
-    "why": "the expected state IS the ruling",
-    "spend": false
-   }
+    "mode": "execute",
+    "why": "books may spend (ruling); OA and annas are dead-skipped after 2026-09-21; Sci-Hub is really attempted; extraction off",
+    "spend": true,
+    "prediction": true,
+    "inputs": {
+     "extract": false
+    },
+    "inputs_why": "the live path passes exactly these to hunt(); extract=False is the ruling (litkb-book-policy / S4 owns extraction), not a convenience"
+   },
+   "ruling": {
+    "ruled_by": "Kam",
+    "date": "2026-09-21",
+    "question": "What terminal state is correct for a DOI-only BOOK with no obtainable copy, and may a hunt SPEND on books at all (open access, the archive, Sci-Hub)?",
+    "evidence_at_ruling": "The corpus holds exactly one book: VanDenHout_2016_multi-state-survival-models, `Multi-State Survival Models for Interval-Censored Data`, Chapman and Hall/CRC, identifiers doi:10.1201/9781315374321 and tracker:443, work_versions.type='book'. Zero file_versions — admitted, nothing bound (survey-data §5; re-measured 2026-09-21: in main_identifiers, 0 main_files). No ISBN identifier exists anywhere in the corpus and `hunt_requests.ref_scheme` allows `isbn` with zero rows using it. There is NO pending book ruling in Scripts/decisions.yaml — survey-data §5 measured that the brief's premise about a decision id is false; `grep -in book decisions.yaml` hits only line 403, inside litkb-crossref-raw-proposer.",
+    "ruling": "Books ARE in scope for acquisition on every route; extraction is DEFERRED (the OCR pipeline is not ready for books) so an acquired book stays bound-unextracted and S4's classifier names it; ISBN and other book identifiers must be harvested into the corpus so the archive route can look a book up by ISBN -> md5 (decisions.yaml litkb-book-policy).",
+    "claude_reading": "Kam's 'acquire the book and don't spend' is read as: spend no EXTRACTION effort on books yet; acquisition routes are allowed. Recorded so it can be corrected.",
+    "measured": "first live hunt 2026-09-21 (Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E20, workstream title-hunts-1): open_access no-oa-copy; annas not-in-archive; scihub blocked codes [200,200,403,200]; -> blocked/403 by the precedence rule. Crossref carries ISBN ['9781466568419'] (electronic only) on the record - the harvest has a source."
+   },
+   "expected": {
+    "state": "blocked",
+    "reason": "403"
+   },
+   "adjudication": {
+    "builder": "[orchestrator, S3 wrap-up 2026-09-21, from the MEASURED live pair - no prediction was adjudicated here; an auditor may add its key] MEASURED, not derived: the pair the first live hunt produced. The attempts history was EMPTY before it (no route had ever been tried on the corpus's one book). After it, open_access/no-oa-copy and annas/not-in-archive are DEAD statuses (acquire/run.py DEAD_STATUSES) and are skipped; Sci-Hub is really attempted and answered blocked on every mirror that day, so the pair is a PREDICTION about a remote host, like E03/E07 - flagged as such. The unobtainable class (a Sci-Hub not-in-archive) is the replay's expectation."
+   },
+   "replay": {
+    "inputs": {
+     "spend": true,
+     "extract": false
+    },
+    "seed": null,
+    "registry": {
+     "kind": "record"
+    },
+    "fetch": {
+     "kind": "explode"
+    },
+    "routes": {
+     "kind": "acquirer",
+     "outcome": "not-acquired",
+     "route_detail": [
+      {
+       "route": "open_access",
+       "status": "no-oa-copy",
+       "codes": [],
+       "exception": ""
+      },
+      {
+       "route": "annas",
+       "status": "not-in-archive",
+       "codes": [],
+       "exception": ""
+      },
+      {
+       "route": "scihub",
+       "status": "not-in-archive",
+       "codes": [],
+       "exception": ""
+      }
+     ]
+    },
+    "extract": {
+     "kind": "off"
+    },
+    "expected": {
+     "state": "held",
+     "reason": "not-acquired"
+    },
+    "_why": "the live pair blocked/403 is a fact about the Sci-Hub mirrors on 2026-09-21; the replay demonstrates the UNOBTAINABLE class instead (every route answers not-in-archive / no-oa-copy) and expects held/not-acquired, as E03 does - both expectations are in the register and both are graded"
+   },
+   "source": "work VanDenHout_2016_multi-state-survival-models (main_works.type='book', doi 10.1201/9781315374321, tracker 443), 0 files, attempts EMPTY until the first live hunt 2026-09-21 (workstream title-hunts-1; Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E20). survey-data section 5."
   },
   {
    "id": "E21",
    "class": "sibling-edition",
    "ref": "10.1101/357798",
    "ref_scheme": "doi",
-   "held_for_ruling": {
-    "question": "Are the preprint and the published article ONE work or TWO? The expected state for the preprint DOI follows from the answer and from nothing else.",
-    "evidence": "tracker 303 -> work Valavi_2018_blockcv-r-package-generating, doi 10.1101/357798 (bioRxiv, type=preprint); tracker 60 -> work Valavi_2018_block-cv-r-package, doi 10.1111/2041-210x.13107 (type=article). TWO separate works today, with a `duplicate_of` discrepancy (source_row 303, claimed_value 60) recording the tracker's own belief. Linkage review P2 proposes fetching Crossref `relation` (isPreprintOf / hasPreprint / isVersionOf) as identifier-to-identifier edges rather than inferring the tie — PROPOSED, not decided (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §7; survey-data §2). This is the corpus's only clean sibling-edition pair; E09 (Page_1954) is the only clean ALIAS, and they are different classes."
-   },
    "live": {
-    "mode": "held-for-ruling",
-    "why": "the expected state IS the ruling",
-    "spend": false
-   }
+    "mode": "execute",
+    "why": "a cached lookup with extraction off (the preprint's file was bound 2026-09-21)",
+    "spend": false,
+    "inputs": {
+     "extract": false
+    },
+    "inputs_why": "the live path passes exactly these to hunt(); extract=False is the ruling (litkb-book-policy / S4 owns extraction), not a convenience"
+   },
+   "ruling": {
+    "ruled_by": "Kam",
+    "date": "2026-09-21",
+    "question": "Are the preprint and the published article ONE work or TWO? The expected state for the preprint DOI follows from the answer and from nothing else.",
+    "evidence_at_ruling": "tracker 303 -> work Valavi_2018_blockcv-r-package-generating, doi 10.1101/357798 (bioRxiv, type=preprint); tracker 60 -> work Valavi_2018_block-cv-r-package, doi 10.1111/2041-210x.13107 (type=article). TWO separate works today, with a `duplicate_of` discrepancy (source_row 303, claimed_value 60) recording the tracker's own belief. Linkage review P2 proposes fetching Crossref `relation` (isPreprintOf / hasPreprint / isVersionOf) as identifier-to-identifier edges rather than inferring the tie — PROPOSED, not decided (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §7; survey-data §2). This is the corpus's only clean sibling-edition pair; E09 (Page_1954) is the only clean ALIAS, and they are different classes.",
+    "ruling": "TWO works, linked by a registry relation edge (Crossref relation isPreprintOf/hasPreprint/isVersionOf) recorded identifier-to-identifier; never an alias; a citation names the edition it read (decisions.yaml litkb-sibling-edition).",
+    "measured": "first live hunt of the preprint DOI 2026-09-21 (Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E21): open_access ok (200) in 2.47 s, a 19-page PDF bound to Valavi_2018_blockcv-r-package-generating -> bound-unextracted/fresh-bound; NO duplicate refusal against the published article."
+   },
+   "expected": {
+    "state": "bound-unextracted",
+    "reason": "already-bound"
+   },
+   "adjudication": {
+    "builder": "[orchestrator, S3 wrap-up 2026-09-21, from the MEASURED live pair - no prediction was adjudicated here; an auditor may add its key] The first live hunt answered fresh-bound (measured above) and bound the file; every hunt after it is a cached lookup with extraction off, so the STABLE pair this row expects is bound-unextracted/already-bound (E08's shape). The ruling's content at the hunt's front door: the preprint DOI resolves to ITS OWN work, which is why no duplicate refusal appears - check 2's title-duplicate gate never saw it because the work already existed as its own row."
+   },
+   "replay": {
+    "inputs": {
+     "spend": false,
+     "extract": false
+    },
+    "seed": {
+     "scheme": "doi",
+     "value": "10.1101/357798",
+     "state": "bound-unextracted"
+    },
+    "registry": {
+     "kind": "none"
+    },
+    "fetch": {
+     "kind": "explode"
+    },
+    "routes": {
+     "kind": "none"
+    },
+    "extract": {
+     "kind": "off"
+    }
+   },
+   "asserts": {
+    "new_admissions": 0
+   },
+   "source": "work Valavi_2018_blockcv-r-package-generating (type=preprint, doi 10.1101/357798, tracker 303) beside Valavi_2018_block-cv-r-package (article, 10.1111/2041-210x.13107, extracted); tracker duplicate_of discrepancy 303->60. litkb_work 2026-09-21: held, 0 files, then bound by the first live hunt (Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E21). survey-data section 2; Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md section 7 P2."
   },
   {
    "id": "E22",
    "class": "duplicate-review",
-   "ref": "Chrisman_1982_theory-cartographic-error-measurement",
+   "ref": "A theory of cartographic error and its measurement",
    "ref_scheme": "title",
-   "held_for_ruling": {
-    "question": "Which of the four admissions of `A theory of cartographic error and its measurement` IS the work, and which are duplicates?",
-    "evidence": "One PROPOSED manual admission (01a0a151-aaea-756f-9c01-25ed443e838b, workstream edge-pre1990, source `edge-pre1990 S4-176 (bibliography CSV)`, and it carries NO identifier — measured 2026-09-21), three REFUSED admissions, and three `candidates.state='duplicate-review'` rows all on the same title: 01a0a151-ab73-7291-9cba-00336af0fbd0 (edge-pre1990 S4-207), 01a0a4de-ff2e-7a17-b6b4-3625f5d81ade (manifest stem), 01a0a4d4-4477-7b3f-946b-9ed34da50fdb (tracker ID 370) (survey-data §7). It is the single best duplicate-admission fixture in the corpus and it has no right answer without Kam."
-   },
    "live": {
-    "mode": "held-for-ruling",
-    "why": "the expected state IS the ruling",
-    "spend": false
-   }
+    "mode": "execute",
+    "why": "registry lookups only, no spend; gate 0 refuses on the best candidate",
+    "spend": false,
+    "inputs": {
+     "author": "Chrisman",
+     "year": 1982,
+     "extract": false
+    },
+    "inputs_why": "the live path passes exactly these to hunt(); extract=False is the ruling (litkb-book-policy / S4 owns extraction), not a convenience"
+   },
+   "ruling": {
+    "ruled_by": "Kam",
+    "date": "2026-09-21",
+    "question": "Which of the four admissions of `A theory of cartographic error and its measurement` IS the work, and which are duplicates?",
+    "evidence_at_ruling": "One PROPOSED manual admission (01a0a151-aaea-756f-9c01-25ed443e838b, workstream edge-pre1990, source `edge-pre1990 S4-176 (bibliography CSV)`, and it carries NO identifier — measured 2026-09-21), three REFUSED admissions, and three `candidates.state='duplicate-review'` rows all on the same title: 01a0a151-ab73-7291-9cba-00336af0fbd0 (edge-pre1990 S4-207), 01a0a4de-ff2e-7a17-b6b4-3625f5d81ade (manifest stem), 01a0a4d4-4477-7b3f-946b-9ed34da50fdb (tracker ID 370) (survey-data §7). It is the single best duplicate-admission fixture in the corpus and it has no right answer without Kam.",
+    "ruling": "The proposed manual admission 01a0a151-aaea-756f-9c01-25ed443e838b IS the work, approved by the second session s3-approve-2 on 2026-09-21 (its file's page 1 reads the 1982 title and 'Nicholas R. Chrisman'; Reports/LITKB_APPROVE_SESSION_2026-09-21b.md); the three refused siblings stay duplicates. The work carries NO identifier: Crossref has no record of the title.",
+    "measured": "title hunt 2026-09-21 (Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E22, --no-spend): refused/ambiguous-title, best candidate crossref 0.52 10.1179/caj.1976.13.1.22 (Lloyd 1976); gate 0 refuses before admission, so no duplicate refusal against the promoted work is ever reached."
+   },
+   "expected": {
+    "state": "refused",
+    "reason": "ambiguous-title"
+   },
+   "adjudication": {
+    "builder": "[orchestrator, S3 wrap-up 2026-09-21, from the MEASURED live pair - no prediction was adjudicated here; an auditor may add its key] MEASURED. A title hunt of a work that no registry indexes ends at resolve_title's gate 0 (admit/resolver.py judge_candidate, RESOLVE_TITLE_RATIO 0.85): the best Crossref candidate scores 0.52 and is a different paper, so the answer is ambiguous-title - not unresolved-title (a candidate exists) and not a duplicate (admission is never reached). The duplicate-review class itself is settled by the ruling, not by a hunt: the promoted work is the work, reachable by key."
+   },
+   "replay": {
+    "inputs": {
+     "spend": false,
+     "author": "Chrisman",
+     "year": 1982
+    },
+    "seed": null,
+    "registry": {
+     "kind": "title_gate"
+    },
+    "fetch": {
+     "kind": "explode"
+    },
+    "routes": {
+     "kind": "none"
+    },
+    "extract": {
+     "kind": "off"
+    }
+   },
+   "asserts": {},
+   "source": "admission 01a0a151-aaea-756f-9c01-25ed443e838b (manual, edge-pre1990 S4-176), file Validation/Chrisman_1982_theory-cartographic-error-measurement.pdf, approved by s3-approve-2 2026-09-21 (Reports/LITKB_APPROVE_SESSION_2026-09-21b.md); three sibling admissions refused duplicate-review. Title hunt Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E22. survey-data section 7."
   },
   {
    "id": "E23",
@@ -1079,13 +1223,19 @@
    "ref": "tracker:25,28,49,50,53,57,117,122,132,174,193,194,235,242,369",
    "ref_scheme": "tracker",
    "held_for_ruling": {
-    "question": "Attempt these fifteen, or leave them? No attempt was ever made, so no expected state can be derived from evidence.",
-    "evidence": "Reports/held_queue_results.csv `outcome = skipped-low`, 15 rows, confidence `low`, route `-`; tracker ids 25, 28, 49, 50, 53, 57, 117, 122, 132, 174, 193, 194, 235, 242, 369 (LITKB_HELD_QUEUE_2026-09-15.md:150; survey-data §1, §11 item 1). `tracker` is in REF_SCHEMES and not in HUNTABLE, so even the reference form would have to be resolved to a DOI before a hunt could follow one."
+    "question": "The fifteen resolved to NOTHING by title. Leave them unresolved, or supply a DOI by hand per row? No hunt can settle a row whose reference is the tracker's own words.",
+    "evidence": "Reports/LITKB_TITLE_HUNTS_2026-09-21.md section E23 (per row: best candidate DOI, ratio, registry first author/year); tracker ids 25, 28, 49, 50, 53, 57, 117, 122, 132, 174, 193, 194, 235, 242, 369."
    },
    "live": {
     "mode": "held-for-ruling",
     "why": "the expected state IS the ruling",
     "spend": false
+   },
+   "ruling": {
+    "ruled_by": "Kam",
+    "date": "2026-09-21",
+    "ruling": "Resolve title+author+year through the registries and hunt whatever resolves (b).",
+    "measured": "done 2026-09-21 (Reports/LITKB_TITLE_HUNTS_2026-09-21.md): 15/15 refused/ambiguous-title - no candidate reached gate 0's 0.85; the S1 low-confidence skip was right. 15 drop-offs recorded, all resolution_state=open, work_id null."
    }
   },
   {
@@ -1094,13 +1244,19 @@
    "ref": "10.3390/rs15030765,10.1080/17538947.2023.2257636,10.1016/j.jag.2022.102909,10.5067/doc/ceoswgcv/lpv/lc.001,10.2139/ssrn.4979539,10.1016/j.rse.2010.07.008,10.1137/1.9781611978032.28,10.1175/aies-d-22-0055.1,10.1016/j.tfp.2025.100146,10.3390/rs5041397,10.1016/j.rse.2025.114632,10.48550/arxiv.2511.07976,10.3390/rs17112050",
    "ref_scheme": "doi",
    "held_for_ruling": {
-    "question": "For each of the 22 `refused-check1` rows the registry contradicts the tracker's claim and NO file exists to decide between them. Which side is right — the registry or the tracker?",
-    "evidence": "Reports/held_queue_results.csv `outcome = refused-check1`, 22 rows, all listed verbatim with the refusing check-1 field (first author / title ratio / year) at LITKB_HELD_QUEUE_2026-09-15.md:123-144. The `ref` above lists the thirteen the survey enumerated by DOI across its five sub-classes (MDPI 403/Cloudflare 39·55·67; T&F HTML challenge 10·20·46; URL served HTML 52·131·187·239·274·2; no OA url 22·48·66·154·177·178·186; degenerate bytes 33·293·24) plus the five dead stored DOIs; the remaining rows are in the CSV. LITKB_HELD_QUEUE_2026-09-15.md:119 says each needs a human. E11 is the one of these the register EXECUTES, because its discrepancy row already records the adjudication."
+    "question": "For the 14 rows where the registry's first author or year must OVERRULE the tracker's claim, does Kam accept the registry record (then an admission path that trusts the registry over the claim is needed - none exists; check 1 and the resolver both side with the claim)? Swap 177/178's DOIs? 187: the 10.5067 DOI is 404 at Crossref but live in the handle system (lpvs.gsfc.nasa.gov) - a manual proposal? 20/131/186/239/274: truncated titles to complete by hand?",
+    "evidence": "Reports/LITKB_TITLE_HUNTS_2026-09-21.md section E24 and section 5 (the question per row); Reports/held_queue_results.csv outcome=refused-check1; LITKB_HELD_QUEUE_2026-09-15.md:123-144."
    },
    "live": {
     "mode": "held-for-ruling",
     "why": "the expected state IS the ruling",
     "spend": false
+   },
+   "ruling": {
+    "ruled_by": "Kam",
+    "date": "2026-09-21",
+    "ruling": "Human review is acceptable; produce the table (tracker claim vs registry record) and rule from it. (Kam also asked whether an LLM comparison of OCR text against the hunter's source info would help - it cannot here: no file exists for any of the 22.)",
+    "measured": "done 2026-09-21 (Reports/LITKB_TITLE_HUNTS_2026-09-21.md): 22/22 refused/ambiguous-title. STRUCTURAL: resolve_title delegates to admit/resolver.py judge_candidate, which re-applies check 1's three tests (ratio >= 0.85, first-author family, year +/-1) to the TRACKER'S claim, so 16 rows matched the title at >= 0.85, landed on the DOI already stored, and were refused again on author/year. 'registry-quirk' is never formatting: 13 rows have a registry first author absent from the tracker's author string, 2 are the crossed LandTrendr pair 177/178 (each title resolves 1.00 to the OTHER row's DOI), 1 (293) is a 2-year AMS gap. 7 corrections corroborated against the tracker's DOI column (2, 33, 48, 55, 67, 177/178)."
    }
   },
   {
@@ -1108,14 +1264,22 @@
    "class": "quarantined-arxiv-pdfs",
    "ref": "tracker:151,291",
    "ref_scheme": "tracker",
-   "held_for_ruling": {
-    "question": "Is the expected state `bound` (check 3's title-region gate is WRONG here) or `binding-failed` (the gate is right and the file is refused)?",
-    "evidence": "Both are the RIGHT paper and both were quarantined on a title-region ratio under 0.85: tracker 151 matched `arXiv:2007.01434v1 [cs.LG] 2 Jul 2020 In Search of Lost Domain Generalization`, ratio 0.6842; tracker 291 matched `https://pypi.org/project/uncertainty-calibration`, ratio 0.641, now at _quarantine/Kumar_2019_verified-uncertainty-calibration__binding-failed__cc4e4bde39f5.pdf (LITKB_HELD_QUEUE_2026-09-15.md:110-111; survey-data §1). AND THE STATE DOES NOT EXIST IN THE DATABASE: litkb.file_versions has ZERO rows with status='quarantined' (survey-data §1) — the quarantine is a directory on disk only, so a register row expecting a `quarantined` DB state would expect something nothing can produce."
-   },
    "live": {
-    "mode": "held-for-ruling",
-    "why": "the expected state IS the ruling",
+    "mode": "not-a-hunt",
+    "why": "a BINDING-gate question, not a hunt: no reference form reproduces it (the files were on disk, the works held). Settled by qc/test_litkb_binding_stamps.py (the known-bad fires with the strip off) and the live re-bind recorded above; a hunt of either DOI today answers bound-unextracted/already-bound and would only re-prove E08's class.",
     "spend": false
+   },
+   "ruling": {
+    "ruled_by": "Kam",
+    "date": "2026-09-21",
+    "question": "Is the expected state `bound` (check 3's title-region gate is WRONG here) or `binding-failed` (the gate is right and the file is refused)?",
+    "evidence_at_ruling": "Both are the RIGHT paper and both were quarantined on a title-region ratio under 0.85: tracker 151 matched `arXiv:2007.01434v1 [cs.LG] 2 Jul 2020 In Search of Lost Domain Generalization`, ratio 0.6842; tracker 291 matched `https://pypi.org/project/uncertainty-calibration`, ratio 0.641, now at _quarantine/Kumar_2019_verified-uncertainty-calibration__binding-failed__cc4e4bde39f5.pdf (LITKB_HELD_QUEUE_2026-09-15.md:110-111; survey-data §1). AND THE STATE DOES NOT EXIST IN THE DATABASE: litkb.file_versions has ZERO rows with status='quarantined' (survey-data §1) — the quarantine is a directory on disk only, so a register row expecting a `quarantined` DB state would expect something nothing can produce.",
+    "ruling": "The gate was wrong; 'perhaps we need to improve the quarantine.' Expected: both files BIND.",
+    "measured": "fix on work/20260921-litkb-e25-stamp (a72302f): arXiv prints its id in a ROTATED left-margin strip and `pdftotext -layout` emits it on the title's own line, so the scored window was stamp+title on ONE line - a PREFIX strip (arXiv id stamps, URL-only and DOI-only lines, the bioRxiv/medRxiv 'this version posted' form), never a line drop. Ratios Gulrajani 0.6842->1.0, Kumar 0.6410->1.0 (the URL line at 0.641 was a red herring; the title's stamped line sat at 0.6337). Non-regression over every active file_version: 0 regressions, 4 fixed (also Jaffe_2015 0.7865->1.0, Vixie_2007 0.7791->1.0), 2 ratio-only moves. Known-bad fires: strip off -> refused at exactly 0.6842/0.6410; wrong-paper control (Mahoney 2023, same stamp) still refused. Live re-bind through acquire --from-file on COPIES (quarantine originals untouched): both bound-unextracted, file_versions.state='promoted' (what acquire does for a held work already in main). qc/test_litkb_binding_stamps.py; D:/tools/claude-config/jobs/litkb-s3-wrap/builder-e25.md, auditor-e25.md."
+   },
+   "source": "held-queue rows tracker 151 (Gulrajani_2020_search-lost-domain-generalization, doi 10.48550/arxiv.2007.01434) and 291 (Kumar_2019_verified-uncertainty-calibration, doi 10.48550/arxiv.1909.10155), both quarantined 2026-09-15 on a title-region ratio under 0.85 (LITKB_HELD_QUEUE_2026-09-15.md:110-111; survey-data section 1); litkb_work 2026-09-21 before the fix: held, 0 files.",
+   "adjudication": {
+    "builder": "[orchestrator, S3 wrap-up 2026-09-21] not graded as a hunt; the fixture's `quarantined` state never existed in the DB (survey-data section 1) and still does not - a DB-visible quarantine state is the S4/S5 carry-in the ruling's 'improve the quarantine' names."
    }
   },
   {

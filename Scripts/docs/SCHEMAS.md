@@ -1957,7 +1957,13 @@ row rather than as a dead run.
 the corpus, cites where it came from, and states from code and from the attempts history why its
 `(state, reason)` is the right one. A row whose expected state needs a human carries
 `held_for_ruling` with the question and the evidence instead of an expectation, and is NOT a
-manifest row. A row the hunt vocabulary does not cover at all — a scout-side tool fault — carries
+manifest row. **A ruled row keeps the ruling in the row** (`ruling`: `ruled_by`, `date`, the
+`question` and `evidence_at_ruling` it answered, the `ruling` text, and `measured` — the live
+pair the ruling produced, with its ledger): from 2026-09-21 E20/E21/E22 carry a ruling AND an
+expectation (their pairs were MEASURED by a first live hunt, never derived), E25 carries a ruling
+and `live.mode = "not-a-hunt"` (a binding-gate question no reference form reproduces), and
+E23/E24 carry a ruling AND stay `held_for_ruling` because the ruling's residue is a new question
+(the rows the title-resolution run left unresolved). A row the hunt vocabulary does not cover at all — a scout-side tool fault — carries
 `live.mode = "not-a-hunt"` and is excluded from `executed`. A row whose replay cannot hold a
 precondition only the live corpus has carries `replay.expected`, which overrides for the replay
 alone; both expectations are in the register and both are graded.

@@ -22,33 +22,43 @@ Conventions this file obeys, so it does not become a fifth "living state":
 Update this block only. Everything else in the file changes when a session lands.
 
 - **Finish line:** `litkb-finish-line` — topic → graded review → synthesis, unattended.
-- **Current session:** S3 landed 2026-09-21 (phase 1 `work/20260921-litkb-s3-p1` → `7b806c7`,
-  phase 2 `work/20260921-litkb-s3-p2` → `568988b`). Every hunt ends in a named state: `edges`
-  graded live `executed=14 skipped=0 state_or_reason_mismatches=0 tracebacks=0 held_for_ruling=6
-  waits_on_migration=0` and `--replay` `executed=19 … mismatches=0 tracebacks=0` against one
-  manifest frozen before the run; both (c) known-bads fired live. Report:
-  `Reports/LITKB_EDGES_2026-09-21.md` (eight bounded outcomes, said plainly). Entry conditions
-  were met at 00:07 (0028 applied; hook fix `fd40a74`).
-- **Next:** S4 (everything acquired is readable or classified). **S4's first (overnight
-  2026-09-21) attempt is PARKED untrusted, not landed** — Kam's call; its builder output sits on
-  `github/archive/2026-09-21-litkb-s4-{q1,q2,r}-untrusted`, reference only, audit before any reuse;
-  0029 was never applied to the live DB; workstream `readability-1` is still open (close/vault
-  before the rerun). Kam-side entry conditions: none
-  new (0028 is live; the agent-hook fix is on main). Kam's rulings pending, each a register row
-  with its question: E20 book · E21 sibling edition · E22 Chrisman_1982 · E23 fifteen
-  `skipped-low` · E24 twenty-two `refused-check1` · E25 the two quarantined arXiv PDFs; the
-  thirteen tracker-era manual proposals (survey question 8). Carry-ins: for S4 — Docling produced
-  no artifact on a native Copernicus PDF, GROBID carried it (S2 §4); E08 (`Hwang_1982`, "waits for
-  OCR") is `bound-unextracted/already-bound` with `extract=False` and is S4's first scan row;
+- **Current session:** S3 landed 2026-09-21 (phase 1 `work/20260921-litkb-s3-p1` -> `7b806c7`,
+  phase 2 `work/20260921-litkb-s3-p2` -> `568988b`; report `Reports/LITKB_EDGES_2026-09-21.md`) and
+  was RE-VERIFIED INDEPENDENTLY the same day (Kam: "I didn't monitor any of its work"): the replay
+  gate reproduced S3's counters on `main`, every DB claim checked, the full suite green; one defect found
+  and fixed - the register's sha guard hashed BYTES and refused S3's own manifest on a CRLF
+  checkout (now a content hash, `litkb_acceptance._register_sha256`, c3b fires). **S3 WRAP-UP
+  (Kam's rulings, 2026-09-21):** E20 book -> `litkb-book-policy` (acquire, don't extract; ISBN
+  harvest); E21 -> `litkb-sibling-edition` (two works, relation edge); E22 Chrisman approved and
+  promoted; the tracker-era manual proposals approved and promoted by a second session
+  (`Reports/LITKB_APPROVE_SESSION_2026-09-21b.md`); E23/E24 hunted by title, none resolved
+  because the resolver re-applies check 1 to the tracker's own claim
+  (`Reports/LITKB_TITLE_HUNTS_2026-09-21.md`); E25 the title-region gate fixed (preprint stamps and
+  URL-only lines no longer score as title text) and the two arXiv PDFs re-bound. The register now
+  carries E20/E21/E22 as executable rows with MEASURED expectations (replay: `py -3.12 qc/instruments/litkb_acceptance.py edges --manifest _derived/edges/rulings-manifest.json --replay` -> mismatches=0 tracebacks=0;
+  `Reports/LITKB_EDGE_RUN_2026-09-21_replay-rulings.csv`); E23/E24/E25 stay `held_for_ruling` with
+  the ruling recorded and the residue question named. S4's two overnight attempts are PARKED
+  untrusted on `github/archive/2026-09-21-litkb-s4-{q1,q2,r}-untrusted` (nothing merged, 0029
+  never applied live).
+- **Next:** S4 (everything acquired is readable or classified) - **run 3, the first clean one, which
+  Kam launches himself** from a new terminal window: `_derived/s4/launch-s4.sh` (clean-start
+  prompt, `LITKB_SESSION=s4-run3`, workstream slug `readability-2`; the DB row `readability-1` from
+  run 1 stays `open` and is nobody's). Entry conditions measured at wrap-up: preflight all 0,
+  `stray_tokens=0`, 0029 reserved on main and unapplied. Kam-side entry conditions: none new.
+  Rulings still pending, each a register row with its question: E23 (the rows unresolved by title -
+  leave, or DOIs by hand), E24 (the rows where the registry must overrule the tracker's author/year;
+  the 177/178 swap; 187's live handle DOI; the truncated titles), E25's residue (a DB-visible
+  `quarantined` state - S4 or S5). Carry-ins for S4 - Docling produced no artifact on a native
+  Copernicus PDF, GROBID carried it (S2 section 4); E08 (`Hwang_1982`, "waits for OCR") is
+  `bound-unextracted/already-bound` with `extract=False` and is S4's first scan row;
   `binding.TITLE_REGION_LINES = 45` is a PDF-page rule and a ceiling on web pages; a refused page
-  hunt leaves its snapshot in `_litkb_staging/web/` with no row (an orphan in 72 h — reap or
-  own it at refusal). For S5 — a DB home for hunt outcomes (the edge-run CSV is S3's home); a
-  live HTML-only hunt of a work NOT in the base (every S3 carrier was already held → check 2
-  duplicate); a `blocked` back-off (E13 spent 505 s retrying hosts that answer 403 — `blocked` is
-  in no route's `DEAD_STATUSES`). Session rule since S2: each session integrates its lessons,
-  then launches the next as a new session — since S3, in a NEW terminal window (`wt.exe` + bash
-  script + prompt file, `_derived/s4/launch-s4.sh`), not headless-to-a-log: S3 had to be moved
-  mid-run and its background builder died with the process.
+  hunt leaves its snapshot in `_litkb_staging/web/` with no row (an orphan in 72 h - reap or own it
+  at refusal); the backlog now holds the wrap-up's `--no-extract` binds. For S5 - the carry-in list
+  under "### S5" (books/ISBN, the relation edge, `blocked` back-off, annas `bad-file` x3, the
+  quarantine state, the promoted tracker-era works' metadata, E24's registry-overrules-claim path, a live
+  HTML-only hunt of an unknown work). Session rule since S2: each session integrates its lessons,
+  then launches the next as a new session in a NEW terminal window (`wt.exe` + Git's `bash.exe` +
+  prompt file), never headless-to-a-log.
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided (no seeding); S7 soak = seven nights
   started in S1. Kam re-registers the nightly-dump scheduled task (Windows task name
   litkb-nightly-dump) against the merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
@@ -283,7 +293,9 @@ Work
   `over-page-cap` · `zero-content` · `bad-file` · `refused-registry`.
 - Scan OCR inside the queue under the measured VRAM policy; an **enforced, fail-closed**
   extraction page cap (page-range support exists in `pipeline/litkb/extract/docling_worker.py`; a
-  cap does not); the book policy (Kam rules; the fixture row records it); `page_no` for
+  cap does not); the book policy — DECIDED 2026-09-21, `litkb-book-policy`: a book is acquired
+  like a paper and stays `bound-unextracted`, and the classifier names it (a book residue class,
+  never "extracted"); `page_no` for
   cross-page paragraphs (citation integrity); metrics into `extraction_runs.metrics`; retiring
   the superseded run sets as a deliberate op. Formula LaTeX stays `unverified`
   (`litkb-second-formula-decoder`).
@@ -324,6 +336,40 @@ Done-state
   test fails on a pre-named work.
 
 Kam: name the topic; apply migrations BEFORE the run, none during.
+
+Carry-ins from the S3 wrap-up (Kam's rulings of 2026-09-21; each a real instance, none a
+guess):
+- **Books** (`litkb-book-policy`): harvest `ISBN` (Crossref carries it on type=book) at
+  admission; an archive lookup by ISBN → md5 (the scidb-by-DOI path cannot reach a book).
+  The one book, E20, was hunted live once — its measured pair is the register's expectation.
+- **Sibling editions** (`litkb-sibling-edition`): the relation edge (Crossref `relation`
+  isPreprintOf / hasPreprint / isVersionOf) as identifier-to-identifier rows; never an alias.
+- **`blocked` back-off**: `blocked` is in no route's `DEAD_STATUSES`, so a blocked work
+  re-spends every route every hunt (E13: 505 s against hosts answering 403). A per-status
+  back-off with a date, not a permanent dead mark — mirrors change.
+- **Anna's `bad-file` ×3 on one DOI** (E13, 10.1145/3534678.3539043, 09-16 ×2 and 09-21): the
+  archive serves bytes that fail the md5/size or PDF gate every time. A route question (wrong
+  record, or our gate), not host mood — diagnose before the next spend on it.
+- **The title-region stamp strip reached beyond E25's two**: the non-regression sweep over
+  every active file (2026-09-21, builder-e25) found Jaffe_2015 (0.7865→1.0) and Vixie_2007
+  (0.7791→1.0) refused by the same mechanism; the held-queue report's "eight are the same
+  finding" list is where they belong. The bioRxiv/medRxiv branch of the strip is tested on
+  constructed lines only — UNCONFIRMED on a real bioRxiv page.
+- **A `quarantined` file state in the DB**: today the quarantine is a directory only
+  (`_quarantine/`, `.reason.json` beside each file) and `file_versions` has no such status, so
+  a refused file is invisible to `litkb_work`. S4's readability classifier is the natural home.
+- **Metadata of the thirteen tracker-era works the second session promoted on 2026-09-21**
+  (Reports/LITKB_APPROVE_SESSION_2026-09-21b.md): `type='report'` on twelve is a migration
+  default, not a classification (Raykar 2010, Touvron 2019 are articles); author lists are
+  truncated first-and-last (the stored second author is the paper's LAST author — Kalinicheva,
+  LopezPaz, Touvron; Blum and Dubey dropped from both Platanios rows); every `given` is empty;
+  venue and publisher NULL on all thirteen though six print a venue on page 1; Kalinicheva's
+  title is cut mid-title; Krahenbuhl_2011's year is not in its document (arXiv:1210.5644v1).
+  Identity is right; citation strings built from these rows are not. Fix on the promoted
+  versions from the documents' first pages, and stop the defaults at admission.
+- **E23/E24 residue**: the rows the title-resolution run (Reports/LITKB_TITLE_HUNTS_2026-09-21.md)
+  left `unresolved` are the ones still needing Kam — the register row names the ledger.
+- A live HTML-only hunt of a work NOT already in the base (S3 proved the path in replay only).
 
 ### S6 — The synthesis: what the literature means for this pipeline
 

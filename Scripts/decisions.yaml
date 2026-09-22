@@ -705,3 +705,60 @@ decisions:
     evidence:
       - Reports/LITKB_SCOUT_RUN_2026-09-20.md
       - Reports/LITKB_SCOUT_RUN_2026-09-20.csv
+
+  - id: litkb-book-policy
+    question: >-
+      May a hunt spend on a BOOK (open access, the archive, Sci-Hub), what terminal state is a
+      book with a copy, and what identifiers does a book need? Register row E20 — the corpus
+      holds one book (VanDenHout_2016, DOI-only, no ISBN anywhere, zero files, no attempt ever
+      made).
+    owner: kam
+    status: decided
+    decided: "2026-09-21"
+    decision: >-
+      BOOKS ARE IN SCOPE FOR ACQUISITION on every route, like papers. EXTRACTION IS DEFERRED:
+      the OCR/extraction pipeline is not ready for books, so an acquired book ends
+      `bound-unextracted` and S4's completeness classifier names it (a book residue class /
+      `over-page-cap`), never silently "extracted". Book identifiers (ISBN first) must be
+      harvested into the corpus at admission — Crossref carries `ISBN` on type=book records —
+      because the archive route looks a book up by ISBN to reach an md5, which the DOI-only
+      scidb path cannot; that lookup is S5 build work. Kam's words: "The system is allowed to
+      get book … ISBN and other book identifiers need to be in the corpus … I say we acquire
+      the book and don't spend. The OCR pipeline doesn't seem ready for books." Claude's
+      reading of "don't spend", recorded so it can be corrected: spend no EXTRACTION effort on
+      books yet; acquisition routes are allowed. The E20 register row carries the measured
+      pair from the first live hunt (2026-09-21) as its expected state.
+    why: >-
+      A DOI-only book admits cleanly through Crossref but the acquisition routes are
+      paper-shaped (scidb by DOI) and a whole book blows through the extraction page cap S4
+      enforces; the ruling separates the two so acquisition proceeds while extraction waits on
+      a pipeline that can classify a book instead of choking on it.
+    evidence:
+      - Reports/LITKB_EDGES_2026-09-21.md
+      - Reports/LITKB_TITLE_HUNTS_2026-09-21.md
+
+  - id: litkb-sibling-edition
+    question: >-
+      Are a preprint and its published article ONE work or TWO? Register row E21 — the
+      corpus's one clean pair, Valavi 2018 (bioRxiv 10.1101/357798, held; MEE
+      10.1111/2041-210x.13107, extracted), two works today with a tracker `duplicate_of`
+      discrepancy recording the tracker's belief that they were one.
+    owner: kam
+    status: decided
+    decided: "2026-09-21"
+    decision: >-
+      TWO WORKS, linked. Each edition is its own work with its own file, blocks and page
+      numbers; a citation names the edition it read. The tie is recorded as an explicit
+      identifier-to-identifier relation edge read from the registry (Crossref `relation`:
+      isPreprintOf / hasPreprint / isVersionOf), never inferred from titles and never an alias
+      (the linkage review's P2, now decided; the edge itself is S5 build work). A hunt of the
+      preprint DOI therefore resolves to ITS OWN work and is not refused as a duplicate of the
+      article.
+    why: >-
+      A verbatim quote with a page number is the base's whole contract. Preprint and journal
+      text differ — pagination, sometimes results — so aliasing would let a quote taken from the
+      preprint carry the journal's citation. Two works keep every quote attached to the edition
+      that contains it.
+    evidence:
+      - Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md
+      - Reports/LITKB_EDGES_2026-09-21.md

@@ -2114,7 +2114,11 @@ _EXPECTED_EXECUTE = {
                      # normaliser must behave identically whichever login asks
                      "check_ws_token", "norm_search_text", "any_term_query",
                      # canonical_newlines: `use.locate_quote` runs on the writer connection
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # record_quarantine: the workstream side of the quarantine state (migration 0030,
+                     # qc/test_litkb_quarantine.py). quarantine_payloads carries workstream_id and is
+                     # guarded; acquisition and hunt present the token through this function alone
+                     "record_quarantine"},
     # promotion_chains: the promoter's SECURITY DEFINER read of _ws_chains, so `promote prepare` can
     # write the promotion report (migration 0018, referee F-5). No agent role holds it.
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon",
@@ -2138,7 +2142,11 @@ _EXPECTED_EXECUTE = {
                      # canonical_newlines: 0026 grants the three roles in one line, ingest
                      # included, so the rule a block is later matched by is not defined
                      # differently for the role that wrote the block
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # record_quarantine_system: the SYSTEM side of the quarantine state (migration
+                     # 0030) — the reaper, the readability classifier and the backfill, which hold no
+                     # workstream token. Its origins are closed to reaper/classifier/legacy-backfill
+                     "record_quarantine_system"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

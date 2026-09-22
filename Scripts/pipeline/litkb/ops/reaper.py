@@ -2,12 +2,22 @@
 
     from litkb.ops import reaper
     out = reaper.reap(conn, root=..., min_age_hours=72, apply=False)   # dry run: moves nothing
+    out = reaper.reap(conn, root=..., apply=True, recorder=ingest)     # moves, and records each move
 
-NOTHING HERE DELETES, and nothing here writes the database. An orphan is QUARANTINED — moved by
-`Store.to_quarantine` under a name that says what it is, with a `.reason.json` beside it naming the
-census run, the sha256, the age and the rule that chose it — which is the same shape acquisition
-already uses for bytes it refuses (`acquire/store.py`, and the 2026-09-12 loss of 149 PDFs that
-made the no-delete rule a rule). A reason file is recoverable; an `rm -f` is not.
+NOTHING HERE DELETES. An orphan is QUARANTINED — moved by `Store.to_quarantine` under a name that
+says what it is, with a `.reason.json` beside it naming the census run, the sha256, the age and the
+rule that chose it — which is the same shape acquisition already uses for bytes it refuses
+(`acquire/store.py`, and the 2026-09-12 loss of 149 PDFs that made the no-delete rule a rule). A
+reason file is recoverable; an `rm -f` is not.
+
+THE ONE DATABASE WRITE (S4, migration 0030): with `apply=True` each move is followed by a
+`litkb.quarantine_payloads` row (origin `reaper`, reason `staging-orphan`) through
+`record_quarantine_system`, which is granted to the INGEST login alone — the reaper's reader login
+cannot write it, so the CLI opens an ingest connection for `--apply` only. Until S4 the reaper wrote
+no row at all and 27 reaped payloads were visible only as a directory listing (S4 run 3 data survey
+D4). The row is written AFTER the move, inside a savepoint, and its failure is reported in the run's
+`errors` (so the command exits 1) — never raised, because the bytes have already moved. The dry run
+writes nothing, to the disk or to the database.
 
 WHAT "ORPHAN" MEANS, AND WHY IT IS SHA-KEYED.  A file is OWNED when its sha256 appears in any
 `litkb.files` row — any state, any workstream — or when its path appears as any
@@ -180,11 +190,16 @@ def counters(out):
             "young": sum(1 for r in rows if r["verdict"] == "young"),
             "orphans": sum(1 for r in rows if r["verdict"] == "orphan"),
             "quarantined": sum(1 for r in rows if r.get("quarantined")),
+            "recorded": sum(1 for r in rows if (r.get("quarantine_row") or {}).get("ok")),
             "skipped_errors": len(out["errors"])}
 
 
-def reap(conn, *, root=None, store=None, min_age_hours=MIN_AGE_HOURS, apply=False, now=None):
-    """The census, and — only with `apply=True` — the quarantine move for each orphan.
+def reap(conn, *, root=None, store=None, min_age_hours=MIN_AGE_HOURS, apply=False, now=None, recorder=None):
+    """The census, and — only with `apply=True` — the quarantine move for each orphan, and its row.
+
+    `recorder`: the connection the quarantine rows are written on (`record_quarantine_system`, EXECUTE
+    to litkb_ingest). Defaults to `conn`, which on a worker database is the test login that owns the
+    function; the CLI passes an ingest connection.
 
     -> {"root", "min_age_hours", "at", "run_id", "applied", "rows", "errors", "counters"}.
     """
@@ -215,6 +230,18 @@ def reap(conn, *, root=None, store=None, min_age_hours=MIN_AGE_HOURS, apply=Fals
         except (OSError, RuntimeError) as e:
             out["errors"].append({"rel_path": row["rel_path"],
                                   "error": f"{type(e).__name__}: {e}"})
+            continue
+        # BEGIN call site: a reaped orphan gets its database row
+        from litkb import quarantine as Q
+        q = Q.try_record(Q.record_system, recorder or conn, rel_path=row["quarantined"],
+                         sha256=row["sha256"], nbytes=row["bytes"], reason=QUARANTINE_LABEL,
+                         origin="reaper", detail={"census_run": run_id, "was": row["rel_path"],
+                                                  "rule": row["rule"]})
+        # END call site: a reaped orphan gets its database row
+        row["quarantine_row"] = q
+        if not q["ok"]:
+            out["errors"].append({"rel_path": row["quarantined"],
+                                  "error": f"quarantined, but no database row: {q['error']}"})
     out["counters"] = counters(out)
     return out
 

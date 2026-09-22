@@ -188,7 +188,7 @@ def test_an_old_orphan_is_quarantined_with_a_reason_beside_it(env):
     sha = _sha(p)
     out = _reap(env, min_age_hours=72, apply=True)
     assert out["counters"] == {"scanned": 1, "owned": 0, "young": 0, "orphans": 1,
-                               "quarantined": 1, "skipped_errors": 0}, out["counters"]
+                               "quarantined": 1, "recorded": 1, "skipped_errors": 0}, out["counters"]
     assert not p.exists(), "the orphan left incoming/"
     row = _row(out, "orphan.download")
     moved = env["root"] / row["quarantined"]
@@ -232,11 +232,17 @@ def test_the_web_snapshot_is_scanned_and_owned_by_its_rel_path(env):
 
 
 @pg_only
-def test_the_reaper_writes_no_database_row(env):
-    """It reads `litkb.files` and `litkb.file_versions` and nothing else. Asserted by counting the
-    two tables and every acquisition attempt across a run that quarantines."""
+def test_the_reaper_writes_only_its_quarantine_row(env):
+    """Until S4 the reaper wrote NO database row; since migration 0030 each move under `--apply` is
+    followed by exactly ONE `litkb.quarantine_payloads` row (origin `reaper`, reason
+    `staging-orphan`) and nothing else — no `files`, no `file_versions`, no acquisition attempt. The
+    row is written on an INGEST session (`record_quarantine_system` is granted to litkb_ingest alone),
+    which is what the CLI opens for `--apply`."""
+    from litkb import quarantine as Q
+
     conn = env["conn"]
-    _plant(env, "incoming", "counted.download", age_hours=500.0)
+    p = _plant(env, "incoming", "counted.download", age_hours=500.0)
+    sha, size = _sha(p), p.stat().st_size
 
     def counts():
         return tuple(conn.execute(
@@ -245,9 +251,61 @@ def test_the_reaper_writes_no_database_row(env):
             "       (SELECT count(*) FROM litkb.acquisition_attempts)").fetchone())
 
     before = counts()
-    out = _reap(env, min_age_hours=72, apply=True)
-    assert out["counters"]["quarantined"] == 1, out["counters"]
-    assert counts() == before, "the reaper wrote to the database"
+    ingest = Q.ingest_connect(_test_db())
+    try:
+        out = _reap(env, min_age_hours=72, apply=True, recorder=ingest)
+    finally:
+        ingest.close()
+    assert out["counters"]["quarantined"] == 1 and out["counters"]["recorded"] == 1, out["counters"]
+    assert counts() == before, "the reaper wrote a file, version or attempt row"
+    row = _row(out, "counted.download")
+    got = conn.execute("SELECT sha256, bytes, reason, origin, workstream_id, detail->>'was' "
+                       "FROM litkb.quarantine_payloads WHERE rel_path = %s", (row["quarantined"],)).fetchone()
+    assert got == (sha, size, "staging-orphan", "reaper", None,
+                   row["rel_path"]), got
+    assert row["quarantine_row"]["ok"] and row["quarantine_row"]["id"], row
+    n, missing = Q.quarantined_without_db_state(conn, root=env["root"])
+    assert n == 0, missing
+
+
+@pg_only
+def test_the_dry_run_writes_no_quarantine_row(env):
+    """`--dry-run` (the default) moves nothing AND records nothing: the census is the product."""
+    conn = env["conn"]
+    _plant(env, "incoming", "dry.download", age_hours=500.0)
+    before = conn.execute("SELECT count(*) FROM litkb.quarantine_payloads").fetchone()[0]
+    out = _reap(env, min_age_hours=72, apply=False)
+    assert out["counters"]["orphans"] == 1 and out["counters"]["recorded"] == 0, out["counters"]
+    assert conn.execute("SELECT count(*) FROM litkb.quarantine_payloads").fetchone()[0] == before
+
+
+@pg_only
+def test_a_move_whose_row_fails_keeps_the_bytes_and_reports_it(env):
+    """A failed row never loses the bytes: the move happened first. Handed a READER as its recorder
+    (which holds no EXECUTE on record_quarantine_system), the reaper still moves the orphan, reports
+    the missing row in `errors` (the CLI exits 1), and the acceptance counter names the payload."""
+    from litkb import quarantine as Q
+    from litkb.db import connect as c
+
+    p = _plant(env, "incoming", "unrecorded.download", age_hours=500.0)
+    reader = c.connect(_test_db(), "litkb_test", autocommit=True)
+    reader.execute("SET ROLE litkb_reader")
+    try:
+        out = _reap(env, min_age_hours=72, apply=True, recorder=reader)
+    finally:
+        reader.close()
+    row = _row(out, "unrecorded.download")
+    assert not p.exists() and (env["root"] / row["quarantined"]).exists(), "the bytes moved and are kept"
+    assert out["counters"]["recorded"] == 0 and row["quarantine_row"]["ok"] is False, row
+    assert any("no database row" in e["error"] for e in out["errors"]), out["errors"]
+    n, missing = Q.quarantined_without_db_state(env["conn"], root=env["root"])
+    assert row["quarantined"] in missing, missing
+
+
+def _test_db():
+    from litkb.db import connect as c
+
+    return c.DB_TEST
 
 
 @pg_only

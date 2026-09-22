@@ -706,6 +706,34 @@ def _absent_kind(conn, doi=None, key=None):
     return "never-admitted", {}
 
 
+def _readability_of(conn, work_id, file_ids):
+    """Each current file's readability class (litkb.readability, S4) and every quarantine row that
+    names this work or one of its files (litkb.quarantine_payloads, migration 0030) — so a REFUSED file
+    is no longer invisible to litkb_work, and a work holding an extracted file beside a residue one reads
+    `mixed`, not `extracted`. The four-state ladder above is unchanged; these are keys beside it.
+
+    Never raises: the classifier reads the disk (the per-page probe, the sha256), and a file it cannot
+    read must not take the whole work view down with it — the error is returned in its place. A
+    database that has not applied 0030 answers `quarantine: null` with the reason."""
+    from litkb import quarantine as Q
+    from litkb import readability as R
+
+    try:
+        per_file, rollup = R.classify_work_files(conn, work_id)
+        per_file = {fid: {k: v for k, v in d.items() if k in ("class", "reason", "evidence")}
+                    for fid, d in per_file.items()}
+    except Exception as e:              # noqa: BLE001 — a disk read never takes the work view down
+        per_file, rollup = {}, {"error": f"{type(e).__name__}: {str(e)[:200]}"}
+    if not Q.table_present(conn):
+        return per_file, rollup, None
+    rows = conn.execute(
+        "SELECT id::text, rel_path, sha256, bytes, reason, origin, file_id::text, attempt_id::text, recorded_at "
+        "  FROM litkb.quarantine_payloads WHERE work_id = %s OR file_id = ANY(%s::uuid[]) "
+        " ORDER BY recorded_at, id", (work_id, [f for f in file_ids if f])).fetchall()
+    return per_file, rollup, [dict(zip(("id", "rel_path", "sha256", "bytes", "reason", "origin", "file_id",
+                                        "attempt_id", "recorded_at"), r)) for r in rows]
+
+
 def _work(doi=None, key=None):
     # the DOI is normalised by litkb.norm_identifier IN the statement — the database's own twin of
     # litkb.textnorm.normalize_doi (migration 0014, D1), driven against it over doi_forms.csv. A
@@ -738,7 +766,7 @@ def _work(doi=None, key=None):
         ids = conn.execute("SELECT scheme, value_norm, verified_by, active FROM litkb.main_identifiers "
                            "WHERE work_id = %s ORDER BY scheme, value_norm", (work_id,)).fetchall()
         files = conn.execute(
-            "SELECT sha256, rel_path, bytes, pages, current_run_id::text, status "
+            "SELECT sha256, rel_path, bytes, pages, current_run_id::text, status, file_id::text "
             "FROM litkb.main_files WHERE work_id = %s ORDER BY rel_path", (work_id,)).fetchall()
         # Blocks of the CURRENT run only — the same join litkb_search makes, so this count is the
         # number of blocks a search can actually return for this work, not the number ever stored.
@@ -753,6 +781,7 @@ def _work(doi=None, key=None):
         disc = conn.execute(
             "SELECT source, source_row, field, claimed_value, registry_value, ratio "
             "FROM litkb.discrepancies WHERE work_id = %s ORDER BY source, field", (work_id,)).fetchall()
+        readable, rollup, quarantine = _readability_of(conn, work_id, [f[6] for f in files])
     # BEGIN guard: the four states of a work
     # A file with no current_run_id is bound and unread; a file with one may still hold zero blocks
     # (a run that produced nothing), and that is reported as extracted with blocks: 0 rather than
@@ -771,7 +800,11 @@ def _work(doi=None, key=None):
                work=dict(zip(("type", "title", "authors", "year", "venue", "publisher", "work_id"), w)),
                identifiers=[dict(zip(("scheme", "value", "verified_by", "active"), r)) for r in ids],
                files=[dict(zip(("sha256", "path", "bytes", "pages", "current_run_id", "status"), r))
-                      | {"stem": Path(r[1]).stem} for r in files],
+                      | {"stem": Path(r[1]).stem, "file_id": r[6],
+                         "readability": readable.get(r[6]) or {"class": None, "reason": None,
+                                                                "evidence": "not classified"}}
+                      for r in files],
+               readability=rollup, quarantine=quarantine,
                uses=[dict(zip(("use_version_id", "gap", "statement", "kind", "status", "feeds"), r))
                      for r in uses],
                discrepancies=[dict(zip(("source", "source_row", "field", "claimed", "registry", "ratio"), r))

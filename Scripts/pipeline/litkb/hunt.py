@@ -1288,7 +1288,20 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                     ingest_role=ingest_role, artifact=snap_rel, facts=snap_facts,
                                     progress=progress)
         # END guard: an HTML page is a web source in its own right, not a failed PDF download
-        dl, sha = land_download(store, stem, data)
+        try:
+            dl, sha = land_download(store, stem, data)
+        except HuntRefused as e:
+            # BEGIN call site: a hunted download the shape guard quarantined gets its database row
+            if e.extra.get("quarantined"):
+                from litkb import quarantine as Q
+                row = Q.try_record(Q.record, writer, ws_id, token, rel_path=e.extra["quarantined"],
+                                   sha256=e.extra.get("sha256"), nbytes=e.extra.get("bytes") or 0,
+                                   reason=e.code, origin="hunt-url",
+                                   detail={"refused": e.code, "moved_from": "incoming"})
+                e.extra["quarantine_row"] = row
+                _quarantine_rows_failed([row], refusals)
+            # END call site: a hunted download the shape guard quarantined gets its database row
+            raise
         out["downloaded"] = {"bytes": len(data), "sha256": sha, "rel_path": store.rel(dl),
                              "http_status": status}
 
@@ -1315,11 +1328,31 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
 
         progress["stage"] = "admit"
         t0 = time.monotonic()
-        res = front.admit_web(writer, ws_id, token, title=t, authors=a, year=y, url=ref,
-                              retrieved=retrieved, snapshot_path=str(snap),
-                              source_note=source_note or f"hunted from {ref} on {retrieved}",
-                              work_type=work_type, key=key, agent=agent, session=session,
-                              pdf_path=str(pdf), root=store.root, store=store)
+        try:
+            res = front.admit_web(writer, ws_id, token, title=t, authors=a, year=y, url=ref,
+                                  retrieved=retrieved, snapshot_path=str(snap),
+                                  source_note=source_note or f"hunted from {ref} on {retrieved}",
+                                  work_type=work_type, key=key, agent=agent, session=session,
+                                  pdf_path=str(pdf), root=store.root, store=store)
+        except front.BindProbeError as e:
+            # The probe guard is front.file_evidence's (fail closed: never bound). The file is this
+            # hunt's OWN download, so it moves to _quarantine/ under `probe-error` with its row, and
+            # the hunt ends where an admission that refused the file already ends: `admission-refused`
+            # (no new state and no new reason — hunt.STATES / REASONS are unchanged).
+            from litkb import quarantine as Q
+            qpdf, _qtxt = store.to_quarantine(pdf, _txt, stem, "probe-error", sha)
+            # BEGIN call site: a hunted file the bind probe refused gets its database row
+            row = Q.try_record(Q.record, writer, ws_id, token, rel_path=store.rel(qpdf), sha256=sha,
+                               nbytes=len(data), reason="probe-error", origin="hunt-url",
+                               detail={"refused": "admission-refused", "probe_error": e.probe_error,
+                                       "moved_from": store.rel(pdf)})
+            # END call site: a hunted file the bind probe refused gets its database row
+            _quarantine_rows_failed([row], refusals)
+            raise HuntRefused("admission-refused",
+                              "the file's page count could not be read, so it was never bound "
+                              "(fail closed); it is in _quarantine/ under `probe-error`.",
+                              probe_error=e.probe_error, quarantined=store.rel(qpdf),
+                              quarantine_row=row) from None
         timing["admit"] = round(time.monotonic() - t0, 2)
         if res.get("outcome") != "proposed":
             raise HuntRefused("admission-refused",
@@ -1557,7 +1590,9 @@ def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, 
         if own_writer:
             conn.close()
     out["acquisition"] = {"outcome": acq.get("outcome"), "attempts": acq.get("attempts", []),
-                          "route_detail": acq.get("route_detail", [])}
+                          "route_detail": acq.get("route_detail", []),
+                          "quarantine_rows": acq.get("quarantine_rows", [])}
+    _quarantine_rows_failed(acq.get("quarantine_rows"), refusals)
 
     progress["stage"] = "resolve"
     reader = _reader(db, reader_role)
@@ -1717,6 +1752,26 @@ EVENT_FAILED = ("the file is bound and its acquisition event could NOT be record
                 "exists for it. The usual cause is a database that has not applied migration 0028 "
                 "(the `hunt-url` route); apply it, then hunt the reference again — the second hunt "
                 "answers from the database and records the event without fetching anything.")
+
+
+#: What the caller is told when bytes were QUARANTINED and their database row (migration 0030) could
+#: not be written. The bytes are kept either way — the move happened first — and
+#: `litkb.quarantine.quarantined_without_db_state` names the payload until a row exists for it, so this
+#: is a `refusals[]` entry beside the hunt's own verdict, never a verdict of its own: the hunt's
+#: state and reason stay exactly what the existing precedence makes them.
+QUARANTINE_ROW_FAILED = ("bytes this hunt quarantined have NO database row (litkb.quarantine_payloads), "
+                         "so nothing but the directory says they were refused. "
+                         "`litkb.quarantine.quarantined_without_db_state` names the payload until a row "
+                         "exists; `py -3.12 -m litkb quarantine backfill --apply` writes it. The usual "
+                         "cause is a database that has not applied migration 0030.")
+
+
+def _quarantine_rows_failed(rows, refusals):
+    """One `quarantine-state-failed` refusal per quarantine row that could not be written."""
+    for r in rows or ():
+        if r and not r.get("ok"):
+            refusals.append({"code": "quarantine-state-failed", "message": QUARANTINE_ROW_FAILED,
+                             "detail": r.get("error"), "rel_path": r.get("rel_path")})
 
 
 def _record_acquisition_event(conn, ws_id, token, work_id, out, refusals, *, url, sha256, data,

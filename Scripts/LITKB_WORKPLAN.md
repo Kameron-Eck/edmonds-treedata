@@ -98,7 +98,8 @@ Update this block only. Everything else in the file changes when a session lands
   adversarial read of THIS revision are owed when its quota returns (an Opus adversary stood in).
 - **Rulings 2026-09-22** (ids; Kam ruled the whole open list in one message, recorded verbatim in
   each entry): `litkb-coverage-target` · `litkb-coverage-definition` · `litkb-institutional-access`
-  (none) · `litkb-shadow-hosts` (all four tiers, offline dumps are data) · `litkb-tdm-keys` (Elsevier only, key in place; no Springer key) ·
+  (none) · `litkb-shadow-hosts` (all four tiers, offline dumps are data) · `litkb-tdm-keys` (Elsevier only, key in place — valid for Scopus, refused by every ScienceDirect
+  endpoint as configured; no Springer key) ·
   `litkb-s47-colab-queue` (T4, unbounded) · `litkb-crc-book` · `litkb-scihub-parked` ·
   `litkb-blocked-works-grade` · `litkb-e23-residue-copies` · `litkb-tracker-corrections` ·
   `litkb-from-file-version-state`; `litkb-scihub-parked` was then REVERSED the same evening (not
@@ -108,7 +109,8 @@ Update this block only. Everything else in the file changes when a session lands
   works by design; the seeding guard protects S5); S5's topic, unless Kam renames it before launch:
   label transfer across years under seasonal difference.
 - **Kam-side, still open:** nothing in `decisions.yaml`; the nightly-dump task re-registration
-  (below) is an action, not a ruling; the Elsevier key is in place.
+  (below) is an action, not a ruling; the Elsevier key is in place but ScienceDirect refuses it as
+  configured — a key with the TDM Provisions box ticked is the other open action (Stage H).
 - **Rulings 2026-09-20:** `litkb-k2-no-seeding` decided; S7 soak = seven nights started in S1. Kam
   re-registers the nightly-dump scheduled task (Windows task name litkb-nightly-dump) against the
   merged tree: `py -3.12 -m litkb.ops.nightly_dump --install-task`.
@@ -766,13 +768,23 @@ Work
 4. **Stage H, credentialed and anti-block, each behind its ruling**: NO persistent logged-in browser profile
    (H10/H11) — `litkb-institutional-access` was decided 2026-09-22 as none, so the `manual-step` rows
    and the paywalled remainder go to Stage G, to the human queue of `litkb-blocked-works-grade`, or
-   to metadata-grade; Elsevier's API (H2 — a free key buys open-access and bronze content only; an
-   unentitled key answers HTTP 200 with a first-page stub announced only in `X-ELS-Status`, which
-   S4.5's acceptance test refuses) with its KEY IN PLACE (`litkb-tdm-keys`, amended 2026-09-22 to
-   Elsevier only: the key sits alone on one line in D:\edmonds-pipeline\secrets\Elsevier_key.txt, the
-   shape `KEY_FILE` in `pipeline/litkb/acquire/annas.py` already reads for Anna's; the reader is this
-   stage's); Springer's API (H1) is NOT built — no Springer key, its open-access content stays on the
-   Unpaywall rung; `curl_cffi` impersonation (H5) is NOT built — the
+   to metadata-grade; Elsevier's API (H2): Kam's free key is IN PLACE (`litkb-tdm-keys`, amended
+   2026-09-22 to Elsevier only; alone on one line in D:\edmonds-pipeline\secrets\Elsevier_key.txt, the
+   shape `KEY_FILE` in `pipeline/litkb/acquire/annas.py` already reads for Anna's) and MEASURED the
+   same hour by `qc/instruments/litkb_acq_probe_elsevier_key.py` →
+   `phase4/qc/litkb_acq_probe_elsevier_key.csv`: the key is valid (Scopus Search 200) but every
+   ScienceDirect endpoint refuses it at the key-configuration level — Article Retrieval 403
+   `AUTHENTICATION_ERROR` even at `view=META` on a GOLD open-access article, ScienceDirect Search and
+   Metadata 401 — so as configured it buys NO full text, only Scopus metadata (EID, PII, `openaccess`
+   flag, cited-by) for Stage A's crosswalk. H2 is built ONLY once a re-run of that instrument shows a
+   ScienceDirect 200 (Kam's open action: the key form carries TWO consent boxes, the API Service
+   Agreement and the TDM Provisions, and ScienceDirect is what the second enables — create a key with
+   both ticked, replace the file, re-run; Elsevier API support only if it still refuses: their page
+   says non-subscribers "can still retrieve free and open access content -- or speak to us about
+   non-subscriber access"); until then the expected first-page stub
+   (an unentitled key answering HTTP 200 with the stub announced only in `X-ELS-Status`, which S4.5's
+   acceptance test refuses) stays CONSTRUCTED; Springer's API (H1) is NOT built — no Springer key,
+   its open-access content stays on the Unpaywall rung; `curl_cffi` impersonation (H5) is NOT built — the
    survey measured it AGAINST twice in production, on MDPI and on Springer — and is recorded as
    measured-against; FlareSolverr (H6) already exists in `pipeline/litkb/netutil.py` as the challenge
    retry, cannot return a PDF (its solution is HTML), and stays a landing-page solve only. No commercial
@@ -843,7 +855,8 @@ py -3.12 -c "import csv;r=list(csv.DictReader(open('../Reports/literature_tracke
 Kam: all of this block's rulings were decided 2026-09-22 — `litkb-institutional-access`,
 `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-crc-book`, `litkb-coverage-definition`,
 `litkb-blocked-works-grade`, `litkb-scihub-parked`, `litkb-e23-residue-copies`; the Elsevier key
-is in place; there is no Springer key.
+is in place but buys no full text as configured (Stage H cites the measurement); a key created with
+the TDM Provisions box ticked is Kam's open action; there is no Springer key.
 
 ### S4.7 — Extraction agreement: repair the cause, tier the text, measure the scans, verify the math
 

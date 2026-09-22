@@ -1047,10 +1047,12 @@ decisions:
     status: decided
     decided: "2026-09-22"
     decision: >-
-      KEYS FOR BOTH: Kam registers Elsevier's and Springer's free text-and-data-mining keys for
-      litkb. Both buy open-access and bronze content only; an unentitled Elsevier answer is a first-page
-      stub the acceptance test refuses; Springer's API resolves but hands URLs on the walled host. Their
-      yield is recorded the first time each runs. Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
+      ELSEVIER ONLY (amended the same evening): Kam registered Elsevier's free key and had it placed at
+      D:\edmonds-pipeline\secrets\Elsevier_key.txt (his words: "Elsvier api key is not a important secret … We
+      wont be getting a springer api key"); no Springer key, so H1 is not built and Springer open-access
+      content stays on the Unpaywall rung. The Elsevier key buys open-access and bronze content only; an
+      unentitled answer is a first-page stub the acceptance test refuses; its yield is recorded the first
+      time it runs. First ruling, Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
     blocked_by: [litkb-coverage-target]
     why: >-
       Registration is Kam's identity on a publisher's account; the yield is small and measured; the

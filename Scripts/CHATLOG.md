@@ -46,6 +46,39 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-21  litkb PLAN REVISED in place: S4 extended, S4.5 inserted, S5 entry condition, post-S5 table, survey verdicts with provenance
+goal:    Kam (22:00, then bed): "an exhaustive plan. It will edit the current plan" — LITKB_WORKPLAN.md revised from the wrap-up evidence
+         + GitHub survey; no code; STOP after, Kam launches S4 run 3 himself.
+did:     6 Opus read-only auditors (acquire/admit/bind/state/survey/carryin) + critic re-derived every fact BEFORE drafting; then
+         Codex adversarial read (78 findings: A33 B1 C10 D11 E23 F0) + Opus plan-verify (15 commands run, ~30 measured claims sourced).
+         Plan: conventions +1 (a design is a claim); "Where we are" rewritten; S4 += `book` class, DB-visible quarantine state
+         (file_versions.status allows 'quarantined', never held), measurement bed w/ commands; NEW S4.5 (spelled with a point: gate
+         regex `^### S\d+`) = back-off keyed (route,status,http_codes,at) + in-run transient retry + arXiv discriminator · registry
+         identity (relation PROBE first, edges w/ third state, identifier-first dupes, ISBN-13 type-scoped, key-LENGTH rule) ·
+         served-bytes sha on attempt row + rejected-sha lookup + landing through check 3 · second-session REFUSE verb (none exists);
+         S5 += entry condition (promoted tracker-era metadata: fail-closed citation builder AND repair via versioned path),
+         per-hunt time budget, ruled recipe under its own conditions, two ruling-owed builds (ISBN->md5, registry-over-claim);
+         "Improvements after S5" table (7 rows, each UNVALIDATED, positive+negative rows, fires-on); "The survey's verdicts" table
+         (VERIFIED/LIVE/ASSERTED per mechanism); register: S2 row + "Codex cannot read block context" + S7 tolerated-red DELETED.
+         decisions.yaml +5 open (kam): litkb-e23-residue-copies, litkb-blocked-works-grade, litkb-scihub-parked,
+         litkb-tracker-corrections, litkb-from-file-version-state. _derived/s4/s4-prompt.txt rewritten (launches S4.5).
+         Report Reports/LITKB_PLAN_REVISION_2026-09-21.md: every change w/ source + verified/asserted; hypotheses rejected; gates.
+found:   Brief's census cells STALE (run the GROUP BY; Sci-Hub 0 ok all-time holds). "16 E24 rows at 1.00" wrong: registry-quirk
+         rows at >=0.85 (13 at 1.00); 293 refuses on YEAR not author -> two waivers. 254-file sweep NOT persisted (test set = tracked
+         fixtures + an instrument to build). Re-served bad file is RE-QUARANTINED, not duplicate-held. known_md5 looks up the
+         ARCHIVE md5 -> served hash can never suppress its own request. make_key crash = LENGTH (key[:59]) not corporateness.
+         Metadata fallback binds a BLANK page 1 at 1.0 on /Title+/Author (latent: 18 live pdf-title binds all have text).
+         NO refuse verb for a proposed admission. 187/235 files: OWNED by refused admissions per reaper (orphans=0), unbound.
+         `plan` gate has NO rule for restated counts (probed: stays green) — review is the only catch.
+decided: S4.5 not S4½; quarantine STATE=S4, LEDGER=S4.5; Sci-Hub default -> Kam (open id), back-off lands regardless; 194 REFUSE intent
+         kept (report §9 says approve — conflict recorded, verb first); both metadata fixes; external paths unbackticked.
+killed:  Codex A-group counts of agents/sessions/constants rejected (not works/rows); pre-existing S0/S3/disposition-table counts
+         left as debt; ISBN->md5 + registry-over-claim moved BACK into S5 (rulings name S5).
+files:   Scripts/LITKB_WORKPLAN.md, Scripts/decisions.yaml, Reports/LITKB_PLAN_REVISION_2026-09-21.md, _derived/s4/s4-prompt.txt,
+         jobs/litkb-plan-revision/{STATE,*-audit,critic,codex,plan-verify}.md. Branch work/20260921-litkb-plan-revision.
+next:    Kam: read the report §2/§3; rule the 5 open ids when convenient; launch S4 run 3:
+         `wt.exe -w new "C:\Program Files\Git\bin\bash.exe" -lc /d/edmonds-pipeline/treedata/_derived/s4/launch-s4.sh`.
+
 ## 2026-09-21  litkb E23/E24 RULED + RUN; GitHub survey of resolve+admit / acquire+bind; plan-revision prompt for Kam
 goal:    Kam: "Lets work on the E23/E24 rulings" -> bring the table, rule, run; then "how do other repos solve this" (Fable -> 5 Opus crawlers); then a prompt
          for a plan-revision session Kam starts himself ("you just give me the prompt").

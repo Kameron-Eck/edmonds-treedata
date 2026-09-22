@@ -118,6 +118,23 @@ def record_system(conn, *, rel_path, sha256, nbytes, reason, origin, work_id=Non
          _detail(detail))).fetchone()[0]
 
 
+def clear_system(conn, row_id, *, session, reason):
+    """Clear a CLASSIFIER row on a bound file (litkb.clear_quarantine_system, ingest). -> True when this
+    call cleared it. The database refuses any other row: a moved payload stays refused."""
+    return conn.execute("SELECT litkb.clear_quarantine_system(%s, %s, %s)",
+                        (row_id, session, reason)).fetchone()[0]
+
+
+def try_clear(conn, row_id, *, session, reason):
+    """`clear_system` inside a savepoint; never raises (the same contract as `try_record`)."""
+    try:
+        with conn.transaction():
+            done = clear_system(conn, row_id, session=session, reason=reason)
+        return {"ok": True, "id": str(row_id), "cleared": bool(done)}
+    except Exception as e:                  # noqa: BLE001 — a failed clear leaves the row current
+        return {"ok": False, "id": str(row_id), "error": f"{type(e).__name__}: {str(e)[:300]}"}
+
+
 def ingest_connect(dbname=None):
     """The connection `record_quarantine_system` is called on: the INGEST login for `litkb`
     (`litkb.ingest.connect`, the one path to that login and its own passfile), and on a test database

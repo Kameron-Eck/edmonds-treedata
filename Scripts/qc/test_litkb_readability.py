@@ -27,6 +27,7 @@ SCAN = "Validation/Anderson_1957_statistical-inference-about-markov.pdf"
 NATIVE = "Validation/Efron_1986_how-biased-apparent-error-rate.pdf"
 STAGING_BIND = "_litkb_staging/incoming/t286_Crowder_2017_bernoulli-cusum.download"
 MAITI = "_litkb_staging/filed/Maiti_2022_effect-label-noise-semantic.pdf"
+FIGURE_PAGE = "Validation/Guo_2019_city-wide-canopy-cover-decline.pdf"   # p6: a figure, caption as native text
 
 
 def _jsonb(v):
@@ -176,7 +177,7 @@ def test_a_real_scan_with_no_run_is_scan_needs_ocr_by_the_per_page_probe(env):
     s = _seed(env, rel)
     row = _row(_classify(env), s["file_id"])
     assert row["class"] == "scan-needs-ocr" and row["pages"] == 22, row
-    assert row["image_pages"] == 22, row
+    assert row["image_pages"] == 21, "D13: the JSTOR cover (page 1) carries native text; pages 2-22 are images"
     assert (env["root"] / rel).read_bytes() == before, "the classifier never writes a file"
 
 
@@ -196,22 +197,45 @@ def test_a_real_native_file_waits_unclassified_then_is_extracted_full(env):
 @pg_only
 def test_the_staging_bind_is_read_per_page_not_by_its_page1_flag(env):
     """Crowder 2017 is bound at `_litkb_staging/incoming/t286_...download` and stored
-    `has_text_layer=false` (page 1 only); pdfium finds three short pages (1, 4, 30). With text blocks
-    on every page it is `extracted`; with page 30 left without text and no OCR'd run it is
-    `scan-needs-ocr` — the per-page fact, never the stored flag."""
+    `has_text_layer=false` (the binding reads page 1 only, 113 characters). The per-page probe finds
+    NO image page (decision D13: every page carries native text), so with no run it WAITS, never
+    `scan-needs-ocr`, and with a run it is `extracted` — the per-page fact, never the stored flag."""
     from litkb.extract import probe
 
     rel = _copy(env, STAGING_BIND)
     p = env["root"] / rel
-    img = probe.image_pages(probe.page_text_chars(p))
-    assert img and len(img) < probe.probe_pages(p), img
+    assert probe.image_page_numbers(p) == []
     s = _seed(env, rel)
-    n = probe.probe_pages(p)
-    _run(env, s["file_id"], [(pg, f"slide {pg}") for pg in range(1, n + 1)])
+    assert _row(_classify(env), s["file_id"])["class"] is None
+    _run(env, s["file_id"], [(pg, f"slide {pg}") for pg in range(1, probe.probe_pages(p) + 1)])
     assert _row(_classify(env), s["file_id"])["class"] == "extracted"
-    _run(env, s["file_id"], [(pg, f"slide {pg}") for pg in range(1, n + 1) if pg != img[-1]])
+
+
+@pg_only
+def test_a_figure_page_with_a_native_caption_is_not_an_ocr_page(env):
+    """Guo 2019 p6 (135 native characters: a caption under a figure) carries no text block in its
+    live run. Under the old 200-character rule the finished extraction read `scan-needs-ocr`; under
+    decision D13 the page is not an image page and the file is `extracted`/`full`."""
+    rel = _copy(env, FIGURE_PAGE)
+    s = _seed(env, rel)
+    _run(env, s["file_id"], [(pg, f"page {pg}") for pg in range(1, 10) if pg != 6])
     row = _row(_classify(env), s["file_id"])
-    assert row["class"] == "scan-needs-ocr" and str(img[-1]) in row["evidence"], row
+    assert (row["class"], row["reason"]) == ("extracted", "full") and row["image_pages"] == 0, row
+
+
+@pg_only
+def test_an_image_page_no_text_block_covers_is_scan_needs_ocr_and_covered_ones_are_ocr(env):
+    """The real scan with a run covering every image page but one: `scan-needs-ocr`, naming the
+    page. Covering all of them with no `ocr` metric: `extracted`/`ocr` — text on a page with no native
+    characters can only have come from OCR."""
+    rel = _copy(env, SCAN)
+    s = _seed(env, rel)
+    _run(env, s["file_id"], [(pg, f"ocr text {pg}") for pg in range(1, 22)])
+    row = _row(_classify(env), s["file_id"])
+    assert row["class"] == "scan-needs-ocr" and "22" in row["evidence"], row
+    _run(env, s["file_id"], [(pg, f"ocr text {pg}") for pg in range(1, 23)])
+    row = _row(_classify(env), s["file_id"])
+    assert (row["class"], row["reason"]) == ("extracted", "ocr"), row
 
 
 @pg_only
@@ -460,7 +484,7 @@ def test_the_csv_names_its_columns_and_is_never_overwritten(env):
         rows = list(csv.DictReader(fh))
     assert tuple(rows[0].keys()) == R.CSV_COLUMNS
     mine = next(r for r in rows if r["file_id"] == s["file_id"])
-    assert mine["class"] == "scan-needs-ocr" and mine["row_kind"] == "file" and mine["image_pages"] == "22"
+    assert mine["class"] == "scan-needs-ocr" and mine["row_kind"] == "file" and mine["image_pages"] == "21"
     assert {r["row_kind"] for r in rows} >= {"file", "work"}
     with pytest.raises(FileExistsError):
         R.write_csv(res, path)
@@ -527,3 +551,67 @@ def _db():
     from litkb.db import connect as c
 
     return c.DB_TEST
+
+
+# ── clearing: the classifier clears its OWN row once the file is extracted (0030, ruling Q6) ──
+
+def _qrow(env, file_id):
+    return env["conn"].execute(
+        "SELECT id::text, reason, origin, cleared_at IS NOT NULL, cleared_by, cleared_reason "
+        "FROM litkb.quarantine_payloads WHERE file_id = %s ORDER BY recorded_at, id", (file_id,)).fetchall()
+
+
+@pg_only
+def test_the_classifier_clears_its_own_row_once_the_file_is_extracted(env, monkeypatch):
+    """A bound file refused `zero-content` (row recorded), then re-extracted with text: a read-only
+    classification reports the row STALE; a `record=` run CLEARS it (when, which session, why) and
+    `litkb_work` shows it no longer. KNOWN-BAD (mutation C14): clearing disabled -> the file is
+    re-classed extracted and the stale row is still shown."""
+    import json
+
+    from litkb.db import connect as c
+    from litkb.mcp import server
+
+    for k, v in {"LITKB_DB": c.DB_TEST, "LITKB_READER_ROLE": "litkb_test",
+                 "LITKB_LITERATURE_ROOT": str(env["root"])}.items():
+        monkeypatch.setenv(k, v)
+    rel = _copy(env, NATIVE)
+    s = _seed(env, rel)
+    _run(env, s["file_id"], [(1, "")])
+    ing = _ingest()
+    try:
+        _classify(env, record=ing, session="sess-refuse")
+        (rid, reason, origin, cleared, _by, _why), = _qrow(env, s["file_id"])
+        assert (reason, origin, cleared) == ("zero-content", "classifier", False)
+        _run(env, s["file_id"], [(pg, f"page {pg}") for pg in range(1, 12)])
+        ro = _classify(env)
+        assert _row(ro, s["file_id"])["class"] == "extracted" and _row(ro, s["file_id"])["stale_quarantine"] == 1
+        assert ro["counters"]["stale_quarantine_rows"] >= 1
+        done = _classify(env, record=ing, session="sess-clear")
+    finally:
+        ing.close()
+    assert _row(done, s["file_id"])["stale_quarantine"] == 0, _row(done, s["file_id"])
+    (_rid, _r, _o, cleared, by, why), = _qrow(env, s["file_id"])
+    assert cleared and by == "sess-clear" and why.startswith("classified extracted/full"), (cleared, by, why)
+    res = json.loads(server._work(key=s["key"]))
+    assert res["quarantine"] == [], res["quarantine"]
+    assert _row(_classify(env), s["file_id"])["quarantine_ids"] == ""
+
+
+@pg_only
+def test_a_cleared_row_refused_again_is_reopened(env):
+    rel = _copy(env, NATIVE)
+    s = _seed(env, rel)
+    _run(env, s["file_id"], [(1, "")])
+    ing = _ingest()
+    try:
+        _classify(env, record=ing)
+        _run(env, s["file_id"], [(1, "text")])
+        _classify(env, record=ing)
+        assert _qrow(env, s["file_id"])[0][3] is True
+        _run(env, s["file_id"], [(1, "")])
+        _classify(env, record=ing)
+    finally:
+        ing.close()
+    rows = _qrow(env, s["file_id"])
+    assert len(rows) == 1 and rows[0][3] is False and rows[0][4] is None, rows

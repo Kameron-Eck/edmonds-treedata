@@ -2146,7 +2146,10 @@ _EXPECTED_EXECUTE = {
                      # record_quarantine_system: the SYSTEM side of the quarantine state (migration
                      # 0030) — the reaper, the readability classifier and the backfill, which hold no
                      # workstream token. Its origins are closed to reaper/classifier/legacy-backfill
-                     "record_quarantine_system"},
+                     "record_quarantine_system",
+                     # clear_quarantine_system: the classifier clears its OWN row on a bound file it
+                     # now classes extracted (0030, builder-B Q6); moved payloads are refused by it
+                     "clear_quarantine_system"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

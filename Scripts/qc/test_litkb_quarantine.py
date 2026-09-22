@@ -608,3 +608,40 @@ def test_the_backfill_cli_dry_runs_by_default_and_applies_on_the_ingest_login(pg
     assert [(r[3], r[4]) for r in _rows(pg, rel_path=Q.rel_of(root, p))] == [("blocked", "legacy-backfill")]
     _plant(root, f"Odd{tag}__weird-label__{'b' * 12}.pdf", f"odd {tag}".encode())
     assert commands.main(args) == 1, "an unmapped label is a non-zero exit, never a default"
+
+
+@pg_only
+def test_only_a_classifier_row_on_a_bound_file_can_be_cleared(pg):
+    """A moved payload (reaper, backfill, acquisition, hunt) stays refused: clear_quarantine_system
+    refuses it; the writer holds no EXECUTE on it; a session and a reason are required; a second clear
+    of the same row returns False and changes nothing."""
+    from litkb import quarantine as Q
+
+    ing, w = pg.session("litkb_ingest"), pg.session("litkb_writer")
+    moved = Q.record_system(ing, rel_path=f"_quarantine/M_2026_x__staging-orphan__{uuid.uuid4().hex[:12]}.download",
+                            sha256=_sha(), nbytes=1, reason="staging-orphan", origin="reaper")
+    with pytest.raises(pg.errors.InsufficientPrivilege, match="moved payloads stay refused"):
+        Q.clear_system(ing, moved, session="s", reason="r")
+    ws = pg.ws()
+    work = pg.conn.execute(
+        "SELECT entity_id FROM litkb._write_version('fact', 'work', NULL, %s, NULL, %s, NULL, %s, 'q', 'q')",
+        (pg.jsonb({"key": f"Q_2026_clear-{uuid.uuid4().hex[:8]}"}),
+         pg.jsonb({"type": "report", "title": "q", "authors": []}), ws)).fetchone()[0]
+    rel = f"Validation/clear-{uuid.uuid4().hex[:8]}.pdf"
+    fid = pg.conn.execute(
+        "SELECT entity_id FROM litkb._write_version('fact', 'file', NULL, %s, NULL, %s, NULL, %s, 'q', 'q')",
+        (pg.jsonb({"sha256": _sha()}), pg.jsonb({"work_id": str(work), "status": "active", "rel_path": rel}),
+         ws)).fetchone()[0]
+    own = Q.record_system(ing, rel_path=rel, sha256=_sha(), nbytes=1, reason="zero-content", origin="classifier",
+                          file_id=fid)
+    with pytest.raises(pg.errors.InsufficientPrivilege):
+        Q.clear_system(w, own, session="s", reason="r")
+    with pytest.raises(pg.errors.InvalidParameterValue):
+        Q.clear_system(ing, own, session=" ", reason="r")
+    assert Q.clear_system(ing, own, session="s1", reason="extracted") is True
+    assert Q.clear_system(ing, own, session="s2", reason="again") is False
+    got = pg.conn.execute("SELECT cleared_by, cleared_reason FROM litkb.quarantine_payloads WHERE id = %s",
+                          (own,)).fetchone()
+    assert got == ("s1", "extracted"), got
+    n, _missing = Q.quarantined_without_db_state(pg.conn, root=Path("does-not-exist"))
+    assert n == 0, "the counter reads payloads under _quarantine/ only"

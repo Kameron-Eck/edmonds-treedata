@@ -2049,7 +2049,19 @@ and most refused bytes have no admitted work (S4 run 3 decision D5).
 
 Columns: `id`, `rel_path` (UNIQUE), `sha256` of the refused bytes, `bytes`, `reason`, `origin`,
 `work_id` / `file_id` / `attempt_id` / `workstream_id` (nullable links), `detail` (jsonb, run
-through `textnorm.jsonb_safe`, mutation row S4Q1), `recorded_at`. Two CHECKs besides the
+through `textnorm.jsonb_safe`, mutation row S4Q1), `recorded_at`, and `cleared_at` / `cleared_by` /
+`cleared_reason` (all three set or none).
+
+**Clearing.** Only a `classifier` row on a BOUND file (a path outside `_quarantine/`, with a
+`file_id`) can be cleared (CHECK `quarantine_payloads_cleared_only_in_place`). When `litkb
+readability --record` classes that file `extracted`, it clears its own row through
+`litkb.clear_quarantine_system(id, session, reason)` (SECURITY DEFINER, EXECUTE to `litkb_ingest`,
+once only). A moved-payload row — acquisition guard, bind refusal, hunt-url, reaper, backfill — is
+NEVER cleared: those bytes stay refused. A cleared row the classifier refuses again is RE-OPENED by
+the same idempotent write (its cleared columns go back to NULL). `litkb_work` lists only uncleared
+rows; the read-only classifier REPORTS `stale_quarantine_rows` (uncleared classifier rows on files
+it now classes `extracted`). `quarantined_without_db_state` is unaffected: it counts payloads under
+`_quarantine/` only. Two CHECKs besides the
 vocabularies: a row outside `_quarantine/` must be the classifier's with a `file_id`, or an
 admission's `probe-error` (`quarantine_payloads_in_place_rule`); a system origin has no
 workstream and a writer origin always one (`quarantine_payloads_workstream_rule`).
@@ -2109,14 +2121,15 @@ here). In one line each: `bad-file` = not on disk, sha256 ≠ `files.sha256`, or
 `probe-error` = `probe.probe_pages` / `page_text_chars` raised; `book` = work `type = 'book'`;
 `over-page-cap` = pages > `probe.EXTRACT_PAGE_CAP` (Kam ruling litkb-extract-page-cap);
 `zero-content` = a text-layer file whose current run's canonical blocks carry no text;
-`scan-needs-ocr` = image pages (`probe.image_pages`) that no text block and no OCR'd run covers, or
-image pages and no run; `refused-registry` = unbound bytes in `_litkb_staging/` that only a
+`scan-needs-ocr` = image pages (`probe.image_page_numbers`, decision D13: zero native characters
+AND at least one raster image) that no text block and no OCR'd run covers, or image pages and no
+run; `refused-registry` = unbound bytes in `_litkb_staging/` that only a
 REFUSED admission's checks name; `extracted` reasons from the run: stage `5-text-snapshot` →
 `snapshot`, metrics `ocr: true` or text on a zero-native-character page → `ocr`, else
 `docling_regions` / `grobid_regions` → `full` / `docling-only` / `grobid-only`.
 
 Counters (`readability.counters`): `unclassified_acquired_files` (file and staging rows with no
-class — the gated one) and the REPORTED `acquired_files`, `files_<class>`, `extracted_<reason>`,
+class — the gated one) and the REPORTED `stale_quarantine_rows`, `acquired_files`, `files_<class>`, `extracted_<reason>`,
 `works`, `works_<class>`, `works_not-attempted`, `works_extracted`, `works_residue`,
 `works_unclassified`. Known-bads: `readability.fire_unclassified` (one rule dropped by name → a real
 file goes unclassified and the counter moves) and `readability.fire_probe` (a CONSTRUCTED
@@ -2125,8 +2138,8 @@ probe guard mutated off it binds with `pages` NULL).
 
 `litkb_work` (MCP) adds, beside its unchanged keys and four-state ladder: `files[].file_id`,
 `files[].readability` `{class, reason, evidence}`, `readability` (the work's rollup) and
-`quarantine` (every `quarantine_payloads` row naming the work or one of its files; `null` on a
-database without migration 0030). `py -3.12 -m litkb readability [--workstream ID]
+`quarantine` (every UNCLEARED `quarantine_payloads` row naming the work or one of its files; `null`
+on a database without migration 0030). `py -3.12 -m litkb readability [--workstream ID]
 [--all-workstreams] [--record]` writes the CSV below; `--record` (ingest login) records a
 `classifier` row for each bound file classed `bad-file`, `zero-content` or `probe-error`.
 
@@ -2136,8 +2149,9 @@ Written create-only (never overwritten) by `py -3.12 -m litkb readability` from
 `readability.classify`. One row per acquired file (`row_kind = file`), per refused-admission
 staging payload (`staging`) and per main work (`work`). Columns, in order: `row_kind`, `key`,
 `work_id`, `file_id`, `rel_path`, `pages` (the probe's count, empty when it could not be read or the
-file is not a PDF), `image_pages` (how many pages are under `MIN_PAGE_TEXT_CHARS`), `class`
+file is not a PDF), `image_pages` (how many image pages, decision D13), `class`
 (empty = UNCLASSIFIED), `reason` (the `extracted` reason; for a work, the reasons its files share),
-`evidence` (the rule's sentence), `quarantine_ids` (space-separated `quarantine_payloads.id`),
+`evidence` (the rule's sentence), `quarantine_ids` (space-separated ids of the UNCLEARED
+`quarantine_payloads` rows naming the file),
 `current_run_id`, `blocks` (canonical blocks with text in the current run), `text_chars`, `scope`
 (`main`, or the workstream id a file was read from).

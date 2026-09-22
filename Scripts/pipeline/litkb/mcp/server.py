@@ -727,11 +727,14 @@ def _readability_of(conn, work_id, file_ids):
     if not Q.table_present(conn):
         return per_file, rollup, None
     rows = conn.execute(
-        "SELECT id::text, rel_path, sha256, bytes, reason, origin, file_id::text, attempt_id::text, recorded_at "
+        "SELECT id::text, rel_path, sha256, bytes, reason, origin, file_id::text, attempt_id::text, recorded_at, "
+        "       cleared_at "
         "  FROM litkb.quarantine_payloads WHERE work_id = %s OR file_id = ANY(%s::uuid[]) "
         " ORDER BY recorded_at, id", (work_id, [f for f in file_ids if f])).fetchall()
+    # CURRENT rows only: a classifier row the classifier cleared (the file was re-classed extracted)
+    # is history, not state (orchestrator ruling on builder-B's question 6)
     return per_file, rollup, [dict(zip(("id", "rel_path", "sha256", "bytes", "reason", "origin", "file_id",
-                                        "attempt_id", "recorded_at"), r)) for r in rows]
+                                        "attempt_id", "recorded_at"), r)) for r in rows if r[9] is None]
 
 
 def _work(doi=None, key=None):

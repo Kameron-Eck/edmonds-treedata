@@ -47,18 +47,22 @@ PER FILE, FROM EVIDENCE ONLY, in this order (the first rule that answers wins; `
              writes: `docling_regions` and `grobid_regions` both > 0 → `full`, only docling →
              `docling-only`, only GROBID → `grobid-only`. Missing metrics → unclassified.
   scan       no current run, image pages → `scan-needs-ocr` (the queue routes such a file to OCR)
-  row        no class yet, and a `litkb.quarantine_payloads` row refuses this file (by file_id or
-             path) as `bad-file` / `zero-content` / `probe-error` → that class (the row IS the state)
-An IMAGE page is `probe.image_pages`'s: under `MIN_PAGE_TEXT_CHARS` normalised native characters.
-"Covered" is the measured reading of the plan's "image pages with no OCR'd current run covering
-them": on the live bed (2026-09-22, builder-B report) 13 of the 14 extracted files with an image page
-carry text blocks on every such page — short figure pages, not scans — and treating them as uncovered
-would have demoted 13 complete extractions.
+  row        no class yet, and an UNCLEARED `litkb.quarantine_payloads` row refuses this file (by
+             file_id or path) as `bad-file` / `zero-content` / `probe-error` → that class (the row IS
+             the state)
+An IMAGE page is `probe.image_page_numbers`'s (decision D13): ZERO native characters AND at least one
+raster image. It replaced "under 200 characters", which put three figure pages whose captions are
+native text (Pauls_2025 p16, Pesonen_2026 p20, Guo_2019 p6) into `scan-needs-ocr` — builder-B's first
+live score, 2026-09-22. "Covered" = the page carries at least one canonical text block, or the run's
+metrics say `ocr: true`; since an image page has no native text, a text block on one IS OCR evidence.
 
 THE CLASSIFIER CAN REFUSE A BOUND FILE (`record=` an ingest connection): a file it classes `bad-file`,
 `zero-content` or `probe-error` gets a `litkb.quarantine_payloads` row against its CURRENT bound path
-with its file_id (origin `classifier`) — the bytes are NOT moved; the row is the state. The default
-writes nothing: a read-only classification is what the CSV and the acceptance read.
+with its file_id (origin `classifier`) — the bytes are NOT moved; the row is the state. When a later
+`record=` run classes that file `extracted`, it CLEARS its own row (`quarantine.clear_system`:
+when, by which session, why); a moved-payload row is never cleared. The default writes nothing: a
+read-only classification is what the CSV and the acceptance read, and it REPORTS
+`stale_quarantine_rows` — uncleared classifier rows on files it now classes `extracted`.
 """
 import csv
 import datetime
@@ -121,7 +125,7 @@ def evidence_of(f, *, root, run, pages_blocks, qrows, cap=None):
         ev["pages"] = _probe.probe_pages(p)
         if ev["pages"] <= cap:
             ev["chars"] = _probe.page_text_chars(p)
-            ev["image_pages"] = _probe.image_pages(ev["chars"])
+            ev["image_pages"] = _probe.image_pages(ev["chars"], _probe.page_raster_images(p))
     except _probe.ProbeError as e:
         ev["probe_error"] = str(e)[:300]
     return ev
@@ -219,7 +223,7 @@ def _r_scan(ev):
 
 def _r_row(ev):
     for q in ev["qrows"]:
-        if q["reason"] in REFUSED_CLASSES:
+        if q["reason"] in REFUSED_CLASSES and not q.get("cleared_at"):
             return q["reason"], None, f"quarantine row {q['id']} ({q['origin']})"
 
 
@@ -316,10 +320,16 @@ def _qrows(conn):
 
     if not Q.table_present(conn):
         return []
-    return [{"id": r[0], "rel_path": r[1], "file_id": r[2], "work_id": r[3], "reason": r[4], "origin": r[5]}
+    return [{"id": r[0], "rel_path": r[1], "file_id": r[2], "work_id": r[3], "reason": r[4], "origin": r[5],
+             "cleared_at": r[6]}
             for r in conn.execute(
-                "SELECT id::text, rel_path, file_id::text, work_id::text, reason, origin "
+                "SELECT id::text, rel_path, file_id::text, work_id::text, reason, origin, cleared_at "
                 "  FROM litkb.quarantine_payloads ORDER BY recorded_at, id").fetchall()]
+
+
+def _is_own_row(q, f):
+    """A classifier row on THIS bound file — the only kind of row the classifier may clear."""
+    return q["origin"] == "classifier" and q["file_id"] == f["file_id"] and q["rel_path"] == f["rel_path"]
 
 
 def _refused_staging(conn, root):
@@ -419,11 +429,14 @@ def _work_rows(conn, file_rows):
     return out, anomalies
 
 
-def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=None, with_works=True):
+def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=None, with_works=True,
+             session="litkb-readability"):
     """The whole universe. -> {"rows": [...], "counters": {...}, "skipped_staging": [...], ...}.
 
     Reads the database (any role that can read litkb: the reader is enough) and the disk. Writes
-    NOTHING unless `record` is an ingest connection, and then only the classifier's quarantine rows."""
+    NOTHING unless `record` is an ingest connection, and then only the classifier's quarantine rows:
+    a new row for a bound file it refuses, and the CLEARING of its own row on a file it now classes
+    `extracted` (`session` is recorded as `cleared_by`)."""
     from litkb import quarantine as Q
     from litkb.acquire.store import LITERATURE_ROOT
 
@@ -436,7 +449,7 @@ def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=N
             files.append(f)
     run_ids = {f["current_run_id"] for f in files if f["current_run_id"]}
     runs, pblocks, qrows = _runs(conn, run_ids), _pages_blocks(conn, run_ids), _qrows(conn)
-    rows, recorded = [], []
+    rows, recorded, cleared = [], [], []
     for f in files:
         mine = [q for q in qrows if q["file_id"] == f["file_id"] or q["rel_path"] == f["rel_path"]]
         run = runs.get(f["current_run_id"]) if f["current_run_id"] else None
@@ -447,22 +460,34 @@ def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=N
         row = {"row_kind": "file", "key": f["key"], "work_id": f["work_id"], "file_id": f["file_id"],
                "rel_path": f["rel_path"], "pages": ev["pages"], "image_pages": len(ev["image_pages"]),
                "class": cls, "reason": reason, "evidence": "; ".join(x for x in notes if x),
-               "quarantine_ids": " ".join(q["id"] for q in mine), "current_run_id": f["current_run_id"],
+               "quarantine_ids": " ".join(q["id"] for q in mine if not q.get("cleared_at")),
+               "current_run_id": f["current_run_id"],
                "blocks": n if run else None, "text_chars": chars if run else None, "scope": f["scope"],
                "status": f["status"], "sha256": f["sha256"], "bytes": f["bytes"]}
-        if record is not None and cls in REFUSED_CLASSES and not any(q["reason"] == cls for q in mine):
+        if record is not None and cls in REFUSED_CLASSES and not any(
+                q["reason"] == cls and not q.get("cleared_at") for q in mine):
             size = f["bytes"] if f["bytes"] is not None else 0
             res = Q.try_record(Q.record_system, record, rel_path=f["rel_path"], sha256=f["sha256"],
                                nbytes=size, reason=cls, origin="classifier", work_id=f["work_id"],
                                file_id=f["file_id"], detail={"evidence": row["evidence"][:500]})
             row["quarantine_row"] = res
             recorded.append(res)
+        own_open = [q for q in mine if _is_own_row(q, f) and not q.get("cleared_at")]
+        # BEGIN guard: the classifier clears its own row once the file it refused is extracted
+        if record is not None and cls == "extracted" and own_open:
+            row["cleared"] = [Q.try_clear(record, q["id"], session=session,
+                                          reason=f"classified extracted/{reason}: {row['evidence'][:200]}")
+                              for q in own_open]
+            cleared.extend(row["cleared"])
+            own_open = [q for q, c in zip(own_open, row["cleared"]) if not c.get("ok")]
+        # END guard: the classifier clears its own row once the file it refused is extracted
+        row["stale_quarantine"] = len(own_open) if cls == "extracted" else 0
         rows.append(row)
     staging, skipped = _refused_staging(conn, root)
     works, anomalies = _work_rows(conn, rows) if with_works else ([], [])
     out = {"rows": rows + staging + works, "skipped_staging": skipped, "work_anomalies": anomalies,
            "workstreams": [str(w) for w in workstreams], "root": str(root),
-           "cap": _probe.EXTRACT_PAGE_CAP if cap is None else cap, "recorded": recorded,
+           "cap": _probe.EXTRACT_PAGE_CAP if cap is None else cap, "recorded": recorded, "cleared": cleared,
            "quarantine_table": Q.table_present(conn),
            "at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
     out["counters"] = counters(out)
@@ -477,7 +502,8 @@ def counters(res):
     rows = res["rows"]
     acq = [r for r in rows if r["row_kind"] in ("file", "staging")]
     out = {"unclassified_acquired_files": sum(1 for r in acq if r["class"] is None),
-           "acquired_files": len(acq)}
+           "acquired_files": len(acq),
+           "stale_quarantine_rows": sum(r.get("stale_quarantine") or 0 for r in acq)}
     for c in FILE_CLASSES:
         out[f"files_{c}"] = sum(1 for r in acq if r["class"] == c)
     for reason in EXTRACTED_REASONS:

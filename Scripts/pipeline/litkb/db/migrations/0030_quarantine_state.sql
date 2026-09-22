@@ -33,6 +33,14 @@
 -- a store that never overwrites (acquire/store.py) cannot put two payloads at one path, and a row
 -- that silently kept the first sha would describe bytes that are no longer there.
 --
+-- CLEARING (orchestrator ruling on builder-B's question 6, 2026-09-22; amended INTO 0030 because 0030
+-- had been applied to worker databases only). A `classifier` row on a BOUND file — the only kind of
+-- row whose bytes were never moved — carries `cleared_at` / `cleared_by` / `cleared_reason`. When
+-- the classifier later classes that file `extracted`, it clears its OWN row through
+-- `clear_quarantine_system` (ingest, no token). A moved-payload row (acquisition guard, bind refusal,
+-- hunt-url, reaper, backfill) is NEVER cleared: those bytes stay refused. A cleared row that the
+-- classifier refuses again is RE-OPENED by the same idempotent write (`_record_quarantine_row`).
+--
 -- The vocabularies below have ONE home in Python, `litkb.quarantine.REASONS` / `.ORIGINS`;
 -- qc/test_litkb_quarantine.py holds this CHECK equal to them.
 
@@ -67,6 +75,15 @@ CREATE TABLE quarantine_payloads (
   workstream_id uuid REFERENCES workstreams (id),
   detail        jsonb NOT NULL DEFAULT '{}'::jsonb,
   recorded_at   timestamptz NOT NULL DEFAULT now(),
+  cleared_at     timestamptz,
+  cleared_by     text,
+  cleared_reason text,
+  CONSTRAINT quarantine_payloads_cleared_together CHECK (
+    (cleared_at IS NULL) = (cleared_by IS NULL) AND (cleared_at IS NULL) = (cleared_reason IS NULL)),
+  -- BEGIN guard: only a classifier row on a bound file can ever be cleared
+  CONSTRAINT quarantine_payloads_cleared_only_in_place CHECK (
+    cleared_at IS NULL OR (origin = 'classifier' AND file_id IS NOT NULL AND rel_path NOT LIKE '\_quarantine/%')),
+  -- END guard: only a classifier row on a bound file can ever be cleared
   -- BEGIN guard: a row outside _quarantine/ is a file refused where it lies, and names why
   -- Only the classifier (a bound file: file_id) and an admission's probe refusal (an in-place file
   -- that was never attached) record a path the bytes were NOT moved from.
@@ -116,6 +133,11 @@ BEGIN
       p_rel_path, v_sha, p_sha256 USING ERRCODE = '23505';
   END IF;
   -- END guard: one path holds one payload
+  -- a CLEARED row refused again is re-opened: the refusal is current once more
+  UPDATE quarantine_payloads q
+     SET cleared_at = NULL, cleared_by = NULL, cleared_reason = NULL, reason = p_reason,
+         detail = coalesce(p_detail, '{}'::jsonb), recorded_at = now()
+   WHERE q.id = v_id AND q.cleared_at IS NOT NULL;
   RETURN v_id;
 END
 $$;
@@ -166,17 +188,45 @@ BEGIN
 END
 $$;
 
+-- The classifier clears ITS OWN row once the file it refused is classed `extracted`. Once only: a
+-- cleared row stays as it was cleared until a new refusal re-opens it. Returns true when it cleared.
+CREATE FUNCTION litkb.clear_quarantine_system(p_id uuid, p_session text, p_reason text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = litkb, public, pg_temp AS $$
+DECLARE
+  v_n integer;
+BEGIN
+  IF coalesce(btrim(p_session), '') = '' OR coalesce(btrim(p_reason), '') = '' THEN
+    RAISE EXCEPTION 'litkb: clearing a quarantine row needs a session and a reason' USING ERRCODE = '22023';
+  END IF;
+  -- BEGIN guard: only the classifier's own row on a bound file is cleared, never a moved payload
+  PERFORM 1 FROM quarantine_payloads q
+   WHERE q.id = p_id AND q.origin = 'classifier' AND q.file_id IS NOT NULL
+     AND q.rel_path NOT LIKE '\_quarantine/%';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'litkb: quarantine row % is not a classifier row on a bound file; moved payloads stay refused',
+      p_id USING ERRCODE = '42501';
+  END IF;
+  -- END guard: only the classifier's own row on a bound file is cleared, never a moved payload
+  UPDATE quarantine_payloads q SET cleared_at = now(), cleared_by = p_session, cleared_reason = p_reason
+   WHERE q.id = p_id AND q.cleared_at IS NULL;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  RETURN v_n > 0;
+END
+$$;
+
 -- ── privileges ───────────────────────────────────────────────────────────────────────────
 REVOKE EXECUTE ON FUNCTION
   litkb.record_quarantine(uuid, text, text, text, bigint, text, text, uuid, uuid, uuid, jsonb),
-  litkb.record_quarantine_system(text, text, bigint, text, text, uuid, uuid, uuid, jsonb)
+  litkb.record_quarantine_system(text, text, bigint, text, text, uuid, uuid, uuid, jsonb),
+  litkb.clear_quarantine_system(uuid, text, text)
 FROM PUBLIC;
 -- BEGIN guard: the writer records workstream quarantines and the ingest login system ones, neither a direct write
 GRANT EXECUTE ON FUNCTION
   litkb.record_quarantine(uuid, text, text, text, bigint, text, text, uuid, uuid, uuid, jsonb)
 TO litkb_writer;
 GRANT EXECUTE ON FUNCTION
-  litkb.record_quarantine_system(text, text, bigint, text, text, uuid, uuid, uuid, jsonb)
+  litkb.record_quarantine_system(text, text, bigint, text, text, uuid, uuid, uuid, jsonb),
+  litkb.clear_quarantine_system(uuid, text, text)
 TO litkb_ingest;
 -- END guard: the writer records workstream quarantines and the ingest login system ones, neither a direct write
 GRANT SELECT ON quarantine_payloads TO litkb_reader, litkb_writer, litkb_ingest;

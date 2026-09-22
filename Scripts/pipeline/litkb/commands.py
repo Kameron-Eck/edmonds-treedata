@@ -745,7 +745,8 @@ def cmd_readability(args, conn):
         if args.all_workstreams:
             ws = [r[0] for r in conn.execute("SELECT id::text FROM litkb.workstreams ORDER BY opened_at, id").fetchall()]
         res = _r.classify(conn, ws, root=args.root or os.environ.get("LITKB_LITERATURE_ROOT") or None,
-                          record=recorder)
+                          record=recorder,
+                          session=args.session or os.environ.get("LITKB_SESSION") or "litkb-readability")
     finally:
         conn.close()
         if recorder is not None:
@@ -755,7 +756,8 @@ def cmd_readability(args, conn):
         path = _r.write_csv(res, args.csv or _r.default_csv_path())
     print(" ".join(f"{k}={v}" for k, v in res["counters"].items()))
     print(f"csv={path or '-'} workstreams={len(res['workstreams'])} cap={res['cap']} "
-          f"quarantine_table={res['quarantine_table']} recorded={len(res['recorded'])}")
+          f"quarantine_table={res['quarantine_table']} recorded={len(res['recorded'])} "
+          f"cleared={len(res['cleared'])}")
     return 0
 
 

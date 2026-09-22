@@ -46,6 +46,50 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-22  litkb SURVEY ROUNDS 3 + 4: shadow-library linkage + identifier coverage; the loop's twelve stages -> plan updated
+goal:    Kam: (r3) "review all the github pages that use ... annas archive, lib gen, scihub ... how they link records ... maximize
+         identifier coverage"; (r4) "engineering crawls for the lit review pipeline ... launch all 8, and the lower list items".
+did:     r3 (wf_a95fe3dd-5d3, 40 min): S1 annas (+ local annas-mcp code, no key) / S2 libgen / S3 scihub + coverage dumps / S4 other
+         libraries + OL/IA/HathiTrust/GBooks hubs / S5 crosswalk services + native-key table / S6 crosswalk codebases + data model;
+         C3 Codex quota-fail (3rd). Record Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md (+_urls.csv 2961). Plan: S4.5
+         item 1 identifier model (scheme_registry w/ distinct_values, md5/pii/core/bibcode/ocaid/oai + tier 2, provenance
+         asserted_by + input id, fatcat conflict rule counted, part_of/version_of parents, validators, traps), Stage A Wave-0
+         derivations + OFFLINE Sci-Hub/LibGen membership table (GitHub data, no ruling), Stage B fan-out order + closure rule +
+         kill re-stated on arxiv/pii/dblp/isbn/md5; S4.6 Stage F ISBN sources (OL search, IA urn:isbn, STC parent_isbns),
+         Stage G scidb five-way miss, serialised probes, md5 summary endpoint, freeze date 2022-02-12, PDFDrive/Aaaaarg/Z-Lib
+         removed, STC crosswalk first; coverage instrument splits out-of-corpus. litkb-shadow-hosts question += offline dumps.
+         Probe qc/instruments/litkb_acq_probe_crosswalk.py (466 DOI works): openalex 466, s2 416, arXiv 71 (litkb holds 6),
+         pmid 67, pmcid 36 (all S2), isbn 12, relation 22; joined to files: of 222 no-file works, arXiv id 36, PMID 38, PMCID 24,
+         ISBN 8, relation 11. Landed main d67da2a.
+         r4 (wf_14029e46-453, 53 min): L1 discovery / L2 quote verification / L3 review+graders / L4 search / L5 citation
+         anchoring / L6 synthesis K3 / L7 hermetic replay / L8 numeric evidence / L9 second-session provenance / L10 doctor+soak /
+         L11 agent boundary / L12 run protocol; C4 Codex quota-fail (4th). Synthesizer ran in-workflow (Kam asked account 2; not
+         re-run to avoid duplicate spend). Record Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md (+_urls.csv 3423). Plan:
+         S5 entry conditions = the measured defects (Wave 0/1) w/ counters + kills; S6 K3 reads the WORKSTREAM LEDGER (brief
+         admits promoted uses -> laundering surface opens on first promotion), real negative = run-1-only triples; S7 doctor =
+         FULL restore (pg_restore --list passed 3 corrupted dumps), soak START sentinel, code stamp, server-side role gate + audit
+         middleware (hooks exist, unused); S4.5 item 7 hermetic replay BEFORE the first referee round (replay graded vs its own
+         stubs today), decision log + withdraw_version beside the refuse verb; S4 runs the reference stage on every file (17
+         anchored not 0; stage 6 ran on 17/233); after-S5 rows: anchoring in order, discovery beyond recall, cell-addressed
+         evidence, search after the fixes, reversible promotion, replay cache fold.
+found:   MEASURED DEFECTS (crawlers, litkb_reader): litkb_search ~16 s, trigram leg ~14 s and 0 rows (expression-index recheck
+         + unreachable 0.3 floor -> two legs in practice); locate_in_text refuses 120/120 ligature-damaged blocks (0025 fixed the
+         index only); 3,408 table blocks text='' -> no table evidence row can exist (230k cells w/ bbox); 630 snowball candidates
+         written with no workstream; K2 13/13 SUPPORTED on run-2, defects outside the loop; numeric containment fires on the
+         mutation, 0/25 real; no run entity; seeding guard reads one file, live S4 prompt carried a work key, title-named
+         papers pass; E13 passes replay while its recorded ladder disagrees; 14 worker DBs not 12; MCP intercept/middleware
+         unused, all 13 tools to every client. r3: Anna's identifiers_unified (~120 schemes) fetched by aa_fetch.py, one key
+         parsed; Crossref alternative-id = Elsevier PII for 90/92; 95 % decomposition (290k articles): oaDOI 37 / Sci-Hub 84.8 /
+         both 94.0 / +institutional 97.4 -> two of three needed; Crossref `report` in Sci-Hub 0.046 %.
+decided: land r3 and r4 on separate branches immediately (account-1 session limit); adversary pass on r4 blocks OWED as a
+         follow-up; Codex OWED x4. No new shadow host built; offline membership table needs no ruling.
+files:   Scripts/LITKB_WORKPLAN.md, Scripts/decisions.yaml, Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md,
+         Reports/LITKB_LOOP_ENGINEERING_SURVEY_2026-09-22.md (+_urls.csv each), qc/instruments/litkb_acq_probe_crosswalk.py,
+         phase4/qc/litkb_acq_probe_crosswalk.csv. Branches work/20260922-litkb-identifiers (merged d67da2a),
+         work/20260922-litkb-loop-stages.
+next:    Opus adversary + builder-read on the r4 plan blocks (S5 entry, S6, S7, S4.5 item 7) -> fix pass; Kam: the 6 open ids +
+         litkb-shadow-hosts' offline-dump half; launch S4 run 3; Codex reads when quota returns.
+
 ## 2026-09-22  litkb PDF-SOURCES + OCR SURVEY (2 rounds, 19 crawlers) -> plan overhauled: S4.5 rewritten, S4.6 + S4.7 inserted, 95 % target ruled
 goal:    Kam: "how are we closing the gap between the hunter and actual pdfs" -> "massive github crawls ... all free sources ...
          books, studies ... layered pipeline ... 95 percent ... lit review on OCR ... agreement esp. latex ... codex on reddit ...

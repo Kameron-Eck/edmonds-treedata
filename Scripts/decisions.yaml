@@ -1211,9 +1211,9 @@ decisions:
     decided: "2026-09-22"
     decision: >-
       (a) EXTRACT_PAGE_CAP = 400 pages (pipeline/litkb/extract/probe.py, one constant every site
-      imports); MAX_JOB_ATTEMPTS = 3. Decided by recommendation in Kam's absence (10-min rule): the
-      question was put in the S4 run-3 terminal with options and the recommendation first, and no answer
-      came in ten minutes. The corpus's longest active file is 101 pages, so the cap refuses book-sized
+      imports); MAX_JOB_ATTEMPTS = 3. First adopted by recommendation under the 10-min rule (the
+      question was put in the S4 run-3 terminal with options and the recommendation first), then
+      CONFIRMED by Kam in the same terminal, 2026-09-22, verbatim: "400 is fine, keep going" The corpus's longest active file is 101 pages, so the cap refuses book-sized
       volumes only; its known-bad is a CONSTRUCTED cap+1-page PDF. A different answer from Kam changes
       one line.
     why: >-

@@ -72,12 +72,28 @@ def status(conn, keys=None, files=None):
 
 def superseded_runs_unretired(conn, keys=None):
     """REPORTED: runs superseded at their stage that no op has retired yet and that nothing
-    stops an op from retiring (refusal NULL). An ``--apply`` of the current plan takes it to 0; the
-    runs held by evidence are counted apart (:func:`plan`'s ``excluded``), because no op may ever
-    retire them and a counter that could never reach 0 would say nothing."""
+    stops an op from retiring (refusal NULL). An ``--apply`` of the current plan takes it to 0.
+    The runs held by evidence are counted apart (:func:`superseded_runs_held_by_evidence`):
+    no op may ever retire them, and a counter that could never reach 0 would say nothing."""
     keys = current_keys() if keys is None else keys
     return conn.execute("SELECT count(*) FROM litkb.run_retirement_status(%s) WHERE refusal IS NULL",
                         (_jsonb(keys),)).fetchone()[0]
+
+
+def superseded_runs_held_by_evidence(conn, keys=None):
+    """REPORTED (orchestrator ruling Q3, 2026-09-22; acceptance reports it, never gates on it): the
+    runs that ARE superseded at their stage but that no op may retire because a ``use_evidence`` row
+    cites them. -> ``{"count": n, "works": [work key, ...]}`` (sorted, a key once per run; a run
+    whose file has no main work shows as None). Together with :func:`superseded_runs_unretired` it
+    accounts for every superseded run no op has retired yet."""
+    keys = current_keys() if keys is None else keys
+    rows = conn.execute(
+        "SELECT w.key FROM litkb.run_retirement_status(%s) s "
+        "LEFT JOIN litkb.main_files mf ON mf.file_id = s.file_id "
+        "LEFT JOIN litkb.main_works w ON w.work_id = mf.work_id "
+        "WHERE s.refusal = 'evidence' AND s.superseded_by IS NOT NULL", (_jsonb(keys),)).fetchall()
+    works = sorted((r[0] for r in rows), key=lambda k: (k is None, k or ""))
+    return {"count": len(works), "works": works}
 
 
 def _row_counts(conn, run_ids):

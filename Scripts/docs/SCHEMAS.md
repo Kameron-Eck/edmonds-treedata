@@ -1970,9 +1970,15 @@ guard by guard before it writes and refuses the whole op on any one run.
 and lists what an op would retire PER STAGE (runs, files, blocks, pages, references, versions),
 what it EXCLUDES by refusal, and names each evidence-held run by work key. `--apply` needs a
 session label and `--reason`, sends the whole eligible list in ONE call (one op id) through the
-ingest login. REPORTED counters: `superseded_runs_unretired` (retirable now;
-`litkb.ops.retire.superseded_runs_unretired(conn)`; an `--apply` takes it to 0),
-`superseded_runs_held_by_evidence`, `runs_already_retired`, `current_runs`.
+ingest login. REPORTED counters, never gated (orchestrator ruling Q3): `superseded_runs_unretired`
+(retirable now; `litkb.ops.retire.superseded_runs_unretired(conn)`; an `--apply` takes it to 0)
+and `superseded_runs_held_by_evidence` (superseded but cited by `use_evidence`, so no op may
+retire them; `litkb.ops.retire.superseded_runs_held_by_evidence(conn)` -> `{count, works}`, the
+works named by key); the dry run also prints `runs_already_retired` and `current_runs`.
+
+**A retired run never becomes current again.** 0031 re-creates `litkb.set_current_run` as 0017's
+definition byte for byte plus one guard: a `p_new_run` named in `run_retirements` is refused
+(SQLSTATE 22023). Grants and the role matrix are unchanged (CREATE OR REPLACE keeps the ACL).
 
 ## `litkb.blocks.provenance.page_text` and reconcile `stage5-4` (litkb, S4 run 3)
 
@@ -1992,6 +1998,13 @@ vocabulary (`reconcile.PAGE_TEXT`):
 
 Absent on a fragment whose text is the native-layer slice, and on any non-fragment. The run's
 `metrics.fragment_page_text` counts the three.
+
+**THE LIMIT of `sentence` (orchestrator ruling Q1).** GROBID fragment text is placed by SENTENCE
+START: a sentence that runs from page 27 onto page 28 is stored — and so cited — on page 27, and
+page 28's fragment begins with the next sentence. GROBID records no position inside a sentence,
+so no finer cut is available from it. An EMPTY `sentence` fragment is KEPT as it is: it keeps the
+page span, its box and the fragment chain (`continues_from` / `continues_to`), and holds nothing
+to misquote.
 
 ## LITKB_FRAGMENT_TEXT_&lt;date&gt;.csv (Reports/, GENERATED — the stage5-4 before/after)
 

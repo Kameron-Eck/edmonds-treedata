@@ -174,6 +174,39 @@ def test_kill_a_run_that_was_never_superseded_is_refused_by_the_database(pg):
 
 
 @pg_only
+def test_kill_the_pointer_never_moves_back_onto_a_retired_run(pg):
+    """Orchestrator ruling Q2: 0031 re-creates set_current_run with one more guard. Retire B, then
+    ask set_current_run (as the ingest login, the one that may call it) to make B current again:
+    refused, and the pointer stays on C. Control: an ok, NOT retired run of the file is still
+    accepted by the same call, so the replacement kept 0017's behaviour."""
+    w = _world(pg)
+    _retire_fn(pg, [w["b"]], _KEYS)
+    ingest = pg.session("litkb_ingest")
+    with pytest.raises(pg.errors.InvalidParameterValue, match="is retired"):
+        ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["c"], w["b"]))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == w["c"]
+    d, _ = _run(pg, w["file"], current=False)
+    ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["c"], d))
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == d
+
+
+@pg_only
+def test_the_two_reported_counters_name_what_is_left(pg):
+    """Ruling Q3: both are functions of a connection, and acceptance REPORTS both. For one world:
+    the op could retire B; A is superseded but held, and its work is named."""
+    w = _world(pg)
+    reader = pg.session("litkb_reader")
+    work = pg.one("SELECT w.key FROM litkb.main_files mf JOIN litkb.main_works w ON w.work_id = mf.work_id "
+                  "WHERE mf.file_id = %s", (w["file"],))[0]
+    before = RT.superseded_runs_unretired(reader, _KEYS)
+    held = RT.superseded_runs_held_by_evidence(reader, _KEYS)
+    assert work in held["works"] and held["count"] == len(held["works"])
+    _retire_fn(pg, [w["b"]], _KEYS)
+    assert RT.superseded_runs_unretired(reader, _KEYS) == before - 1
+    assert RT.superseded_runs_held_by_evidence(reader, _KEYS) == held
+
+
+@pg_only
 def test_a_run_is_retired_once(pg):
     w = _world(pg)
     _retire_fn(pg, [w["b"]], _KEYS)

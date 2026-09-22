@@ -10,9 +10,12 @@
 -- by which login and session, and why — so "these rows are superseded and nobody needs them" is a
 -- fact in the database instead of an inference every reader has to redo.
 --
--- ADDITIVE. No existing table, CHECK, trigger or function is changed, so every existing reader
--- keeps its meaning: search, use.locate_quote and promotion's run_is_current already read only a
--- file's CURRENT run, and a retired run is never current (the op refuses the current run).
+-- ADDITIVE, with ONE exception. No existing table, CHECK or trigger is changed, so every existing
+-- reader keeps its meaning: search, use.locate_quote and promotion's run_is_current already read
+-- only a file's CURRENT run, and a retired run is never current — the op refuses the current run,
+-- and (the exception, orchestrator ruling Q2, at the end of this file) set_current_run is
+-- re-created as 0017's definition byte for byte plus one guard refusing a retired run, so the
+-- pointer can never be moved back onto one.
 --
 -- WHAT "SUPERSEDED AT ITS STAGE" MEANS — two rules, one per kind of stage, both in
 -- run_retirement_status below and nowhere else:
@@ -204,5 +207,47 @@ REVOKE EXECUTE ON FUNCTION litkb.run_retirement_status(jsonb, uuid[]) FROM PUBLI
 REVOKE EXECUTE ON FUNCTION litkb.retire_extraction_runs(uuid[], text, text, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION litkb.run_retirement_status(jsonb, uuid[]) TO litkb_reader;
 GRANT EXECUTE ON FUNCTION litkb.retire_extraction_runs(uuid[], text, text, jsonb) TO litkb_ingest;
+
+
+-- ── set_current_run refuses a retired run (orchestrator ruling Q2, 2026-09-22) ──────────────
+-- 0017's definition BYTE FOR BYTE, plus the one guard marked below: every other rule (ok run of
+-- this file, compare-and-set, SQLSTATE 22023/40001, the file_current_run history row) is
+-- unchanged. CREATE OR REPLACE keeps the function's owner and ACL, so the grants (0010: EXECUTE
+-- to litkb_ingest, revoked from litkb_writer) and the role matrix are unchanged.
+CREATE OR REPLACE FUNCTION litkb.set_current_run(p_file uuid, p_expected_run uuid, p_new_run uuid) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = litkb, public, pg_temp AS $$
+DECLARE
+  v_n bigint;
+BEGIN
+  -- BEGIN guard: current run is an ok run of this file
+  PERFORM 1 FROM extraction_runs r
+   WHERE r.id = p_new_run
+     AND r.file_id = p_file
+     AND r.status = 'ok';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'litkb: run % is not an ok extraction run of file %', coalesce(p_new_run::text, '(none)'), p_file
+      USING ERRCODE = '22023';
+  END IF;
+  -- END guard: current run is an ok run of this file
+  -- BEGIN guard: a retired run never becomes current
+  -- 0031: a run a retirement op marked superseded stays superseded. Without this the pointer
+  -- could be moved back onto it and the file's current run would be a retired one.
+  IF EXISTS (SELECT 1 FROM run_retirements x WHERE x.run_id = p_new_run) THEN
+    RAISE EXCEPTION 'litkb: run % is retired and never becomes current again', p_new_run
+      USING ERRCODE = '22023';
+  END IF;
+  -- END guard: a retired run never becomes current
+  UPDATE files f SET current_run_id = p_new_run
+   WHERE f.id = p_file AND f.current_run_id IS NOT DISTINCT FROM p_expected_run;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  IF v_n <> 1 THEN
+    RAISE EXCEPTION 'litkb CAS refused: file % is no longer at run %', p_file, coalesce(p_expected_run::text, '(none)')
+      USING ERRCODE = '40001';
+  END IF;
+  INSERT INTO file_current_run (file_id, version_no, run_id, previous_run_id)
+  SELECT p_file, coalesce(max(version_no), 0) + 1, p_new_run, p_expected_run
+    FROM file_current_run WHERE file_id = p_file;
+END
+$$;
 
 -- end of 0031

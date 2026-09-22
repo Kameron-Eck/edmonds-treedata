@@ -101,7 +101,8 @@ Update this block only. Everything else in the file changes when a session lands
   (none) · `litkb-shadow-hosts` (all four tiers, offline dumps are data) · `litkb-tdm-keys` (both) ·
   `litkb-s47-colab-queue` (T4, unbounded) · `litkb-crc-book` · `litkb-scihub-parked` ·
   `litkb-blocked-works-grade` · `litkb-e23-residue-copies` · `litkb-tracker-corrections` ·
-  `litkb-from-file-version-state`. Accepted recommendations outside the registry: S4 runs the
+  `litkb-from-file-version-state`; `litkb-scihub-parked` was then REVERSED the same evening (not
+  parked — a workaround is attempted, S4.6 Stage G). Accepted recommendations outside the registry: S4 runs the
   reference stage detached over every file with blocks and runs classical OCR on the T2000 first
   (vision-language OCR is S4.7's); the S4 launch kit's work key is not a violation (the bed names
   works by design; the seeding guard protects S5); S5's topic, unless Kam renames it before launch:
@@ -745,8 +746,13 @@ Work
    treated as portable across mirrors (G1b); the mirror lists moved from `run.py` constants to a
    versioned registry fetched at start (guard 7). `litkb-shadow-hosts` was decided 2026-09-22 for ALL of the following, each behind
    its own policy line and built in this session: LibGen's DOI-to-md5 lookup with its User-Agent trap
-   (G0a) and delivery (G1d); the `sci.bban.top` DOI path (G1a) — which takes Sci-Hub's place, Sci-Hub
-   itself PARKED (`litkb-scihub-parked`); Nexus/STC crosswalk first and delivery second (G0b/G1c);
+   (G0a) and delivery (G1d); the `sci.bban.top` DOI path (G1a) beside Sci-Hub, NOT in its place — Kam
+   reversed the parking the same day (`litkb-scihub-parked`: "a massive loss if we table it"), so this
+   session ATTEMPTS THE WORKAROUND: the route is rebuilt from the diagnosis of why it has never
+   returned a file (the 2026-09-22 read-only probes under D:	ools\claude-config\jobs\litkb-scihub\,
+   which split the zero into code defect / egress block / corpus miss with counts) and the fronts to
+   the same corpus are tried in the order those probes rank them; a DOI published after the
+   2022-02-12 freeze is never sent to any front; Nexus/STC crosswalk first and delivery second (G0b/G1c);
    a real browser session against Anna's only where the challenge-detection fix leaves a block (G3a);
    Tor (G5) only if a granted host is unreachable without it. Offline metadata dumps are data. The
    rungs as the survey read them, in code only until built: LibGen's DOI-to-md5 lookup with its
@@ -763,7 +769,10 @@ Work
    to metadata-grade; Springer's API (H1 — resolves, but hands URLs on
    the walled host) and Elsevier's (H2 — free keys buy open-access content only; an unentitled key
    answers HTTP 200 with a first-page stub announced only in `X-ELS-Status`, which S4.5's acceptance
-   test refuses), both KEYS GRANTED (`litkb-tdm-keys`, decided 2026-09-22 for both; Kam registers them); `curl_cffi` impersonation (H5) is NOT built — the
+   test refuses), both KEYS GRANTED (`litkb-tdm-keys`, decided 2026-09-22 for both; Kam registers them and
+   drops each key, alone on one line, into D:\edmonds-pipeline\secrets\Elsevier_key.txt and
+   D:\edmonds-pipeline\secrets\Springer_key.txt — the shape `KEY_FILE` in
+   `pipeline/litkb/acquire/annas.py` already reads for Anna's; the readers are this stage's); `curl_cffi` impersonation (H5) is NOT built — the
    survey measured it AGAINST twice in production, on MDPI and on Springer — and is recorded as
    measured-against; FlareSolverr (H6) already exists in `pipeline/litkb/netutil.py` as the challenge
    retry, cannot return a PDF (its solution is HTML), and stays a landing-page solve only. No commercial

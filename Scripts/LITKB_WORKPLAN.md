@@ -435,8 +435,8 @@ Done-state
   so an expired worker commits after reassignment → the ownership gate goes RED and
   `mutated_leases_accepted=1` if the commit lands; a PDF whose page count EXCEEDS the cap → refused
   with the `over-page-cap` reason, never started, `over_cap_bound=1` if it is extracted; a PDF whose
-  page-count probe ERRORS → `unclassified` and never bound (fail-closed), a different path from the
-  row above; a scan with OCR
+  page-count probe ERRORS → classed `probe-error`, a class of its own so `unclassified_acquired_files`
+  stays 0, and never bound (fail-closed), a different path from the row above; a scan with OCR
   off → `scan-needs-ocr`, never "extracted, 0 chars", `scans_ocr_unrouted=1` if it lands as extracted
   with zero characters; a `type=book` record pushed through the
   queue → the `book` class and `books_extracted=1` the moment a block lands; a file placed in

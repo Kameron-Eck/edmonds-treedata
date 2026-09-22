@@ -46,6 +46,24 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-22  litkb LAUNCH AUTHORITY: only Kam launches; S4 fresh kit; S4.7 Colab boundary = strips
+goal:    Kam: "Implement your best judgement on S4.7. Also i want to start S4 from scratch. And I dont want it to
+         launch S5 at the end. Only I can launch a session"
+decided: litkb-session-launch-authority (NEW, decided): a session WRITES the next kit under _derived/<next>/ and STOPS;
+         never runs claude, never opens a window, never creates a runtime; 2026-09-20 chain rule withdrawn.
+         litkb-colab-page-boundary: (b) STRIPS on the orchestrator's judgement — only horizontal strips leave the
+         laptop, cut like colab_formula_worker.py crops, keyed by page+order; a strip rung that cannot be built ->
+         vision-language rung UNDETERMINED, never a page shipped. Zero litkb-… ids open.
+did:     plan: Next-in-order (2)-(5) launched by Kam from the kit the prior session wrote; per-session protocol +=
+         launch-authority paragraph; S4.7 rung conditional -> decided strips; Kam-side open -> nothing.
+         S4 kit REGENERATED from scratch from the "### S4" block (_derived/s4/s4-prompt.txt; the patched kit archived
+         as s4-prompt-2026-09-22-patched-ARCHIVED.txt): fresh-start para, no THEN LAUNCH — "write S4.5's kit and
+         STOP", probe-error class, reference stage + REPORTED counters, branch discipline, heredoc hazards, reserved
+         worker DBs. Memory litkb-session-chaining rewritten to the new rule. Landed main acd8863 = github/main.
+files:   Scripts/decisions.yaml, Scripts/LITKB_WORKPLAN.md, _derived/s4/s4-prompt.txt (gitignored).
+next:    Kam launches S4 run 3: wt.exe -w new (Git bash) -lc /d/edmonds-pipeline/treedata/_derived/s4/launch-s4.sh.
+         S4 ends by writing _derived/s4-5/ and stopping; Kam launches S4.5. Owed: Codex reads r2/r3/r4 + plan.
+
 ## 2026-09-22  litkb PLAN: 25 itemized fixes folded -> implementable
 goal:    three independent builder-reads (S4.5 / S4.6+S4.7 / S4-chain) each found plan NOT implementable as
          written. Fold their (1) items in as plan text. No code touched.

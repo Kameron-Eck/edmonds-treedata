@@ -1142,7 +1142,14 @@ decisions:
       loses little, and this is the orchestrator's recommendation; (c) no Colab OCR at all, and the
       vision-language rung is reported UNDETERMINED.
     owner: kam
-    status: open
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      (b) STRIPS, on the orchestrator's judgement — Kam delegated the S4.7 call. Only horizontal strips or
+      tiles leave the laptop, cut the way pipeline/litkb/extract/colab_formula_worker.py crops formula
+      regions, keyed by page and order so the OCR text comes back addressable; no scanned page ever leaves
+      whole and the corpus stays local (litkb-p0-foundation). A strip rung that cannot be built means the
+      vision-language rung is reported UNDETERMINED, never a page shipped. Kam, 2026-09-22, verbatim: "Implement your best judgement on S4.7. Also i want to start S4 from scratch. And I dont want it to launch S5 at the end. Only I can launch a session"
     why: >-
       S4.7's vision-language rung is the only item that waits on this; every other rung of that
       session lands on the T2000 regardless. Unruled, a session either ships the corpus off the
@@ -1150,3 +1157,23 @@ decisions:
     evidence:
       - Scripts/pipeline/litkb/extract/colab_formula_worker.py
       - Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md
+
+  - id: litkb-session-launch-authority
+    question: >-
+      Does a session launch the next one when it reaches its done-state (the chaining instruction of
+      2026-09-20: lessons into the project files, then launch S<n+1> headless), or does only Kam launch?
+    owner: kam
+    status: decided
+    decided: "2026-09-22"
+    decision: >-
+      ONLY KAM LAUNCHES A SESSION. A session's last act is to WRITE the next session's launch kit under
+      _derived/<next>/ — the prompt file from that session's plan block, an mcp.json carrying its
+      LITKB_SESSION, the launch script — record in "Where we are" that the kit is ready, and STOP. It never
+      runs claude, never opens a terminal window, never creates a runtime for another session. The
+      2026-09-20 chaining instruction is withdrawn. Kam, 2026-09-22, verbatim: "Implement your best judgement on S4.7. Also i want to start S4 from scratch. And I dont want it to launch S5 at the end. Only I can launch a session"
+    why: >-
+      A chained launch is a launch nobody watched: S4's runs 1 and 2 (2026-09-21) started themselves
+      overnight, ran unmonitored and were ruled untrusted. A kit that waits for Kam is a kit Kam has read.
+    evidence:
+      - Scripts/LITKB_WORKPLAN.md
+      - Scripts/CHATLOG.md

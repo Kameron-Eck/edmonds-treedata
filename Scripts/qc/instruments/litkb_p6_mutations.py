@@ -61,6 +61,24 @@ here and run `qc/test_litkb_references_ingest.py` against `litkb_test`:
   * **P6-I3** is the §14 P5 kill re-expressed on stage 6: the references are committed BEFORE the
     rest of the paper, so a kill leaves a run with half a citation graph under it.
   * **P6-I4** removes the idempotence check, so a second load writes a second set of rows.
+
+And the S4 DRIVER rows, P6-D1..D7 (S4 run 3, builder D1): the file-keyed stage-6 driver
+(`qc/instruments/litkb_references_stage.py`) and the one predicate it shares with the REPORTED
+counters (`litkb/extract/references_coverage.py`). They run `qc/test_litkb_references_stage.py`
+against `LITKB_TEST_DB`:
+
+  * **P6-D1** breaks the owed-file filter itself: every file with stage-5 blocks counts as owing
+    stage 6, so `files_without_reference_stage` never falls and the driver re-selects finished
+    files (THE known-bad of the S4 brief).
+  * **P6-D2** drops `status = 'ok'` from "the stage ran": a killed run's `failed` carcass then
+    counts as done, and the file is never retried.
+  * **P6-D3** drops the params hash from the key: a run made under OLDER resolution thresholds
+    counts as the current one.
+  * **P6-D4** gives the anchor rate the WRONG denominator (every reference), the headline R4's kill
+    line says must fail review.
+  * **P6-D5** posts bytes that no longer hash to the file row, and caches the TEI under that row's sha.
+  * **P6-D6** stops GROBID at the end of a batch whether or not this driver started it.
+  * **P6-D7** lets a second driver run beside a detached one on the same database.
 """
 import argparse
 import importlib.util
@@ -75,8 +93,12 @@ TESTS_P6 = ["qc/test_litkb_references.py"]
 TESTS_P6_RAWSEARCH = [*TESTS_P6, "qc/test_litkb_crossref_raw_search.py"]
 #: The ingest rows need a database; their set is the one that has one.
 TESTS_P6I = ["qc/test_litkb_references_ingest.py"]
+#: The S4 driver rows (P6-D*): the driver's own file, which seeds its own database rows.
+TESTS_P6D = ["qc/test_litkb_references_stage.py"]
 REFS = "pipeline/litkb/extract/references.py"
 REFING = "pipeline/litkb/extract/references_ingest.py"
+REFCOV = "pipeline/litkb/extract/references_coverage.py"
+REFDRV = "qc/instruments/litkb_references_stage.py"
 RESOLVER = "pipeline/litkb/admit/resolver.py"
 
 #: `normalize_doi(x)` -> `(x)`: the canonicalisation simply does not happen at that call.
@@ -85,7 +107,8 @@ PASSTHROUGH = "({a0})"
 IDS = ["P6-G1", "P6-G2", "P6-G3", "P6-G4", "P6-G5", "P6-G6", "P6-G7", "P6-G8", "P6-G9", "P6-M1",
        "P6-R1", "P6-R2", "P6-R3",
        "P6-S1", "P6-S2", "P6-S3", "P6-S4", "P6-S5", "P6-S6", "P6-S7",
-       "P6-I1", "P6-I2", "P6-I3", "P6-I4"]
+       "P6-I1", "P6-I2", "P6-I3", "P6-I4",
+       "P6-D1", "P6-D2", "P6-D3", "P6-D4", "P6-D5", "P6-D6", "P6-D7"]
 
 
 def register(block, replace, site):
@@ -159,6 +182,28 @@ def register(block, replace, site):
     replace("P6-I4", REFING, '    if existing and status == "ok":', "    if False:",
             "the idempotence check removed: a second load of the same paper at the same pipeline "
             "version writes a second set of rows", tests=TESTS_P6I)
+    # ── the S4 file-keyed driver and its counters (S4 run 3, builder D1) ─────────────────
+    replace("P6-D1", REFCOV, '_OWES_STAGE6 = f"NOT EXISTS ({_OK_STAGE6_AT_KEY})"', '_OWES_STAGE6 = "TRUE"',
+            "the owed-file filter broken: every file with stage-5 blocks counts as owing stage 6, so "
+            "files_without_reference_stage never falls and finished files are re-selected",
+            tests=TESTS_P6D)
+    replace("P6-D2", REFCOV, "\"AND r6.status = 'ok'\")", "\"AND TRUE\")",
+            "a killed stage-6 run's failed carcass counts as the stage having run", tests=TESTS_P6D)
+    replace("P6-D3", REFCOV, '"AND r6.params_hash = %(k_params_hash)s AND',
+            '"AND %(k_params_hash)s IS NOT NULL AND',
+            "the params hash dropped from the key: a run under older thresholds counts as current",
+            tests=TESTS_P6D)
+    replace("P6-D4", REFCOV, '"       count(*) FILTER (WHERE held_doi), "', '"       count(*), "',
+            "the anchor rate's denominator becomes every reference (R4's kill line)", tests=TESTS_P6D)
+    block("P6-D5", REFDRV, "guard: the stage-6 driver posts only the bytes its file row names",
+          "bytes that no longer hash to the file row are posted and cached under the row's sha256",
+          tests=TESTS_P6D)
+    replace("P6-D6", REFDRV, "        if self.started_here and not self.stopped:",
+            "        if not self.stopped:",
+            "GROBID is stopped at the end of a batch even when another process started it",
+            tests=TESTS_P6D)
+    block("P6-D7", REFDRV, "guard: one stage-6 driver per database at a time",
+          "a second stage-6 driver runs beside a detached one on the same database", tests=TESTS_P6D)
 
 
 def _p2():

@@ -62,7 +62,8 @@ with its file_id (origin `classifier`) — the bytes are NOT moved; the row is t
 `record=` run classes that file `extracted`, it CLEARS its own row (`quarantine.clear_system`:
 when, by which session, why); a moved-payload row is never cleared. The default writes nothing: a
 read-only classification is what the CSV and the acceptance read, and it REPORTS
-`stale_quarantine_rows` — uncleared classifier rows on files it now classes `extracted`.
+`stale_quarantine_rows` — uncleared classifier rows on files it now classes `extracted`, and uncleared
+rows at a file's path whose sha256 is NOT the file's (they describe other bytes and never class it).
 """
 import csv
 import datetime
@@ -321,10 +322,24 @@ def _qrows(conn):
     if not Q.table_present(conn):
         return []
     return [{"id": r[0], "rel_path": r[1], "file_id": r[2], "work_id": r[3], "reason": r[4], "origin": r[5],
-             "cleared_at": r[6]}
+             "cleared_at": r[6], "sha256": r[7]}
             for r in conn.execute(
-                "SELECT id::text, rel_path, file_id::text, work_id::text, reason, origin, cleared_at "
+                "SELECT id::text, rel_path, file_id::text, work_id::text, reason, origin, cleared_at, sha256 "
                 "  FROM litkb.quarantine_payloads ORDER BY recorded_at, id").fetchall()]
+
+
+def _rows_for(qrows, f):
+    """The quarantine rows naming file `f` (by file_id or by path), split into (current, other_bytes).
+
+    A row speaks for the file only when its sha256 IS the file's (`files.sha256`): a row at the same
+    path whose sha differs is a fact about OTHER bytes — e.g. corrupt bytes refused in place, then a
+    good copy bound at that path (auditor-B F2) — so it never classes the file; it is REPORTED in
+    `stale_quarantine_rows`."""
+    named = [q for q in qrows if q["file_id"] == f["file_id"] or q["rel_path"] == f["rel_path"]]
+    # BEGIN guard: a quarantine row classes a file only when it describes that file's own bytes
+    current = [q for q in named if q["sha256"] == f["sha256"]]
+    # END guard: a quarantine row classes a file only when it describes that file's own bytes
+    return current, [q for q in named if q not in current]
 
 
 def _is_own_row(q, f):
@@ -451,7 +466,7 @@ def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=N
     runs, pblocks, qrows = _runs(conn, run_ids), _pages_blocks(conn, run_ids), _qrows(conn)
     rows, recorded, cleared = [], [], []
     for f in files:
-        mine = [q for q in qrows if q["file_id"] == f["file_id"] or q["rel_path"] == f["rel_path"]]
+        mine, other_bytes = _rows_for(qrows, f)
         run = runs.get(f["current_run_id"]) if f["current_run_id"] else None
         pb = pblocks.get(f["current_run_id"], {}) if run else {}
         ev = evidence_of(f, root=root, run=run, pages_blocks=pb, qrows=mine, cap=cap)
@@ -481,7 +496,9 @@ def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=N
             cleared.extend(row["cleared"])
             own_open = [q for q, c in zip(own_open, row["cleared"]) if not c.get("ok")]
         # END guard: the classifier clears its own row once the file it refused is extracted
-        row["stale_quarantine"] = len(own_open) if cls == "extracted" else 0
+        other_open = [q for q in other_bytes if not q.get("cleared_at")]
+        row["stale_quarantine"] = (len(own_open) if cls == "extracted" else 0) + len(other_open)
+        row["stale_quarantine_ids"] = " ".join(q["id"] for q in other_open)
         rows.append(row)
     staging, skipped = _refused_staging(conn, root)
     works, anomalies = _work_rows(conn, rows) if with_works else ([], [])
@@ -538,7 +555,7 @@ def classify_work_files(conn, work_id, *, root=None):
     runs, pblocks, qrows = _runs(conn, run_ids), _pages_blocks(conn, run_ids), _qrows(conn)
     out = {}
     for f in files:
-        mine = [q for q in qrows if q["file_id"] == f["file_id"] or q["rel_path"] == f["rel_path"]]
+        mine, _other = _rows_for(qrows, f)
         run = runs.get(f["current_run_id"]) if f["current_run_id"] else None
         ev = evidence_of(f, root=root, run=run, pages_blocks=pblocks.get(f["current_run_id"], {}) if run else {},
                          qrows=mine)

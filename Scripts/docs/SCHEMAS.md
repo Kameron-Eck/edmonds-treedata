@@ -2060,7 +2060,10 @@ once only). A moved-payload row — acquisition guard, bind refusal, hunt-url, r
 NEVER cleared: those bytes stay refused. A cleared row the classifier refuses again is RE-OPENED by
 the same idempotent write (its cleared columns go back to NULL). `litkb_work` lists only uncleared
 rows; the read-only classifier REPORTS `stale_quarantine_rows` (uncleared classifier rows on files
-it now classes `extracted`). `quarantined_without_db_state` is unaffected: it counts payloads under
+it now classes `extracted`, plus uncleared rows at a file's path whose sha256 is NOT the file's).
+**A row classes a file only when its sha256 is the file's `files.sha256`**: a row about other bytes
+at the same path (corrupt bytes refused in place, then a good copy bound there) never does
+(auditor-B F2). `quarantined_without_db_state` is unaffected: it counts payloads under
 `_quarantine/` only. Two CHECKs besides the
 vocabularies: a row outside `_quarantine/` must be the classifier's with a `file_id`, or an
 admission's `probe-error` (`quarantine_payloads_in_place_rule`); a system origin has no

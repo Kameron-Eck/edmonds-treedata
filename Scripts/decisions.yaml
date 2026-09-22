@@ -962,8 +962,11 @@ decisions:
       (section 1, Stage G) read four more shadow rungs in code, never contacted: LibGen's JSON DOI
       lookup and delivery mirrors, the sci.bban.top DOI path (no bot check, clean 404), the
       Nexus/STC gateway, Tor as a transport for blocked mirrors, and a real browser session driven
-      against Anna's Archive itself (the survey's G3a). Does the grant extend to any of them, and
-      under what policy switch (the survey's PolicyDecision object makes each host an
+      against Anna's Archive itself (the survey's G3a). A second half, from survey round 3: does
+      fetching an OFFLINE metadata dump — an Anna's derived-mirror torrent, a LibGen SQL dump — count
+      as contacting a shadow host? (The public Sci-Hub DOI list and the LibGen article table on GitHub
+      and figshare do not, and the plan builds on those without waiting.) Does the grant extend to any
+      of them, and under what policy switch (the survey's PolicyDecision object makes each host an
       auditable line, not a code path)?
     owner: kam
     status: open

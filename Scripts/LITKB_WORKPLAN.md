@@ -45,7 +45,13 @@ Update this block only. Everything else in the file changes when a session lands
   this session raised (`grep -c '^  - id: litkb-' decisions.yaml` counts them all) — `litkb-coverage-target`
   decided from Kam's words, and `litkb-coverage-definition`, `litkb-institutional-access`,
   `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-crc-book`, `litkb-s47-colab-queue` open. The
-  2026-09-21 revision's record stays `Reports/LITKB_PLAN_REVISION_2026-09-21.md`.
+  2026-09-21 revision's record stays `Reports/LITKB_PLAN_REVISION_2026-09-21.md`. Round 3 of the survey
+  (the shadow-library linkage map and the identifier crosswalk; record `Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md`, its §M the measurements)
+  landed the same day and rewrote S4.5 item 1's identifier model, Stage A's zero-request derivations and
+  offline membership table, Stage B's fan-out order and closure rule, and S4.6's Stages F and G; a
+  fourth round over the loop's other stages was crawling when this was written (its record will be
+  named here when it lands). Codex's GitHub pass has died on quota in three consecutive rounds and is
+  owed.
 - **The honest number, as the survey grades it** (its §M is MEASURED on litkb's rows by the probe
   instruments under `qc/instruments/`, whose CSVs sit under phase4/qc/; its §6.3 is an EXTERNAL
   self-reported figure from a review of the same shape): of the ledger's open-access misses, litkb's
@@ -404,7 +410,9 @@ Kam: the OCR strategy (recommendation: page-range chunks on the T2000).
 
 Rewritten 2026-09-22 after the PDF-sources survey (`Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md`:
 its §M is the orchestrator's read-only measurements on litkb's own rows, its §1 the ladder by stage,
-its §2 the per-publisher rule table, its §3.4 the ledger vocabulary, its §6 the coverage projection).
+its §2 the per-publisher rule table, its §3.4 the ledger vocabulary, its §6 the coverage projection)
+and its round 3 (`Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md`: §1 the shadow-library linkage map, §2 the identifier crosswalk graph with the
+native-key table and the fan-out order, §3 the identifier data model, §4.5 what it changes here).
 The target is `litkb-coverage-target` (decided); the survey's demonstrated number for a corpus of this
 shape by legitimate automated means is lower — an EXTERNAL self-reported figure, not litkb's — and the
 gap is closed by rulings, not rungs. This session builds only rungs that cost nothing on a miss and
@@ -426,7 +434,33 @@ Work
    on the ledger, never taken as given) and NO host suppression on a single 403 (guard 29 — MDPI answers
    403 per article and is the corpus's largest slice); dead-ness a per-attempt `retriable` fact
    (guard 15). Registry identity: the Crossref `relation` probe first, then edges with a third state,
-   identifier-first duplicates, type-scoped ISBN-13, a key-LENGTH rule for `make_key`. The served-bytes
+   identifier-first duplicates, type-scoped ISBN-13, a key-LENGTH rule for `make_key` — and, from round 3
+   (`Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md` §3 and §4.5), the IDENTIFIER MODEL the ladder's rungs key on: the scheme vocabulary extended
+   with the six a rung cannot fire without (`md5` — the shadow tier's work address and every library's
+   join key; `pii` — Elsevier's native key, carried in Crossref `alternative-id` for nearly every
+   Elsevier DOI in the corpus and discarded today; `core`; `bibcode`; `ocaid`; `oai`) and the cheap
+   second tier (`issn` · `oclc` · `lccn` · `olid` · `htid` · `gbooks` · `sha1` · `sha256` · `zlib` ·
+   `lgrsnf` · `lgrsfic` · `lgli` · `nexusstc` · `wikidata` · `mag` · `dblp` · `hal`), with the closed
+   CHECK replaced by a `scheme_registry` table (label, url template, regex, normaliser, and
+   `distinct_values` — uniqueness is per-scheme DATA: true for `doi` `arxiv` `pmid` `pmcid` `openalex`
+   `s2` `mag` `bibcode`, false for `isbn` `issn` `oai` `handle` `md5`, so the partial unique index covers
+   only the distinct ones and a book's ISBN on its chapters is data, not a violation); provenance per
+   identifier (`asserted_by` beside `verified_by`, the INPUT identifier the edge was derived from, and
+   `deterministic` as a first-class provenance for zero-request derivations); the conflict rule taken
+   from fatcat verbatim — a later source fills a null and never overwrites; two identifiers resolving to
+   two works drop the weaker one, assert a work-level `is_version_of` or `is_identical_to` edge with
+   `asserted_by='conflict-resolution'`, and COUNT it; `works.part_of_work_id` and `works.version_of_work_id`
+   as parent columns for the common cases (chapter → book, preprint → version of record, arXiv version →
+   concept), an edge table only for the rest; the validators to port in that report's order (Zotero's
+   bracket-balanced DOI clean, isbnlib's canonical and check-digit re-derivation, idutils' regex table with
+   detection returning a SET and PMID last, a DOI slice as second pass, `isbnlib.editions` and
+   `isbnlib.doi`) and the ONE not to port (an ISBN-13 check-digit routine that passes a tenth of random
+   strings); and the three normalisation traps (a DOI is lowercased to key litkb's table and uppercased to
+   ask Wikidata; DataCite lowercases what it returns; a PMCID is stored with its prefix and asked without).
+   The HARVEST that fills the table costs no new request: Anna's `identifiers_unified` dictionary, which the
+   fetch script under D:\tools\annas-mcp already downloads at its second gate and parses one key out of;
+   Crossref's `alternative-id`, `ISBN`, `ISSN` and `relation`; OpenAlex's `ids` and `pmh_id`; Semantic
+   Scholar's `externalIds` — three calls litkb already makes whose fields it discards. The served-bytes
    sha on every attempt row, a rejected-hash lookup over S4's quarantine state, and a landing that
    offers a refused-duplicate file to its work through check 3. A second-session REFUSE verb with both
    guards fired. Rows: E13 and the ruled run's `registry-transient` rows for the back-off; E21's pair
@@ -457,9 +491,18 @@ Work
    work-class router (A2 — paper · chapter · book · report · thesis · HTML-only; it is what stops a
    preprint or a book being sent to the scidb-by-DOI archive path, the routing error §M measured);
    the DOI-prefix router (A3); deterministic publisher URL construction (A4); EarthArXiv's OAI map of
-   published DOI to preprint PDF (A7, MEASURED in the survey's round 2). Rows: the preprints among the
-   archive misses (the probe instrument's baselines CSV lists them by Crossref type) must route to
-   their native API.
+   published DOI to preprint PDF (A7, MEASURED in the survey's round 2); the ZERO-REQUEST derivations of
+   round 3's Wave 0 (`Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md` §2.3): an arXiv id to its `10.48550` DOI as a CANDIDATE until DataCite confirms
+   it (the tracker's arXiv-only rows gain a DOI this way, which is what lets DataCite, scidb and the DOI
+   paths address them), the inverse, ISBN-10 to ISBN-13, ISBN-13 to its ISBN-A DOI, the PMCID prefix,
+   and a shortDOI expanded through the handle alias so one work never holds two rows; and the OFFLINE
+   MEMBERSHIP TABLE — the public, sha256-pinned Sci-Hub DOI list and the LibGen article DOI table, which
+   sit on GitHub and figshare as data files and contact no shadow host, so a `blocked` or `not-in-archive`
+   row is typed out-of-corpus versus reachable BEFORE any mirror is spent (a Stage A rung; it needs no
+   ruling, and the shadow corpus's freeze date is the reason a post-2021 DOI is out-of-corpus by
+   construction). Rows: the preprints among the archive misses (the probe instrument's baselines CSV
+   lists them by Crossref type) must route to their native API; the Sci-Hub `blocked` rows typed by the
+   membership table.
 4. **Stage B, metadata fan-out, all rungs CONCURRENT** (wall-clock is the slowest, never the sum),
    every rung asked for EVERY `no-oa-copy` row so its yield on this corpus is MEASURED by the run and
    written into the report — zero is an allowed answer, and a rung is kept only while its cost per miss
@@ -471,7 +514,20 @@ Work
    OpenAIRE (B9); the arXiv host rewrite to `export.arxiv.org` (B10); OSF (B11); Europe PMC (B12 —
    MEASURED ZERO on the survey's controls; kept only if it costs no quota); the conference-venue ladder
    (B13); Zenodo, HAL and figshare direct (B14). NASA ADS (B15) is NOT built here — the survey never
-   probed its gateway; it is probed, not built, and enters the after-S5 table if it answers.
+   probed its gateway; it is probed, not built, and enters the after-S5 table if it answers. The ORDER
+   and the STOP RULE are round 3's (`Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md` §2.3): Wave 1 is three concurrent keyless calls — OpenCitations
+   META (one GET fills several schemes), Crossref and OpenAlex (two calls already made; B4 becomes
+   `link[]` AND `alternative-id` AND `issn-type` AND `relation`, never `link[]` alone); Wave 2 fires one
+   conditional call per gap — NCBI's id converter BATCHED over the whole hunt queue where `pmid` or
+   `pmcid` is absent, Europe PMC where a PMCID appeared (it also pre-checks every PMC delivery rung),
+   DataCite for `10.48550`, `10.5281` and every DOI Crossref answers 404 for, ADS for a `bibcode` and its
+   `esources` answer to "will any free rung fire", and Semantic Scholar LAST because it rate-limits in
+   seconds; Wave 3 only for the book and report classes; the closure rule — a scheme is pursued only if
+   absent, the input key is whichever held identifier the service accepts, accumulate after whichever
+   resolver won, repeat only with identifiers discovered since the last pass, STOP when a full pass adds
+   nothing. The fan-out's own KILL CRITERION is re-stated by round 3 against the schemes this corpus
+   actually gains — `arxiv`, `pii`, `dblp`, `isbn`, `md5` — not `pmid`/`pmcid`, which the probe already
+   showed a non-biomedical corpus barely gains; a non-proposer scores it.
 5. **Stage C, landing page to bytes** — the single highest-yield missing rung: `citation_pdf_url` and
    its `bepress_` and `eprints.` variants matched by suffix, `link rel=alternate type=application/pdf`
    (C2); URL rewrites (C3); a DECLARATIVE per-publisher rule table for this corpus's publishers ported
@@ -508,7 +564,10 @@ bronze rows whose Unpaywall answer is a landing page — through Stage C, ESTIMA
 zero to all of them because Elsevier's `/pdfft` may sit behind a challenge, so they are REPORTED, and
 if they end `challenge_or_bot_check` the converter is S4.6's browser rung. Every `bad-file` row
 re-typed; every open-access `blocked` row typed by the Range probe (an MDPI row among them is a
-MEASURED conversion through the CDN rule); the preprints among the archive misses routed by Stage A.
+MEASURED conversion through the CDN rule); the preprints among the archive misses routed by Stage A;
+the works without a file that the crosswalk probe (`qc/instruments/litkb_acq_probe_crosswalk.py`,
+`phase4/qc/litkb_acq_probe_crosswalk.csv`) gives an arXiv id, an ISBN or a `relation` edge — each must
+gain the identifier row with its provenance, and each arXiv-id work must reach the arXiv rung.
 NEGATIVE, REAL: the paywalled remainder of the `no-oa-copy` rows (§M measured every Springer, Wiley,
 OUP, IOP and Cambridge link as HTML or a token-gated endpoint) must end typed `identity_required` or
 `html_or_reader`, never bound; E13's challenge bytes must type `challenge_or_bot_check`; the IIASA
@@ -539,7 +598,10 @@ Done-state
   `pages >= 60` against a Crossref page range under 60) · `free_ceiling_measured_unconverted=0` (the
   `FREE-PDF` and Wayback rows still without a file) · `budget_exceeded_silently=0` (a work whose ladder
   ran past the budget with no `budget` attempt row) · `stage_b_rungs_unmeasured=0` (Stage B rungs
-  with no yield line in the report) · `unvalidated_items=0` (rung classes — the six above — whose
+  with no yield line in the report) · `crosswalk_rows_without_identifier=0` (works the probe CSV gives
+  an arXiv id, ISBN or relation edge that hold no such row after the run) ·
+  `identifiers_without_provenance=0` · `conflicts_uncounted=0` (two works claiming one distinct-valued
+  identifier with no conflict edge and counter) · `nondistinct_schemes_in_unique_index=0` · `unvalidated_items=0` (rung classes — the six above — whose
   referee report the manifest does not name or whose report has no `fired: <counter>=<value> on
   <input>` line). REPORTED, unbounded: `transient_rows_unretried`, `relation_edges_missing`,
   `identifier_first_refusals`, `books_without_isbn`, `attempts_without_sha`, `unowned_landings`,
@@ -554,7 +616,11 @@ Done-state
   with `citation_pdf_url` → `landing_pages_booked_bad_file=1`; the constructed TDM stub, and E20's REAL preview PDF → `stubs_bound=1`
   if either binds; the constructed volume → `volumes_bound_as_article=1` if it binds; the B1 rung disabled
   → `free_ceiling_measured_unconverted>0`; the budget object removed → `budget_exceeded_silently=1`;
-  a Stage B rung's yield line deleted from the report → `stage_b_rungs_unmeasured=1`; a referee report
+  a Stage B rung's yield line deleted from the report → `stage_b_rungs_unmeasured=1`; the harvest
+  disabled and the probe's arXiv-id works re-hunted → `crosswalk_rows_without_identifier>0`; an
+  identifier row written with NULL `asserted_by` → `identifiers_without_provenance=1`; a CONSTRUCTED
+  second work claiming an existing DOI → refused, the edge written and `conflicts_uncounted=0` only if
+  the counter moved; `isbn` placed in the distinct set → `nondistinct_schemes_in_unique_index=1`; a referee report
   dropped from the manifest → `unvalidated_items=1`.
 
 #### Test-set commands (run from Scripts/, read-only)
@@ -569,6 +635,11 @@ py -3.12 -c "import csv,re,collections;r=list(csv.DictReader(open('../Reports/li
 # the survey's read-only probes as repository instruments (metadata and HEAD only; nothing downloaded);
 # they write phase4/qc/litkb_acq_probe_no_oa_copy.csv, litkb_acq_probe_head.csv, litkb_acq_probe_baselines.md
 py -3.12 qc/instruments/litkb_acq_probe_no_oa_copy.py && py -3.12 qc/instruments/litkb_acq_probe_head.py && py -3.12 qc/instruments/litkb_acq_probe_baselines.py
+# the identifier crosswalk yield per scheme, and joined to the file table (writes phase4/qc/litkb_acq_probe_crosswalk.csv)
+py -3.12 qc/instruments/litkb_acq_probe_crosswalk.py
+py -3.12 -c "import csv,psycopg;r=list(csv.DictReader(open('../phase4/qc/litkb_acq_probe_crosswalk.csv',encoding='utf-8')));c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');wf={k for (k,) in c.execute(\"SELECT DISTINCT w.key FROM litkb.main_files f JOIN litkb.main_works w ON w.work_id=f.work_id WHERE f.status='active'\").fetchall()};nf=[x for x in r if x['key'] not in wf];print('no-file works',len(nf),{col:sum(1 for x in nf if x[col]) for col in ('s2_arxiv','s2_pmcid','pmid','cr_isbn','cr_relation_types','cr_has_link')})"
+# litkb's identifier table by scheme (the empty schemes are the gap)
+py -3.12 -c "import psycopg;c=psycopg.connect('host=localhost port=5433 dbname=litkb user=litkb_reader');print(c.execute('SELECT scheme, count(*) FROM litkb.main_identifiers GROUP BY 1 ORDER BY 2 DESC').fetchall())"
 # the MEASURED free-ceiling rows (must convert) and the bronze landing-page rows (reported)
 py -3.12 -c "import csv;h=list(csv.DictReader(open('../phase4/qc/litkb_acq_probe_head.csv',encoding='utf-8')));print('free',sorted({r['doi'] for r in h if r['verdict']=='FREE-PDF'}));n=list(csv.DictReader(open('../phase4/qc/litkb_acq_probe_no_oa_copy.csv',encoding='utf-8')));print('bronze-landing',[r['doi'] for r in n if r['unpaywall_url'].startswith('https://doi.org/')])"
 ```
@@ -607,15 +678,18 @@ Work
 2. **Stage F, books and chapters — UNVALIDATED with no real test row until `litkb-crc-book` yields
    one**: the ISBN namespace — and the harvest S4.5 schedules cannot produce E20's ISBN, because
    Crossref holds none for it and the one that exists came from a publisher page, so the harvest gains
-   a publisher-page ISBN source or a manual identifier; `isbnlib.editions` clustering so one ISBN
+   the three free ISBN sources round 3 names (`Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md` §4.3: Open Library's search answer carries every
+   edition's ISBNs, the Internet Archive's `urn:isbn:` lookup, and Nexus/STC's record fields `isbns` and
+   `parent_isbns`, the last of which is exactly the chapter-to-container routing the `part_of` edge
+   needs) plus a publisher-page source or a manual identifier; `isbnlib.editions` clustering so one ISBN
    becomes the edition set; Open Library to an Internet Archive item; chapter routing where a chapter
    DOI carries the book's ISBN — the ISBN attaches to the BOOK work only (the identifier index is
    unique per active scheme and value) and a chapter links to it by a `part_of` edge from S4.5's edge
    mechanism; EPUB and DjVu to PDF conversion where a copy arrives in another format. DOAB and OAPEN
    (F4), HathiTrust (F5) and Google Books (F6) are graded MIXED by the survey — a Cloudflare 403 on
    the REST path, partner access the project does not have, and no PDF logic in Zotero's own
-   translators for them — so they are PROBED, not built. The corpus's CRC Press book has NO automated
-   route (Taylor and Francis needs a browser-session token).
+   translators for them — so they are PROBED, not built, and re-graded VERIFIED as crosswalks by round 3. The corpus's CRC
+   Press book has NO automated route (Taylor and Francis needs a browser-session token).
 3. **Stage G, the shadow tier under the EXISTING grant** (Anna's Archive and Sci-Hub; every request
    behind guard 21's `PolicyDecision`): detect DDoS-Guard by the page `<title>` FIRST, so a block is
    booked `challenge_or_bot_check` and never `not-in-archive` (G0d; the survey reads the archive misses
@@ -644,7 +718,10 @@ Work
 5. **The coverage account** the finish line reads: an instrument under `qc/instruments/` that joins the
    tracker to main by identifier, applies the record-class filter, and prints per grade (`pdf` ·
    `jats` · `html-doc` · `cached_text` · `snippet` · metadata-only · none) the share of eligible
-   tracker rows in each, plus the paywalled residue by publisher and year, into a CSV under phase4/qc/.
+   tracker rows in each, plus the paywalled residue by publisher and year, into a CSV under phase4/qc/ — with the residue
+   split three ways by the offline membership table: out-of-corpus (no shadow library ever held it),
+   blocked (held, but every probe was refused), and not-in-archive as the archive's own five-way answer;
+   without that split the residue column silently absorbs works no shadow rung could have reached.
    Which grades count toward the target is `litkb-coverage-definition`; until it is decided the
    instrument REPORTS and the session's (b) carries no coverage bound.
 
@@ -652,7 +729,8 @@ Test set, POSITIVE: the archive-miss rows by Crossref type (the probe instrument
 under phase4/qc/ lists them: the preprints must never reach this tier — S4.5's router owns them; the
 chapters and the book go through Stage F only if a copy can exist; the rows no registry holds end
 `refused/unresolved` with the reason, never `not-in-archive`); the Sci-Hub `blocked` rows re-typed
-(challenge · miss · storage path found on another mirror); the grey rows whose files are ALREADY on
+(challenge · miss · storage path found on another mirror · out-of-corpus by the membership table); the
+archive-miss rows re-read against the archive's five conditions; the grey rows whose files are ALREADY on
 disk but not in main — 235's Seattle canopy report under `_litkb_staging/filed/` and 194's King
 County page snapshot under `_litkb_staging/web/` — and the USFS and USGS class by title; the
 `manual-step` rows ONLY if `litkb-institutional-access` is decided yes. NEGATIVE, REAL: a Stage D
@@ -670,7 +748,8 @@ Done-state
   `not-in-archive` attempt whose terminal page title is DDoS-Guard) · `shadow_requests_outside_policy=0`
   · `new_hosts_without_ruling=0` · `credentials_stored=0` (any credential string in litkb's config or
   database) · `tdm_stubs_bound=0` · `coverage_rows_unclassified=0` (tracker rows the instrument could
-  neither join nor mark) · `unvalidated_items=0` (the five rung classes). REPORTED: `eligible_rows`,
+  neither join nor mark) · `archive_misses_untyped=0` (archive-miss rows still carrying the bare word
+  after the five-way re-read) · `shadow_misses_from_concurrent_probes=0` · `unvalidated_items=0` (the five rung classes). REPORTED: `eligible_rows`,
   `coverage_pdf`, `coverage_source`, `paywalled_residue`, `manual_step_rows` — bounded only once
   `litkb-coverage-definition` is decided; until then the session reports them and says UNDETERMINED
   against `litkb-coverage-target`.
@@ -681,7 +760,9 @@ Done-state
   it; the `sci.bban.top` rung enabled with `litkb-shadow-hosts` open → `new_hosts_without_ruling=1`;
   a credential planted in config → `credentials_stored=1`; the constructed Elsevier first-page response
   → `tdm_stubs_bound=1` if bound; a tracker row whose identifier matches no work →
-  `coverage_rows_unclassified=1` unless marked; a referee report dropped → `unvalidated_items=1`.
+  `coverage_rows_unclassified=1` unless marked; the five-way re-read skipped on one archive-miss row →
+  `archive_misses_untyped=1`; two shadow probes issued concurrently on purpose →
+  `shadow_misses_from_concurrent_probes=1`; a referee report dropped → `unvalidated_items=1`.
 
 #### Test-set commands (run from Scripts/, read-only)
 

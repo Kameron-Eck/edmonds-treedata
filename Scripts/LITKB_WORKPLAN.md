@@ -32,7 +32,7 @@ Update this block only. Everything else in the file changes when a session lands
   from every free source and extract them, with multi-engine agreement for OCR and LaTeX. Two rounds
   ran — eleven and then six Opus crawlers by source class and extraction layer, two Codex forum
   searches in round one (round two's Codex pass died on an exhausted quota and is OWED), a blacklist of
-  every URL between rounds, a synthesizer each round — and the orchestrator measured the ladger's own
+  every URL between rounds, a synthesizer each round — and the orchestrator measured the ledger's own
   miss rows against the resolvers, read-only. The record is
   `Reports/LITKB_PDF_SOURCES_SURVEY_2026-09-22.md` (its §M the measurements, §1 the ladder by stage,
   §5 the extraction ladder, §6 the coverage projection; every URL the crawlers visited in
@@ -44,7 +44,8 @@ Update this block only. Everything else in the file changes when a session lands
   inserted; the improvements table lost the rows the sessions absorbed; `decisions.yaml` gained the entries
   this session raised (`grep -c '^  - id: litkb-' decisions.yaml` counts them all) — `litkb-coverage-target`
   decided from Kam's words, and `litkb-coverage-definition`, `litkb-institutional-access`,
-  `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-crc-book`, `litkb-s47-colab-queue` open. The
+  `litkb-shadow-hosts`, `litkb-tdm-keys`, `litkb-crc-book`, `litkb-s47-colab-queue` raised open (all
+  ruled the same day — the rulings bullet below). The
   2026-09-21 revision's record stays `Reports/LITKB_PLAN_REVISION_2026-09-21.md`. Round 3 of the survey
   (the shadow-library linkage map and the identifier crosswalk; record `Reports/LITKB_LINKAGE_IDENTIFIERS_SURVEY_2026-09-22.md`, its §M the measurements)
   landed the same day and rewrote S4.5 item 1's identifier model, Stage A's zero-request derivations and
@@ -79,7 +80,9 @@ Update this block only. Everything else in the file changes when a session lands
   (`SELECT state, count(*) FROM litkb.workstreams GROUP BY 1` as `litkb_reader`) because nothing
   ever closes one. Entry condition: the preflight command in "Per-session protocol", every counter
   0. (2) **S4.5**, launched by S4 the way S4 was launched (a new window, bash + prompt file; S4 writes
-  _derived/s4-5/s4-5-prompt.txt from the "### S4.5" block). (3) **S4.6**, (4) **S4.7**, each launched
+  _derived/s4-5/s4-5-prompt.txt from the "### S4.5" block) — it now carries the Sci-Hub workaround's
+  first rung (item 5b: freeze gate, bban, the three route fixes), pulled forward from S4.6 on the
+  2026-09-22 diagnosis because the fix is the ledger vocabulary S4.5 owns. (3) **S4.6**, (4) **S4.7**, each launched
   by the one before it; (5) **S5** once its entry condition is met. Then S6, S7.
 - **Ops residue, nobody's ruling** (`Reports/LITKB_RULED_HUNTS_2026-09-21.md` §9, re-measured
   2026-09-21): the fetched files of the ruled run's URL rows sit in `_litkb_staging/filed/` with no
@@ -112,6 +115,14 @@ Update this block only. Everything else in the file changes when a session lands
   mislabelling (19 of its 22 DOIs post-date the freeze; misses booked `blocked` and retried forever),
   and the corpus is open from here — bban served 73/104 of the pre-2022 no-file backlog on one
   keyless HEAD (`phase4/qc/litkb_acq_probe_bban.csv`). S4.6 Stage G carries the measured ladder.
+- **Implementation map of 2026-09-22's changes, by session** (nothing waits on a ruling): S4 —
+  unchanged in scope; its launch kit carries the ruled ids and the key facts. S4.5 — item 1 (identifier
+  model, refuse verb, operator-bind gate), item 2 (vocabulary incl. `not_in_corpus`, challenge at any
+  status, `blocked` dead), item 5b (freeze gate, bban, route fixes), item 7 (hermetic replay), the (b)
+  counters. S4.6 — Stage G (LibGen.li, mirrors last, dead fronts named), Stage H (Elsevier gated on
+  a ScienceDirect 200, no Springer, no institutional profile), the coverage gate under definition (b).
+  S4.7 — the T4 queue approved. S5 — entry conditions from the round-4 defects, the topic, the
+  pre-run tracker edits. S6/S7 — as rewritten by round 4.
 - **Kam-side, still open:** nothing in `decisions.yaml`; the nightly-dump task re-registration
   (below) is an action, not a ruling; the Elsevier key is in place but ScienceDirect refuses it as
   configured, re-keyed once with the same answer — Elsevier API support is the other open action (Stage H).
@@ -509,7 +520,14 @@ Work
    `html_response` · `too_small` · `missing_pdf_header` · `corrupt_pdf_header` ·
    `early_eof_with_trailing_payload` · `stub_not_article` · `volume_not_article` ·
    `cited_document_not_this_article` · `compressed_or_archived_payload`; `blocked` sub-typed
-   `identity_required` · `challenge_or_bot_check` · `not_found` · `html_or_reader`. Also
+   `identity_required` · `challenge_or_bot_check` · `not_found` · `html_or_reader`; `not-in-archive`
+   sub-typed `not_in_corpus` (the freeze gate, or a shadow front's miss page — bban's 404 + text/html, a
+   mirror's "not available" page) · `no_pdf_link`. Two route rules the 2026-09-22 Sci-Hub diagnosis
+   measured as MISSING and this item supplies: a challenge page is a challenge at ANY status
+   (`Client.is_challenge` in `pipeline/litkb/netutil.py` fires only at 403/503, so .ren/.wf Cloudflare
+   pages at HTTP 200 were booked `no-pdf-link`), and `blocked` is DEAD for a route within a run
+   (`DEAD_STATUSES` in `pipeline/litkb/acquire/run.py` omits it, so every blocked DOI was retried until
+   sci-hub.ru's rate gate). Also
    `terminal_url`, `terminal_status_code`, `terminal_dt` on every attempt; `word_count` on every landed
    file (`pages` already exists); `retriable` per attempt; `kind` (`pdf` · `jats` · `text` ·
    `html-doc` · `cached_text` · `snippet`); the version of record carried by EXTENDING
@@ -578,6 +596,31 @@ Work
    as an identity signal, and never a delete on a verdict whose metadata could not be fetched (guard 18).
    Before spending anything, the 4 KB Range probe (C6/C13) types a refusal into the `blocked`
    sub-statuses.
+5b. **The Sci-Hub workaround, part 1 — PULLED FORWARD from S4.6 on the 2026-09-22 diagnosis**
+   (D:\tools\claude-config\jobs\litkb-scihub\ D1/D2 with their recorded pages; the orchestrator's re-run
+   `qc/instruments/litkb_acq_probe_bban.py` → `phase4/qc/litkb_acq_probe_bban.csv`: 73 of the 104
+   pre-2022 no-file works served on one keyless HEAD, 7 via the upper-cased suffix, `%PDF` on 8 of 8
+   sampled). Why here and not S4.6: the diagnosis found the route's zero was the LEDGER's doing —
+   misses booked `blocked`, `blocked` retried forever, 200-status challenges unseen — so item 2's
+   vocabulary IS the fix, and the one rung that converts seventy percent of the backlog costs one
+   request and no key; it is built the moment the vocabulary exists, not a session later. Built here,
+   each behind item 2's `PolicyDecision` and inside `litkb-shadow-hosts` (b): (i) the FREEZE GATE — a
+   work whose year is after 2021 is booked `not-in-archive/not_in_corpus` with no request to ANY shadow
+   front (the corpus froze 2022-02-12); (ii) the bban rung — HEAD `https://sci.bban.top/pdf/<doi>.pdf`
+   with the DOI as stored, on 404 once more with the suffix upper-cased (case-sensitive host), hit =
+   200/206 + `application/pdf` + `%PDF` on the GET and the bytes through the same acceptance test as
+   every route, miss = 404 + `text/html` booked `not_in_corpus`, never `blocked`, never retried in the
+   run; (iii) the three route fixes of item 2 applied to `pipeline/litkb/acquire/scihub.py` — challenge
+   at any status, `blocked` dead within a run, a mirror's miss page ("not available through Sci-Hub";
+   .ren's Verification page on an out-of-corpus DOI) booked `not_in_corpus` — the mirrors themselves
+   LAST in the ladder and otherwise untouched (no solver: the route's docstring forbids one and the
+   ALTCHA page is a rate signal). Fixtures are the pages recorded under the jobs folder on
+   2026-09-22, real, not constructed. POSITIVE, REAL: the 73 `served` rows of the probe CSV, each
+   landing as a file (the acceptance-test refusals among them named, never silent). NEGATIVE, REAL:
+   its 31 `not-in-corpus` rows, each ending `not_in_corpus` with ONE attempt row; the 7 rows whose
+   `tried` differs from `doi`, which must land on the retry and not on `not_in_corpus`;
+   `10.1016/j.rse.2024.114101` (post-freeze, in the base) refused before any request. LibGen.li, the
+   mirror rebuild and the dead fronts stay S4.6 Stage G's.
 6. **Stage E, recovery**: the Wayback availability API and CDX with the `id_` raw-bytes modifier (E1 —
    §M's census.gov author copy is its positive row; §M's IIASA copy, never archived, is its real
    NEGATIVE); Internet Archive item search and download (E3) and the Common Crawl index (E5) have no
@@ -638,6 +681,11 @@ Done-state
   (`proposed` admissions older than the run with neither verb applied) · `bad_file_untyped=0`
   (`bad-file` attempts with NULL `sub_status`) · `blocked_untyped=0` · `preprints_sent_to_shadow=0`
   (attempts on a shadow route for a work whose Crossref type is `posted-content`) ·
+  `post_freeze_sent=0` (a shadow-front request for a work with year after 2021) ·
+  `shadow_miss_booked_blocked=0` (a bban or mirror miss page recorded as `blocked`) ·
+  `bban_probe_hits_not_landed=0` (a `served` row of the probe CSV with no file after the run, the
+  acceptance-test refusals named and excepted) · `challenge_at_200_unbooked=0` (a recorded .ren/.wf
+  page replayed through the client without a `challenge_or_bot_check` row) ·
   `landing_pages_booked_bad_file=0` (`html_response` attempts whose page carried `citation_pdf_url`
   and no Stage C attempt followed) · `stubs_bound=0` · `volumes_bound_as_article=0` (a bound file with
   `pages >= 60` against a Crossref page range under 60) · `free_ceiling_measured_unconverted=0` (the
@@ -647,8 +695,8 @@ Done-state
   an arXiv id, ISBN or relation edge that hold no such row after the run) ·
   `identifiers_without_provenance=0` · `conflicts_uncounted=0` (two works claiming one distinct-valued
   identifier with no conflict edge and counter) · `nondistinct_schemes_in_unique_index=0` · `unvalidated_items=0` (rung
-  classes — the substrate, the vocabulary, Stage A, Stage B, Stage C, Stage E, replay, the bad-file
-  read — whose referee report the manifest does not name or whose report has no
+  classes — the substrate, the vocabulary, Stage A, Stage B, Stage C, the Sci-Hub part 1, Stage E,
+  replay, the bad-file read — whose referee report the manifest does not name or whose report has no
   `fired: <counter>=<value> on <input>` line) · `replay_rows_graded_against_stubs=0` (register rows
   graded by a synthetic acquirer return) · `replay_network_calls=0` · `cassettes_stale=0` ·
   `promotions_committed>=1` (the first end-to-end promotion on a constructed chain). REPORTED, unbounded: `transient_rows_unretried`, `relation_edges_missing`,
@@ -676,6 +724,9 @@ Done-state
   refused, and the chain committed by a second session → `promotions_committed=1`.
 
 #### Test-set commands (run from Scripts/, read-only)
+`py -3.12 qc/instruments/litkb_acq_probe_bban.py` — the bban yield over the pre-2022 no-file
+backlog, ~5 min serialised; run BEFORE the rung lands (its CSV is the rung's positive and negative
+rows) and AFTER (every `served` row should now hold a file; `bban_probe_hits_not_landed`).
 
 ```
 # the acquisition census, all time, by route and status — never quote a cell, run this
@@ -762,17 +813,14 @@ Work
    (`pipeline/litkb/acquire/run.py`), so every miss was retried until sci-hub.ru's ALTCHA rate gate. The
    corpus itself is open from here: bban served 73/104 (70%) of the pre-2022 no-file backlog on
    one keyless HEAD (D2: 73/104; D1: 12/20 random), LibGen.li's json.php→ads.php→get.php chain 75/104,
-   union 77/104. The rungs in the measured order, each with its kill: (1) FREEZE GATE — a DOI whose
-   work year is after 2021 is never sent to any front, `post_freeze_sent=0`; (2) bban — HEAD
-   `pdf/<doi>.pdf` as stored, on 404 once more with the suffix upper-cased (case-sensitive host;
-   7 of the 73 hits needed it), hit = 200/206 + application/pdf + `%PDF` on the GET, miss =
-   404 + text/html booked `not-in-corpus`, never `blocked`; (3) LibGen.li scimag by DOI → md5 →
-   delivery, the md5 kept as an identifier; (4) the sci-hub.* mirrors LAST, after three fixes — a
-   200-status Cloudflare page is a challenge (`is_challenge` in `pipeline/litkb/netutil.py` fires only at
-   403/503, so .ren/.wf pages were booked `no-pdf-link`), `blocked` joins the dead statuses so a DOI is
-   probed once per run, and a mirror's miss page ("not available through Sci-Hub"; .ren's Verification
-   page on out-of-corpus DOIs) is booked `not-in-corpus`; the parser has never seen a live delivery
-   page, so its first real one is the positive row; (5) NOT built, measured dead today: Anna's `/scidb`
+   union 77/104. The rungs in the measured order, each with its kill — (1) the FREEZE GATE and (2)
+   the bban rung are BUILT IN S4.5 (item 5b, pulled forward on the diagnosis); this stage re-runs
+   their probe on the post-S4.5 ledger and carries `post_freeze_sent=0` and
+   `shadow_miss_booked_blocked=0`; built here: (3) LibGen.li scimag by DOI → md5 →
+   delivery, the md5 kept as an identifier; (4) the sci-hub.* mirrors LAST, on the three fixes S4.5
+   applied (challenge at any status; `blocked` dead within a run; the miss page booked
+   `not_in_corpus`) — the parser has never seen a live delivery page, so its first real one is the
+   positive row and the rung stays UNVALIDATED until one exists; (5) NOT built, measured dead today: Anna's `/scidb`
    (.org/.se NXDOMAIN, .li parked, .gl DDoS-Guard), Nexus/STC (no HTTP front), library.lol (seized),
    Tor (no onion address in any source read — unaddressed, not unfetched). No solver: the route's
    docstring forbids one and the ALTCHA page is a rate signal, not a corpus one; Nexus/STC crosswalk first and delivery second (G0b/G1c);

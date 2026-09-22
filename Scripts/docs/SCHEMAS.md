@@ -1925,8 +1925,13 @@ row of its own; the first live dry run called the FPGA proposal's snapshot an or
 2026-09-21) · `young` (a sibling lock
 suffix holds it open, or its mtime is under `--min-age-hours`, default 72) · `orphan` (neither).
 Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a reason file
-(`Store.to_quarantine` + `write_reason`) — the reaper never deletes and never writes the database.
-`--dry-run` is the default. Counters, one line: `scanned owned young orphans quarantined
+(`Store.to_quarantine` + `write_reason`) — the reaper never deletes. **Since S4 it writes ONE
+database row per move** (corrected 2026-09-22; until then this paragraph said "never writes the
+database", which was true): a `litkb.quarantine_payloads` row, origin `reaper`, reason
+`staging-orphan`, through `record_quarantine_system` on the INGEST login, which `litkb reap
+--apply` opens for that alone. The row is written after the move; a row that cannot be written is
+listed in `errors` (exit 1) and the bytes stay moved. `--dry-run` is the default and writes nothing,
+to the disk or the database. Counters, one line: `scanned owned young orphans quarantined recorded
 skipped_errors`.
 
 ## `litkb.run_retirement_ops` · `litkb.run_retirements` (litkb, migration 0031)
@@ -2191,3 +2196,122 @@ which a 1-3 line window, scored the binder's way, reaches `BIND_RATIO`); `first_
 (`binding.window_refusal` of that window, empty when admissible); `best_index`; `best_ratio`;
 `binding_line` / `binding_ratio` (what a stored binding recorded, for the cross-check);
 `title_region_lines` (the constant's value when measured).
+
+## `litkb.quarantine_payloads` (litkb, migration 0030 — S4, the database-visible quarantine state)
+
+One row per REFUSED PAYLOAD, keyed by its path relative to the literature root (UNIQUE). Until S4
+`_quarantine/` was a directory only: the reason lived in a filename no code read back, and the
+reaper and `hunt.land_download` left no row at all. A path under `_quarantine/` is where the refused
+bytes were moved; any other path is a file REFUSED WHERE IT LIES — a bound file the readability
+classifier refuses, or an admission file whose page count could not be read — and there the row
+IS the state (the bytes are never moved). `file_versions` is not touched: its `work_id` is NOT NULL
+and most refused bytes have no admitted work (S4 run 3 decision D5).
+
+Columns: `id`, `rel_path` (UNIQUE), `sha256` of the refused bytes, `bytes`, `reason`, `origin`,
+`work_id` / `file_id` / `attempt_id` / `workstream_id` (nullable links), `detail` (jsonb, run
+through `textnorm.jsonb_safe`, mutation row S4Q1), `recorded_at`, and `cleared_at` / `cleared_by` /
+`cleared_reason` (all three set or none).
+
+**Clearing.** Only a `classifier` row on a BOUND file (a path outside `_quarantine/`, with a
+`file_id`) can be cleared (CHECK `quarantine_payloads_cleared_only_in_place`). When `litkb
+readability --record` classes that file `extracted`, it clears its own row through
+`litkb.clear_quarantine_system(id, session, reason)` (SECURITY DEFINER, EXECUTE to `litkb_ingest`,
+once only). A moved-payload row — acquisition guard, bind refusal, hunt-url, reaper, backfill — is
+NEVER cleared: those bytes stay refused. A cleared row the classifier refuses again is RE-OPENED by
+the same idempotent write (its cleared columns go back to NULL). `litkb_work` lists only uncleared
+rows; the read-only classifier REPORTS `stale_quarantine_rows` (uncleared classifier rows on files
+it now classes `extracted`). `quarantined_without_db_state` is unaffected: it counts payloads under
+`_quarantine/` only. Two CHECKs besides the
+vocabularies: a row outside `_quarantine/` must be the classifier's with a `file_id`, or an
+admission's `probe-error` (`quarantine_payloads_in_place_rule`); a system origin has no
+workstream and a writer origin always one (`quarantine_payloads_workstream_rule`).
+
+**`reason`** (closed; one home `litkb.quarantine.REASONS`, held equal to the CHECK by
+`qc/test_litkb_quarantine.py`): the shapes `not-a-pdf · truncated-pdf`; the route statuses a route
+returns WITH bytes `blocked · bad-file · not-in-archive · partner-404 · hash-mismatch`; the binding
+and attach outcomes `binding-failed · binding-pending · duplicate-held`; the legacy
+`annas.fetch_one` labels `duplicate-hash · content-mismatch`; the reaper's `staging-orphan`; the S4
+refusals `probe-error · zero-content`; `legacy` for a pre-litkb name with no label.
+
+**`origin`** (closed; `litkb.quarantine.ORIGINS`): `acquisition-guard` (`acquire.run`'s shape and
+route-refusal quarantines, `--from-file`), `bind-refusal` (`land_and_attach`'s binding verdict,
+attach refusal and page probe; an admission's probe refusal in place), `hunt-url`
+(`hunt.land_download` and the URL path's probe refusal), `reaper`, `classifier`, `legacy-backfill`.
+The legacy `acquire.annas.fetch_one` writes no row: it holds no database connection and no
+workstream; what it quarantines is picked up by the backfill and, until then, counted.
+
+**Writers.** `litkb.record_quarantine(ws, token, …)` — SECURITY DEFINER, presents the workstream
+token, EXECUTE to `litkb_writer` only, takes the three workstream origins and links only an attempt
+of the SAME workstream. `litkb.record_quarantine_system(…)` — SECURITY DEFINER, no token, EXECUTE to
+`litkb_ingest` only, takes `reaper · classifier · legacy-backfill`. Both are IDEMPOTENT ON THE PATH
+(the same path and sha256 returns the existing id; the same path with other bytes is refused,
+SQLSTATE 23505). No role holds a direct write; SELECT to `litkb_reader`, `litkb_writer`,
+`litkb_ingest`.
+
+**Every quarantine write leaves a row, best-effort.** The row is written AFTER the move, inside a
+savepoint (`quarantine.try_record`), and a failure is returned, never raised — the bytes are kept
+either way. `acquire()` returns them in `quarantine_rows`; hunt adds a `quarantine-state-failed`
+entry to `refusals[]` (its state and reason are unchanged); the reaper lists them in `errors`.
+THE COUNTER IS THE GATE: `quarantine.quarantined_without_db_state(conn, root=…)` counts every
+payload under `_quarantine/` — every file except `.reason.json` sidecars and the `.txt` companion of
+a payload stem — with no row for its path. Its known-bad is `quarantine.fire_quarantine` (a
+CONSTRUCTED payload planted in a temp root with no row moves it by one).
+
+**Backfill.** `py -3.12 -m litkb quarantine backfill [--apply]` gives every payload already on disk
+a row, origin `legacy-backfill`: reason from the `.reason.json` sidecar (`label`, else a reaper
+sidecar → `staging-orphan`, else its `shape`), else the name's `<stem>__<label>__<token>` label,
+else `legacy`. `attempt_id` is the attempt whose `detail->>'quarantined'` is the path, else the ONE
+attempt whose `detail->>'sha256'` matches (several → none, candidates listed in `detail`);
+`file_id` is the `files` row with the same sha256. One sha under several names is one row PER
+PATH. The dry run (default) reads on the reader login and writes nothing; `--apply` writes on the
+ingest login. A label outside `REASONS` is counted `unmapped` and NOT written.
+
+## litkb readability classes (`pipeline/litkb/readability.py`, S4 — decision D8)
+
+The ONE home of the closed classes. **File classes**: `extracted` with a reason `full ·
+docling-only · grobid-only · ocr · snapshot`, and the residue classes `scan-needs-ocr ·
+over-page-cap · zero-content · bad-file · probe-error · book · refused-registry`. **Work classes**:
+`no-file-any-route`, and `mixed` for a work whose files disagree (a work with an extracted file and
+a residue file is `mixed`, never `extracted`). `not-attempted` is REPORTED for a file-less work some
+applicable route never ran for, outside the gated universe. A file with no class is UNCLASSIFIED —
+never defaulted; `queued` / `leased` are not classes.
+
+The universe, the evidence and the rule order are the module docstring's (one home; not restated
+here). In one line each: `bad-file` = not on disk, sha256 ≠ `files.sha256`, or no `%PDF-` magic;
+`probe-error` = `probe.probe_pages` / `page_text_chars` raised; `book` = work `type = 'book'`;
+`over-page-cap` = pages > `probe.EXTRACT_PAGE_CAP` (Kam ruling litkb-extract-page-cap);
+`zero-content` = a text-layer file whose current run's canonical blocks carry no text;
+`scan-needs-ocr` = image pages (`probe.image_page_numbers`, decision D13: zero native characters
+AND at least one raster image) that no text block and no OCR'd run covers, or image pages and no
+run; `refused-registry` = unbound bytes in `_litkb_staging/` that only a
+REFUSED admission's checks name; `extracted` reasons from the run: stage `5-text-snapshot` →
+`snapshot`, metrics `ocr: true` or text on a zero-native-character page → `ocr`, else
+`docling_regions` / `grobid_regions` → `full` / `docling-only` / `grobid-only`.
+
+Counters (`readability.counters`): `unclassified_acquired_files` (file and staging rows with no
+class — the gated one) and the REPORTED `stale_quarantine_rows`, `acquired_files`, `files_<class>`, `extracted_<reason>`,
+`works`, `works_<class>`, `works_not-attempted`, `works_extracted`, `works_residue`,
+`works_unclassified`. Known-bads: `readability.fire_unclassified` (one rule dropped by name → a real
+file goes unclassified and the counter moves) and `readability.fire_probe` (a CONSTRUCTED
+unopenable PDF through `land_and_attach` on a worker database: refused and never bound; with the
+probe guard mutated off it binds with `pages` NULL).
+
+`litkb_work` (MCP) adds, beside its unchanged keys and four-state ladder: `files[].file_id`,
+`files[].readability` `{class, reason, evidence}`, `readability` (the work's rollup) and
+`quarantine` (every UNCLEARED `quarantine_payloads` row naming the work or one of its files; `null`
+on a database without migration 0030). `py -3.12 -m litkb readability [--workstream ID]
+[--all-workstreams] [--record]` writes the CSV below; `--record` (ingest login) records a
+`classifier` row for each bound file classed `bad-file`, `zero-content` or `probe-error`.
+
+## LITKB_READABILITY_&lt;date&gt;.csv (Reports/, GENERATED — the classifier's scored bed)
+
+Written create-only (never overwritten) by `py -3.12 -m litkb readability` from
+`readability.classify`. One row per acquired file (`row_kind = file`), per refused-admission
+staging payload (`staging`) and per main work (`work`). Columns, in order: `row_kind`, `key`,
+`work_id`, `file_id`, `rel_path`, `pages` (the probe's count, empty when it could not be read or the
+file is not a PDF), `image_pages` (how many image pages, decision D13), `class`
+(empty = UNCLASSIFIED), `reason` (the `extracted` reason; for a work, the reasons its files share),
+`evidence` (the rule's sentence), `quarantine_ids` (space-separated ids of the UNCLEARED
+`quarantine_payloads` rows naming the file),
+`current_run_id`, `blocks` (canonical blocks with text in the current run), `text_chars`, `scope`
+(`main`, or the workstream id a file was read from).

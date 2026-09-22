@@ -368,6 +368,11 @@ site("E3rec", "litkb/textnorm.py::jsonb_safe::jsonb_safe", "{a0}", tests=TESTS_P
 site("E3inv", "litkb/extract/inventory.py::probe_file::jsonb_safe", "{a0}",
      tests=["qc/test_litkb_inventory.py"],
      what="stage 0 passes a PDF's /Info dictionary on with its NULs (the inventory copy of the E3 guard)")
+# The fourth reached copy (S4 run 3, 2026-09-22): every quarantine row's detail (migration 0030). A
+# quarantined NAME or a served error page can carry a NUL; its own set carries the case
+# (test_a_detail_carrying_a_nul_is_still_recorded).
+site("S4Q1", "litkb/quarantine.py::_detail::jsonb_safe", "{a0}", tests=["qc/test_litkb_quarantine.py"],
+     what="a quarantine row's detail goes to jsonb with its NULs (the quarantine-state copy of the E3 guard)")
 site("S1", "litkb/admit/front.py::add_candidate::_jsonb", _JSONB, tests=TESTS_P1P2,
      what="add_candidate sends raw/authors/ids to jsonb unguarded")
 site("S2", "litkb/admit/front.py::_call_admit::_jsonb", _JSONB, tests=TESTS_P1P2,
@@ -2137,6 +2142,21 @@ SINK_ALLOW = {
         "passfile and Python never sees, and it never reads a token file. Same reason as "
         "extract/inventory.py::report_new above, and the same shape — the call site is written to be VISIBLE to "
         "this checker rather than hidden behind a bound stream."),
+    "litkb/commands.py::cmd_quarantine::print": (4,
+        "The quarantine backfill census (S4 run 3, 2026-09-22). Four calls: one line per payload, the counters "
+        "line, the by-reason line and the mode/root/table line. Every interpolated value is a fact about a FILE "
+        "under _quarantine/ or about this run — an action word from the fixed set record/already-recorded/"
+        "unmapped, a reason from litkb.quarantine.REASONS (or the label a filename carries), a relpath under the "
+        "literature root, an acquisition-attempt or file uuid, an integer count, and the root path. It prints no "
+        "sidecar body and no attempt detail. Its connections are the READER login and, with --apply only, the "
+        "INGEST login, whose password libpq reads from its passfile and Python never sees; it reads no token "
+        "file. Same reason and shape as cmd_reap above."),
+    "litkb/commands.py::cmd_readability::print": (2,
+        "The readability classifier's summary (S4 run 3, 2026-09-22). Two calls: the counters line (a counter "
+        "name from litkb.readability.counters and an int) and the csv/workstreams/cap/table/recorded line (the "
+        "CSV path this command wrote, two ints, a boolean and an int). No row text, block text or evidence "
+        "string reaches stdout — those go only to the CSV. Its connections are the READER login and, with "
+        "--record only, the INGEST login (password from its passfile, never seen by Python); no token file."),
     # Stage 3 (Docling), added at the P4 merge 2026-09-15. The docling branch forked before this
     # sink checker existed, so these two sites reach it for the first time here.
     "litkb/extract/colab_formula_worker.py::main::print": (6,

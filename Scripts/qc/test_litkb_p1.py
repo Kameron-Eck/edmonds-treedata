@@ -2117,7 +2117,11 @@ _EXPECTED_EXECUTE = {
                      # normaliser must behave identically whichever login asks
                      "check_ws_token", "norm_search_text", "any_term_query",
                      # canonical_newlines: `use.locate_quote` runs on the writer connection
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # record_quarantine: the workstream side of the quarantine state (migration 0030,
+                     # qc/test_litkb_quarantine.py). quarantine_payloads carries workstream_id and is
+                     # guarded; acquisition and hunt present the token through this function alone
+                     "record_quarantine"},
     # promotion_chains: the promoter's SECURITY DEFINER read of _ws_chains, so `promote prepare` can
     # write the promotion report (migration 0018, referee F-5). No agent role holds it.
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon",
@@ -2146,7 +2150,14 @@ _EXPECTED_EXECUTE = {
                      # writer of run_retirement_ops / run_retirements, which grant INSERT to
                      # nobody; SECURITY DEFINER, refusing a current, evidence-cited or
                      # not-superseded run. Retirement MARKS runs and deletes nothing.
-                     "retire_extraction_runs"},
+                     "retire_extraction_runs",
+                     # record_quarantine_system: the SYSTEM side of the quarantine state (migration
+                     # 0030) — the reaper, the readability classifier and the backfill, which hold no
+                     # workstream token. Its origins are closed to reaper/classifier/legacy-backfill
+                     "record_quarantine_system",
+                     # clear_quarantine_system: the classifier clears its OWN row on a bound file it
+                     # now classes extracted (0030, builder-B Q6); moved payloads are refused by it
+                     "clear_quarantine_system"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

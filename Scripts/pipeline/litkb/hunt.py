@@ -743,8 +743,6 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
     over the corpus and produced nothing for this equation", which is a different fact from the
     NULL that means no pass has looked at all.
     """
-    import dataclasses
-
     from litkb import ingest as ingest_login
     from litkb.extract import docling as D
     from litkb.extract import grobid as G
@@ -753,6 +751,11 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
     from litkb.extract import reconcile as R
 
     derived = derived or DERIVED
+    # the device and its interpreter as ONE pair (S4 run 3 decision D4): `cuda` now reaches the
+    # CUDA venv, and a pair that cannot run raises DeviceUnavailable before GROBID or Docling
+    # runs, instead of leaving a failed metrics row and a GROBID-only run behind it (S2's
+    # Maiti_2022)
+    device, docling_python = D.device_pair(device, docling_python)
     os.makedirs(derived, exist_ok=True)
     rec = I.probe_file(pdf_path)
     tei = None
@@ -785,22 +788,15 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
                           grobid_error=timing.get("grobid_error"))
 
     t0 = time.monotonic()
-    frames = I.page_frames(pdf_path)
-    canonical, dis, stats = R.reconcile(pdf_path, tei, doc, rec,
-                                        ocr_pages=rec.get("ocr_pages") or (), frames=frames)
-    # the word for an equation no formula pass produced a row for (migration 0022)
-    canonical = [dataclasses.replace(c, latex_status="unverified")
-                 if c.kind == "equation" and c.latex_status is None else c
-                 for c in canonical]
-    classes = {i + 1: d.get("scan", "unknown")
-               for i, d in enumerate(rec.get("page_detail") or [])}
-    cov = R.coverage(pdf_path, canonical, classes, frames=frames)
+    # the ONE reconcile recipe, shared with the extraction queue (extract.ingest.prepare): both
+    # write under the same run key, so they must not be two copies that can drift
+    prep = ing.prepare(pdf_path, tei, doc)
+    canonical, dis, stats, cov = (prep["canonical"], prep["disagreements"], prep["stats"],
+                                  prep["coverage"])
     timing["reconcile"] = round(time.monotonic() - t0, 2)
 
     t0 = time.monotonic()
-    pages = [{"page_no": p, "page_class": r["page_class"], "native_chars": r["chars"],
-              "covered_chars": r["covered"], "coverage_share": r["share"]}
-             for p, r in sorted(cov.items())]
+    pages = prep["pages"]
     if progress is not None:
         progress["stage"] = "ingest"
     conn = ingest_login.connect(db)

@@ -28,6 +28,10 @@ editable install is re-run from a tree that contains litkb:
                           (the staging census; --dry-run is the default and moves nothing)
     py -3.12 -m litkb runs retire [--apply --reason R] [--json] [--out PATH]
                           (superseded extraction runs: MARKED retired, never deleted; dry run default)
+    py -3.12 -m litkb [--db D] queue sweep [--workstream W] [--root R] [--no-ocr]
+    py -3.12 -m litkb [--db D] queue work [--max-jobs N] [--lease S] [--device auto|cuda|cpu] [--no-ocr]
+    py -3.12 -m litkb [--db D] queue status
+                          (the extraction queue, migration 0029; runs as litkb_ingest)
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -763,6 +767,41 @@ def cmd_readability(args, conn):
     return 0
 
 
+def cmd_queue(args, conn):
+    """The extraction queue (litkb/extract/queue.py; design §12.3-12.5, LITKB_WORKPLAN.md "### S4").
+
+    It opens its OWN ingest login(s): `sweep`, `work` and `status` run as litkb_ingest through the
+    queue's SECURITY DEFINER functions (migration 0029), and `work` opens a second connection for
+    the lease heartbeat. Against `litkb` that is `litkb.ingest.connect`; against a worker database
+    it is the test owner login + SET ROLE litkb_ingest (`references_ingest.connect`'s rule), which is
+    what lets the kill test run this very command as a subprocess.
+
+    Exit status: `work` exits 1 when any job failed or lost its lease; `sweep` and `status` exit 0.
+    """
+    from litkb.extract import queue as Q
+
+    if args.queue_cmd == "work":
+        report = Q.work(lambda: Q.connect(args.db), args.root, worker=args.worker,
+                        max_jobs=args.max_jobs, lease=args.lease or Q.LEASE_SECONDS,
+                        ocr=Q.ocr_enabled(args.no_ocr), device=args.device,
+                        python=args.docling_python, derived=args.derived,
+                        extractor=Q.seam_extractor(args.db), files=args.files)
+        _print(report)
+        bad = sum(n for k, n in report["outcomes"].items()
+                  if k.startswith("failed") or k == "lease-lost")
+        return 1 if bad else 0
+    k = Q.connect(args.db)
+    try:
+        if args.queue_cmd == "sweep":
+            _print(Q.sweep(k, args.root, workstreams=args.workstream or (),
+                           ocr=Q.ocr_enabled(args.no_ocr), files=args.files))
+        else:
+            _print(Q.status(k))
+    finally:
+        k.close()
+    return 0
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog="litkb", description="the literature knowledge base")
     ap.add_argument("--db", default=os.environ.get("LITKB_DB", "litkb"))
@@ -907,7 +946,10 @@ def build_parser():
                    help="stop at `held` (admitted, no PDF) without attempting acquisition; the "
                         "default SPENDS: open access, then the archive, then Sci-Hub "
                         "(decisions.yaml litkb-p0-foundation, SPEND RULE 2026-09-16)")
-    h.add_argument("--device", default="cuda", help="the docling device (cuda | cpu)")
+    h.add_argument("--device", default="cuda",
+                   help="the docling device (cuda | cpu | auto); chosen WITH its interpreter by "
+                        "litkb.extract.docling.device_pair, and a device the interpreter cannot "
+                        "serve is refused before anything runs")
     h.add_argument("--docling-python", dest="docling_python",
                    help="the extraction venv's python (default: litkb.extract.docling.VENV_PYTHON)")
     h.add_argument("--derived", help="where the tool artifacts go (default LITKB_HUNT_DERIVED)")
@@ -1014,6 +1056,35 @@ def build_parser():
     rd.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT, else the store's)")
     rd.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
                     help="the read login (default: LITKB_READER_ROLE, else litkb_reader)")
+    # ── the extraction queue, S4 run 3 (litkb/extract/queue.py, migration 0029) ─────────────
+    q = sub.add_parser("queue", help="the extraction queue: sweep (enqueue), work (claim, "
+                                     "extract, ingest under a lease), status")
+    qsub = q.add_subparsers(dest="queue_cmd", required=True)
+    qs = qsub.add_parser("sweep", help="enqueue one stage-5 job per active file with no current run "
+                                       "(page-range jobs for an OCR-routed file); the guards refuse "
+                                       "book, bad-file, probe-error, over-page-cap, scan-needs-ocr")
+    qs.add_argument("--workstream", action="append",
+                    help="also sweep this workstream's view (id or slug; repeatable)")
+    qw = qsub.add_parser("work", help="claim jobs one at a time until the queue is empty")
+    qw.add_argument("--max-jobs", dest="max_jobs", type=int, help="stop after this many claims")
+    qw.add_argument("--lease", type=int, default=None,
+                    help="lease seconds (default litkb.extract.queue.LEASE_SECONDS, measured); "
+                         "the heartbeat renews at half of it")
+    qw.add_argument("--worker", help="the worker id recorded on each lease (default host:pid)")
+    qw.add_argument("--device", default="auto", help="the docling device: auto | cuda | cpu, "
+                                                     "chosen WITH its interpreter (device_pair)")
+    qw.add_argument("--docling-python", dest="docling_python",
+                    help="the extraction venv's python (default: chosen by device_pair)")
+    qw.add_argument("--derived", help="the artifact root (default: references.DERIVED_ROOT)")
+    for sp in (qs, qw):
+        sp.add_argument("--root", help="the literature root rel_path is relative to (default "
+                                       "LITKB_LITERATURE_ROOT, else the store's)")
+        sp.add_argument("--no-ocr", dest="no_ocr", action="store_true",
+                        help="OCR off (also LITKB_QUEUE_NO_OCR=1): an OCR-routed file is refused "
+                             "`scan-needs-ocr` and never started")
+        sp.add_argument("--file", dest="files", action="append",
+                        help="only this file id (repeatable)")
+    qsub.add_parser("status", help="counts by state and refusal, and pages remaining")
     return ap
 
 
@@ -1089,7 +1160,10 @@ class _NoConn:
 #: `quarantine` / `readability` (S4): a READER for the census and, only with --apply / --record, the
 #: INGEST login for the rows — never the writer, whose record_quarantine needs a workstream token
 #: these system operations do not have.
-_OWN_LOGINS = ("promote", "hunt", "review-context", "reap", "runs", "quarantine", "readability")
+#: `queue`: it runs as litkb_ingest through migration 0029's functions and opens that login itself
+#: (plus a second connection for the heartbeat), like `hunt`'s ingest step.
+_OWN_LOGINS = ("promote", "hunt", "review-context", "reap", "runs", "quarantine",
+               "readability", "queue")
 
 
 def main(argv=None, connect=None):
@@ -1102,7 +1176,7 @@ def main(argv=None, connect=None):
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
                 "review-check": cmd_review_check, "review-context": cmd_review_context,
                 "promote": cmd_promote, "runs": cmd_runs, "quarantine": cmd_quarantine,
-                "readability": cmd_readability}[args.cmd](args, conn)
+                "readability": cmd_readability, "queue": cmd_queue}[args.cmd](args, conn)
     finally:
         conn.close()
 

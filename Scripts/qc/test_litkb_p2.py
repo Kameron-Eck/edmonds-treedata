@@ -269,6 +269,12 @@ _STORE_READ_ONLY = {
         "imports LITERATURE_ROOT to BUILD READ paths under the topic folders (<topic>/manifest.csv, "
         "<topic>/<stem>.pdf) for the legacy loader. It opens nothing for writing and _delete_offenders reports no "
         "call in it at all, so no delete path can hide there.",
+    "extract/queue.py":
+        "the extraction queue (S4 run 3, migration 0029). It imports LITERATURE_ROOT in literature_root() "
+        "to BUILD READ paths to bound PDFs (root / files.rel_path), which it opens only to hash and probe. "
+        "Everything it writes goes under derived_root() — references.DERIVED_ROOT, outside Literture\\ — "
+        "through write_atomic, whose one os.replace renames an artifact's own .partial onto that artifact; "
+        "it never names _litkb_staging or _quarantine and never moves, renames or deletes a corpus file.",
 }
 
 

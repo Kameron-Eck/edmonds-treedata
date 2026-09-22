@@ -137,6 +137,46 @@ def text_run_key(file_id):
                 params_hash=h, pipeline_version=TEXT_VERSION)
 
 
+def prepare(pdf_path, tei, doc):
+    """GROBID's TEI + Docling's document -> the rows :func:`ingest_file` writes. ONE recipe.
+
+    ``litkb hunt`` and the extraction queue (``litkb.extract.queue``) both ingest under
+    :func:`run_key` with :data:`CORPUS_PARAMS`, so they must reconcile a file the SAME way: a second
+    copy of these lines would let the two drift apart while their runs share one key, and a later
+    pass would find an ``ok`` run and trust it (CLAUDE.md §3.3, the reason CORPUS_PARAMS lives
+    here). Moved here verbatim from ``hunt.extract_and_ingest`` (S4 run 3).
+
+    -> {"record", "canonical", "disagreements", "stats", "coverage", "pages"}; ``pages`` is the
+    per-page list :func:`ingest_file` takes. No database, no GPU: this is also how a cold session
+    recomputes a run's blocks from its stored artifacts.
+
+    NO FORMULA LaTeX. Every equation block carries ``latex_status = 'unverified'`` — migration
+    0022's word for "the pass ran over the corpus and produced nothing for this equation", which is
+    a different fact from the NULL that means no pass has looked at all.
+    """
+    import dataclasses
+
+    from litkb.extract import inventory as I
+    from litkb.extract import reconcile as R
+
+    rec = I.probe_file(pdf_path)
+    frames = I.page_frames(pdf_path)
+    canonical, dis, stats = R.reconcile(pdf_path, tei, doc, rec,
+                                        ocr_pages=rec.get("ocr_pages") or (), frames=frames)
+    # the word for an equation no formula pass produced a row for (migration 0022)
+    canonical = [dataclasses.replace(c, latex_status="unverified")
+                 if c.kind == "equation" and c.latex_status is None else c
+                 for c in canonical]
+    classes = {i + 1: d.get("scan", "unknown")
+               for i, d in enumerate(rec.get("page_detail") or [])}
+    cov = R.coverage(pdf_path, canonical, classes, frames=frames)
+    pages = [{"page_no": p, "page_class": r["page_class"], "native_chars": r["chars"],
+              "covered_chars": r["covered"], "coverage_share": r["share"]}
+             for p, r in sorted(cov.items())]
+    return {"record": rec, "canonical": canonical, "disagreements": dis, "stats": stats,
+            "coverage": cov, "pages": pages}
+
+
 def already_ingested(conn, file_id, pipeline_version=None, params=None, key=None):
     """-> (run_id, status) for this file at this pipeline version, or (None, None).
 
@@ -165,7 +205,7 @@ def _clear_run(conn, run_id):
 
 def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
                 artifact_path=None, host="local", pipeline_version=None, params=None,
-                make_current=True, commit=True, _after_blocks=None):
+                make_current=True, commit=True, _after_blocks=None, before_commit=None):
     """-> {"run_id": …, "inserted": bool, "blocks": n, "disagreements": n}.
 
     ``pages`` is an iterable of dicts with page_no, width, height, rotation, text_layer_chars,
@@ -173,6 +213,13 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
 
     ``_after_blocks`` is a test hook: a callable invoked after the blocks are inserted and
     before the transaction commits, which is where the simulated mid-file kill is raised.
+
+    ``before_commit`` is the extraction queue's ownership gate (design §12.4: "the run row, its
+    text rows and `finish_job` commit together or not at all"): a callable ``(conn, run_id)``
+    invoked LAST, after the run is ok and the pointer has moved, inside this transaction. When it
+    raises, everything above rolls back — an expired worker whose lease was reassigned lands
+    nothing (litkb.extract.queue). It is not called when the run is already ``ok`` (nothing is
+    written then).
     """
     from psycopg.types.json import Jsonb
 
@@ -256,6 +303,8 @@ def ingest_file(conn, file_id, canonical, disagreements, stats, pages=(), *,
             current = conn.execute("SELECT current_run_id FROM litkb.files WHERE id = %s",
                                    (file_id,)).fetchone()[0]
             conn.execute("SELECT litkb.set_current_run(%s, %s, %s)", (file_id, current, run_id))
+        if before_commit is not None:
+            before_commit(conn, run_id)
         if commit:
             conn.commit()
         return {"run_id": run_id, "inserted": True, "blocks": len(ids),

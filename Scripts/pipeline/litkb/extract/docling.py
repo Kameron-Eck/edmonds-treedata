@@ -58,6 +58,15 @@ import time
 VENV_PYTHON = os.environ.get(
     "LITKB_EXTRACT_PYTHON", r"D:\edmonds-pipeline\venv-docling\Scripts\python.exe")
 
+#: The CUDA build of the same venv (same docling pins, torch cu130; S4 run 3 data survey D8). The
+#: bulk pass and the bench already name it explicitly; :func:`device_pair` is what makes every
+#: other caller reach it when it asks for `cuda`.
+CUDA_VENV_PYTHON = os.environ.get(
+    "LITKB_EXTRACT_CUDA_PYTHON", r"D:\edmonds-pipeline\venv-docling-cuda\Scripts\python.exe")
+
+#: The devices :func:`device_pair` accepts. `auto` means "cuda if the interpreter can serve it".
+DEVICES = ("auto", "cuda", "cpu")
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 WORKER = os.path.join(_HERE, "docling_worker.py")
 
@@ -80,6 +89,15 @@ class DoclingError(RuntimeError):
         super().__init__(message)
         self.metrics = metrics
         self.stderr = stderr
+
+
+class DeviceUnavailable(DoclingError):
+    """A device was asked for that the chosen interpreter cannot serve.
+
+    Raised by :func:`device_pair` BEFORE any conversion runs. The failure it replaces was silent:
+    `device=cuda` under the CPU venv (torch `+cpu`) reached docling, which wrote a FAILED metrics
+    row (`AcceleratorDeviceNotAvailableError`) and no artifact, and S2's Maiti_2022 was ingested
+    GROBID-only with nothing saying why (S4 run 3 code survey, headline 1)."""
 
 
 class NoTextBlocks(DoclingError):
@@ -930,6 +948,72 @@ def worker_available(python=None):
     return os.path.exists(python or VENV_PYTHON) and os.path.exists(WORKER)
 
 
+# ── the device and the interpreter, chosen as ONE pair ────────────────────────────────────
+#
+# S4 run 3 decision D4. Before this, the device came from a flag (hunt's default `cuda`) and the
+# interpreter from another (`VENV_PYTHON`, whose torch is `+cpu`), each defaulted independently,
+# and the pair they made could not run: docling raised inside the worker, the worker wrote a failed
+# metrics row, and the caller carried on with GROBID alone. Now one function picks both, asks the
+# INTERPRETER whether it can serve CUDA, and refuses a pair it cannot serve by name.
+
+_CUDA_ANSWERS = {}
+
+
+def interpreter_has_cuda(python):
+    """True when `python`'s torch reports `cuda.is_available()`. Asked once per interpreter path.
+
+    Asked in a subprocess — the extraction venv is never imported here (design M9). An interpreter
+    with no torch, or one that fails to start, answers False: it cannot serve CUDA."""
+    key = os.path.normcase(os.path.abspath(python))
+    if key not in _CUDA_ANSWERS:
+        import tempfile
+
+        try:
+            # -P and a neutral cwd: the secrets-shadow hazard of docling_worker's docstring applies
+            # to any `-c` run of the venv from the pipeline tree
+            proc = subprocess.run(
+                [python, "-P", "-c",
+                 "import sys, torch; sys.stdout.write('1' if torch.cuda.is_available() else '0')"],
+                capture_output=True, text=True, timeout=180, cwd=tempfile.gettempdir())
+            _CUDA_ANSWERS[key] = proc.returncode == 0 and proc.stdout.strip() == "1"
+        except (OSError, subprocess.TimeoutExpired):
+            _CUDA_ANSWERS[key] = False
+    return _CUDA_ANSWERS[key]
+
+
+def device_pair(device="auto", python=None):
+    """-> (device, python): the Docling device and the interpreter that runs it, chosen together.
+
+    * ``python`` given: that interpreter, and ``device`` is checked against it.
+    * ``python`` omitted: ``cpu`` runs :data:`VENV_PYTHON`; ``cuda`` and ``auto`` run
+      :data:`CUDA_VENV_PYTHON` when it exists, else :data:`VENV_PYTHON`.
+    * ``auto`` resolves to ``cuda`` when the interpreter can serve it, else ``cpu``.
+    * ``cuda`` on an interpreter that cannot serve it raises :class:`DeviceUnavailable` — FAIL
+      CLOSED, before anything is converted, never a failed metrics row.
+    """
+    if device not in DEVICES:
+        raise DoclingError(f"device must be one of {DEVICES}, not {device!r}")
+    if python is None:
+        python = VENV_PYTHON if device == "cpu" else (
+            CUDA_VENV_PYTHON if os.path.exists(CUDA_VENV_PYTHON) else VENV_PYTHON)
+    if not os.path.exists(python):
+        raise DoclingError(
+            f"the extraction venv python is not at {python}; docling is deliberately NOT "
+            f"installed in the project environment (design M9). Set LITKB_EXTRACT_PYTHON "
+            f"or LITKB_EXTRACT_CUDA_PYTHON.")
+    if device == "cpu":
+        return "cpu", python
+    cuda = interpreter_has_cuda(python)
+    # BEGIN guard: a cuda request the interpreter cannot serve fails closed
+    if device == "cuda" and not cuda:
+        raise DeviceUnavailable(
+            f"device=cuda was requested, but {python} cannot serve it (its torch reports "
+            f"cuda.is_available() False, or it has no torch). Use --device cpu, or point "
+            f"LITKB_EXTRACT_CUDA_PYTHON / --docling-python at a CUDA build.")
+    # END guard: a cuda request the interpreter cannot serve fails closed
+    return ("cuda" if cuda else "cpu"), python
+
+
 # ── the VRAM knobs, and which of them the measurement kept ────────────────────────────────
 #
 # THE PROBLEM. The 20 % headroom rule (design §12) means <= 3,277 MiB of the T2000's 4,096. P5's
@@ -1037,7 +1121,14 @@ def run(jobs, metrics_path, python=None, warmup=None, warmup_pages=1, ocr=False,
     if formula:
         cmd.append("--formula")
     before = _count_lines(metrics_path)
-    proc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=timeout)
+    try:
+        proc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        # A worker that outlives its timeout is a FAILED conversion, reported the way every other
+        # one is. Uncaught, the TimeoutExpired reached the caller as a bare traceback (hunt would
+        # crash; the queue would lose the reason). subprocess.run has already killed the child.
+        raise DoclingError(f"the docling worker ran past its {timeout} s timeout",
+                           stderr=(e.stderr or "")[-4000:] if isinstance(e.stderr, str) else "") from e
     rows = _read_metrics(metrics_path)[before:]
     try:
         os.remove(jobs_file)

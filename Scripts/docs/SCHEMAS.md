@@ -2315,3 +2315,109 @@ file is not a PDF), `image_pages` (how many image pages, decision D13), `class`
 `quarantine_payloads` rows naming the file),
 `current_run_id`, `blocks` (canonical blocks with text in the current run), `text_chars`, `scope`
 (`main`, or the workstream id a file was read from).
+
+## `litkb.extraction_jobs` + `litkb.extraction_job_leases` (litkb, migration 0029)
+
+The extraction queue of design §12.3-12.5 (LITKB_WORKPLAN.md "### S4"). One `extraction_jobs` row
+per (file, run key, page range); UNIQUE `NULLS NOT DISTINCT` on (file_id, stage, tool,
+tool_version, params_hash, pipeline_version, page_start, page_end), so a repeated sweep inserts
+nothing. `page_start`/`page_end` NULL = the whole file. The run key is stage 5's
+(`litkb.extract.ingest.run_key` with `CORPUS_PARAMS`) — the same key `litkb hunt` and the P5 bulk
+pass write, so an `ok` run either wrote marks the job `done` without running anything. `stage` is
+CHECKed to `5-reconcile` (S4 run 3 decision D7: stage 6 is not queued). No role holds a direct
+write on either table: the only writers are eight SECURITY DEFINER functions, EXECUTE to
+`litkb_ingest` alone and presenting no workstream token (files are main-owned):
+`enqueue_extraction`, `claim_jobs`, `renew_lease`, `record_artifact`, `stage_chunk`, `finish_job`,
+`fail_job`, `refuse_job` (pinned by `qc/test_litkb_p1.py`'s role matrix). SELECT for
+`litkb_reader`, `litkb_writer`, `litkb_ingest`. Driver: `pipeline/litkb/extract/queue.py`,
+`py -3.12 -m litkb queue sweep|work|status`; tests `qc/test_litkb_queue.py`.
+
+**`state`** (closed, `queue.STATES`): `queued` (claimable) · `leased` (a worker holds a live or
+expired lease) · `staged` (a page-range job whose artifact is recorded, waiting for the LAST range
+of its file to assemble all of them into ONE run) · `done` (`run_id` and `blocks_digest` set) ·
+`dead` (failed `litkb._job_max_attempts()` = 3 times, Kam's ruling litkb-extract-page-cap; the
+ceiling's one home is that SQL function) · `refused` (a guard's verdict; terminal, never claimed).
+`queued`, `leased` and `staged` are waiting states, not readability classes (S4 run 3 decision D8).
+
+**`refusal`** (closed, `queue.REFUSALS`; set iff `state = 'refused'`): `book` (the work's type is
+`book`, litkb-book-policy — decided in Python AND in SQL at enqueue and at claim) · `bad-file` (not
+on disk, no `%PDF-` in the first 1,024 bytes, or sha256 on disk ≠ `files.sha256`) · `probe-error`
+(`litkb.extract.probe.probe_pages` / `page_text_chars` raised) · `over-page-cap` (more than
+`probe.EXTRACT_PAGE_CAP` = 400 pages, litkb-extract-page-cap) · `scan-needs-ocr` (an OCR-routed file
+with OCR off, or the scan post-condition below). The same guard (`queue.guard_file`) runs at
+ENQUEUE and again at CLAIM. One re-open, by design: a whole-file `scan-needs-ocr` refusal made with
+OCR OFF gets its page-range jobs from the next sweep made with OCR ON.
+
+**Routing** (`route`: `native` · `ocr`). A file is OCR-routed when ANY page is an IMAGE page: zero
+native characters AND at least one raster image (S4 run 3 decision D13, `probe.image_pages`; its
+docstring holds the measured basis). The probe facts are stored on the job: `page_chars` (normalised
+native characters per page) and `image_pages` (their 1-based numbers). Never the page-1
+`file_versions.has_text_layer`. An OCR-routed file is split
+into ranges of at most `queue.OCR_CHUNK_PAGES` = 22 pages (S4 run 3 decision D3); a native file is
+one whole-file job. Docling emits ABSOLUTE page numbers for a page range (measured 2026-09-22), so
+assembly shifts no page; `queue.assemble` refuses ranges that do not tile 1..`pages` or that name a
+page outside themselves.
+
+**Scan post-condition.** An OCR-routed file whose image pages ALL come back with no text is
+refused `scan-needs-ocr`, never finished `ok` (`queue.ocr_read_nothing`,
+`queue.scan_postcondition`). An image page has no native text, so every character on it is OCR's.
+Stated limit: a native paper whose only image pages are pictures with no text at all is refused if
+OCR finds nothing on them.
+
+**The lease.** `claim_jobs(worker, n, lease_seconds, files uuid[] DEFAULT NULL)` takes queued jobs
+or jobs whose lease has EXPIRED, one row at a time under `FOR UPDATE SKIP LOCKED`, shortest file
+first; each claim increments `attempts` and `lease_seq`, and returns a TOKEN in plaintext once —
+only its sha256 is stored, in `extraction_job_lease_tokens` (job_id, seq, token_hash; written once,
+never changed), on which NO agent role holds any privilege (the rule `qc/test_litkb_p1.py` pins for
+every relation with a `token_hash` column). A job whose lease expired at every one of the
+ceiling's attempts is `dead` at the next claim. Every holder call presents the token; a token that
+is not the job's CURRENT lease, or whose lease a later claim superseded, is refused with
+**SQLSTATE `LKL01`** ("litkb lease refused"; `queue.LEASE_REFUSED`, raised in Python as
+`queue.LeaseLost`). `finish_job` is the ownership gate: the worker calls it INSIDE the ingest
+transaction (`extract.ingest.ingest_file(before_commit=…)`), so a refused finish rolls the blocks
+back. `queue.LEASE_SECONDS` = 375 (the longest single-job wall-clock in the existing metrics
+JSONL); the heartbeat renews at half of it. `metrics` (jsonb) holds the JOB's own measurements.
+
+**`extraction_job_leases`** — append-only history, one row per claim: `job_id`, `seq`, `owner`,
+`lease_seconds`, `claimed_at`, `expires_at` (moved by `renew_lease` while the lease is
+live), `superseded_at` (set when a later claim took an expired lease), `released_at` + `outcome`
+(`finished` · `staged` · `failed` · `dead` · `refused`, set by the holder's own call). A trigger
+refuses DELETE and every rewrite (identity columns never change; `superseded_at`, `released_at`,
+`outcome` are written once). A claim a worker never came back from reads `superseded_at` set,
+`released_at` NULL.
+
+**`blocks_digest`** (sha256 hex; `queue.blocks_digest` is its one implementation). Over every block
+of the run: the tuples `(page_no, reading_order, type, text)` sorted by (page_no, reading_order),
+each serialised as `json.dumps([page_no, reading_order, type, text or ""], ensure_ascii=False,
+separators=(",", ":"))`, joined by `\n`, UTF-8 encoded. Computed inside the ingest transaction from
+the rows just written, and again by a cold session from the database (`queue.run_rows`) or from
+the stored artifacts (`queue.reference_blocks`, which re-runs `extract.ingest.prepare` on the CPU).
+
+**Artifacts** go to `<references.DERIVED_ROOT>/<sha256>/5-reconcile/<tool>@<version>_<params_hash>/`
+as `<range>.s<lease_seq>.{docling.json,tei.xml,manifest.json}` (`<range>` is `whole` or
+`pNNN-NNN`), each written `.partial` + fsync + rename. `artifact_path` / `artifact_sha256` name the
+MANIFEST, which lists every tool output with its sha256; a reclaimed job whose manifest and files
+still hash as recorded is not extracted again.
+
+**`extraction_runs.metrics` keys the queue adds** (beside the reconciler's own): `seconds`
+(extraction + reconcile wall-clock), `pages`, `pages_per_s`, `peak_rss_bytes` (Docling's sampled
+peak), `peak_vram_mib` and `vram_baseline_mib` (whole-card `nvidia-smi` at 1 Hz; NULL off CUDA),
+`device`, `interpreter`, `ocr` (a JSON boolean on EVERY run the worker finishes — the key builder B's
+classifier reads for `extracted/ocr`), `ocr_engine`, `image_pages` (count),
+`ocr_chars_on_image_pages`, `grobid_error`, `reconcile_seconds`, `jobs` (one entry
+per job: `job_id`, `page_start`, `page_end`, `attempts`, …), `attempts` (their sum), `chunks` (the
+page ranges; `[]` for a whole-file job), `queue`.
+
+**The S4 counters** (`queue.counters`, each a plain function of a connection; a reader login
+suffices): `stale_leases` (jobs `leased` with `lease_expires_at` past) · `mutated_leases_accepted`
+(done jobs whose `finished` lease row was superseded or followed by a later claim) ·
+`duplicate_blocks` (in the current runs the queue finished: blocks beyond the first at one
+(page_no, reading_order); plus, for runs a RESUMED job — attempts > 1 — finished, blocks per
+(page_no, text) beyond the count the clean reference recomputed from the artifacts produces; a
+bare (page_no, text) repeat is not counted because correct current runs repeat a string on a page
+16,295 times live) · `resumed_content_hash_mismatches` (runs a resumed job finished whose committed
+digest differs from the database's blocks or from the reference; an unrecomputable reference
+counts) · `books_extracted` (files of a main `type='book'` work with any block) · `over_cap_bound`
+(files over `EXTRACT_PAGE_CAP` by `file_versions.pages` or `extraction_jobs.pages` with any block) ·
+`scans_ocr_unrouted` (OCR-routed files whose current run carries no text on any image page). Known-bads that move each
+one: `pipeline/litkb/extract/queue_fire.py`.

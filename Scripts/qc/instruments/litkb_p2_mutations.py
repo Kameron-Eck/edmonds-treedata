@@ -2296,6 +2296,15 @@ replace("S4R14", ACCEPT, '        reported["waits_on_migration"] = int(bool(miss
         '        reported["waits_on_migration"] = 0\n',
         "a database without 0029-0031 is reported as not waiting: the counters it could not read are "
         "printed `unread` under a line that says nothing is missing", tests=TESTS_ACC_READ)
+# builder-A round 4 (auditor-C re-check): the superseded clause, and the reserved workers
+M.append(dict(id="EQ42", kind="replace", file=f"{PKG}/extract/queue.py",
+              old='"WHERE j.state = \'done\' AND (l.superseded_at IS NOT NULL "',
+              new='"WHERE j.state = \'done\' AND (false "',
+              what="mutated_leases_accepted drops its superseded clause: a stale finish on a job that died at "
+                   "the attempt ceiling is not counted (auditor-C re-check)",
+              tests=["qc/test_litkb_queue.py", "-k", "n6_"]))
+block("S4R22", ACCEPT, "guard: --fire never resets a RESERVED worker database",
+      "`readability --fire` resets a RESERVED worker database (w10 was reset this way)", tests=TESTS_ACC_READ)
 # builder-A round 2 (auditor-C N1/N2 and DB SAFETY)
 block("S4R15", ACCEPT, "guard: --fire runs only on an explicitly named worker database",
       "`readability --fire` with LITKB_TEST_DB unset resets the SHARED litkb_test", tests=TESTS_ACC_READ)

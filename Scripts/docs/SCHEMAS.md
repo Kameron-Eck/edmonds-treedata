@@ -2489,8 +2489,8 @@ page ranges; `[]` for a whole-file job), `queue`.
 **The S4 counters** (`queue.counters`, each a plain function of a connection; a reader login
 suffices): `stale_leases` (jobs `leased` with `lease_expires_at` past) · `mutated_leases_accepted`
 (done jobs whose `finished` lease row was superseded or followed by a later claim; the
-superseded clause can add no job while the `extraction_jobs_refusal` CHECK stands, measured —
-round 2, auditor-C N6) ·
+superseded clause alone sees a job that died at the attempt ceiling and was then finished by its
+stale holder — load-bearing, with its own known-bad; auditor-C re-check) ·
 `duplicate_blocks` (in the current runs the queue finished: blocks beyond the first at one
 (page_no, reading_order); plus, for runs a RESUMED job — attempts > 1 — finished, blocks per
 (page_no, text) beyond the count the clean reference recomputed from the artifacts produces; a
@@ -2554,7 +2554,9 @@ credential; the counters those relations carry then print `unread`). Exit 0 only
 counter is 0 and `waits_on_migration` is 0.
 
 **`--fire <name>`** runs only when `LITKB_TEST_DB` is set EXPLICITLY to a worker database
-`litkb_test_w<N>` (unset, or the shared `litkb_test`, is refused — round 2, auditor-C DB SAFETY), and
+`litkb_test_w<N>` (unset, or the shared `litkb_test`, is refused — round 2, auditor-C DB SAFETY) that is
+NOT one of the RESERVED workers (read from LITKB_WORKPLAN.md's per-session protocol line by
+`litkb_acceptance.reserved_worker_dbs`, today w2, w8, w10, w11), and
 `readability_fire` itself REFUSES `litkb` (and any name outside `litkb_test*`) before a connection opens. It owns that database: the suite's advisory lock, reset, migrate — so the
 control reads 0 by construction, and all seven names can be fired back to back in one worker database
 (ruling Q3). The fixtures are also salted per call (`queue_fire._salt`), so the fires run back to back

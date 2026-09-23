@@ -2151,3 +2151,26 @@ def test_readability_fire_probe_grades_all_three_clauses(mod):
     assert not mod._probe_clause(dict(on, bound=1), 0, 0)
     assert not mod._probe_clause(dict(on, quarantine_reason=None), 0, 0)
     assert not mod._probe_clause(on, 0, 1)
+
+
+
+def test_the_reserved_worker_dbs_are_read_from_the_plan_line(mod, tmp_path):
+    assert set(mod.reserved_worker_dbs()) == {"litkb_test_w2", "litkb_test_w8", "litkb_test_w10", "litkb_test_w11"}
+    bad = tmp_path / "plan.md"
+    bad.write_text("no protocol line here", encoding="utf-8")
+    with pytest.raises(SystemExit, match="could not be read"):
+        mod.reserved_worker_dbs(bad)
+
+
+@pytest.mark.parametrize("db", ["litkb_test_w2", "litkb_test_w8", "litkb_test_w10", "litkb_test_w11"])
+def test_readability_fire_refuses_a_reserved_worker_db(mod, monkeypatch, db):
+    """auditor-C re-check: `--fire` reset the RESERVED w10. A reserved worker is refused before
+    anything runs; a free one (w7) is accepted."""
+    from litkb.db import connect as _c  # noqa: F401 — imported under the worker db, before the env changes
+
+    monkeypatch.setenv("LITKB_TEST_DB", db)
+    monkeypatch.setattr(mod, "readability_fire", lambda *a, **k: pytest.fail("the fire ran on a reserved db"))
+    with pytest.raises(SystemExit, match="RESERVED"):
+        mod.main(["readability", "--fire", "cap"])
+    monkeypatch.setenv("LITKB_TEST_DB", "litkb_test_w7")
+    assert mod._fire_db() == "litkb_test_w7"

@@ -2395,12 +2395,15 @@ when `queue.guard_file` now passes, each refused job whose range the file still 
 `queued` through `litkb.reopen_job(job, refusal, actor, why, route, pages, page_chars, image_pages)`
 — a compare-and-set on the refusal, refreshing the probe facts — and a range with no job at all (a
 whole-file refusal made with OCR off, the file now OCR-routed into ranges) is enqueued. A refusal
-the guard still gives is left alone. The database itself refuses (22023) to reopen a `result`
-refusal and a `book` refusal while the work is a book. `attempts` is kept. Every reopen appends one
+the guard still gives is left alone — that rule lives in the SWEEP (it re-runs `guard_file`), not in
+the database: a direct `reopen_job` call can reopen e.g. an over-page-cap job, and the claim-time
+re-check then refuses it again. The database itself refuses (22023) to reopen a `result` refusal and a
+`book` refusal while the work is a book. `attempts` is RESET to 0 (a new life; the prior count is the
+audit row's `prior_attempts`). Every reopen appends one
 row to **`litkb.extraction_job_reopens`** (append-only: trigger refuses UPDATE/DELETE; no agent role
 may INSERT; SELECT for reader, writer, ingest): `id`, `job_id`, `reopened_at`, `actor` (the
 caller's worker id, `sweep@<host>:<pid>` by default), `db_login` (`session_user`), `why`, `refusal`,
-`refusal_stage`, `refused_error` (the `last_error` the refusal carried).
+`refusal_stage`, `refused_error` (the `last_error` the refusal carried), `prior_attempts`.
 
 **`--redo`** (`litkb queue sweep --file <id> --redo`): the named files whose CURRENT run sits at an
 OLDER key than today's stage-5 run key are swept like files with no run (every guard applies); a file

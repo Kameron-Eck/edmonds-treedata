@@ -188,7 +188,9 @@ CREATE TABLE extraction_job_reopens (
   why           text NOT NULL CHECK (why <> ''),
   refusal       text NOT NULL,
   refusal_stage text NOT NULL,
-  refused_error text
+  refused_error text,
+  -- the job's `attempts` before the reopen set it back to 0 (a reopen is a new life, auditor-A R1)
+  prior_attempts integer NOT NULL CHECK (prior_attempts >= 0)
 );
 CREATE FUNCTION litkb._job_reopen_immutable() RETURNS trigger
 LANGUAGE plpgsql SET search_path = litkb, public, pg_temp AS $$
@@ -602,8 +604,13 @@ $$;
 -- `queued`, with the probe facts the caller just read, and one extraction_job_reopens row. A
 -- compare-and-set on the refusal: -> false, and nothing changes, when the job is not `refused` with
 -- exactly `p_refusal` (someone moved it first). The database refuses outright to reopen the two
--- refusals it can tell still hold. `attempts` is kept: a refusal is not a failed attempt, and the
--- count stays the record of how often the job was claimed.
+-- refusals it can tell still hold (a `result` refusal; a book while its work is a book). The
+-- GENERAL rule "a refusal that still holds is never reopened" lives in the CALLER, the sweep
+-- (`queue.sweep` re-runs `guard_file` first) — not here: a direct call can reopen, say, an
+-- over-page-cap job, and the claim-time re-check then refuses it again (auditor-A re-check).
+-- `attempts` is RESET to 0 (auditor-A R1): a reopen is a new life under a changed condition, and a
+-- job reopened at the ceiling would otherwise die at its next claim with a false cause ("lease
+-- expired on attempt 3 of 3") and a failed run. The prior count is kept in the audit row.
 CREATE FUNCTION litkb.reopen_job(p_job uuid, p_refusal text, p_actor text, p_why text,
                                  p_route text, p_pages integer, p_page_chars integer[],
                                  p_image_pages integer[])
@@ -631,13 +638,17 @@ BEGIN
       USING ERRCODE = '22023';
   END IF;
   -- END guard: a book is never reopened while its work is a book
-  INSERT INTO extraction_job_reopens (job_id, actor, why, refusal, refusal_stage, refused_error)
-  VALUES (p_job, p_actor, p_why, v_job.refusal, v_job.refusal_stage, v_job.last_error);
+  INSERT INTO extraction_job_reopens (job_id, actor, why, refusal, refusal_stage, refused_error,
+                                      prior_attempts)
+  VALUES (p_job, p_actor, p_why, v_job.refusal, v_job.refusal_stage, v_job.last_error, v_job.attempts);
   UPDATE extraction_jobs SET state = 'queued', refusal = NULL, refusal_stage = NULL,
          last_error = left('reopened (' || v_job.refusal || ' no longer holds): ' || p_why, 2000),
          finished_at = NULL, route = p_route, pages = p_pages, page_chars = p_page_chars,
          image_pages = p_image_pages
    WHERE id = p_job;
+  -- BEGIN guard: a reopened job starts a new life at 0 attempts
+  UPDATE extraction_jobs SET attempts = 0 WHERE id = p_job;
+  -- END guard: a reopened job starts a new life at 0 attempts
   RETURN true;
 END
 $$;

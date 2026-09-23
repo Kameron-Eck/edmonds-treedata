@@ -2213,6 +2213,18 @@ eq(replace, "EQ36", QPY, "ocr=run_ocr, formula=False, device=self.device, cwd=wo
 hu(replace, "EQ37", f"{PKG}/hunt.py", "        hold.close()\n", "        hold._stop()\n",
    "CALL SITE hunt: GROBID is stopped after the hunt whoever started it — the live stage-6 driver's "
    "service included (auditor-A HUNT)")
+eq(block, "EQ39", MIG29, "guard: a reopened job starts a new life at 0 attempts",
+   "a job reopened at the attempt ceiling dies at its next claim with a false cause (auditor-A R1)")
+eq(replace, "EQ40", QPY, "                self._grobid_up = bool(G.GrobidHold(wait=300).ensure())\n",
+   "                self._grobid_up = bool(G.start(wait=300, hold=True))\n",
+   "the queue worker takes GROBID through grobid.start again, which restarts a busy unit under its "
+   "owner (auditor-A R2)")
+M.append(dict(id="EQ41", kind="replace", file=f"{PKG}/extract/grobid.py",
+              old='    return r.returncode == 0, "alive after" in out\n',
+              new="    return r.returncode == 0, True\n",
+              what="launch_start claims ownership on any start, 'already alive' included, so a holder "
+                   "stops a GROBID it did not start (auditor-A R3)",
+              tests=["qc/test_litkb_grobid.py", "qc/test_litkb_references_stage.py", "qc/test_litkb_hunt.py"]))
 eq(block, "EQ38", QPY, "guard: a book in a manifest workstream counts as a book",
    "books_extracted reads main's works only: a book proposed in a manifest workstream extracts "
    "unseen (auditor-C N5)")

@@ -710,3 +710,58 @@ def test_enable_passes_a_within_budget_yaml_up_to_the_point_of_no_return():
     assert "no JDK 21 found" in r.stdout
     # and nothing of the throwaway tree ever reached the real unit
     assert FAKE_DIR not in _wsl("cat /etc/systemd/system/grobid.service 2>/dev/null").stdout
+
+
+
+# ── the ONE GROBID ownership rule (S4 run 3 round 3, auditor-A R2/R3) — fakes only, never the live service
+
+def test_r3_launch_start_claims_ownership_only_when_it_brought_the_service_up(monkeypatch):
+    """`launch_start` reads `grobid.sh start`'s own output: `alive after Ns` is THIS launch's service;
+    `already alive` is someone else's; a failed start is nobody's. The subprocess is faked."""
+    import subprocess as sp
+
+    monkeypatch.setattr(grobid, "hold_distro", lambda: None)
+    answers = {}
+    monkeypatch.setattr(grobid, "_manager", lambda action, timeout=1800: answers["r"])
+    answers["r"] = sp.CompletedProcess(["x"], 0, stdout="grobid: alive after 21s\n", stderr="")
+    assert grobid.launch_start() == (True, True)
+    answers["r"] = sp.CompletedProcess(["x"], 0, stdout="grobid: already alive\n", stderr="")
+    assert grobid.launch_start() == (True, False)
+    answers["r"] = sp.CompletedProcess(["x"], 1, stdout="", stderr="grobid: did not come up\n")
+    assert grobid.launch_start()[0] is False and grobid.launch_start()[1] is False
+    # and through the hold: a launch that found someone else's GROBID never stops it at close
+    answers["r"] = sp.CompletedProcess(["x"], 0, stdout="grobid: already alive\n", stderr="")
+    stops = []
+    h = grobid.GrobidHold(health=lambda url: True if stops is not None and answers.get("up") else False,
+                          unit_state=lambda: "inactive", stop=lambda: stops.append("stop"),
+                          hold=lambda: None, sleep=lambda s: answers.__setitem__("up", True), wait=2, poll=1)
+    h.ensure()
+    h.close()
+    assert h.started_here is False and stops == []
+
+
+def test_r2_the_queue_worker_ensures_grobid_through_the_hold_and_never_calls_start(monkeypatch):
+    """The queue worker must take GROBID through `GrobidHold` (a running unit someone else owns is
+    waited for, never restarted) — never through `grobid.start`, whose own re-probe restarts a busy
+    service — and it never closes the hold, so it stops nothing."""
+    from litkb.extract import queue as Q
+
+    calls = []
+
+    class FakeHold:
+        def __init__(self, **kw):
+            calls.append(("hold", kw.get("wait")))
+
+        def ensure(self):
+            calls.append("ensure")
+            return True
+
+        def close(self):
+            calls.append("close")
+
+    monkeypatch.setattr(grobid, "GrobidHold", FakeHold)
+    monkeypatch.setattr(grobid, "start", lambda *a, **k: calls.append("start") or True)
+    monkeypatch.setattr(grobid, "stop", lambda *a, **k: calls.append("stop"))
+    ext = Q.ToolExtractor("cpu", "python", ocr=True)
+    assert ext._ensure_grobid() is True and ext._ensure_grobid() is True
+    assert calls == [("hold", 300), "ensure"], calls

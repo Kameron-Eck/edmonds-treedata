@@ -1232,3 +1232,36 @@ def test_n6_a_lease_the_book_guard_cut_off_cannot_finish_even_with_the_gate_remo
         assert Q.mutated_leases_accepted(k) == before
     finally:
         k.close()
+
+
+
+@pg_only
+def test_r1_a_job_reopened_at_the_attempt_ceiling_starts_a_new_life(pg, root):
+    """auditor-A R1. A job whose leases expired twice and which was refused `bad-file` at its third
+    claim sits at the ceiling. When the bytes are right again, the sweep reopens it with `attempts`
+    back at 0 (the prior count in the audit row), and the next worker claims and EXTRACTS it —
+    without the reset it would die at that claim ("lease expired on attempt 3 of 3")."""
+    f, pdf = _file(pg, root, "ReopenAtCeiling", 2)
+    good = pdf.read_bytes()
+    _sweep(root, [f])
+    ceiling = pg.one("SELECT litkb._job_max_attempts()")[0]
+    k = _k()
+    try:
+        for i in range(ceiling - 1):
+            Q.claim(k, f"dies-{i}", 1, 1, [f])
+            time.sleep(1.2)
+        pdf.write_bytes(good + b"% changed on disk\n")
+        (c,) = Q.claim(k, "last", 1, 60, [f])
+        assert c.attempts == ceiling
+        assert Q.run_job(k, c, root=root, extractor=F.SyntheticExtractor(), derived=root / "_d",
+                         ocr=True) == "refused"
+    finally:
+        k.close()
+    assert _jobs(pg, f)[0][:3] == ("refused", "bad-file", ceiling)
+    pdf.write_bytes(good)
+    assert _sweep(root, [f], actor="test-r1")["reopened"] == 1
+    assert _jobs(pg, f)[0][:3] == ("queued", None, 0)
+    assert pg.one("SELECT o.prior_attempts FROM litkb.extraction_job_reopens o JOIN litkb.extraction_jobs j "
+                  "ON j.id = o.job_id WHERE j.file_id = %s", (f,)) == (ceiling,)
+    assert _work(root, [f])["outcomes"] == {"done": 1}
+    assert _jobs(pg, f)[0][:3] == ("done", None, 1)

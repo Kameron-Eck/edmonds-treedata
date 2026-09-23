@@ -13,6 +13,11 @@ r"""The acceptance instrument for the litkb work plan: a session's "done" is a C
         [--review <md> --codex-report <report.json>]
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py codex --review <md> --context <md> \
         --report <report.json> [--mutate N]
+    PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py readability --freeze \
+        --workstream <slug> [--workstream <slug> ...] --out <manifest.json>
+    PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py readability --manifest <manifest.json>
+    PYTHONUTF8=1 LITKB_TEST_DB=litkb_test_wN py -3.12 qc/instruments/litkb_acceptance.py readability \
+        --fire <kill|lease|cap|probe|scan|book|quarantine> [--manifest <manifest.json>]
 
 WHY THIS EXISTS. A multi-session plan whose sessions are graded by their own author's prose is
 not graded at all. Every subcommand here reads a document or a manifest FROZEN BEFORE the work,
@@ -28,8 +33,10 @@ SUBCOMMANDS THAT EXIST TODAY. `plan` (does the work plan still grade itself) and
 (did the worktree disposition actually happen), both landing with session S0; `scout` (did the
 discovery run actually discover), landing with S1; `codex` (did the adversarial read actually
 read every citation), landing between S1 and S2 with the Codex stage it grades; `first-work` (did
-ONE genuinely unknown work cross the whole loop unaided), landing with S2. `edges`, `readability`,
-`run`, `synthesis` and `soak` land with their own sessions and are deliberately absent until then
+ONE genuinely unknown work cross the whole loop unaided), landing with S2; `edges` (did every edge
+class end in the state the register adjudicated), landing with S3; `readability` (is everything
+acquired readable or classified, and do the (c) known-bads still fire), landing with S4. `run`,
+`synthesis` and `soak` land with their own sessions and are deliberately absent until then
 — an acceptance command that cannot fail is worse than no command. `guard-checkout` is not a
 session gate: it is the safety interlock the owner runs BEFORE removing any checkout. `preflight`
 is not one either: it is what a session runs before its FIRST hunt.
@@ -177,6 +184,23 @@ THE REPLAY IS THE KILL. A manifest frozen AFTER the work was admitted — the ba
 already holds it — scores `new_works = 0` and exits 1, which is the workplan's own (c) clause and
 the reason the freeze instant is a manifest field rather than a runtime `now()`.
 
+WHAT `readability` COUNTS (S4; docs/SCHEMAS.md "LITKB readability acceptance manifest" is the one
+home of each counter's definition). `--freeze` writes, BEFORE the drain: the database's own clock,
+the database's name AND oid, the repo head and whether the grading code is committed, both migration
+tips, the reader role, main plus the named workstreams (slug -> id), the code constants
+(`EXTRACT_PAGE_CAP`, `OCR_CHUNK_PAGES`, the lease seconds), the literature, quarantine and artifact
+roots, the BED (every active current file with no block, measured by the page probe), and a
+`manifest_sha256` over all of it. `--manifest` REFUSES a manifest edited after that (the hash), one
+frozen under other constants, one from another database (name or oid), and a workstream id that no
+longer names its slug — nothing is graded then. Otherwise it prints ONE line: the nine GATED counters
+in the plan's order (each imported from the module that owns it — this file re-implements none), then
+the REPORTED ones, and exits 0 only when every gated counter is 0 and `waits_on_migration` is 0. A
+database without 0029/0030/0031 WAITS: the counters those relations carry print `unread` and it exits
+1. `--fire <name>` re-runs one (c) known-bad on a WORKER database through builder A's and B's fire
+functions (it owns that database: suite lock, reset, migrate — and refuses `litkb`), prints the
+guard-ON control and the known-bad, and exits 0 only when the control reads 0 and the named counter
+moved to its known-bad value.
+
 The git queries are the two module-level functions `_worktree_list` and `_rev_parse`, injected
 into the checker so the tests can exercise parity without a second remote. The database read is
 the module-level `_hunt_request_rows`, injected the same way.
@@ -191,7 +215,8 @@ imported INSIDE the first-work functions. `codex` imports the `litkb` package to
 `review_check.citations`, because a second citation regex here would be a second grammar -- and
 imports it lazily for the same reason; it touches no database at all. `codex --mutate N` with no
 `--report` WRITES the mutated review beside the original and is the one subcommand that writes a
-file into a worktree. Nothing here ever writes to a database. It is not run on Colab, so it does not
+file into a worktree. Nothing here writes to a database except `readability --fire`, and that only to
+a WORKER database (`litkb_test*`; `litkb` is refused before a connection opens). It is not run on Colab, so it does not
 filter an injected `-f` argument (CLAUDE.md 3.10 applies to the Colab entry points).
 """
 import argparse
@@ -1828,6 +1853,457 @@ def _edges_freeze(args):
     return 0
 
 
+# ── readability: everything acquired is readable or classified (S4) ───────────────────────
+#
+# The plan's "### S4" (b) is a COMMAND and (c) is a set of known-bads a cold session can re-fire.
+# `--freeze` writes the manifest BEFORE the drain; `--manifest` prints one line of gated then
+# reported counters and exits 0 only when every gated counter is 0 and nothing waits on a migration;
+# `--fire <name>` runs one (c) known-bad on a WORKER database and says whether it FIRED.
+#
+# NOTHING HERE RE-IMPLEMENTS A COUNTER. Each is the function that owns it, imported:
+# `litkb.readability.classify` (unclassified_acquired_files and the per-class counts, with the queue
+# step), `litkb.extract.queue` (stale_leases, duplicate_blocks, resumed_content_hash_mismatches,
+# books_extracted, over_cap_bound, scans_ocr_unrouted, mutated_leases_accepted),
+# `litkb.quarantine.quarantined_without_db_state`, `litkb.extract.references_coverage`
+# (files_without_reference_stage, reference_anchor_rate) and `litkb.ops.retire` (the two superseded-run
+# counts). A second copy of any of them here would be a second definition of the thing graded.
+
+READABILITY_MANIFEST_KIND = "litkb-readability"
+
+#: The GATED counters, in the plan's own order ("### S4" (b)). Every one must read 0.
+READABILITY_GATED = ("unclassified_acquired_files", "stale_leases", "duplicate_blocks",
+                     "resumed_content_hash_mismatches", "books_extracted",
+                     "quarantined_without_db_state", "over_cap_bound", "scans_ocr_unrouted",
+                     "mutated_leases_accepted")
+
+#: The relations the gated counters read, and the migration that creates each. A database missing
+#: any of them WAITS ON MIGRATION: its counters cannot be read, and the command exits 1 saying so.
+#: This is "the db tip is below 31" measured by the READER itself (`to_regclass`), because the tip
+#: (`litkb_meta.schema_migrations`) is readable by the owner login alone.
+READABILITY_RELATIONS = (("litkb.extraction_jobs", 29), ("litkb.quarantine_payloads", 30),
+                         ("litkb.run_retirements", 31))
+
+#: Which gated counters each migration's relation is the substrate of (the rest read without it).
+_NEEDS = {29: ("stale_leases", "duplicate_blocks", "resumed_content_hash_mismatches",
+               "books_extracted", "over_cap_bound", "scans_ocr_unrouted", "mutated_leases_accepted"),
+          30: ("quarantined_without_db_state",)}
+
+#: The (c) known-bads `--fire` re-runs, by name (plan "### S4" (c), in its order).
+FIRE_NAMES = ("kill", "lease", "cap", "probe", "scan", "book", "quarantine")
+
+#: `--fire` writes, resets and migrates its database: it refuses this name (the `--replay` rule).
+FORBIDDEN_FIRE_DB = "litkb"
+
+#: The manifest fields that are the CODE's constants at freeze. They are recorded for the reader
+#: and REFUSED at grading when the code now says otherwise: a manifest frozen under a different page
+#: cap grades a different question (the scout's rule — the vocabulary is the module's, never the
+#: manifest's). The counters always use the module constants.
+def _readability_constants():
+    from litkb.extract import probe as P
+    from litkb.extract import queue as Q
+
+    return {"extract_page_cap": P.EXTRACT_PAGE_CAP, "ocr_chunk_pages": Q.OCR_CHUNK_PAGES,
+            "lease_seconds": Q.LEASE_SECONDS}
+
+
+def _canonical_sha(manifest):
+    """sha256 of the manifest's CONTENT without its own `manifest_sha256`: sorted keys, compact
+    separators, UTF-8. What `--manifest` recomputes to refuse a field edited after the freeze."""
+    body = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
+
+
+def _code_committed(repo):
+    """True when the grading code (the litkb package and this instrument) has no uncommitted change
+    at freeze — `git status --porcelain` over those paths is empty; False when it has one; None when
+    git cannot say. `repo_head` names the commit; this says whether the code that ran IS that commit
+    (the `fixture_committed` lesson of S3)."""
+    try:
+        r = subprocess.run(["git", "-C", str(repo), "status", "--porcelain", "--",
+                            "Scripts/pipeline/litkb", "Scripts/qc/instruments/litkb_acceptance.py"],
+                           capture_output=True, text=True)
+    except OSError:
+        return None
+    if r.returncode != 0:
+        return None
+    return r.stdout.strip() == ""
+
+
+def _db_identity(conn):
+    """(name, oid) of the database this connection is on. The oid is what a DROP + CREATE of a
+    database with the same name changes, so a manifest names ONE database, not a name."""
+    name, oid = conn.execute("SELECT current_database(), (SELECT oid FROM pg_database "
+                             "WHERE datname = current_database())").fetchone()
+    return name, int(oid)
+
+
+def _missing_relations(conn):
+    """[(relation, migration)] the gated counters need that this database does not have."""
+    return [(rel, mig) for rel, mig in READABILITY_RELATIONS
+            if not conn.execute("SELECT to_regclass(%s) IS NOT NULL", (rel,)).fetchone()[0]]
+
+
+#: THE BED: every current, active file version in main and in each named workstream holding no
+#: block at all — the plan's own "Test-set commands" query, widened to the manifest's workstreams.
+_BED_SQL = """
+SELECT f.file_id::text, f.rel_path, f.sha256, 'main' AS scope
+  FROM litkb.main_files f
+ WHERE f.status = 'active' AND NOT EXISTS (SELECT 1 FROM litkb.blocks b WHERE b.file_id = f.file_id)
+UNION ALL
+SELECT f.file_id::text, f.rel_path, f.sha256, f.view_workstream_id::text
+  FROM litkb.ws_files f
+ WHERE f.view_workstream_id = ANY(%(ws)s::uuid[]) AND f.status = 'active'
+   AND NOT EXISTS (SELECT 1 FROM litkb.blocks b WHERE b.file_id = f.file_id)
+ ORDER BY 2, 1"""
+
+
+def _bed(conn, ws_ids, root):
+    """[{file_id, rel_path, sha256, scope, pages, image_pages, probe_error}] — one row per file (main's
+    scope wins). pages / image_pages are measured NOW from the bytes (`litkb.extract.probe`), never the
+    stored page count or page-1 flag; a probe that raises is recorded as its error, never guessed."""
+    from litkb.extract import probe as P
+
+    out, seen = [], set()
+    for fid, rel, sha, scope in conn.execute(_BED_SQL, {"ws": list(ws_ids)}).fetchall():
+        if fid in seen:
+            continue
+        seen.add(fid)
+        row = {"file_id": fid, "rel_path": rel, "sha256": sha, "scope": scope,
+               "pages": None, "image_pages": None, "probe_error": None}
+        p = Path(root) / str(rel)
+        if not p.is_file():
+            row["probe_error"] = "not on disk"
+        else:
+            try:
+                row["pages"] = P.probe_pages(p)
+                if row["pages"] <= P.EXTRACT_PAGE_CAP:
+                    row["image_pages"] = P.image_page_numbers(p)
+            except P.ProbeError as e:
+                row["probe_error"] = str(e)[:300]
+        out.append(row)
+    return out
+
+
+def _readability_freeze(args):
+    if not args.out or not args.workstream:
+        print("readability --freeze needs --workstream <slug> (repeatable) and --out", file=sys.stderr)
+        return 2
+    args.db = args.db or "litkb"
+    from litkb.acquire.store import LITERATURE_ROOT
+    from litkb.extract import queue as Q
+    from litkb.extract import references as REF
+    from litkb.quarantine import QUARANTINE_DIR
+
+    repo = Path(args.repo or _repo_root())
+    lit = Path(args.root or os.environ.get("LITKB_LITERATURE_ROOT") or LITERATURE_ROOT)
+    workstreams = []
+    for slug in args.workstream:
+        wid = resolve_workstream(args.db, args.role, slug)
+        if wid is None:
+            print(f"readability --freeze: no open workstream {slug!r} on {args.db}", file=sys.stderr)
+            return 2
+        workstreams.append({"slug": slug, "id": wid})
+    conn = _connect(args.db, args.role, autocommit=False)
+    try:
+        from psycopg import IsolationLevel
+
+        conn.isolation_level = IsolationLevel.REPEATABLE_READ
+        with conn.transaction():
+            # THE FREEZE INSTANT IS THE DATABASE'S (first-work's rule), and the bed is read in the
+            # same snapshot, so "the bed at freeze" is one fact about one moment
+            frozen_at = conn.execute("SELECT now()").fetchone()[0]
+            name, oid = _db_identity(conn)
+            bed = _bed(conn, [w["id"] for w in workstreams], lit)
+    finally:
+        conn.close()
+    db_tip, db_tip_note = db_migration_tip(args.db, args.passfile)
+    manifest = {
+        "kind": READABILITY_MANIFEST_KIND,
+        "frozen_at": frozen_at.astimezone(dt.timezone.utc).isoformat(),
+        "frozen_at_source": "db",
+        "repo": str(repo),
+        "repo_head": _repo_head(repo),
+        "code_committed": _code_committed(repo),
+        "db": args.db,
+        "db_name": name,
+        "db_oid": oid,
+        "reader_role": args.role,
+        "repo_migration_tip": repo_migration_tip(),
+        "db_migration_tip": db_tip,
+        "db_migration_tip_note": db_tip_note,
+        "required_migration": READABILITY_MIGRATION,
+        # main is ALWAYS in the universe; these are the workstreams graded beside it (the plan:
+        # "all workstreams in the manifest, not main only")
+        "workstreams": [{"slug": "main", "id": None}] + workstreams,
+        "literature_root": str(lit),
+        "quarantine_root": str(lit / QUARANTINE_DIR),
+        # the roots the digest counters read (builder-A Q3): the literature root (the PDFs the clean
+        # reference is recomputed from) and the artifact root (job artifacts are recorded by absolute
+        # path in extraction_jobs.artifact_path; the root is recorded so a cold reader can find them)
+        "derived_root": str(Q.derived_root()),
+        "references_derived_root": str(REF.DERIVED_ROOT),
+        **_readability_constants(),
+        "gated": list(READABILITY_GATED),
+        "bed": bed,
+    }
+    manifest["manifest_sha256"] = _canonical_sha(manifest)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(manifest, indent=1, default=str), encoding="utf-8")
+    print(f"frozen {out} db={name} workstreams={len(workstreams)} bed={len(bed)} "
+          f"head={manifest['repo_head'][:12]} code_committed={manifest['code_committed']} "
+          f"repo_tip={manifest['repo_migration_tip']} db_tip={db_tip}")
+    return 0
+
+
+#: The migration whose relations the gated counters need (the highest in READABILITY_RELATIONS).
+READABILITY_MIGRATION = max(m for _r, m in READABILITY_RELATIONS)
+
+
+def load_readability_manifest(path):
+    """The manifest, REFUSED (SystemExit, nothing graded) when its kind is wrong, a field was edited
+    after the freeze (`manifest_sha256` no longer matches its content) or a code constant it recorded
+    is not the code's now."""
+    manifest = json.loads(read_text(path))
+    # BEGIN guard: a readability manifest edited after its freeze is refused
+    if manifest.get("kind") != READABILITY_MANIFEST_KIND:
+        raise SystemExit(f"litkb_acceptance readability: {path} is not a {READABILITY_MANIFEST_KIND!r} "
+                         f"manifest (kind {manifest.get('kind')!r}). Nothing was graded.")
+    if manifest.get("manifest_sha256") != _canonical_sha(manifest):
+        raise SystemExit(f"litkb_acceptance readability: {path} was edited after its freeze "
+                         "(manifest_sha256 does not match its content). Re-freeze it. Nothing was graded.")
+    # END guard: a readability manifest edited after its freeze is refused
+    now = _readability_constants()
+    changed = {k: (manifest.get(k), v) for k, v in now.items() if manifest.get(k) != v}
+    if changed:
+        raise SystemExit("litkb_acceptance readability: the code's constants are not the manifest's "
+                         f"({changed}); a manifest frozen under other constants grades a different "
+                         "question. Re-freeze it. Nothing was graded.")
+    return manifest
+
+
+def _check_identity(conn, manifest):
+    """Refuse (SystemExit) a manifest frozen on another database, or on a database since recreated
+    under the same name, and a workstream whose id no longer names its slug."""
+    name, oid = _db_identity(conn)
+    # BEGIN guard: a manifest is graded only on the database it was frozen on
+    if (name, oid) != (manifest.get("db_name"), manifest.get("db_oid")):
+        raise SystemExit(f"litkb_acceptance readability: the manifest was frozen on database "
+                         f"{manifest.get('db_name')!r} (oid {manifest.get('db_oid')}); this is {name!r} "
+                         f"(oid {oid}). Nothing was graded.")
+    # END guard: a manifest is graded only on the database it was frozen on
+    for w in manifest.get("workstreams") or []:
+        if w.get("id") is None:
+            continue
+        row = conn.execute("SELECT slug FROM litkb.workstreams WHERE id = %s", (w["id"],)).fetchone()
+        if row is None or row[0] != w["slug"]:
+            raise SystemExit(f"litkb_acceptance readability: workstream id {w['id']} does not name "
+                             f"{w['slug']!r} on this database. Nothing was graded.")
+
+
+def check_readability(manifest, *, conn=None, db=None):
+    """(gated {name: int | None}, reported {name: value}, [offence lines]). None = UNREAD: the
+    relation the counter reads is absent (`waits_on_migration`). `conn` is injected by the tests."""
+    from litkb import quarantine as Qr
+    from litkb import readability as R
+    from litkb.extract import queue as Q
+    from litkb.extract import references_coverage as RC
+    from litkb.ops import retire as RT
+
+    own = conn is None
+    conn = conn or _connect(db or manifest["db"], manifest["reader_role"])
+    offences = []
+    try:
+        _check_identity(conn, manifest)
+        root = Path(manifest["literature_root"])
+        ws_ids = [w["id"] for w in manifest.get("workstreams") or [] if w.get("id")]
+        missing = _missing_relations(conn)
+        absent = {m for _r, m in missing}
+        for rel, mig in missing:
+            offences.append(f"waits on migration {mig:04d}: {rel} is absent, so the counters that read it "
+                            "cannot be read")
+        unread = {c for m in absent for c in _NEEDS.get(m, ())}
+
+        gated = dict.fromkeys(READABILITY_GATED)
+        res = R.classify(conn, ws_ids, root=root)
+        gated["unclassified_acquired_files"] = res["counters"]["unclassified_acquired_files"]
+        if "quarantined_without_db_state" not in unread:
+            n, paths = Qr.quarantined_without_db_state(conn, root=root)
+            gated["quarantined_without_db_state"] = n
+            offences += [f"quarantined without a database row: {p}" for p in paths[:20]]
+        if 29 not in absent:
+            for name, value in Q.counters(conn, root).items():
+                gated[name] = value
+        offences += [f"unclassified: {r['rel_path']} ({r['evidence'][:160]})" for r in res["rows"]
+                     if r["row_kind"] in ("file", "staging") and r["class"] is None][:50]
+
+        reported = {}
+        rc = RC.reference_counters(conn)
+        reported["files_without_reference_stage"] = rc["files_without_reference_stage_ratio"]
+        reported["reference_anchor_rate"] = rc["reference_anchor_rate"]
+        for k, v in res["counters"].items():
+            if k != "unclassified_acquired_files":
+                reported[k] = v
+        if 31 not in absent:
+            reported["superseded_runs_unretired"] = RT.superseded_runs_unretired(conn)
+            reported["superseded_runs_held_by_evidence"] = RT.superseded_runs_held_by_evidence(conn)["count"]
+        else:
+            reported["superseded_runs_unretired"] = reported["superseded_runs_held_by_evidence"] = None
+        bed = {b["file_id"] for b in manifest.get("bed") or []}
+        still = {r[0] for r in conn.execute(
+            "SELECT f.id::text FROM litkb.files f WHERE f.id = ANY(%s::uuid[]) AND NOT EXISTS "
+            "(SELECT 1 FROM litkb.blocks b WHERE b.file_id = f.id)", (list(bed),)).fetchall()}
+        reported["bed_files"] = len(bed)
+        reported["bed_without_blocks"] = len(still)
+        reported["waits_on_migration"] = int(bool(missing))
+    finally:
+        if own:
+            conn.close()
+    return gated, reported, offences
+
+
+def readability_ok(gated, reported):
+    """0 on every gated counter, none UNREAD, and nothing waiting on a migration."""
+    return (all(v == 0 for v in gated.values()) and reported.get("waits_on_migration") == 0)
+
+
+def _fmt(v):
+    if v is None:
+        return "unread"
+    if isinstance(v, tuple):
+        return f"{v[0]}/{v[1]}"
+    return str(v)
+
+
+def readability_line(gated, reported):
+    """ONE line: the gated counters in the plan's order, then the reported ones."""
+    return " ".join(f"{k}={_fmt(v)}" for k, v in (*gated.items(), *reported.items()))
+
+
+def _fire_db():
+    return os.environ.get("LITKB_TEST_DB") or "litkb_test"
+
+
+def _counter_arms(out, counter):
+    """(baseline, control, known-bad) of one queue_fire result dict."""
+    base = out["baseline"][counter]
+    return base, out["guarded"][counter], out["mutated"][counter]
+
+
+def readability_fire(name, *, db, workdir, conn=None):
+    """Run ONE (c) known-bad on a worker database. -> {"name", "lines": [...], "fired": bool}.
+
+    `conn` (the tests pass their fixture's) is the worker database's OWNER login and is used as is;
+    without it this function OWNS the database: it takes the suite's advisory lock (so it can never
+    run under a pytest session on the same database), resets and migrates it, and the control then
+    reads 0 by construction. With a shared connection the verdict reads DELTAS from the fire's own
+    baseline, which on a fresh database are the absolute values."""
+    try:
+        from litkb.db import connect as c
+    except RuntimeError as e:     # connect.py itself refuses, at import, an LITKB_TEST_DB outside litkb_test*
+        raise SystemExit(f"litkb_acceptance readability --fire refuses {db!r}: {e}") from e
+
+    # BEGIN guard: --fire refuses the live database before it opens a connection
+    if str(db).strip().lower() == FORBIDDEN_FIRE_DB or not c.is_test_db(db):
+        raise SystemExit(f"litkb_acceptance readability --fire writes, resets and migrates its database: it "
+                         f"refuses {db!r}. Set LITKB_TEST_DB to a worker database (litkb_test*).")
+    # END guard: --fire refuses the live database before it opens a connection
+    if name not in FIRE_NAMES:
+        raise SystemExit(f"readability --fire: unknown known-bad {name!r} (one of {', '.join(FIRE_NAMES)})")
+    from litkb import quarantine as Qr
+    from litkb import readability as R
+    from litkb.db import migrate
+    from litkb.extract import queue_fire as F
+
+    own = conn is None
+    lock = _edge_run()._SUITE_LOCK
+    if own:
+        conn = c.connect(db, "litkb_test", autocommit=True)
+        conn.execute("SELECT pg_advisory_lock(%s)", (lock,))
+        migrate.reset(conn)
+        migrate.apply(conn)
+    work = Path(workdir)
+    lines, fired = [], False
+    try:
+        if name in ("cap", "book", "scan", "lease"):
+            fn, counter = {"cap": (F.fire_cap, "over_cap_bound"), "book": (F.fire_book, "books_extracted"),
+                           "scan": (F.fire_scan, "scans_ocr_unrouted"),
+                           "lease": (F.fire_lease, "mutated_leases_accepted")}[name]
+            out = fn(conn, work)
+            base, control, bad = _counter_arms(out, counter)
+            lines.append(f"fire={name} arm=control {counter}={control} baseline={base} "
+                         f"blocks={out['guarded'].get('blocks')}")
+            lines.append(f"fire={name} arm=known-bad {counter}={bad} baseline={base} "
+                         f"blocks={out['mutated'].get('blocks')}")
+            fired = (control - base == 0) and (bad - base == 1)
+        elif name == "kill":
+            pdfs = [F.constructed_pdf(work / "Validation" / f"Kill_{i}.pdf", 2 + i, note=f"readability fire {i}")
+                    for i in range(3)]
+            out = F.fire_kill(conn, work, pdfs, synthetic_delay=4, lease=6, timeout=600,
+                              reference=F.synthetic_reference)
+            base, after = out["baseline"], out["counters"]
+            stale = out["before_rerun"]["stale_leases_after_expiry"]
+            equal = all(d["equal"] for d in out["digests"])
+            resumed = any(j[2] > 1 for js in out["jobs"] for j in js)
+            lines.append("fire=kill arm=control " + " ".join(f"{k}={v}" for k, v in base.items()))
+            lines.append(f"fire=kill arm=killed state={out['state']} killed_after_s={out['killed_after_s']} "
+                         f"stale_leases={stale} (baseline {base['stale_leases']})")
+            lines.append("fire=kill arm=resumed " + " ".join(f"{k}={v}" for k, v in after.items())
+                         + f" digests_equal={int(equal)} resumed_jobs={int(resumed)} rerun_exit={out['rerun_exit']}")
+            fired = (out["state"] == "killed" and stale - base["stale_leases"] == 1 and equal and resumed
+                     and out["rerun_exit"] == 0 and all(after[k] == base[k] for k in after))
+        elif name == "probe":
+            on = R.fire_probe(db, root=work / "guard_on", guard=True)
+            off = R.fire_probe(db, root=work / "guard_off", guard=False)
+            lines.append(f"fire=probe arm=control probe_refused={on['probe_refused']} bound={on['bound']} "
+                         f"status={on['status']}")
+            lines.append(f"fire=probe arm=known-bad bound={off['bound']} bound_pages_null={off['bound_pages_null']} "
+                         f"status={off['status']}")
+            fired = on["probe_refused"] == 1 and on["bound"] == 0 and off["bound"] == 1
+        else:  # quarantine
+            out = Qr.fire_quarantine(conn, root=work)
+            lines.append(f"fire=quarantine arm=control quarantined_without_db_state={out['before']}")
+            lines.append(f"fire=quarantine arm=known-bad quarantined_without_db_state="
+                         f"{out['quarantined_without_db_state']} planted={out['planted']}")
+            fired = out["before"] == 0 and out["quarantined_without_db_state"] == 1
+    finally:
+        if own:
+            try:
+                conn.execute("SELECT pg_advisory_unlock(%s)", (lock,))
+            except Exception:               # noqa: BLE001 — a closed connection unlocks itself
+                pass
+            conn.close()
+    lines.append(f"fire={name} {'FIRED' if fired else 'DID NOT FIRE'}")
+    return {"name": name, "lines": lines, "fired": fired}
+
+
+def cmd_readability(args):
+    if args.fire:
+        db = _fire_db()
+        if args.manifest:
+            m = load_readability_manifest(args.manifest)
+            print(f"manifest {args.manifest} frozen_at={m['frozen_at']} db={m['db']} (graded constants match)")
+        import tempfile
+
+        with tempfile.TemporaryDirectory(prefix="litkb-readability-fire-", ignore_cleanup_errors=True) as tmp:
+            out = readability_fire(args.fire, db=db, workdir=tmp)
+        for line in out["lines"]:
+            print(line)
+        return 0 if out["fired"] else 1
+    if args.freeze:
+        return _readability_freeze(args)
+    if not args.manifest:
+        print("litkb_acceptance readability needs --manifest (or --freeze, or --fire)", file=sys.stderr)
+        return 2
+    manifest = load_readability_manifest(args.manifest)
+    gated, reported, offences = check_readability(manifest, db=args.db)
+    for line in offences:
+        print(line, file=sys.stderr)
+    print(readability_line(gated, reported))
+    return 0 if readability_ok(gated, reported) else 1
+
+
 # ── cli ───────────────────────────────────────────────────────────────────────────────────
 
 def build_parser():
@@ -1909,6 +2385,25 @@ def build_parser():
     e.add_argument("--worktree", help="the worktree the run and the driver use")
     e.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
     e.set_defaults(func=cmd_edges)
+
+    r = sub.add_parser("readability",
+                       help="is everything acquired readable or classified (S4): freeze, grade, fire")
+    r.add_argument("--freeze", action="store_true",
+                   help="write the manifest BEFORE the drain instead of grading one")
+    r.add_argument("--manifest", help="the manifest frozen before the drain (grade mode; with --fire, "
+                                      "checked and named, not graded)")
+    r.add_argument("--fire", choices=FIRE_NAMES,
+                   help="run one (c) known-bad on LITKB_TEST_DB (never litkb) and say whether it FIRED")
+    r.add_argument("--workstream", action="append",
+                   help="a workstream slug graded beside main (freeze; repeatable)")
+    r.add_argument("--out", help="where to write the frozen manifest (freeze)")
+    r.add_argument("--root", help="the literature root (freeze; default: LITKB_LITERATURE_ROOT or the store's)")
+    r.add_argument("--db", default=None,
+                   help="the database (freeze: default litkb; grade: default the manifest's own)")
+    r.add_argument("--role", default="litkb_reader", help="read role (freeze; default: %(default)s)")
+    r.add_argument("--repo", help="repository root (default: this instrument's own)")
+    r.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
+    r.set_defaults(func=cmd_readability)
 
     c = sub.add_parser("codex", help="did the adversarial read actually read every citation")
     c.add_argument("--review", required=True, help="the review the report claims to be about")

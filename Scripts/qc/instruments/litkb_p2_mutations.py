@@ -2150,6 +2150,76 @@ eq(replace, "EQ23", f"{PKG}/extract/ingest.py",
 eq(block, "EQ24", f"{PKG}/extract/docling.py", "guard: a cuda request the interpreter cannot serve fails closed",
    "device=cuda under an interpreter without CUDA reaches docling (S2's Maiti_2022: a failed "
    "metrics row and a GROBID-only run)")
+# builder-C (S4 run 3, the orchestrator's rulings on builder-A Q1 and Q2)
+eq(block, "EQ25", QPY, "guard: only a SCAN is refused — image pages outnumber the native-text pages",
+   "the scan post-condition refuses a NATIVE paper whole because OCR read nothing on its one "
+   "caption-less picture page (builder-A Q1): the file is lost for the sake of one image")
+eq(block, "EQ26", QPY, "guard: scans_ocr_unrouted counts only a SCAN, by the post-condition's own definition",
+   "scans_ocr_unrouted counts a native paper whose textless picture page finished correctly: the "
+   "counter and the post-condition disagree about what a scan is, and a correct run reads as a defect")
+eq(block, "EQ27", QPY, "guard: an extraction that produced no block fails as ZeroContent, by name",
+   "a file that produced no block dies on 0017's anonymous 'cannot be ok' error: the classifier "
+   "cannot tell zero-content from an extractor failure and leaves it unclassified")
+eq(block, "EQ28", MIG29, "guard: a job that dies on its last failure leaves a failed run",
+   "a job dead at the attempt ceiling leaves no extraction_runs row (design §12.3; builder-A Q2): "
+   "the death and its last error live on a queue row alone")
+eq(block, "EQ29", MIG29, "guard: a job that dies at claim leaves a failed run",
+   "a job whose every worker died leaves no failed run: the one death with no fail_job call is the "
+   "one with no durable record")
+
+# ── S4C: the readability classifier's QUEUE STEP (builder-C item 1c; litkb/readability.py) ─────
+TESTS_READ = ["qc/test_litkb_readability.py"]
+RPY = f"{PKG}/readability.py"
+block("S4C1", RPY, "guard: a waiting job is never a class",
+      "a file with a queued / leased / staged job reads as the class its evidence guesses (a scan "
+      "waiting for OCR reads scan-needs-ocr): 'waiting' becomes a class, against decision D8",
+      tests=TESTS_READ)
+block("S4C2", RPY, "guard: a dead job is zero-content only when its extraction produced no block",
+      "a job that died on an extractor error is folded into zero-content: the real finding (a tool "
+      "that fails on this file) disappears into a residue class", tests=TESTS_READ)
+block("S4C3", RPY, "guard: a refusal the file's own evidence contradicts is never the class",
+      "a STALE refusal (bad-file on bytes that were repaired) is taken as the file's class with no "
+      "cross-check: the queue's memory overrides the file's present", tests=TESTS_READ)
+
+# ── S4R: `litkb_acceptance.py readability` (builder-C; plan "### S4" (b)/(c)) ─────────────────
+# One row per GATED counter: its wiring zeroed. The test that seeds that counter's known-bad on a
+# clean drained worker database must go red — which is what shows the acceptance reads the counter
+# and does not merely print a name beside a 0.
+TESTS_ACC_READ = ["qc/test_litkb_acceptance.py", "-k", "readability"]
+_GATED_LOOP = "                gated[name] = value\n"
+replace("S4R1", ACCEPT,
+        '        gated["unclassified_acquired_files"] = res["counters"]["unclassified_acquired_files"]\n',
+        '        gated["unclassified_acquired_files"] = 0\n',
+        "`readability` reads unclassified_acquired_files as 0 whatever the classifier found",
+        tests=TESTS_ACC_READ)
+for _i, _name in enumerate(("stale_leases", "duplicate_blocks", "resumed_content_hash_mismatches",
+                            "books_extracted", "over_cap_bound", "scans_ocr_unrouted",
+                            "mutated_leases_accepted"), 2):
+    replace(f"S4R{_i}", ACCEPT, _GATED_LOOP,
+            f"                gated[name] = 0 if name == {_name!r} else value\n",
+            f"`readability` reads {_name} as 0 whatever litkb.extract.queue counted",
+            tests=TESTS_ACC_READ)
+replace("S4R9", ACCEPT, '            gated["quarantined_without_db_state"] = n\n',
+        '            gated["quarantined_without_db_state"] = 0\n',
+        "`readability` reads quarantined_without_db_state as 0 whatever lies under _quarantine/",
+        tests=TESTS_ACC_READ)
+block("S4R10", ACCEPT, "guard: a readability manifest edited after its freeze is refused",
+      "a manifest whose bed, roots or workstreams were edited after the freeze is graded as if frozen",
+      tests=TESTS_ACC_READ)
+block("S4R11", ACCEPT, "guard: a manifest is graded only on the database it was frozen on",
+      "a manifest frozen on one database grades another (or the same name recreated)",
+      tests=TESTS_ACC_READ)
+block("S4R12", ACCEPT, "guard: --fire refuses the live database before it opens a connection",
+      "`readability --fire` accepts `litkb`: the fire RESETS its database, so the knowledge base "
+      "would be dropped by one mistyped environment variable", tests=TESTS_ACC_READ)
+replace("S4R13", ACCEPT,
+        '    return (all(v == 0 for v in gated.values()) and reported.get("waits_on_migration") == 0)',
+        "    return True",
+        "`readability` exits 0 whatever it counted", tests=TESTS_ACC_READ)
+replace("S4R14", ACCEPT, '        reported["waits_on_migration"] = int(bool(missing))\n',
+        '        reported["waits_on_migration"] = 0\n',
+        "a database without 0029-0031 is reported as not waiting: the counters it could not read are "
+        "printed `unread` under a line that says nothing is missing", tests=TESTS_ACC_READ)
 
 
 def call_sites(root=None):

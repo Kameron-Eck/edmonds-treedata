@@ -43,6 +43,25 @@ row below is an input the check must REFUSE, not an assertion about the code's s
                                no review and no report -> RED, never 0        test_c4_*
   operator_interventions       a bound file with no acquisition event         test_c2_*
                                a `manual-step` acquisition row on the work    test_c5_*
+  readability (S4)             each seed below on a clean, drained worker DB  test_readability_each_known_bad_*
+                               moves ITS counter to 1 and no other one:        [<counter>]
+    unclassified_acquired_files  a native file with no run and no job
+    stale_leases                 a claimed job whose lease expired
+    duplicate_blocks             a second block at one (page, order) of a queue run
+    resumed_content_hash_mismatches  a resumed job whose digest is not its blocks'
+    books_extracted              a block landed for a `type=book` work's file
+    quarantined_without_db_state a payload under `_quarantine/` with no row
+    over_cap_bound               an extracted file bound at EXTRACT_PAGE_CAP + 1 pages
+    scans_ocr_unrouted           an OCR-routed scan with no text on its image pages
+    mutated_leases_accepted      a finished job with a later claim in its history
+  waits_on_migration           a worker DB migrated only to 0028 -> `unread`,  test_readability_a_database_below_*
+                                 exit 1
+  the readability manifest     a field edited after the freeze                test_readability_a_manifest_edited_*
+                               another database (name / oid), re-hashed       test_readability_a_manifest_from_*
+                               another page cap / a swapped workstream        test_readability_a_manifest_with_*
+  readability --fire           LITKB_TEST_DB = `litkb` (or not litkb_test*)   test_readability_fire_refuses_*
+                               each of kill lease cap probe scan book         test_readability_every_fire_name_*
+                                 quarantine: control 0, known-bad moved
 
 The git queries are injected (`_worktree_list`, `_rev_parse` on the module), so parity is
 exercised with no second remote and no network. The scout counters read a real worker database
@@ -1667,3 +1686,361 @@ def test_the_manual_route_vocabularies_are_the_ones_acquisition_writes(mod):
     assert set(mod.MANUAL_ATTEMPT_ROUTES) == {"browser"}
     assert events.ROUTE not in mod.MANUAL_ATTEMPT_ROUTES
     assert events.ROUTE not in mod.MANUAL_FILE_ROUTES
+
+
+# ── readability (S4): freeze -> grade, the nine gated counters, the refusals, the fires ────────────
+#
+# WHY A RESET. The gated counters are DATABASE-WIDE by design (a stale lease anywhere is a stale
+# lease), and the worker database is shared by every litkb module in the session, whose known-bads
+# leave an over-cap file, a book block and a finished stale lease behind on purpose. A test that must
+# read ALL ZEROS therefore starts from a freshly reset and migrated worker database (1.4-1.6 s,
+# measured on litkb_test_w7) and resets it again afterwards, so no module downstream sees its rows
+# (the rule qc/test_litkb_edges.py's replay follows). The seeds are real rows through the real
+# writers (the queue's own functions, `ingest_file`), except where a known-bad is a state no writer
+# may produce — a duplicated block, a tampered digest, a later claim after a finish — which is
+# written as the OWNER login writes a fixture, and says so.
+
+READABILITY_KNOWN_BADS = {
+    # gated counter                     the seed that must move it, and it alone, to 1
+    "unclassified_acquired_files":      "a native file with no run and no job (waiting)",
+    "stale_leases":                     "a claimed job whose lease expired, beside an ok current run",
+    "duplicate_blocks":                 "a second block at one (page_no, reading_order) of a queue run (OWNER write)",
+    "resumed_content_hash_mismatches":  "a resumed job whose committed digest is not its blocks' (OWNER write)",
+    "books_extracted":                  "a block landed for a type=book work's file",
+    "quarantined_without_db_state":     "a payload under _quarantine/ with no row",
+    "over_cap_bound":                   "an extracted file whose bound page count is EXTRACT_PAGE_CAP + 1",
+    "scans_ocr_unrouted":               "an OCR-routed scan whose current run has no text on its image pages",
+    "mutated_leases_accepted":          "a finished job with a later claim in its lease history (OWNER write)",
+}
+
+
+@pytest.fixture
+def rd(tmp_path, litkb_pg_base, monkeypatch, mod):
+    """A CLEAN worker database (reset + migrate before AND after), a temp literature root, one open
+    workstream, and one CONSTRUCTED native file waiting for the queue — the 'seeded worker DB' every
+    gated counter reads 0 on once it is drained. The DB migration tip is INJECTED (the owner login it
+    needs is not provisioned on worker databases); everything else is read."""
+    from litkb.db import connect as c
+    from litkb.db import migrate
+    from litkb.extract import queue as Q
+    from litkb.extract import queue_fire as F
+
+    _psycopg, conn, _ran = litkb_pg_base
+    migrate.reset(conn)
+    migrate.apply(conn)
+    monkeypatch.setattr(mod, "db_migration_tip", lambda db, passfile=None: (31, None))
+    root = tmp_path / "Literture"
+    (root / "Validation").mkdir(parents=True)
+    ws = F.open_ws(conn)
+    slug = conn.execute("SELECT slug FROM litkb.workstreams WHERE id = %s", (ws,)).fetchone()[0]
+
+    def native(name, pages=2, work_type="article", bound_pages=None, **kw):
+        pdf = F.constructed_pdf(root / "Validation" / f"{name}.pdf", pages, note=uuid.uuid4().hex, **kw)
+        return F.add_file(conn, ws, F.add_work(conn, ws, work_type), pdf, root, pages=bound_pages), pdf
+
+    def drain(fid, extractor=None):
+        k = Q.connect(c.DB_TEST)
+        try:
+            Q.sweep(k, root, files=[fid])
+        finally:
+            k.close()
+        return Q.work(lambda: Q.connect(c.DB_TEST), root, extractor=extractor or F.SyntheticExtractor(),
+                      derived=root / "_derived", files=[fid])
+
+    base, _pdf = native("Clean")
+    try:
+        yield {"conn": conn, "root": root, "ws": ws, "slug": slug, "db": c.DB_TEST, "native": native,
+               "drain": drain, "base": base, "tmp": tmp_path}
+    finally:
+        migrate.reset(conn)
+        migrate.apply(conn)
+
+
+def rd_freeze(mod, capsys, rd, name="readability.json"):
+    out = rd["tmp"] / name
+    code, _o, err = run(mod, capsys, ["readability", "--freeze", "--workstream", rd["slug"],
+                                      "--db", rd["db"], "--role", "litkb_test",
+                                      "--root", str(rd["root"]), "--out", str(out)])
+    assert code == 0, err
+    return out
+
+
+def rd_grade(mod, capsys, manifest):
+    code, out, err = run(mod, capsys, ["readability", "--manifest", str(manifest)])
+    return code, counters_of(out), err
+
+
+def _rewrite(mod, path, **fields):
+    """Edit fields of a frozen manifest and RE-HASH it: what a careful tamperer does. The grader must
+    still refuse on the facts (another database, other constants, a workstream that is not its slug)."""
+    m = json.loads(path.read_text(encoding="utf-8"))
+    m.update(fields)
+    m["manifest_sha256"] = mod._canonical_sha(m)
+    path.write_text(json.dumps(m), encoding="utf-8")
+    return m
+
+
+@pg_only
+def test_readability_freeze_records_what_a_cold_session_needs(mod, capsys, rd):
+    """The manifest carries the database's clock and identity, the code's constants, main plus the
+    workstream, the roots, and the BED — the files with no block, measured by the probe."""
+    from litkb.extract import probe as P
+    from litkb.extract import queue as Q
+
+    m = json.loads(rd_freeze(mod, capsys, rd).read_text(encoding="utf-8"))
+    assert m["kind"] == "litkb-readability" and m["frozen_at_source"] == "db", m
+    assert m["db_name"] == rd["db"] and isinstance(m["db_oid"], int), m
+    assert m["workstreams"] == [{"slug": "main", "id": None}, {"slug": rd["slug"], "id": str(rd["ws"])}]
+    assert (m["extract_page_cap"], m["ocr_chunk_pages"], m["lease_seconds"]) == (
+        P.EXTRACT_PAGE_CAP, Q.OCR_CHUNK_PAGES, Q.LEASE_SECONDS)
+    assert m["literature_root"] == str(rd["root"]) and m["quarantine_root"].endswith("_quarantine")
+    assert m["code_committed"] in (True, False, None) and m["repo_head"], m
+    assert m["gated"] == list(mod.READABILITY_GATED)
+    assert [(b["file_id"], b["pages"], b["image_pages"]) for b in m["bed"]] == [(str(rd["base"]), 2, [])], m["bed"]
+    assert m["manifest_sha256"] == mod._canonical_sha(m)
+
+
+@pg_only
+def test_readability_freeze_then_grade_on_a_seeded_worker_db_reads_all_zeros(mod, capsys, rd):
+    """THE CLEAN RUN: freeze (the bed holds the one waiting file), drain it through the queue, grade.
+    Every gated counter 0, nothing waits, exit 0; the bed reads drained."""
+    manifest = rd_freeze(mod, capsys, rd)
+    assert rd["drain"](rd["base"])["outcomes"] == {"done": 1}
+    code, c, err = rd_grade(mod, capsys, manifest)
+    assert {k: c[k] for k in mod.READABILITY_GATED} == dict.fromkeys(mod.READABILITY_GATED, "0"), (c, err)
+    assert c["waits_on_migration"] == "0" and c["queue_table"] == "1", c
+    assert (c["bed_files"], c["bed_without_blocks"]) == ("1", "0"), c
+    assert c["files_without_reference_stage"] == "1/1", c           # REPORTED, never gated
+    assert "reference_anchor_rate" in c and "superseded_runs_unretired" in c, c
+    assert code == 0, (c, err)
+
+
+def _seed_ok_run(fid, pdf, silent=()):
+    """An ok CURRENT run for `fid` through the real ingest (`extract.ingest.ingest_file`) from a
+    CONSTRUCTED Docling document — what `litkb hunt` or the bulk pass leaves, with no queue job."""
+    from litkb.db import connect as c
+    from litkb.extract import ingest as ING
+    from litkb.extract import queue as Q
+    from litkb.extract import queue_fire as F
+    from litkb.extract import reconcile as R
+
+    doc = F.synthetic_doc(pdf)
+    if silent:
+        doc["texts"] = [t for t in doc["texts"] if t["prov"][0]["page_no"] not in silent]
+        for i, t in enumerate(doc["texts"]):
+            t["self_ref"] = f"#/texts/{i}"
+        doc["body"]["children"] = [{"$ref": t["self_ref"]} for t in doc["texts"]]
+    prep = ING.prepare(str(pdf), None, doc)
+    k = Q.connect(c.DB_TEST)
+    try:
+        return ING.ingest_file(k, fid, prep["canonical"], prep["disagreements"], prep["stats"],
+                               pages=prep["pages"], pipeline_version=R.PIPELINE_VERSION,
+                               params=ING.CORPUS_PARAMS)["run_id"]
+    finally:
+        k.close()
+
+
+def _done_job(rd):
+    return rd["conn"].execute("SELECT id, run_id, lease_seq FROM litkb.extraction_jobs WHERE file_id = %s",
+                              (rd["base"],)).fetchone()
+
+
+def _seed_known_bad(name, rd):
+    """Apply the known-bad `name` (READABILITY_KNOWN_BADS) to the clean, drained database."""
+    import hashlib
+    import time
+
+    from litkb.db import connect as c
+    from litkb.extract import probe as P
+    from litkb.extract import queue as Q
+
+    conn = rd["conn"]
+    if name == "unclassified_acquired_files":
+        rd["native"]("Waiting")
+    elif name == "stale_leases":
+        fid, pdf = rd["native"]("StaleBesideRun")
+        _seed_ok_run(fid, pdf)
+        k = Q.connect(c.DB_TEST)
+        try:
+            Q.enqueue(k, fid, None, None, Q.Facts(route="native", pages=2))
+            Q.claim(k, "dies-holding-it", 1, 1, [fid])
+        finally:
+            k.close()
+        time.sleep(1.3)
+    elif name == "duplicate_blocks":
+        _job, run_id, _seq = _done_job(rd)
+        conn.execute("INSERT INTO litkb.blocks (file_id, run_id, page_no, reading_order, type, text, canonical) "
+                     "SELECT file_id, run_id, page_no, reading_order, type, text, false FROM litkb.blocks "
+                     "WHERE run_id = %s ORDER BY page_no, reading_order LIMIT 1", (run_id,))
+    elif name == "resumed_content_hash_mismatches":
+        job, _run, _seq = _done_job(rd)
+        conn.execute("UPDATE litkb.extraction_jobs SET attempts = 2, blocks_digest = %s WHERE id = %s",
+                     ("0" * 64, job))
+    elif name == "books_extracted":
+        fid, pdf = rd["native"]("ABook", work_type="book")
+        _seed_ok_run(fid, pdf)
+    elif name == "quarantined_without_db_state":
+        q = rd["root"] / "_quarantine"
+        q.mkdir()
+        body = b"CONSTRUCTED orphan payload\n"
+        (q / f"CONSTRUCTED__staging-orphan__{hashlib.sha256(body).hexdigest()[:12]}.download").write_bytes(body)
+    elif name == "over_cap_bound":
+        fid, pdf = rd["native"]("BoundOverCap", bound_pages=P.EXTRACT_PAGE_CAP + 1)
+        _seed_ok_run(fid, pdf)
+    elif name == "scans_ocr_unrouted":
+        fid, pdf = rd["native"]("ScanNoText", pages=3, scan_pages=(2, 3))
+        k = Q.connect(c.DB_TEST)
+        try:
+            assert Q.sweep(k, rd["root"], files=[fid])["enqueued"] == 1
+        finally:
+            k.close()
+        _seed_ok_run(fid, pdf, silent={2, 3})
+    elif name == "mutated_leases_accepted":
+        job, _run, seq = _done_job(rd)
+        conn.execute("INSERT INTO litkb.extraction_job_leases (job_id, seq, owner, lease_seconds, claimed_at, "
+                     "expires_at) VALUES (%s, %s, 'a-later-claim', 1, now(), now())", (job, seq + 1))
+    else:
+        raise AssertionError(name)
+
+
+@pg_only
+@pytest.mark.parametrize("counter", list(READABILITY_KNOWN_BADS))
+def test_readability_each_known_bad_moves_exactly_its_counter(mod, capsys, rd, counter):
+    """One seed per GATED counter, on the clean drained database: THAT counter reads 1, every other
+    gated counter still reads 0, and the command exits 1. A mutation of the wiring of any one counter
+    (qc/instruments/litkb_p2_mutations.py rows S4R1-S4R9) makes its row red."""
+    manifest = rd_freeze(mod, capsys, rd)
+    rd["drain"](rd["base"])
+    _seed_known_bad(counter, rd)
+    code, c, err = rd_grade(mod, capsys, manifest)
+    want = dict.fromkeys(mod.READABILITY_GATED, "0")
+    want[counter] = "1"
+    assert {k: c[k] for k in mod.READABILITY_GATED} == want, (counter, c, err)
+    assert c["waits_on_migration"] == "0", c
+    assert code == 1, c
+
+
+@pg_only
+def test_readability_a_database_below_0031_waits_and_exits_one(mod, capsys, rd, tmp_path):
+    """REAL: the worker database reset and migrated only up to 0028 (the migration files copied to a
+    temp directory, the runner pointed at it). The relations 0029-0031 add are absent, so the queue and
+    quarantine counters are UNREAD, `waits_on_migration=1`, stderr names each missing migration, and
+    the command exits 1 — never 0 on counters it could not read."""
+    import shutil
+
+    from litkb.db import migrate
+
+    old = tmp_path / "migrations_to_0028"
+    old.mkdir()
+    for p in Path(migrate.MIGRATIONS_DIR).glob("*.sql"):
+        if int(p.name[:4]) <= 28:
+            shutil.copy(p, old / p.name)
+    # the reserved numbers (0024 is one) are part of the runner's contiguity rule
+    shutil.copy(Path(migrate.MIGRATIONS_DIR) / "_reserved.txt", old / "_reserved.txt")
+    conn = rd["conn"]
+    migrate.reset(conn)
+    migrate.apply(conn, directory=old)
+    ws = conn.execute("SELECT workstream_id FROM litkb.open_workstream(%s, 'work/test', NULL, 'waits', NULL)",
+                      (f"waits-{uuid.uuid4().hex[:8]}",)).fetchone()[0]
+    rd["slug"] = conn.execute("SELECT slug FROM litkb.workstreams WHERE id = %s", (ws,)).fetchone()[0]
+    manifest = rd_freeze(mod, capsys, rd)
+    code, c, err = rd_grade(mod, capsys, manifest)
+    assert c["waits_on_migration"] == "1", c
+    assert c["stale_leases"] == "unread" and c["quarantined_without_db_state"] == "unread", c
+    assert c["unclassified_acquired_files"] == "0" and c["queue_table"] == "0", c
+    for mig in ("0029", "0030", "0031"):
+        assert f"waits on migration {mig}" in err, err
+    assert code == 1, c
+
+
+@pg_only
+def test_readability_a_manifest_edited_after_the_freeze_is_refused(mod, capsys, rd):
+    """A field edited and the hash left as frozen: refused, nothing graded."""
+    path = rd_freeze(mod, capsys, rd)
+    m = json.loads(path.read_text(encoding="utf-8"))
+    m["bed"] = []
+    path.write_text(json.dumps(m), encoding="utf-8")
+    with pytest.raises(SystemExit, match="edited after its freeze"):
+        rd_grade(mod, capsys, path)
+
+
+@pg_only
+def test_readability_a_manifest_from_another_database_is_refused(mod, capsys, rd):
+    """Re-hashed so the content check passes: a manifest naming another database — by name, or by the
+    oid a DROP + CREATE under the same name would change — is refused before anything is counted."""
+    path = rd_freeze(mod, capsys, rd)
+    _rewrite(mod, path, db_name="litkb")
+    with pytest.raises(SystemExit, match="frozen on database 'litkb'"):
+        rd_grade(mod, capsys, path)
+    path = rd_freeze(mod, capsys, rd, name="oid.json")
+    m = json.loads(path.read_text(encoding="utf-8"))
+    _rewrite(mod, path, db_oid=m["db_oid"] + 1)
+    with pytest.raises(SystemExit, match="Nothing was graded"):
+        rd_grade(mod, capsys, path)
+
+
+@pg_only
+def test_readability_a_manifest_with_other_constants_or_a_swapped_workstream_is_refused(mod, capsys, rd):
+    """Re-hashed: a manifest frozen under another page cap grades a different question; a workstream
+    id that no longer names its slug grades another workstream. Both refused."""
+    path = rd_freeze(mod, capsys, rd)
+    _rewrite(mod, path, extract_page_cap=100)
+    with pytest.raises(SystemExit, match="constants are not the manifest"):
+        rd_grade(mod, capsys, path)
+    path = rd_freeze(mod, capsys, rd, name="ws.json")
+    m = json.loads(path.read_text(encoding="utf-8"))
+    ws = m["workstreams"]
+    ws[1]["slug"] = "someone-else"
+    _rewrite(mod, path, workstreams=ws)
+    with pytest.raises(SystemExit, match="does not name 'someone-else'"):
+        rd_grade(mod, capsys, path)
+
+
+@pytest.mark.parametrize("db", ["litkb", "LITKB ", "postgres"])
+def test_readability_fire_refuses_a_database_that_is_not_a_worker_database(mod, monkeypatch, db):
+    """`--fire` resets and migrates its database. `litkb` — and anything that is not `litkb_test*` —
+    is refused before a connection is opened (the `--replay` rule)."""
+    monkeypatch.setenv("LITKB_TEST_DB", db)
+    monkeypatch.setattr(mod, "_edge_run", lambda: pytest.fail("the fire reached past its guard"))
+    with pytest.raises(SystemExit, match="refuses"):
+        mod.main(["readability", "--fire", "cap"])
+
+
+@pg_only
+@pytest.mark.parametrize("name", ["kill", "lease", "cap", "probe", "scan", "book", "quarantine"])
+def test_readability_every_fire_name_fires_on_the_worker_db(mod, litkb_pg_base, tmp_path, name):
+    """Every (c) known-bad, re-fired through the acceptance's own `--fire` path on the worker
+    database (the fixture's connection: the suite already holds the lock the CLI would take). Each
+    must read its guard-ON control at 0 and move its counter to the known-bad value.
+
+    RESET BEFORE AND AFTER, as the CLI resets: the queue_fire fixtures are DETERMINISTIC bytes (the
+    note is `fire_cap guarded`, …), so a second fire of the same name in one database collides with
+    the first on `files.sha256` — measured 2026-09-22: without the reset, qc/test_litkb_queue.py's c2,
+    c3, c5 and c6 went red whenever this module ran first in the same session."""
+    from litkb.db import connect as c
+    from litkb.db import migrate
+    from litkb.extract import queue_fire as F
+
+    if name == "scan" and not (F.ANDERSON.is_file() and F.ANDERSON_NO_OCR.is_file()):
+        pytest.skip("Anderson 1957 or its recorded no-OCR Docling artifact is not on this machine")
+    _psycopg, conn, _ran = litkb_pg_base
+    migrate.reset(conn)
+    migrate.apply(conn)
+    try:
+        out = mod.readability_fire(name, db=c.DB_TEST, workdir=tmp_path, conn=conn)
+    finally:
+        migrate.reset(conn)
+        migrate.apply(conn)
+    print("\n".join(out["lines"]))
+    assert out["fired"] is True, out["lines"]
+    assert out["lines"][-1] == f"fire={name} FIRED"
+    assert f"fire={name} arm=control" in out["lines"][0], out["lines"]
+
+
+def test_readability_fire_names_and_gated_counters_are_the_plans(mod):
+    assert mod.FIRE_NAMES == ("kill", "lease", "cap", "probe", "scan", "book", "quarantine")
+    assert mod.READABILITY_GATED == (
+        "unclassified_acquired_files", "stale_leases", "duplicate_blocks", "resumed_content_hash_mismatches",
+        "books_extracted", "quarantined_without_db_state", "over_cap_bound", "scans_ocr_unrouted",
+        "mutated_leases_accepted")
+    assert set(READABILITY_KNOWN_BADS) == set(mod.READABILITY_GATED)

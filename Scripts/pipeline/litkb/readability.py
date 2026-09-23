@@ -50,6 +50,14 @@ PER FILE, FROM EVIDENCE ONLY, in this order (the first rule that answers wins; `
   row        no class yet, and an UNCLEARED `litkb.quarantine_payloads` row refuses this file (by
              file_id or path) as `bad-file` / `zero-content` / `probe-error` → that class (the row IS
              the state)
+THEN THE QUEUE STEP (`with_queue`; S4 run 3 builder-C item 1c) reads that verdict against the file's
+`litkb.extraction_jobs` (migration 0029) when the file has NO current run: a queued / leased / staged
+job → UNCLASSIFIED (waiting); a `refused` job → its refusal, but only when the verdict above names the
+SAME class — on disagreement the file is UNCLASSIFIED and says both; a `dead` job → `zero-content` when
+it died as `queue.ZeroContent` (the extraction produced no block), else UNCLASSIFIED (an extractor
+error is a finding, never folded into a class). Without 0029 (the live db before the orchestrator
+applies it) the step has nothing to read, the classification is the pre-queue one, and `queue_table=0`
+says so. REPORTED: `files_queue_waiting`, `files_queue_dead-error`, `files_queue_disagreement`.
 An IMAGE page is `probe.image_page_numbers`'s (decision D13): ZERO native characters AND at least one
 raster image. It replaced "under 200 characters", which put three figure pages whose captions are
 native text (Pauls_2025 p16, Pesonen_2026 p20, Guo_2019 p6) into `scan-needs-ocr` — builder-B's first
@@ -103,16 +111,16 @@ def _is_text_source(f):
     return f.get("copy_kind") == "web snapshot" or str(f.get("rel_path") or "").lower().endswith(".txt")
 
 
-def evidence_of(f, *, root, run, pages_blocks, qrows, cap=None):
+def evidence_of(f, *, root, run, pages_blocks, qrows, cap=None, jobs=None):
     """Everything the rules read about ONE file, measured now. `run` is the current run's row (or
     None); `pages_blocks` {page_no: (text_blocks, text_chars)} of its canonical blocks; `qrows` the
-    quarantine rows that name this file."""
+    quarantine rows that name this file; `jobs` its extraction jobs (None = no migration 0029)."""
     cap = _probe.EXTRACT_PAGE_CAP if cap is None else cap
     p = Path(root) / str(f["rel_path"])
     ev = {"status": f.get("status"), "exists": p.is_file(), "text_source": _is_text_source(f),
           "work_type": f.get("work_type"), "cap": cap, "run": run, "pages_blocks": pages_blocks or {},
           "qrows": qrows or [], "pages": None, "chars": None, "image_pages": [], "probe_error": None,
-          "sha_ok": None, "magic": None}
+          "sha_ok": None, "magic": None, "jobs": jobs, "queue_flag": None}
     if not ev["exists"]:
         return ev
     ev["sha_ok"] = (_sha256(p) == f.get("sha256"))
@@ -227,6 +235,89 @@ def _r_row(ev):
             return q["reason"], None, f"quarantine row {q['id']} ({q['origin']})"
 
 
+# ── the queue (migration 0029) ────────────────────────────────────────────────────────────────
+
+#: the job states that mean "still waiting" — never a class (decision D8)
+QUEUE_WAITING = ("queued", "leased", "staged")
+
+
+def queue_verdict(jobs):
+    """-> (state, jobs) for a file's extraction jobs: the jobs at its MOST RECENTLY ENQUEUED run key
+    (a sweep under a newer pipeline version starts a new key; the older key's jobs are history),
+    read in this order — `dead` (a dead range can never be assembled, so its file is dead whatever
+    its siblings do) · `waiting` · `refused` · `done`. (None, []) when the file has no job."""
+    if not jobs:
+        return None, []
+    latest = max(jobs, key=lambda j: j["enqueued_at"])["key"]
+    js = [j for j in jobs if j["key"] == latest]
+    for state, test in (("dead", lambda j: j["state"] == "dead"),
+                        ("waiting", lambda j: j["state"] in QUEUE_WAITING),
+                        ("refused", lambda j: j["state"] == "refused")):
+        hit = [j for j in js if test(j)]
+        if hit:
+            return state, hit
+    return "done", js
+
+
+def with_queue(ev, cls, reason, notes):
+    """The QUEUE STEP (S4 run 3, builder-C item 1c): the classifier's own verdict `cls`, read against
+    the file's extraction jobs. -> (class, reason, notes, flag); `flag` is None or one of
+    `waiting` · `dead-error` · `disagreement` (REPORTED counts). `ev["jobs"]` is None on a database
+    without migration 0029: the verdict is returned untouched.
+
+      a CURRENT RUN      decides; the jobs are history (a done job's run is that run)
+      waiting            a queued / leased / staged job: UNCLASSIFIED — never a class (decision D8)
+      refused            the refusal IS the class when the file's own evidence names the SAME class;
+                         when the two disagree (the refusal is stale: the file changed on disk, or
+                         the evidence now reads another class) the file is UNCLASSIFIED and says so —
+                         neither side is picked, and the counter surfaces it
+      dead               `zero-content` when every dead job died as ZeroContent (the extraction
+                         produced no block; litkb.extract.queue.ZeroContent) and the evidence agrees;
+                         a job that died on an extractor error stays UNCLASSIFIED — a finding, never
+                         folded into a class
+      done, no run       UNCLASSIFIED (the run the job names is not the file's current one)
+    """
+    from litkb.extract import queue as Qx
+
+    jobs = ev.get("jobs")
+    if jobs is None:
+        return cls, reason, notes, None
+    state, js = queue_verdict(jobs)
+    if state is None:
+        return cls, reason, notes, None
+    if ev.get("run"):
+        return cls, reason, notes + [f"queue: {len(jobs)} job(s); the current run decides"], None
+    if state == "dead":
+        errors = [j.get("last_error") or "" for j in js]
+        # BEGIN guard: a dead job is zero-content only when its extraction produced no block
+        if not all(e.startswith(Qx.ZERO_CONTENT_ERROR) for e in errors):
+            return None, None, notes + [f"queue: job dead on an extractor error (a finding, never a class): "
+                                        f"{errors[0][:200]}"], "dead-error"
+        # END guard: a dead job is zero-content only when its extraction produced no block
+        if cls in (None, "zero-content"):
+            return "zero-content", None, notes + [f"queue: job dead — {errors[0][:160]}"], None
+        return None, None, notes + [f"queue: job dead as zero-content, but the file's own evidence says "
+                                    f"{cls}: they disagree — UNCLASSIFIED"], "disagreement"
+    if state == "refused":
+        refusals = sorted({j["refusal"] for j in js})
+        refusal = refusals[0] if len(refusals) == 1 else None
+        # BEGIN guard: a refusal the file's own evidence contradicts is never the class
+        if refusal is None or cls != refusal:
+            return None, None, notes + [f"queue: refused {'/'.join(refusals)}, but the file's own evidence "
+                                        f"says {cls or 'nothing (waiting)'}: they disagree — UNCLASSIFIED"], \
+                "disagreement"
+        # END guard: a refusal the file's own evidence contradicts is never the class
+        return refusal, reason, notes + [f"queue: refused {refusal}; the file's own evidence agrees"], None
+    if state == "done":
+        return None, None, notes + ["queue: a job is done but the file has no current run"], "disagreement"
+    # BEGIN guard: a waiting job is never a class
+    if state == "waiting":
+        return None, None, notes + [f"queue: {len(js)} job(s) {'/'.join(sorted({j['state'] for j in js}))}"
+                                    " — waiting, not a class (decision D8)"], "waiting"
+    # END guard: a waiting job is never a class
+    return cls, reason, notes, None
+
+
 #: (name, rule). `fire_unclassified` drops one by name — the runtime form of the mutation the
 #: design contract asks for — and qc/test_litkb_readability.py mutates the SOURCE the same way.
 RULES = (("status", _r_status), ("bad-file", _r_bad_file), ("snapshot", _r_snapshot),
@@ -239,10 +330,7 @@ def _span(pages):
     return ",".join(str(p) for p in pages[:12]) + (f",…(+{len(pages) - 12})" if len(pages) > 12 else "")
 
 
-def decide(ev, rules=RULES):
-    """-> (class | None, reason | None, [notes]). The first rule that answers decides; a rule that
-    answers (None, None, note) decides UNCLASSIFIED and says why; no rule answering is unclassified
-    with the note 'no rule matched (waiting)'."""
+def _decide_rules(ev, rules):
     notes = []
     for _name, rule in rules:
         out = rule(ev)
@@ -254,12 +342,26 @@ def decide(ev, rules=RULES):
             # an explicit "unclassified" answer stops at the status rule only; the others (a text
             # source waiting, metrics missing) still let a quarantine row speak
             if _name == "status":
-                return None, None, notes
+                return None, None, notes, True
             continue
-        return cls, reason, notes
+        return cls, reason, notes, False
     if not notes:
         notes.append("no rule matched (waiting for extraction)")
-    return None, None, notes
+    return None, None, notes, False
+
+
+def decide(ev, rules=RULES, queue=True):
+    """-> (class | None, reason | None, [notes]). The first rule that answers decides; a rule that
+    answers (None, None, note) decides UNCLASSIFIED and says why; no rule answering is unclassified
+    with the note 'no rule matched (waiting)'. Then the QUEUE STEP (:func:`with_queue`) reads the
+    verdict against the file's extraction jobs (`queue=False` drops it — the runtime form of that
+    mutation, for `fire_unclassified`); a non-active version stays unclassified whatever the queue says."""
+    cls, reason, notes, stop = _decide_rules(ev, rules)
+    if stop or not queue:
+        return cls, reason, notes
+    cls, reason, notes, flag = with_queue(ev, cls, reason, notes)
+    ev["queue_flag"] = flag
+    return cls, reason, notes
 
 
 # ── the universe ──────────────────────────────────────────────────────────────────────────────
@@ -325,6 +427,28 @@ def _qrows(conn):
             for r in conn.execute(
                 "SELECT id::text, rel_path, file_id::text, work_id::text, reason, origin, cleared_at "
                 "  FROM litkb.quarantine_payloads ORDER BY recorded_at, id").fetchall()]
+
+
+def queue_present(conn):
+    """False on a database without migration 0029 (live, until the orchestrator applies it)."""
+    return conn.execute("SELECT to_regclass('litkb.extraction_jobs') IS NOT NULL").fetchone()[0]
+
+
+def _jobs(conn, file_ids):
+    """{file_id: [job]} for the files named; None when the queue table does not exist (0029 absent)."""
+    if not queue_present(conn):
+        return None
+    out = {}
+    if not file_ids:
+        return out
+    for r in conn.execute(
+            "SELECT file_id::text, id::text, state, refusal, last_error, attempts, page_start, page_end, "
+            "       enqueued_at, stage, tool, tool_version, params_hash, pipeline_version "
+            "  FROM litkb.extraction_jobs WHERE file_id = ANY(%s::uuid[])", (list(file_ids),)).fetchall():
+        out.setdefault(r[0], []).append({"id": r[1], "state": r[2], "refusal": r[3], "last_error": r[4],
+                                         "attempts": r[5], "page_start": r[6], "page_end": r[7],
+                                         "enqueued_at": r[8], "key": tuple(r[9:14])})
+    return out
 
 
 def _is_own_row(q, f):
@@ -430,13 +554,15 @@ def _work_rows(conn, file_rows):
 
 
 def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=None, with_works=True,
-             session="litkb-readability"):
+             session="litkb-readability", queue=True):
     """The whole universe. -> {"rows": [...], "counters": {...}, "skipped_staging": [...], ...}.
 
     Reads the database (any role that can read litkb: the reader is enough) and the disk. Writes
     NOTHING unless `record` is an ingest connection, and then only the classifier's quarantine rows:
     a new row for a bound file it refuses, and the CLEARING of its own row on a file it now classes
-    `extracted` (`session` is recorded as `cleared_by`)."""
+    `extracted` (`session` is recorded as `cleared_by`). On a database without migration 0029 the
+    queue step has nothing to read: the classification is exactly the pre-queue one, and the result
+    says so (`queue_table: False`, counter `queue_table=0`)."""
     from litkb import quarantine as Q
     from litkb.acquire.store import LITERATURE_ROOT
 
@@ -449,13 +575,15 @@ def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=N
             files.append(f)
     run_ids = {f["current_run_id"] for f in files if f["current_run_id"]}
     runs, pblocks, qrows = _runs(conn, run_ids), _pages_blocks(conn, run_ids), _qrows(conn)
+    jobs = _jobs(conn, {f["file_id"] for f in files})
     rows, recorded, cleared = [], [], []
     for f in files:
         mine = [q for q in qrows if q["file_id"] == f["file_id"] or q["rel_path"] == f["rel_path"]]
         run = runs.get(f["current_run_id"]) if f["current_run_id"] else None
         pb = pblocks.get(f["current_run_id"], {}) if run else {}
-        ev = evidence_of(f, root=root, run=run, pages_blocks=pb, qrows=mine, cap=cap)
-        cls, reason, notes = decide(ev, rules)
+        ev = evidence_of(f, root=root, run=run, pages_blocks=pb, qrows=mine, cap=cap,
+                         jobs=None if jobs is None else jobs.get(f["file_id"], []))
+        cls, reason, notes = decide(ev, rules, queue=queue)
         n, chars = _text_totals(pb)
         row = {"row_kind": "file", "key": f["key"], "work_id": f["work_id"], "file_id": f["file_id"],
                "rel_path": f["rel_path"], "pages": ev["pages"], "image_pages": len(ev["image_pages"]),
@@ -463,7 +591,8 @@ def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=N
                "quarantine_ids": " ".join(q["id"] for q in mine if not q.get("cleared_at")),
                "current_run_id": f["current_run_id"],
                "blocks": n if run else None, "text_chars": chars if run else None, "scope": f["scope"],
-               "status": f["status"], "sha256": f["sha256"], "bytes": f["bytes"]}
+               "status": f["status"], "sha256": f["sha256"], "bytes": f["bytes"],
+               "queue_flag": ev.get("queue_flag")}
         if record is not None and cls in REFUSED_CLASSES and not any(
                 q["reason"] == cls and not q.get("cleared_at") for q in mine):
             size = f["bytes"] if f["bytes"] is not None else 0
@@ -488,22 +617,30 @@ def classify(conn, workstreams=(), *, root=None, cap=None, rules=RULES, record=N
     out = {"rows": rows + staging + works, "skipped_staging": skipped, "work_anomalies": anomalies,
            "workstreams": [str(w) for w in workstreams], "root": str(root),
            "cap": _probe.EXTRACT_PAGE_CAP if cap is None else cap, "recorded": recorded, "cleared": cleared,
-           "quarantine_table": Q.table_present(conn),
+           "quarantine_table": Q.table_present(conn), "queue_table": jobs is not None,
            "at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
     out["counters"] = counters(out)
     return out
+
+
+#: the REPORTED queue-step counts: files the queue step left UNCLASSIFIED, by why (`with_queue`'s flag)
+QUEUE_FLAGS = ("waiting", "dead-error", "disagreement")
 
 
 def counters(res):
     """The gated counter and the REPORTED counts (plan "### S4" (b)).
 
     `unclassified_acquired_files` counts FILE and STAGING rows with no class — never work rows, whose
-    `not-attempted` is reported outside the gated universe."""
+    `not-attempted` is reported outside the gated universe. `queue_table` is 1 when migration 0029's
+    queue was read, 0 when the database has none (then every `files_queue_*` is 0 by construction)."""
     rows = res["rows"]
     acq = [r for r in rows if r["row_kind"] in ("file", "staging")]
     out = {"unclassified_acquired_files": sum(1 for r in acq if r["class"] is None),
            "acquired_files": len(acq),
-           "stale_quarantine_rows": sum(r.get("stale_quarantine") or 0 for r in acq)}
+           "stale_quarantine_rows": sum(r.get("stale_quarantine") or 0 for r in acq),
+           "queue_table": int(bool(res.get("queue_table")))}
+    for flag in QUEUE_FLAGS:
+        out[f"files_queue_{flag}"] = sum(1 for r in acq if r.get("queue_flag") == flag)
     for c in FILE_CLASSES:
         out[f"files_{c}"] = sum(1 for r in acq if r["class"] == c)
     for reason in EXTRACTED_REASONS:
@@ -536,12 +673,13 @@ def classify_work_files(conn, work_id, *, root=None):
     files = _main_files(conn, str(work_id))
     run_ids = {f["current_run_id"] for f in files if f["current_run_id"]}
     runs, pblocks, qrows = _runs(conn, run_ids), _pages_blocks(conn, run_ids), _qrows(conn)
+    jobs = _jobs(conn, {f["file_id"] for f in files})
     out = {}
     for f in files:
         mine = [q for q in qrows if q["file_id"] == f["file_id"] or q["rel_path"] == f["rel_path"]]
         run = runs.get(f["current_run_id"]) if f["current_run_id"] else None
         ev = evidence_of(f, root=root, run=run, pages_blocks=pblocks.get(f["current_run_id"], {}) if run else {},
-                         qrows=mine)
+                         qrows=mine, jobs=None if jobs is None else jobs.get(f["file_id"], []))
         cls, reason, notes = decide(ev)
         out[f["file_id"]] = {"class": cls, "reason": reason, "evidence": "; ".join(x for x in notes if x),
                              "rel_path": f["rel_path"], "status": f["status"]}
@@ -582,10 +720,11 @@ def write_csv(res, path):
 
 def fire_unclassified(conn, workstreams=(), *, root=None, drop="scan-needs-ocr"):
     """The design-contract MUTATION, at runtime: the classifier with ONE rule removed (`drop`, by
-    name). A real file that rule classes goes unclassified and the counter MOVES.
+    name; `"queue"` drops the queue step). A real file that rule classes goes unclassified — or, for
+    the queue step, a waiting file reads as a class — and the counter MOVES.
     -> {"before", "after", "moved": [rel paths]}."""
     base = classify(conn, workstreams, root=root, with_works=False)
-    mut = classify(conn, workstreams, root=root, with_works=False,
+    mut = classify(conn, workstreams, root=root, with_works=False, queue=drop != "queue",
                    rules=tuple(r for r in RULES if r[0] != drop))
     def unclassified(res):
         # keyed by the file (a staging row by its path): two versions can share one rel_path

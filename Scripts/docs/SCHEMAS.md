@@ -2288,8 +2288,18 @@ REFUSED admission's checks name; `extracted` reasons from the run: stage `5-text
 `snapshot`, metrics `ocr: true` or text on a zero-native-character page → `ocr`, else
 `docling_regions` / `grobid_regions` → `full` / `docling-only` / `grobid-only`.
 
+**The queue step** (`readability.with_queue`, S4 run 3 builder-C item 1c). For a file with NO current
+run, the verdict above is read against its `litkb.extraction_jobs` (at its most recently enqueued run
+key; `dead` read first, then waiting, refused, done): a queued / leased / staged job → UNCLASSIFIED
+(waiting); a `refused` job → its refusal, only when the evidence names the SAME class, else
+UNCLASSIFIED with both named (a stale refusal is never picked over the file's present); a `dead` job →
+`zero-content` when it died as `queue.ZeroContent`, else UNCLASSIFIED (an extractor error is a finding,
+never a class). Without migration 0029 the step reads nothing and `queue_table` = 0 says so.
+
 Counters (`readability.counters`): `unclassified_acquired_files` (file and staging rows with no
-class — the gated one) and the REPORTED `stale_quarantine_rows`, `acquired_files`, `files_<class>`, `extracted_<reason>`,
+class — the gated one) and the REPORTED `queue_table` (1 = the queue was read), `files_queue_waiting`,
+`files_queue_dead-error`, `files_queue_disagreement` (the files the queue step left unclassified, by
+why), `stale_quarantine_rows`, `acquired_files`, `files_<class>`, `extracted_<reason>`,
 `works`, `works_<class>`, `works_not-attempted`, `works_extracted`, `works_residue`,
 `works_unclassified`. Known-bads: `readability.fire_unclassified` (one rule dropped by name → a real
 file goes unclassified and the counter moves) and `readability.fire_probe` (a CONSTRUCTED
@@ -2358,11 +2368,25 @@ one whole-file job. Docling emits ABSOLUTE page numbers for a page range (measur
 assembly shifts no page; `queue.assemble` refuses ranges that do not tile 1..`pages` or that name a
 page outside themselves.
 
-**Scan post-condition.** An OCR-routed file whose image pages ALL come back with no text is
-refused `scan-needs-ocr`, never finished `ok` (`queue.ocr_read_nothing`,
-`queue.scan_postcondition`). An image page has no native text, so every character on it is OCR's.
-Stated limit: a native paper whose only image pages are pictures with no text at all is refused if
-OCR finds nothing on them.
+**Scan post-condition.** An OCR-routed file whose image pages ALL come back with no text
+(`queue.ocr_read_nothing`) is refused `scan-needs-ocr`, never finished `ok` — WHEN IT IS A SCAN:
+its image pages outnumber its native-text pages (`queue.is_scan`; native-text page = more than zero
+native characters in the job's `page_chars`; a blank page counts on neither side). A definition, not
+a tuned number (the orchestrator's ruling on builder-A Q1, S4 run 3). A file that is NOT a scan — a
+native paper whose one image page is a caption-less picture — finishes: its textless image pages are
+REPORTED in the run's metrics (`textless_image_pages`), never a refusal of the whole file. An image
+page has no native text, so every character on it is OCR's.
+
+**A dead job leaves a `failed` run** (design §12.3; builder-A Q2). At `dead` — `fail_job` at the
+ceiling, or `claim_jobs` finding every lease expired — `litkb._job_dead_run` (0029, granted to no
+role) writes a `failed` `extraction_runs` row at the job's OWN run key through 0017's
+`open_extraction_run` / `finish_extraction_run`, never current, with metrics `queue`, `job_state`
+(`dead`), `last_error` and `dead_jobs` (one entry per dead range: `job_id`, `page_start`, `page_end`,
+`attempts`, `last_error`, `died_at`). An `ok` run already at the key is left alone. A later successful
+ingest at that key reuses the run id and turns it `ok`, so the failure record stands exactly until the
+file is extracted. An extraction that produced NO block fails as `queue.ZeroContent`, whose
+`last_error` begins `ZeroContent:` (`queue.ZERO_CONTENT_ERROR`) — the evidence the readability
+classifier reads for `zero-content`; any other death is an extractor error it leaves unclassified.
 
 **The lease.** `claim_jobs(worker, n, lease_seconds, files uuid[] DEFAULT NULL)` takes queued jobs
 or jobs whose lease has EXPIRED, one row at a time under `FOR UPDATE SKIP LOCKED`, shortest file
@@ -2404,7 +2428,9 @@ still hash as recorded is not extracted again.
 peak), `peak_vram_mib` and `vram_baseline_mib` (whole-card `nvidia-smi` at 1 Hz; NULL off CUDA),
 `device`, `interpreter`, `ocr` (a JSON boolean on EVERY run the worker finishes — the key builder B's
 classifier reads for `extracted/ocr`), `ocr_engine`, `image_pages` (count),
-`ocr_chars_on_image_pages`, `grobid_error`, `reconcile_seconds`, `jobs` (one entry
+`ocr_chars_on_image_pages`, `textless_image_pages` (the image pages that came back with no text, in
+page order; `[]` when none — REPORTED for a file that is not a scan), `grobid_error`,
+`reconcile_seconds`, `jobs` (one entry
 per job: `job_id`, `page_start`, `page_end`, `attempts`, …), `attempts` (their sum), `chunks` (the
 page ranges; `[]` for a whole-file job), `queue`.
 
@@ -2419,5 +2445,63 @@ bare (page_no, text) repeat is not counted because correct current runs repeat a
 digest differs from the database's blocks or from the reference; an unrecomputable reference
 counts) · `books_extracted` (files of a main `type='book'` work with any block) · `over_cap_bound`
 (files over `EXTRACT_PAGE_CAP` by `file_versions.pages` or `extraction_jobs.pages` with any block) ·
-`scans_ocr_unrouted` (OCR-routed files whose current run carries no text on any image page). Known-bads that move each
-one: `pipeline/litkb/extract/queue_fire.py`.
+`scans_ocr_unrouted` (OCR-routed files that are SCANS by `queue.is_scan` — the post-condition's own
+definition — whose current run carries no text on any image page). Known-bads that move each
+one: `pipeline/litkb/extract/queue_fire.py`; `qc/instruments/litkb_acceptance.py readability --fire`
+re-fires them by name (section below).
+
+## LITKB readability acceptance manifest (`qc/instruments/litkb_acceptance.py readability`, S4)
+
+The plan's "### S4" (b) as a command. `readability --freeze --workstream <slug> [--workstream …]
+--out <manifest.json>` writes a JSON manifest BEFORE the drain; `readability --manifest
+<manifest.json>` grades it; `readability --fire <name>` re-runs one (c) known-bad. Tests and the
+known-bad table: `qc/test_litkb_acceptance.py` (the `test_readability_*` rows); mutation rows S4R1-S4R14
+in `qc/instruments/litkb_p2_mutations.py`.
+
+**Manifest fields** (kind `litkb-readability`): `frozen_at` (the DATABASE's `now()`, read in the
+same REPEATABLE READ snapshot as the bed; `frozen_at_source` = `db`) · `repo`, `repo_head`,
+`code_committed` (`git status --porcelain` over the litkb package and the instrument is empty: true;
+dirty: false; git cannot say: null) · `db`, `db_name`, `db_oid` (`pg_database.oid`: a DROP + CREATE
+under the same name changes it) · `reader_role` · `repo_migration_tip`, `db_migration_tip` (the
+OWNER read, through `--passfile`; null with `db_migration_tip_note` when unreadable),
+`required_migration` (31) · `workstreams` (`[{slug, id}]`, `main` first with id null — main is always
+graded) · `literature_root`, `quarantine_root` · `derived_root` (`queue.derived_root()`, the job
+artifact root) and `references_derived_root` · `extract_page_cap`, `ocr_chunk_pages`, `lease_seconds`
+(the code's constants at freeze) · `gated` (the nine names) · `bed` (every active current file in main
+and the named workstreams holding no block — `file_id`, `rel_path`, `sha256`, `scope`, `pages` and
+`image_pages` MEASURED by the page probe, `probe_error`) · `manifest_sha256` (sha256 of the sorted,
+compact JSON of every other field).
+
+**Grading refuses** (exit non-zero, nothing graded): a `manifest_sha256` that does not match the
+content; a constant the code no longer has; another database (name or oid); a workstream id that
+does not name its slug. The counters always use the code's constants, never the manifest's.
+
+**The one printed line** — GATED, in the plan's order, each read by the function that owns it:
+`unclassified_acquired_files` (`readability.classify(reader, workstreams, root=literature_root)` →
+file and staging rows with no class, the queue step included) · `stale_leases`, `duplicate_blocks`,
+`resumed_content_hash_mismatches`, `books_extracted`, `over_cap_bound`, `scans_ocr_unrouted`,
+`mutated_leases_accepted` (`queue.counters(reader, literature_root)`, definitions in the
+`litkb.extraction_jobs` section above) · `quarantined_without_db_state`
+(`quarantine.quarantined_without_db_state(reader, root=literature_root)`: payloads under `_quarantine/`
+with no row for their path). Then REPORTED: `files_without_reference_stage` and
+`reference_anchor_rate` (each numerator/denominator, `references_coverage.reference_counters`) ·
+`acquired_files`, `stale_quarantine_rows`, `queue_table`, `files_queue_waiting`,
+`files_queue_dead-error`, `files_queue_disagreement`, `files_<class>`, `extracted_<reason>`,
+`works…` (`readability.counters`) · `superseded_runs_unretired`, `superseded_runs_held_by_evidence`
+(`ops.retire`) · `bed_files`, `bed_without_blocks` (bed files that still hold no block) ·
+`waits_on_migration` (1 when any of `litkb.extraction_jobs` (0029), `litkb.quarantine_payloads` (0030),
+`litkb.run_retirements` (0031) is absent to the reader — the db tip below 31, measured without the owner
+credential; the counters those relations carry then print `unread`). Exit 0 only when every gated
+counter is 0 and `waits_on_migration` is 0.
+
+**`--fire <name>`** runs on `LITKB_TEST_DB` and REFUSES `litkb` (and any name outside `litkb_test*`)
+before a connection opens. It owns that database: the suite's advisory lock, reset, migrate — so the
+control reads 0 by construction. It prints the guard-ON control line and the known-bad line and exits 0
+only on FIRED. Names: `kill` (a `litkb queue work` subprocess tree killed mid-batch on the synthetic
+extractor and rerun: FIRED when the killed worker left exactly one stale lease, the rerun exits 0, a job
+was resumed, every file's content digest equals an uninterrupted run's and every counter is back at its
+baseline — 0 duplicates) · `lease` (`mutated_leases_accepted` 0 → 1) · `cap` (`over_cap_bound` 0 → 1) ·
+`probe` (control: refused `probe-error`, 0 bound; known-bad: bound 1 with pages NULL) · `scan`
+(`scans_ocr_unrouted` 0 → 1; needs Anderson 1957 and its recorded no-OCR artifact on the machine) ·
+`book` (`books_extracted` 0 → 1) · `quarantine` (`quarantined_without_db_state` 0 → 1). `--manifest`
+beside `--fire` is checked (content hash and constants) and named in the output; it grades nothing.

@@ -2161,9 +2161,10 @@ _EXPECTED_EXECUTE = {
                      # the extraction queue (migration 0029, qc/test_litkb_queue.py; design §12.3,
                      # S4). extraction_jobs and extraction_job_leases grant INSERT to NOBODY, so
                      # these eight are their only writers; every holder call presents the lease
-                     # token (finish_job is the ownership gate). The five helpers they call
+                     # token (finish_job is the ownership gate). The six helpers they call
                      # (_job_max_attempts, _lease_hash, _job_file_is_book, _job_lease_current,
-                     # _job_siblings) are granted to no role.
+                     # _job_siblings, _job_dead_run — the failed run a dead job leaves) are
+                     # granted to no role.
                      "enqueue_extraction", "claim_jobs", "renew_lease", "record_artifact",
                      "stage_chunk", "finish_job", "fail_job", "refuse_job"},
     "public": set(),

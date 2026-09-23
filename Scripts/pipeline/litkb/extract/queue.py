@@ -29,13 +29,21 @@ in ONE transaction (design §12.5). Measured 2026-09-22 on a copy of Anderson 19
 ``prov.page_no`` in 3..5 — so the offset back to the file's own numbering is zero, and
 :func:`assemble` REFUSES a range whose pages fall outside it rather than assuming that holds.
 
-THE SCAN POST-CONDITION (:func:`ocr_read_nothing`): an OCR-routed file whose image pages ALL come
-back with no text is refused ``scan-needs-ocr``, never finished ok. Measured on Anderson 1957's
+THE SCAN POST-CONDITION (:func:`scan_postcondition`): an OCR-routed file whose image pages ALL come
+back with no text (:func:`ocr_read_nothing`) is refused ``scan-needs-ocr``, never finished ok —
+WHEN IT IS A SCAN: its image pages outnumber its native-text pages (:func:`is_scan`, the orchestrator's
+ruling on builder-A Q1, a definition rather than a tuned number). Measured on Anderson 1957's
 recorded Docling artifacts (reconciled here, CPU): OCR off, its image pages (2-22 — page 1 is the
-JSTOR cover, 160 native characters, a text page) carry 0 characters; OCR on, 40,923. Its stated
-limit: a native paper whose only image pages are pictures with no text at all would be refused if
-OCR finds nothing on them; on the S4 bed no file has such a page (the four OCR-routed files are the
-four scans — builder-A report).
+JSTOR cover, 160 native characters, a text page) carry 0 characters; OCR on, 40,923. A file that is
+NOT a scan — a native paper whose one image page is a caption-less picture — is not refused: the run
+finishes and its textless image pages are REPORTED in the run's metrics (``textless_image_pages``).
+``scans_ocr_unrouted`` counts by the same :func:`is_scan`.
+
+A DEAD JOB LEAVES A RECORD. At ``dead`` (``fail_job`` at the ceiling, or ``claim_jobs`` finding every
+lease expired) migration 0029's ``_job_dead_run`` writes a ``failed`` extraction run at the job's own
+run key, through 0017's ``open_extraction_run`` / ``finish_extraction_run``, with the job's last error
+in its metrics (design §12.3; builder-A Q2). An extraction that produced no block fails as
+:class:`ZeroContent`, by name, so the classifier can tell ``zero-content`` from an extractor error.
 """
 from __future__ import annotations
 
@@ -100,6 +108,18 @@ class AssemblyError(RuntimeError):
 
 class ExtractError(RuntimeError):
     """A tool failed on a job; the job goes back to the queue (``fail_job``)."""
+
+
+class ZeroContent(ExtractError):
+    """The extraction produced NO block at all. The job fails like any other (retried, ``dead`` at the
+    ceiling — each retry reuses the recorded artifact, so it costs a reconcile, not a tool run), but
+    its ``last_error`` begins with :data:`ZERO_CONTENT_ERROR`, which is how the readability classifier
+    tells a file that produced no text (``zero-content``) from one an extractor failed on (which it
+    leaves UNCLASSIFIED — S4 run 3, orchestrator ruling on builder-C item 1c)."""
+
+
+#: The prefix ``work`` writes into ``last_error`` for :class:`ZeroContent` (``f"{type(e).__name__}: {e}"``).
+ZERO_CONTENT_ERROR = "ZeroContent:"
 
 
 # ── small shared pieces ─────────────────────────────────────────────────────────────────
@@ -291,18 +311,52 @@ def ocr_chars(image_pages, rows):
 
 def ocr_read_nothing(image_pages, rows):
     """True when the file HAS image pages and the extraction put no text on any of them. The scan
-    post-condition refuses that; ``scans_ocr_unrouted`` counts it."""
+    post-condition refuses that — for a SCAN (:func:`is_scan`); ``scans_ocr_unrouted`` counts it."""
     return bool(image_pages) and ocr_chars(image_pages, rows) == 0
 
 
-def scan_postcondition(route, image_pages, canonical):
-    """-> (refusal, detail) or (None, None). See :func:`ocr_read_nothing`."""
+def native_text_pages(page_chars):
+    """How many pages carry native text (more than zero native characters, ``probe.page_text_chars``)."""
+    return sum(1 for n in (page_chars or []) if (n or 0) > 0)
+
+
+def is_scan(page_chars, image_pages):
+    """THE SCAN DEFINITION (S4 run 3, orchestrator ruling on builder-A Q1): a file is a scan when its
+    image pages OUTNUMBER its native-text pages — a scan by the majority of its pages. A definition,
+    not a tuned number: nothing here was fitted to a file. A native paper with one caption-less
+    picture page (1 image page against its text pages) is NOT a scan; Anderson 1957 (21 image pages,
+    1 native-text JSTOR cover) is. Blank pages (no text, no raster) count on neither side.
+    The scan post-condition and ``scans_ocr_unrouted`` both read it, so the two cannot disagree."""
+    return len(image_pages or []) > native_text_pages(page_chars)
+
+
+def textless_image_pages(image_pages, rows):
+    """The image pages the extraction put no text on, in page order. ``rows`` are ``(page_no, text)``."""
+    from litkb.admit.resolver import _norm_text
+
+    covered = {p for p, t in rows if _norm_text(t or "")}
+    return [p for p in (image_pages or []) if p not in covered]
+
+
+def scan_postcondition(route, image_pages, canonical, page_chars=None):
+    """-> (refusal, detail) or (None, None).
+
+    Refuses when OCR returned no text on ANY image page AND the file is a scan (:func:`is_scan`).
+    A file that is not a scan finishes: its textless image pages are REPORTED in the run's metrics
+    (``textless_image_pages``), never a refusal of the whole file."""
     if route != "ocr":
         return None, None
-    if ocr_read_nothing(image_pages, [(c.page, c.text) for c in canonical]):
-        return ("scan-needs-ocr",
-                f"OCR-routed, and its {len(image_pages)} image pages came back with no text")
-    return None, None
+    if not ocr_read_nothing(image_pages, [(c.page, c.text) for c in canonical]):
+        return None, None
+    # BEGIN guard: only a SCAN is refused — image pages outnumber the native-text pages
+    # Without this clause a native paper whose one image page is a caption-less picture would be
+    # refused whole because OCR found nothing on that picture (builder-A Q1).
+    if not is_scan(page_chars, image_pages):
+        return None, None
+    # END guard: only a SCAN is refused — image pages outnumber the native-text pages
+    return ("scan-needs-ocr",
+            f"OCR-routed, a scan ({len(image_pages)} image pages > {native_text_pages(page_chars)} "
+            f"native-text pages), and its image pages came back with no text")
 
 
 # ── the population and the sweep ───────────────────────────────────────────────────────
@@ -761,18 +815,29 @@ def _ingest(conn, c, file_id, pdf, tei, doc, parts, jobs, route, image_pages, pa
     prep = ING.prepare(pdf, tei, doc)
     prep_s = time.monotonic() - t0
     # BEGIN guard: an OCR-routed file whose image pages come back empty is never finished ok
-    why, detail = scan_postcondition(route, image_pages, prep["canonical"])
+    why, detail = scan_postcondition(route, image_pages, prep["canonical"], c.page_chars)
     if why:
         _sql(conn, "SELECT litkb.refuse_job(%s, %s, %s, %s)", (c.job_id, c.token, why, detail))
         _trace("refuse", job=c.job_id, refusal=why, at_claim=False)
         return "refused"
     # END guard: an OCR-routed file whose image pages come back empty is never finished ok
+    # BEGIN guard: an extraction that produced no block fails as ZeroContent, by name
+    # Without it ingest_file raises 0017's "has no blocks and cannot be ok" and the job dies on an
+    # anonymous error, which the classifier must leave UNCLASSIFIED; named, the dead job is the
+    # evidence for `zero-content` (litkb.readability's queue step).
+    if not prep["canonical"]:
+        raise ZeroContent(f"zero-content: the extraction produced no block on any of {pages} pages")
+    # END guard: an extraction that produced no block fails as ZeroContent, by name
     from litkb.extract import reconcile as R
 
     stats = dict(prep["stats"])
     stats.update(_run_metrics(parts, prep_s, pages, jobs))
+    rows = [(x.page, x.text) for x in prep["canonical"]]
     stats.update(image_pages=len(image_pages or []),
-                 ocr_chars_on_image_pages=ocr_chars(image_pages, [(x.page, x.text) for x in prep["canonical"]]))
+                 ocr_chars_on_image_pages=ocr_chars(image_pages, rows),
+                 # REPORTED, never a refusal: the image pages of a file that is not a scan that came
+                 # back with no text (scan_postcondition's rule, S4 run 3 builder-C item 1a)
+                 textless_image_pages=textless_image_pages(image_pages, rows))
     res = ING.ingest_file(conn, file_id, prep["canonical"], prep["disagreements"], stats,
                           pages=prep["pages"], artifact_path=parts[-1].get("artifact_path"),
                           host="local", pipeline_version=R.PIPELINE_VERSION,
@@ -983,17 +1048,22 @@ def over_cap_bound(conn):
 
 
 def scans_ocr_unrouted(conn):
-    """OCR-routed FILES (a stage-5 job with route `ocr`) whose CURRENT run carries no text on any of
-    its image pages (:func:`ocr_read_nothing`, from the job's recorded ``image_pages``)."""
+    """OCR-routed FILES (a stage-5 job with route `ocr`) that are SCANS (:func:`is_scan`, the scan
+    post-condition's own definition, from the job's recorded ``page_chars`` and ``image_pages``) whose
+    CURRENT run carries no text on any of their image pages (:func:`ocr_read_nothing`)."""
     n = 0
     files = conn.execute(
-        "SELECT DISTINCT ON (j.file_id) j.file_id, j.image_pages, f.current_run_id "
+        "SELECT DISTINCT ON (j.file_id) j.file_id, j.image_pages, j.page_chars, f.current_run_id "
         "FROM litkb.extraction_jobs j JOIN litkb.files f ON f.id = j.file_id "
         "WHERE j.route = 'ocr' AND j.image_pages IS NOT NULL AND f.current_run_id IS NOT NULL "
         "ORDER BY j.file_id, j.enqueued_at").fetchall()
-    for _fid, chars, run in files:
+    for _fid, images, chars, run in files:
+        # BEGIN guard: scans_ocr_unrouted counts only a SCAN, by the post-condition's own definition
+        if not is_scan(list(chars or []), list(images)):
+            continue
+        # END guard: scans_ocr_unrouted counts only a SCAN, by the post-condition's own definition
         rows = conn.execute("SELECT page_no, text FROM litkb.blocks WHERE run_id = %s", (run,)).fetchall()
-        if ocr_read_nothing(list(chars), rows):
+        if ocr_read_nothing(list(images), rows):
             n += 1
     return n
 

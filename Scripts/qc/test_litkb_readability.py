@@ -615,3 +615,138 @@ def test_a_cleared_row_refused_again_is_reopened(env):
         ing.close()
     rows = _qrow(env, s["file_id"])
     assert len(rows) == 1 and rows[0][3] is False and rows[0][4] is None, rows
+
+
+# ── the queue step (S4 run 3, builder-C item 1c): the classifier reads litkb.extraction_jobs ──────
+
+def _qfile(env, name, pages, **kw):
+    """A CONSTRUCTED PDF (litkb.extract.queue_fire.constructed_pdf) under the temp root, seeded as a
+    main file. -> (seed dict, rel path)."""
+    from litkb.extract import queue_fire as F
+
+    rel = f"Validation/t{uuid.uuid4().hex[:10]}/CONSTRUCTED_{name}.pdf"
+    F.constructed_pdf(env["root"] / rel, pages, note=uuid.uuid4().hex, **kw)
+    return _seed(env, rel), rel
+
+
+def _sweep(env, fid, **kw):
+    from litkb.extract import queue as Q
+
+    k = Q.connect(_db())
+    try:
+        return Q.sweep(k, env["root"], files=[fid], **kw)
+    finally:
+        k.close()
+
+
+def _qwork(env, fid, extractor, **kw):
+    from litkb.extract import queue as Q
+
+    return Q.work(lambda: Q.connect(_db()), env["root"], extractor=extractor,
+                  derived=env["root"] / "_derived", files=[fid], **kw)
+
+
+@pg_only
+def test_a_file_waiting_in_the_queue_is_unclassified_never_a_class(env):
+    """CONSTRUCTED scan (3 image pages): with no job it is `scan-needs-ocr` (the classifier's own
+    evidence); once its OCR range job is QUEUED it is UNCLASSIFIED (waiting — decision D8), flagged
+    `waiting`, and the queue step dropped (mutation) would read it as a class again."""
+    s, _rel = _qfile(env, "WaitingScan", 3, text=False)
+    assert _row(_classify(env), s["file_id"])["class"] == "scan-needs-ocr"
+    assert _sweep(env, s["file_id"], ocr=True)["enqueued"] == 1
+    row = _row(_classify(env), s["file_id"])
+    assert row["class"] is None and row["queue_flag"] == "waiting" and "waiting" in row["evidence"], row
+    assert _row(_classify(env, queue=False), s["file_id"])["class"] == "scan-needs-ocr"
+
+
+@pg_only
+def test_a_refused_job_is_its_refusal_when_the_evidence_agrees(env):
+    """CONSTRUCTED scan swept with OCR OFF: the queue refuses it `scan-needs-ocr`; the classifier's
+    own evidence (no run, image pages) says the same class, so that is the class and the note says
+    they agree."""
+    s, _rel = _qfile(env, "RefusedScan", 3, text=False)
+    assert _sweep(env, s["file_id"], ocr=False)["refused"] == {"scan-needs-ocr": 1}
+    row = _row(_classify(env), s["file_id"])
+    assert row["class"] == "scan-needs-ocr" and row["queue_flag"] is None, row
+    assert "evidence agrees" in row["evidence"], row
+
+
+@pg_only
+def test_a_refusal_the_files_evidence_contradicts_is_unclassified_and_says_both(env):
+    """CONSTRUCTED native file, fine on disk, with a job REFUSED `bad-file` (a stale refusal: say the
+    bytes were repaired after the guard ran). The refusal says bad-file, the evidence says the file is
+    readable and waiting: neither is picked — UNCLASSIFIED, flagged `disagreement`. Mutation (the
+    agreement check removed) takes the refusal as the class."""
+    from litkb.extract import queue as Q
+
+    s, _rel = _qfile(env, "StaleRefusal", 2)
+    k = Q.connect(_db())
+    try:
+        Q.enqueue(k, s["file_id"], None, None, Q.Facts(route="native", pages=2), "bad-file",
+                  "CONSTRUCTED stale refusal")
+    finally:
+        k.close()
+    row = _row(_classify(env), s["file_id"])
+    assert row["class"] is None and row["queue_flag"] == "disagreement", row
+    assert "refused bad-file" in row["evidence"] and "disagree" in row["evidence"], row
+
+
+@pg_only
+def test_a_job_dead_with_no_block_is_zero_content_and_record_mode_writes_its_row(env):
+    """CONSTRUCTED: two BLANK pages and an extractor that reads nothing -> the job dies as ZeroContent
+    (litkb.extract.queue) -> the file is `zero-content`; `record=` (B's path) writes its classifier
+    quarantine row against the bound path."""
+    from litkb.extract import queue_fire as F
+
+    s, rel = _qfile(env, "BlankDead", 2, text=False, raster=False)
+    _sweep(env, s["file_id"], ocr=True)
+    rep = _qwork(env, s["file_id"], F.SyntheticExtractor(silent_pages={1, 2}))
+    assert rep["outcomes"].get("failed:dead") == 1, rep
+    row = _row(_classify(env), s["file_id"])
+    assert row["class"] == "zero-content" and "ZeroContent" in row["evidence"], row
+    ing = _ingest()
+    try:
+        _classify(env, record=ing)
+    finally:
+        ing.close()
+    got = env["conn"].execute("SELECT reason, origin, rel_path FROM litkb.quarantine_payloads "
+                              "WHERE file_id = %s", (s["file_id"],)).fetchall()
+    assert got == [("zero-content", "classifier", rel)], got
+
+
+@pg_only
+def test_a_job_dead_on_an_extractor_error_stays_unclassified_and_is_counted(env):
+    """CONSTRUCTED native file, an extractor that raises every time: the job dies on an extractor
+    error. That is a FINDING, never folded into a class: UNCLASSIFIED, flagged `dead-error`, counted
+    in `files_queue_dead-error`, the error quoted in the evidence. Mutation (the ZeroContent test
+    removed) would call it zero-content."""
+    from litkb.extract import queue as Q
+
+    s, _rel = _qfile(env, "ToolDies", 2)
+    _sweep(env, s["file_id"], ocr=True)
+
+    def boom(job):
+        raise Q.ExtractError("docling produced no artifact: CONSTRUCTED tool failure")
+
+    assert _qwork(env, s["file_id"], boom)["outcomes"].get("failed:dead") == 1
+    res = _classify(env)
+    row = _row(res, s["file_id"])
+    assert row["class"] is None and row["queue_flag"] == "dead-error", row
+    assert "CONSTRUCTED tool failure" in row["evidence"], row
+    assert res["counters"]["files_queue_dead-error"] >= 1 and res["counters"]["queue_table"] == 1
+
+
+@pg_only
+def test_without_the_queue_table_the_classifier_is_the_pre_queue_one_and_says_so(env, monkeypatch):
+    """INJECTED (0029 cannot be dropped alone from a migrated worker db): `queue_present` answering
+    False, as the live db does before the orchestrator applies 0029. A file with a queued job then
+    classifies exactly as the classifier without its queue step, and `queue_table=0` says so."""
+    from litkb import readability as R
+
+    s, _rel = _qfile(env, "NoQueueTable", 3, text=False)
+    _sweep(env, s["file_id"], ocr=True)
+    monkeypatch.setattr(R, "queue_present", lambda conn: False)
+    res = _classify(env)
+    row = _row(res, s["file_id"])
+    assert row["class"] == "scan-needs-ocr" and row["queue_flag"] is None, row
+    assert res["queue_table"] is False and res["counters"]["queue_table"] == 0, res["counters"]

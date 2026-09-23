@@ -219,6 +219,41 @@ LANGUAGE sql STABLE SET search_path = litkb, public, pg_temp AS $$
    WHERE j.id = p_job AND j.page_start IS NOT NULL AND s.id <> j.id
 $$;
 
+-- The durable record of a DEAD job (design §12.3: "dead after N attempts, with a `failed`
+-- extraction_runs row"; builder-A Q2, the orchestrator's ruling for builder-C item 1b). Written
+-- through 0017's two ingest functions — open_extraction_run and finish_extraction_run, never a raw
+-- INSERT — at the job's OWN run key, status `failed`, never made current (set_current_run is not
+-- called), with the job's last error in its metrics. Each dead range of a file is appended to
+-- `dead_jobs`, so a file whose two ranges died holds both errors. An `ok` run already standing at
+-- the key is left alone (-> NULL): a dead job never overwrites a real extraction. A later successful
+-- ingest at the same key (a hunt, a re-queue) reuses this run id and turns it `ok` — the failure
+-- record lasts exactly until something extracts the file. Called only from fail_job and claim_jobs.
+CREATE FUNCTION litkb._job_dead_run(p_job uuid) RETURNS uuid
+LANGUAGE plpgsql SET search_path = litkb, public, pg_temp AS $$
+DECLARE
+  j extraction_jobs%ROWTYPE;
+  v_run uuid; v_status text; v_prev jsonb;
+BEGIN
+  SELECT * INTO j FROM extraction_jobs WHERE id = p_job;
+  SELECT r.id, r.status, r.metrics INTO v_run, v_status, v_prev FROM extraction_runs r
+   WHERE r.file_id = j.file_id AND r.stage = j.stage AND r.tool = j.tool
+     AND r.tool_version = j.tool_version AND r.params_hash = j.params_hash
+     AND r.pipeline_version = j.pipeline_version;
+  IF v_status = 'ok' THEN
+    RETURN NULL;
+  END IF;
+  v_run := open_extraction_run(j.file_id, j.stage, j.tool, j.tool_version, j.params_hash,
+                               j.pipeline_version, 'local', 'failed', NULL, '{}'::jsonb);
+  PERFORM finish_extraction_run(v_run, 'failed', jsonb_build_object(
+    'queue', 'litkb.extract.queue', 'job_state', 'dead', 'last_error', j.last_error,
+    'dead_jobs', coalesce(CASE WHEN v_status = 'failed' THEN v_prev -> 'dead_jobs' END, '[]'::jsonb)
+                 || jsonb_build_array(jsonb_build_object(
+                      'job_id', j.id, 'page_start', j.page_start, 'page_end', j.page_end,
+                      'attempts', j.attempts, 'last_error', j.last_error, 'died_at', j.finished_at))));
+  RETURN v_run;
+END
+$$;
+
 -- ── the writers ───────────────────────────────────────────────────────────────────────────
 
 -- Idempotent by the run key plus page range (the UNIQUE above): a second sweep inserts nothing and
@@ -324,6 +359,9 @@ BEGIN
              last_error = left(coalesce(j.last_error || ' | ', '') || 'lease expired on attempt '
                                || j.attempts || ' of ' || _job_max_attempts(), 2000)
        WHERE j.id = r.id;
+      -- BEGIN guard: a job that dies at claim leaves a failed run
+      PERFORM _job_dead_run(r.id);
+      -- END guard: a job that dies at claim leaves a failed run
       CONTINUE;
     END IF;
     -- END guard: a job whose every lease expired dies at the attempt ceiling
@@ -469,6 +507,11 @@ BEGIN
   UPDATE extraction_job_leases SET released_at = clock_timestamp(),
          outcome = CASE WHEN v_state = 'dead' THEN 'dead' ELSE 'failed' END
    WHERE job_id = p_job AND seq = v_job.lease_seq;
+  -- BEGIN guard: a job that dies on its last failure leaves a failed run
+  IF v_state = 'dead' THEN
+    PERFORM _job_dead_run(p_job);
+  END IF;
+  -- END guard: a job that dies on its last failure leaves a failed run
   RETURN v_state;
 END
 $$;
@@ -514,6 +557,7 @@ REVOKE ALL ON extraction_job_lease_tokens FROM PUBLIC, litkb_reader, litkb_write
 
 REVOKE EXECUTE ON FUNCTION litkb._job_max_attempts(), litkb._lease_hash(text),
   litkb._job_file_is_book(uuid), litkb._job_lease_current(uuid, text), litkb._job_siblings(uuid),
+  litkb._job_dead_run(uuid),
   litkb._job_lease_history_append_only(), litkb._job_lease_token_immutable() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION
   litkb.enqueue_extraction(uuid, text, text, text, text, text, integer, integer, text, integer, integer[], integer[], text, text),

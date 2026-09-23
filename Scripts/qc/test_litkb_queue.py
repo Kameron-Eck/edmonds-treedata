@@ -185,6 +185,19 @@ def test_the_post_condition_reads_the_image_pages_only():
     assert Q.ocr_chars(img, [(1, "abc"), (2, "def"), (30, "zz")]) == 3
 
 
+def test_the_scan_definition_is_the_majority_of_pages():
+    """S4 run 3 ruling on builder-A Q1: a scan is a file whose image pages OUTNUMBER its native-text
+    pages. Anderson 1957's shape (21 image pages, one native-text cover) is a scan; a native paper
+    with one caption-less picture page is not; a tie is not; blank pages count on neither side."""
+    anderson_chars = [158] + [0] * 21
+    assert Q.is_scan(anderson_chars, list(range(2, 23))) is True
+    assert Q.is_scan([900, 850, 0, 870], [3]) is False                  # one picture among text pages
+    assert Q.is_scan([900, 0], [2]) is False                            # 1 against 1: not a majority
+    assert Q.is_scan([0, 0, 0], [1, 2]) is True                         # page 3 blank: neither side
+    assert Q.native_text_pages([0, 5, None, 1]) == 2
+    assert Q.textless_image_pages([2, 3, 4], [(2, "read"), (3, "  "), (1, "x")]) == [3, 4]
+
+
 def test_a_cuda_request_the_interpreter_cannot_serve_is_refused_by_name(monkeypatch, tmp_path):
     """S4 run 3 decision D4, on a CONSTRUCTED interpreter (a .cmd that answers the CUDA probe "0"):
     `cuda` on it is refused BEFORE anything runs, `auto` resolves to `cpu`, and the queue worker
@@ -423,6 +436,21 @@ def test_a_job_whose_every_lease_expired_dies_at_the_ceiling(pg, root):
     state, _r, attempts, _s, _run = _jobs(pg, f)[0]
     assert (state, attempts) == ("dead", ceiling)
     assert "lease expired" in pg.one("SELECT last_error FROM litkb.extraction_jobs WHERE file_id = %s", (f,))[0]
+    # design §12.3: the death is also a `failed` run at the job's key, never current
+    status, m, current = _dead_run(pg, f)
+    assert (status, current, m["job_state"]) == ("failed", False, "dead"), m
+    assert "lease expired" in m["last_error"] and len(m["dead_jobs"]) == 1, m
+
+
+def _dead_run(pg, fid):
+    """The one run a dead job leaves for its file (migration 0029 ``_job_dead_run``).
+    -> (status, metrics, is it the file's current run)."""
+    rows = pg.conn.execute(
+        "SELECT r.status, r.metrics, f.current_run_id IS NOT DISTINCT FROM r.id "
+        "FROM litkb.extraction_runs r JOIN litkb.files f ON f.id = r.file_id WHERE r.file_id = %s",
+        (fid,)).fetchall()
+    assert len(rows) == 1, rows
+    return rows[0]
 
 
 @pg_only
@@ -489,6 +517,65 @@ def test_a_job_that_keeps_failing_is_dead_at_the_ceiling(pg, root):
     assert pg.one("SELECT outcome FROM litkb.extraction_job_leases WHERE job_id = "
                   "(SELECT id FROM litkb.extraction_jobs WHERE file_id = %s) ORDER BY seq DESC LIMIT 1",
                   (f,)) == ("dead",)
+    # design §12.3 / builder-A Q2: a `failed` run at the job's key carries the job's last error, and
+    # it is never the file's current run (nothing reads a dead file as extracted)
+    status, m, current = _dead_run(pg, f)
+    assert (status, current) == ("failed", False)
+    assert m["job_state"] == "dead" and "constructed failure" in m["last_error"], m
+    assert m["dead_jobs"][0]["attempts"] == ceiling, m
+
+
+@pg_only
+def test_a_dead_job_never_touches_an_ok_run_at_its_key(pg, root):
+    """The dead-run record is written only where no ok run stands: a job that dies while an ok run
+    exists at its key (another route extracted the file meanwhile) leaves that run ok and current."""
+    from litkb.extract import ingest as ING
+    from litkb.extract import reconcile as R
+
+    f, pdf = _file(pg, root, "DiesBesideAnOkRun", 2)
+    _sweep(root, [f])
+    k = _k()
+    try:
+        (c,) = Q.claim(k, "late", 1, 60, [f])
+        prep = ING.prepare(str(pdf), None, F.synthetic_doc(pdf))
+        ok = ING.ingest_file(k, f, prep["canonical"], prep["disagreements"], prep["stats"],
+                             pages=prep["pages"], pipeline_version=R.PIPELINE_VERSION,
+                             params=ING.CORPUS_PARAMS)["run_id"]
+        pg.conn.execute("UPDATE litkb.extraction_jobs SET attempts = litkb._job_max_attempts() "
+                        "WHERE id = %s", (c.job_id,))
+        assert Q._sql(k, "SELECT litkb.fail_job(%s, %s, 'late failure')", (c.job_id, c.token)).fetchone()[0] == "dead"
+    finally:
+        k.close()
+    assert pg.one("SELECT status FROM litkb.extraction_runs WHERE id = %s", (ok,)) == ("ok",)
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (f,)) == (ok,)
+    assert pg.one("SELECT count(*) FROM litkb.extraction_runs WHERE file_id = %s", (f,)) == (1,)
+
+
+@pg_only
+def test_an_extraction_with_no_block_dies_as_zero_content_by_name(pg, root):
+    """CONSTRUCTED: two BLANK pages (no text, no raster — native under D13) and an extractor that
+    reads nothing. No block: the job fails as ZeroContent on every attempt (each reusing the recorded
+    artifact) and dies; its last error and its failed run both name it, which is the evidence the
+    readability classifier reads for `zero-content` (litkb.readability, S4 run 3 item 1c)."""
+    ws = F.open_ws(pg.conn)
+    pdf = F.constructed_pdf(root / "Validation" / "BlankTwo.pdf", 2, text=False, raster=False,
+                            note=uuid.uuid4().hex)
+    f = F.add_file(pg.conn, ws, F.add_work(pg.conn, ws), pdf, root)
+    _sweep(root, [f])
+    calls = []
+
+    def silent(job):
+        calls.append(job.prefix)
+        return F.SyntheticExtractor(silent_pages={1, 2})(job)
+
+    rep = _work(root, [f], extractor=silent)
+    ceiling = pg.one("SELECT litkb._job_max_attempts()")[0]
+    assert rep["outcomes"] == {"failed:queued": ceiling - 1, "failed:dead": 1}, rep
+    assert calls == ["whole.s1"], "a retry re-extracted instead of reusing the recorded artifact"
+    last = pg.one("SELECT last_error FROM litkb.extraction_jobs WHERE file_id = %s", (f,))[0]
+    assert last.startswith(Q.ZERO_CONTENT_ERROR), last
+    status, m, _cur = _dead_run(pg, f)
+    assert status == "failed" and m["last_error"].startswith(Q.ZERO_CONTENT_ERROR), m
 
 
 @pg_only
@@ -596,23 +683,47 @@ def test_a_reclaimed_job_reuses_its_recorded_artifact(pg, root):
 
 @pg_only
 def test_a_scan_whose_image_pages_stay_empty_is_refused_even_with_ocr_on(pg, root):
-    """CONSTRUCTED: a mixed file (image page 3 of 4), OCR on, and the tool reads nothing on the
-    image page -> refused `scan-needs-ocr`, no run; the same file shape with the image page read
-    -> done, with `ocr` true and the image-page characters in the run's metrics."""
+    """CONSTRUCTED: a SCAN by the majority of its pages (image pages 2-4 of 4, one native-text page),
+    OCR on, and the tool reads nothing on the image pages -> refused `scan-needs-ocr`, no run; the
+    same shape with the image pages read -> done, with `ocr` true and the image-page characters in
+    the run's metrics."""
     ws = F.open_ws(pg.conn)
     silent = F.add_file(pg.conn, ws, F.add_work(pg.conn, ws), F.constructed_pdf(
-        root / "Validation" / "MixedSilent.pdf", 4, scan_pages=(3,), note=uuid.uuid4().hex), root)
+        root / "Validation" / "ScanSilent.pdf", 4, scan_pages=(2, 3, 4), note=uuid.uuid4().hex), root)
     read = F.add_file(pg.conn, ws, F.add_work(pg.conn, ws), F.constructed_pdf(
-        root / "Validation" / "MixedRead.pdf", 4, scan_pages=(3,), note=uuid.uuid4().hex), root)
+        root / "Validation" / "ScanRead.pdf", 4, scan_pages=(2, 3, 4), note=uuid.uuid4().hex), root)
     assert _sweep(root, [silent, read])["enqueued"] == 2
-    rep = _work(root, [silent], extractor=F.SyntheticExtractor(silent_pages={3}))
+    rep = _work(root, [silent], extractor=F.SyntheticExtractor(silent_pages={2, 3, 4}))
     assert rep["outcomes"] == {"refused": 1}, rep
     assert _jobs(pg, silent)[0][:2] == ("refused", "scan-needs-ocr")
     assert pg.one("SELECT count(*) FROM litkb.extraction_runs WHERE file_id = %s", (silent,))[0] == 0
     assert _work(root, [read])["outcomes"] == {"done": 1}
     m = pg.one("SELECT r.metrics FROM litkb.extraction_runs r JOIN litkb.files f "
                "ON f.current_run_id = r.id WHERE f.id = %s", (read,))[0]
-    assert m["ocr"] is True and m["image_pages"] == 1 and m["ocr_chars_on_image_pages"] > 0
+    assert m["ocr"] is True and m["image_pages"] == 3 and m["ocr_chars_on_image_pages"] > 0
+    assert m["textless_image_pages"] == []
+
+
+@pg_only
+def test_a_native_paper_with_one_textless_picture_page_is_extracted_not_refused(pg, root):
+    """CONSTRUCTED (the new negative of S4 run 3 item 1a): a NATIVE paper — three pages of text and
+    ONE image page (page 3) whose picture carries no text — routed to OCR, and OCR reads nothing on
+    the picture. It is not a scan (1 image page against 3 native-text pages), so the run FINISHES:
+    `done`, one ok current run, the textless page REPORTED in the run's metrics, and
+    `scans_ocr_unrouted` does not move. Mutation EQ25 (the majority clause removed) refuses it whole."""
+    ws = F.open_ws(pg.conn)
+    before = Q.scans_ocr_unrouted(pg.conn)
+    f = F.add_file(pg.conn, ws, F.add_work(pg.conn, ws), F.constructed_pdf(
+        root / "Validation" / "NativeWithPicture.pdf", 4, scan_pages=(3,), note=uuid.uuid4().hex), root)
+    assert _sweep(root, [f])["enqueued"] == 1
+    assert P.image_page_numbers(root / "Validation" / "NativeWithPicture.pdf") == [3]
+    rep = _work(root, [f], extractor=F.SyntheticExtractor(silent_pages={3}))
+    assert rep["outcomes"] == {"done": 1}, rep
+    m = pg.one("SELECT r.metrics FROM litkb.extraction_runs r JOIN litkb.files f "
+               "ON f.current_run_id = r.id WHERE f.id = %s", (f,))[0]
+    assert m["textless_image_pages"] == [3] and m["ocr_chars_on_image_pages"] == 0, m
+    assert m["image_pages"] == 1 and m["ocr"] is True, m
+    assert Q.scans_ocr_unrouted(pg.conn) == before
 
 
 @pg_only

@@ -1673,6 +1673,14 @@ EQUIVALENT = {
         "Identical shape to run_audit's: `detail=f\"{type(e).__name__}: {redact(e)}\"` passed to result(), which "
         "redacts r['detail'] immediately. The outer redact is an unreachable second application, not a guard "
         "with its own reach.",
+    "litkb/ops/retire.py::status::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
+    "litkb/ops/retire.py::superseded_runs_unretired::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
+    "litkb/ops/retire.py::superseded_runs_held_by_evidence::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
+    "litkb/ops/retire.py::retire::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
 }
 
 
@@ -1722,6 +1730,20 @@ def _register_s3a2():
 
 
 _register_s3a2()
+
+
+def _register_s4d2():
+    """S4 run 3, builder-D2: migration 0031 (retiring superseded run sets) and the stage5-4
+    fragment text (qc/instruments/litkb_s4d2_mutations.py). Its own file for the S3 reason."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_s4d2_mutations", Path(__file__).resolve().parent / "litkb_s4d2_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_s4d2()
 
 
 # ── the first real use of the KB (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8, migration 0020) ────
@@ -2273,6 +2295,12 @@ SINK_ALLOW = {
     "litkb/commands.py::cmd_ws::print": (1,
         "The workstream id, slug, branch and the PATH the token was written to — the line itself says '(never "
         "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
+    "litkb/commands.py::cmd_runs::print": (1,
+        "`litkb runs retire` (S4 run 3, migration 0031): print(line) over litkb.ops.retire.summary_lines, "
+        "which formats ONLY database facts about extraction runs — stage names, run ids (uuids), work keys, "
+        "pipeline versions, counts — and the op id. It holds no credential: the reader's password is read "
+        "by libpq from the passfile, the ingest login's likewise, and no token or secret is in scope. "
+        "--json goes through _print instead."),
     "litkb/commands.py::cmd_reap::print": (3,
         "The staging census (S3, 2026-09-21). Three calls: the table lines litkb.ops.reaper.table() builds, the "
         "counters line, and the mode/run_id/root line. Every interpolated value is a fact about a FILE or about "

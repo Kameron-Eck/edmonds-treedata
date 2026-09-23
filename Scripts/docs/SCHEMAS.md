@@ -2009,7 +2009,16 @@ START: a sentence that runs from page 27 onto page 28 is stored — and so cited
 page 28's fragment begins with the next sentence. GROBID records no position inside a sentence,
 so no finer cut is available from it. An EMPTY `sentence` fragment is KEPT as it is: it keeps the
 page span, its box and the fragment chain (`continues_from` / `continues_to`), and holds nothing
-to misquote.
+to misquote. How many there are, MEASURED on all 229 stored P5 artifact pairs (2026-09-22,
+LITKB_FRAGMENT_TEXT_CORPUS_2026-09-22.csv): empty-text fragments 0 under stage5-3, 97 under stage5-4
+(every one `sentence`), in 33 files; empty-text blocks of any kind 142 -> 239.
+
+**Merges move with the text.** `_merge_regions` merges two readings of a region only when their
+text is the same (`_text_same`), so a fragment whose text changed can merge where it did not, or stop
+merging where it did. On the 229 files: blocks 82,166 -> 82,181 in 13 files, `merged_regions`
+21,000 -> 20,985, and in every one of the 13 the block change is exactly minus the merge change
+(`dropped_overmerges` unchanged); 22 boxes exist only under stage5-4 (15 of them empty-text
+fragments that no longer merge into a reading with words) and 7 only under stage5-3.
 
 ## LITKB_FRAGMENT_TEXT_&lt;date&gt;.csv (Reports/, GENERATED — the stage5-4 before/after)
 
@@ -2024,6 +2033,18 @@ was never written, re-run Docling-only, so its rows are `unmatched`), then per s
 (`matched` / `unmatched` / `ambiguous`, by page and box within 0.01 pt), `*_len`, `*_page_text`,
 `*_group_identical` (all members matched and one text), `*_blocks_in_file`, and
 `before_reproduces_db` (the re-run's length equals the stored block's).
+
+## LITKB_FRAGMENT_TEXT_CORPUS_&lt;date&gt;.csv (Reports/, GENERATED — stage5-4 corpus-wide)
+
+Written by `qc/instruments/litkb_fragment_text.py --compare-corpus` from two `--corpus` runs over
+EVERY stored P5 artifact pair (TEI + Docling JSON + the PDF the census names), on main's `pipeline/`
+(before) and the branch's (after). One row per file plus a `TOTAL` row: `name`, `error`,
+`before_blocks` / `after_blocks`, `before_merged` / `after_merged` (reconcile's `merged_regions`),
+`*_dropped_overmerges`, `*_empty_text_blocks` (a text-bearing kind — not table or figure — whose
+text is empty), `*_empty_text_fragments` (those that are fragments), `after_empty_sentence_fragments`,
+`new_boxes` / `gone_boxes` (page + box, to 0.01 pt, present on one side only), `new_boxes_empty`,
+`after_page_text` (the run's `fragment_page_text` counts), and on the TOTAL row
+`files_blocks_changed`.
 
 ## LITKB_EDGE_RUN_&lt;date&gt;.csv (Reports/, GENERATED — the edge-case register's ledger)
 

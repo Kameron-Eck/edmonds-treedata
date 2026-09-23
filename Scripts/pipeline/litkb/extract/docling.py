@@ -335,7 +335,7 @@ def prov_pieces(item):
     What the tool records, read rather than assumed. Docling joins the pieces of one element
     that its reading-order model merged across a page or column break in
     ``ReadingOrderModel._merge_elements`` (docling 2.127.0,
-    ``docling/models/stages/reading_order/readingorder_model.py:657-686``, read 2026-09-22 in
+    module ``docling.models.stages.reading_order.readingorder_model``, read 2026-09-22 in
     ``venv-docling``): the first piece's prov gets ``charspan (0, len(its text))``; each merged
     piece gets ``(len(text so far) + 1, len(text so far) + 1 + len(piece))`` — computed BEFORE the
     join — and is then appended either after ONE space or, when the text so far ends with a soft

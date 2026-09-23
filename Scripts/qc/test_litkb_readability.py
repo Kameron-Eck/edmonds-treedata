@@ -803,3 +803,52 @@ def test_the_gated_counter_is_the_number_of_unclassified_file_and_staging_rows(e
         assert res["counters"]["unclassified_acquired_files"] == want
         assert R.counters(res)["unclassified_acquired_files"] == want
     assert after["counters"]["unclassified_acquired_files"] == before["counters"]["unclassified_acquired_files"] + 1
+
+
+@pg_only
+def test_a_file_with_one_dead_range_takes_the_dead_ranges_class_and_its_staged_sibling_never_assembles(env):
+    """Orchestrator ruling Q2 (S4 run 3): `dead` is final for the JOB, and the FILE takes the dead
+    range's class. CONSTRUCTED 30-page scan -> two OCR ranges (1-22, 23-30); the extractor fails on
+    range 1-22 every time (it dies at the ceiling), range 23-30 extracts and is STAGED — and stays
+    staged: its sibling will never be staged, so the file never assembles, holds no ok run, and is
+    UNCLASSIFIED with flag `dead-error` (the dead range died on an extractor error), not `waiting`.
+    Its failed run names the dead range. Mutation S4C4 (waiting read before dead) reads it `waiting`."""
+    from litkb.extract import queue as Q
+    from litkb.extract import queue_fire as F
+
+    s, _rel = _qfile(env, "DeadRange", 30, text=False)
+    assert _sweep(env, s["file_id"], ocr=True)["enqueued"] == 2
+
+    def picky(job):
+        if tuple(job.page_range or ()) == (1, 22):
+            raise Q.ExtractError("docling produced no artifact: CONSTRUCTED failure on range 1-22")
+        return F.SyntheticExtractor()(job)
+
+    rep = _qwork(env, s["file_id"], picky)
+    assert rep["outcomes"].get("failed:dead") == 1 and rep["outcomes"].get("staged") == 1, rep
+    states = env["conn"].execute("SELECT page_start, state FROM litkb.extraction_jobs WHERE file_id = %s "
+                                 "ORDER BY page_start", (s["file_id"],)).fetchall()
+    assert states == [(1, "dead"), (23, "staged")], states
+    assert _qwork(env, s["file_id"], picky)["claimed"] == 0, "a staged range is never handed out again"
+    runs = env["conn"].execute("SELECT status, metrics FROM litkb.extraction_runs WHERE file_id = %s",
+                               (s["file_id"],)).fetchall()
+    assert [r[0] for r in runs] == ["failed"] and runs[0][1]["dead_jobs"][0]["page_start"] == 1, runs
+    row = _row(_classify(env), s["file_id"])
+    assert row["class"] is None and row["queue_flag"] == "dead-error", row
+    assert "CONSTRUCTED failure on range 1-22" in row["evidence"], row
+
+
+@pg_only
+def test_litkb_works_per_file_view_reads_the_queue_too(env):
+    """`classify_work_files` (what `litkb_work` shows) runs the same queue step: a CONSTRUCTED scan whose
+    OCR job is QUEUED is UNCLASSIFIED there, as in `classify`, never `scan-needs-ocr`. Mutation S4C5
+    (its jobs argument dropped at that call site) reads it `scan-needs-ocr`."""
+    from litkb import readability as R
+
+    s, _rel = _qfile(env, "WorkViewWaiting", 3, text=False)
+    before, _roll = R.classify_work_files(env["conn"], s["work_id"], root=env["root"])
+    assert before[s["file_id"]]["class"] == "scan-needs-ocr", before
+    assert _sweep(env, s["file_id"], ocr=True)["enqueued"] == 1
+    per, rollup = R.classify_work_files(env["conn"], s["work_id"], root=env["root"])
+    assert per[s["file_id"]]["class"] is None and "waiting" in per[s["file_id"]]["evidence"], per
+    assert rollup is None, rollup

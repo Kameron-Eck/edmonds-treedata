@@ -341,6 +341,14 @@ def sql_guard_off(conn, signature, marker):
             raise RuntimeError(f"{signature} was not restored byte-for-byte")
 
 
+def _salt():
+    """A per-call salt for a CONSTRUCTED fixture's trailing comment (and a REAL copy's): `files.sha256` is
+    UNIQUE, so a fire whose bytes were the same on every call could run ONCE per database — a second
+    `--fire` in the same worker database collided on `files_sha256_key` (measured 2026-09-22, builder-C).
+    The comment follows `%%EOF`: no page, no text and no count changes."""
+    return uuid.uuid4().hex
+
+
 # ── the fire functions ──────────────────────────────────────────────────────────────────
 
 def fire_cap(conn, workdir):
@@ -353,7 +361,7 @@ def fire_cap(conn, workdir):
     out = {"baseline": {"over_cap_bound": Q.over_cap_bound(conn)}}
     for arm in ("guarded", "mutated"):
         pdf = constructed_pdf(root / "Validation" / f"Cap_{arm}.pdf", P.EXTRACT_PAGE_CAP + 1,
-                              text=False, raster=False, note=f"fire_cap {arm}")
+                              text=False, raster=False, note=f"fire_cap {arm} {_salt()}")
         fid = add_file(conn, ws, add_work(conn, ws), pdf, root)
         guard = python_guard_off("over-page-cap") if arm == "mutated" else contextlib.nullcontext()
         with guard:
@@ -371,7 +379,7 @@ def fire_book(conn, workdir):
     ws = open_ws(conn)
     out = {"baseline": {"books_extracted": Q.books_extracted(conn)}}
     for arm in ("guarded", "mutated"):
-        pdf = constructed_pdf(root / "Validation" / f"Book_{arm}.pdf", 3, note=f"fire_book {arm}")
+        pdf = constructed_pdf(root / "Validation" / f"Book_{arm}.pdf", 3, note=f"fire_book {arm} {_salt()}")
         fid = add_file(conn, ws, add_work(conn, ws, "book"), pdf, root)
         with contextlib.ExitStack() as stack:
             if arm == "mutated":
@@ -402,7 +410,7 @@ def fire_scan(conn, workdir):
     replay = ReplayExtractor({(1, 22): ANDERSON_NO_OCR}, ocr=False)
     for arm in ("guarded", "mutated"):
         pdf = real_copy(ANDERSON, root / "Validation" / f"Anderson_1957_{arm}.pdf",
-                        note=f"fire_scan {arm}" if arm == "mutated" else "")
+                        note=f"fire_scan {arm} {_salt()}")
         fid = add_file(conn, ws, add_work(conn, ws), pdf, root)
         with contextlib.ExitStack() as stack:
             if arm == "mutated":
@@ -425,7 +433,7 @@ def fire_lease(conn, workdir, lease=1):
     ws = open_ws(conn)
     out = {"baseline": {"mutated_leases_accepted": Q.mutated_leases_accepted(conn)}}
     for arm in ("guarded", "mutated"):
-        pdf = constructed_pdf(root / "Validation" / f"Lease_{arm}.pdf", 2, note=f"fire_lease {arm}")
+        pdf = constructed_pdf(root / "Validation" / f"Lease_{arm}.pdf", 2, note=f"fire_lease {arm} {_salt()}")
         fid = add_file(conn, ws, add_work(conn, ws), pdf, root)
         k = Q.connect(db)
         try:

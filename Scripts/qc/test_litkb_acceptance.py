@@ -2066,3 +2066,32 @@ def test_readability_a_fire_that_cannot_run_is_never_reported_fired(mod, litkb_p
     _psycopg, conn, _ran = litkb_pg_base
     out = mod.readability_fire("scan", db=c.DB_TEST, workdir=tmp_path, conn=conn)
     assert out["fired"] is False and "CANNOT RUN" in out["lines"][-1], out["lines"]
+
+
+@pg_only
+def test_readability_every_fire_runs_back_to_back_in_one_worker_db_without_a_reset(mod, litkb_pg_base, tmp_path):
+    """Orchestrator ruling Q3 (S4 run 3): a cold session must be able to re-fire every (c) row back to
+    back in ONE worker database. The CLI resets before each fire; this test does NOT reset between
+    fires — all seven in sequence, then cap, book, scan and lease a SECOND time on the same database.
+    Before the fixtures were salted (`queue_fire._salt`) the second round died on `files_sha256_key`
+    (measured 2026-09-22). One reset before the sequence and one after, for the modules downstream."""
+    from litkb.db import connect as c
+    from litkb.db import migrate
+    from litkb.extract import queue_fire as F
+
+    names = ["kill", "lease", "cap", "probe", "scan", "book", "quarantine", "cap", "book", "scan", "lease"]
+    if not (F.ANDERSON.is_file() and F.ANDERSON_NO_OCR.is_file()):
+        names = [n for n in names if n != "scan"]
+    _psycopg, conn, _ran = litkb_pg_base
+    migrate.reset(conn)
+    migrate.apply(conn)
+    results = []
+    try:
+        for i, name in enumerate(names):
+            out = mod.readability_fire(name, db=c.DB_TEST, workdir=tmp_path / f"{i:02d}_{name}", conn=conn)
+            results.append((name, out["fired"], out["lines"]))
+    finally:
+        migrate.reset(conn)
+        migrate.apply(conn)
+    print("\n".join(ln for _n, _f, lines in results for ln in lines))
+    assert [n for n, fired, _l in results if not fired] == [], results

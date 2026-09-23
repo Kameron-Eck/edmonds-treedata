@@ -2319,6 +2319,11 @@ key; `dead` read first, then waiting, refused, done): a queued / leased / staged
 UNCLASSIFIED with both named (a stale refusal is never picked over the file's present); a `dead` job →
 `zero-content` when it died as `queue.ZeroContent`, else UNCLASSIFIED (an extractor error is a finding,
 never a class). Without migration 0029 the step reads nothing and `queue_table` = 0 says so.
+**A file with a dead page range** (orchestrator ruling Q2, S4 run 3): `dead` is final for that JOB,
+and the FILE takes the dead range's class — `zero-content` if it produced no block, else UNCLASSIFIED
+with flag `dead-error`. Its other ranges stay `staged` and never assemble (`stage_chunk` assembles only
+when every sibling is staged), so such a file holds no ok run; `dead` is read before `waiting` for
+exactly that reason (test `test_a_file_with_one_dead_range_takes_the_dead_ranges_class_…`, mutation S4C4).
 
 Counters (`readability.counters`): `unclassified_acquired_files` (file and staging rows with no
 class — the gated one) and the REPORTED `queue_table` (1 = the queue was read), `files_queue_waiting`,
@@ -2487,7 +2492,10 @@ same REPEATABLE READ snapshot as the bed; `frozen_at_source` = `db`) · `repo`, 
 `code_committed` (`git status --porcelain` over the litkb package and the instrument is empty: true;
 dirty: false; git cannot say: null) · `db`, `db_name`, `db_oid` (`pg_database.oid`: a DROP + CREATE
 under the same name changes it) · `reader_role` · `repo_migration_tip`, `db_migration_tip` (the
-OWNER read, through `--passfile`; null with `db_migration_tip_note` when unreadable),
+OWNER read, `litkb_owner` through `connect_admin`; `--passfile` sets PGPASSFILE for it, and without it
+libpq's own default resolution applies — the code names no owner passfile of its own, the `edges`
+freeze included (`db.connect`: the admin passwords stay in the shared pgpass file); null with
+`db_migration_tip_note` when unreadable),
 `required_migration` (31) · `workstreams` (`[{slug, id}]`, `main` first with id null — main is always
 graded) · `literature_root`, `quarantine_root` · `derived_root` (`queue.derived_root()`, the job
 artifact root) and `references_derived_root` · `extract_page_cap`, `ocr_chunk_pages`, `lease_seconds`
@@ -2520,7 +2528,9 @@ counter is 0 and `waits_on_migration` is 0.
 
 **`--fire <name>`** runs on `LITKB_TEST_DB` and REFUSES `litkb` (and any name outside `litkb_test*`)
 before a connection opens. It owns that database: the suite's advisory lock, reset, migrate — so the
-control reads 0 by construction. It prints the guard-ON control line and the known-bad line and exits 0
+control reads 0 by construction, and all seven names can be fired back to back in one worker database
+(ruling Q3). The fixtures are also salted per call (`queue_fire._salt`), so the fires run back to back
+WITHOUT a reset too (`test_readability_every_fire_runs_back_to_back_in_one_worker_db_without_a_reset`). It prints the guard-ON control line and the known-bad line and exits 0
 only on FIRED. Names: `kill` (a `litkb queue work` subprocess tree killed mid-batch on the synthetic
 extractor and rerun: FIRED when the killed worker left exactly one stale lease, the rerun exits 0, a job
 was resumed, every file's content digest equals an uninterrupted run's and every counter is back at its

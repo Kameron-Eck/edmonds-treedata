@@ -2202,6 +2202,19 @@ block("S4C2", RPY, "guard: a dead job is zero-content only when its extraction p
 block("S4C3", RPY, "guard: a refusal the file's own evidence contradicts is never the class",
       "a STALE refusal (bad-file on bytes that were repaired) is taken as the file's class with no "
       "cross-check: the queue's memory overrides the file's present", tests=TESTS_READ)
+replace("S4C4", RPY,
+        "    for state, test in ((\"dead\", lambda j: j[\"state\"] == \"dead\"),\n"
+        "                        (\"waiting\", lambda j: j[\"state\"] in QUEUE_WAITING),\n",
+        "    for state, test in ((\"waiting\", lambda j: j[\"state\"] in QUEUE_WAITING),\n"
+        "                        (\"dead\", lambda j: j[\"state\"] == \"dead\"),\n",
+        "a file with one DEAD range and a STAGED sibling reads as waiting: the staged range never "
+        "assembles, so the file waits forever as unclassified-waiting instead of surfacing the death "
+        "(orchestrator ruling Q2)", tests=TESTS_READ)
+replace("S4C5", RPY,
+        "qrows=mine, jobs=None if jobs is None else jobs.get(f[\"file_id\"], []))",
+        "qrows=mine, jobs=None)",
+        "CALL SITE classify_work_files: litkb_work's per-file view skips the queue step, so a file "
+        "waiting in the queue shows a class there that classify withholds", tests=TESTS_READ)
 
 # ── S4R: `litkb_acceptance.py readability` (builder-C; plan "### S4" (b)/(c)) ─────────────────
 # One row per GATED counter: its wiring zeroed. The test that seeds that counter's known-bad on a

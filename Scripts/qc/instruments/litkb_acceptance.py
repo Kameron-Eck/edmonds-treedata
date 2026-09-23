@@ -2244,7 +2244,7 @@ def readability_fire(name, *, db, workdir, conn=None):
                          f"blocks={out['mutated'].get('blocks')}")
             fired = (control - base == 0) and (bad - base == 1)
         elif name == "kill":
-            pdfs = [F.constructed_pdf(work / "Validation" / f"Kill_{i}.pdf", 2 + i, note=f"readability fire {i}")
+            pdfs = [F.constructed_pdf(work / "Validation" / f"Kill_{i}.pdf", 2 + i, note=f"readability fire {i} {F._salt()}")
                     for i in range(3)]
             out = F.fire_kill(conn, work, pdfs, synthetic_delay=4, lease=6, timeout=600,
                               reference=F.synthetic_reference)

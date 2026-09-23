@@ -26,6 +26,12 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb review-context <review.md> --out <context.md>   (exit 1 on a block it cannot show)
     py -3.12 -m litkb reap [--min-age-hours 72] [--apply] [--out census.json] [--json]
                           (the staging census; --dry-run is the default and moves nothing)
+    py -3.12 -m litkb runs retire [--apply --reason R] [--json] [--out PATH]
+                          (superseded extraction runs: MARKED retired, never deleted; dry run default)
+    py -3.12 -m litkb [--db D] queue sweep [--workstream W] [--root R] [--no-ocr]
+    py -3.12 -m litkb [--db D] queue work [--max-jobs N] [--lease S] [--device auto|cuda|cpu] [--no-ocr]
+    py -3.12 -m litkb [--db D] queue status
+                          (the extraction queue, migration 0029; runs as litkb_ingest)
 
 Every write names the workstream in <worktree>/.litkb-workstream and presents its token, bound as a query
 parameter. The token is never printed: `ws open` prints the workstream id only.
@@ -618,10 +624,12 @@ def cmd_reap(args, conn):
     """The staging census, and — with --apply — the quarantine move for each orphan
     (litkb/ops/reaper.py).
 
-    It opens its OWN READER login, like `review-context`: the reaper reads `litkb.files` and
-    `litkb.file_versions` and writes no database row at all, so a writer credential would be one
-    it never uses, and a reader is also what lets the command run against a worker database, where
-    the shared pgpass holds no `litkb_writer` line.
+    It opens its OWN READER login, like `review-context`: the census reads `litkb.files` and
+    `litkb.file_versions`, and a reader is also what lets the command run against a worker database,
+    where the shared pgpass holds no `litkb_writer` line. With --apply ONLY it also opens the INGEST
+    connection (`litkb.quarantine.ingest_connect`), because each move is now followed by a
+    `litkb.quarantine_payloads` row (migration 0030) and `record_quarantine_system` is granted to
+    litkb_ingest alone. The dry run opens no second login and writes no row.
 
     --dry-run is the DEFAULT and moves nothing: the census is the product, and quarantining is a
     second, explicit call. Exit 1 when any file could not be read or moved — a census with a hole
@@ -630,12 +638,17 @@ def cmd_reap(args, conn):
     from litkb.db import connect as _c
     from litkb.ops import reaper as _r
 
+    from litkb import quarantine as _q
+
     conn = _c.connect(args.db, args.role)
+    recorder = _q.ingest_connect(args.db) if args.apply else None
     try:
         out = _r.reap(conn, root=args.root or os.environ.get("LITKB_LITERATURE_ROOT") or None,
-                      min_age_hours=args.min_age_hours, apply=bool(args.apply))
+                      min_age_hours=args.min_age_hours, apply=bool(args.apply), recorder=recorder)
     finally:
         conn.close()
+        if recorder is not None:
+            recorder.close()
     doc = _r.as_json(out)
     if args.json:
         _print(doc)
@@ -678,6 +691,116 @@ def cmd_hunt(args, conn):
                      hunt_request_id=args.hunt_request, ref_scheme=args.ref_scheme)
     _print(res)
     return 0 if res.get("ok") else 1
+
+
+def cmd_quarantine(args, conn):
+    """`litkb quarantine backfill [--apply]` (S4, migration 0030): every payload already under
+    `_quarantine/` gets a `litkb.quarantine_payloads` row (origin `legacy-backfill`).
+
+    The census reads on the READER login (`--role`, like `reap`) and writes NOTHING: the DRY RUN is
+    the default and is what a session runs against live. `--apply` additionally opens the INGEST
+    connection (`record_quarantine_system` is granted to litkb_ingest alone) and writes each row
+    idempotently — a recorded path is skipped. Exit 1 when a row could not be written, or when a
+    payload's label is outside the closed vocabulary (it is listed, never defaulted)."""
+    from litkb import quarantine as _q
+    from litkb.db import connect as _c
+
+    root = args.root or os.environ.get("LITKB_LITERATURE_ROOT") or None
+    conn = _c.connect(args.db, args.role)
+    recorder = _q.ingest_connect(args.db) if args.apply else None
+    try:
+        out = _q.backfill(conn, root=root, apply=bool(args.apply), recorder=recorder)
+    finally:
+        conn.close()
+        if recorder is not None:
+            recorder.close()
+    if args.json:
+        _print(out)
+    else:
+        for r in out["rows"]:
+            print(f"{r['action']:<16} {r['reason'] or '(unmapped: ' + str(r['label']) + ')':<16} "
+                  f"{r['rel_path']}  attempt={r['attempt_id'] or '-'} file={r['file_id'] or '-'}")
+        print(" ".join(f"{k}={v}" for k, v in out["counters"].items()))
+        print("by_reason " + " ".join(f"{k}={v}" for k, v in out["by_reason"].items()))
+        print(f"mode={'apply' if out['applied'] else 'dry-run'} root={out['root']} "
+              f"table_present={out['table_present']}")
+    if args.out:
+        with open(args.out, "x", encoding="utf-8") as fh:
+            json.dump(out, fh, indent=1, default=str, ensure_ascii=False)
+    return 1 if (out["errors"] or out["counters"]["unmapped"]) else 0
+
+
+def cmd_readability(args, conn):
+    """`litkb readability` (S4): classify every acquired file, staging payload and main work into the
+    closed readability classes (litkb/readability.py) and write `Reports/LITKB_READABILITY_<date>.csv`.
+
+    Reads on the READER login (`--role`) and writes the database NOTHING unless `--record`, which opens
+    the INGEST connection and records a quarantine row for each bound file the classifier refuses
+    (`bad-file`, `zero-content`, `probe-error`) against its current path — the bytes are never moved.
+    The CSV is create-only: an existing file is never overwritten (pass `--csv` another path).
+    Exit 0 always on a completed classification: `unclassified_acquired_files` is a count the
+    acceptance grades, not an error of this command."""
+    from litkb import quarantine as _q
+    from litkb import readability as _r
+    from litkb.db import connect as _c
+
+    conn = _c.connect(args.db, args.role)
+    recorder = _q.ingest_connect(args.db) if args.record else None
+    try:
+        ws = list(args.workstream or [])
+        if args.all_workstreams:
+            ws = [r[0] for r in conn.execute("SELECT id::text FROM litkb.workstreams ORDER BY opened_at, id").fetchall()]
+        res = _r.classify(conn, ws, root=args.root or os.environ.get("LITKB_LITERATURE_ROOT") or None,
+                          record=recorder,
+                          session=args.session or os.environ.get("LITKB_SESSION") or "litkb-readability")
+    finally:
+        conn.close()
+        if recorder is not None:
+            recorder.close()
+    path = None
+    if not args.no_csv:
+        path = _r.write_csv(res, args.csv or _r.default_csv_path())
+    print(" ".join(f"{k}={v}" for k, v in res["counters"].items()))
+    print(f"csv={path or '-'} workstreams={len(res['workstreams'])} cap={res['cap']} "
+          f"quarantine_table={res['quarantine_table']} recorded={len(res['recorded'])} "
+          f"cleared={len(res['cleared'])}")
+    return 0
+
+
+def cmd_queue(args, conn):
+    """The extraction queue (litkb/extract/queue.py; design §12.3-12.5, LITKB_WORKPLAN.md "### S4").
+
+    It opens its OWN ingest login(s): `sweep`, `work` and `status` run as litkb_ingest through the
+    queue's SECURITY DEFINER functions (migration 0029), and `work` opens a second connection for
+    the lease heartbeat. Against `litkb` that is `litkb.ingest.connect`; against a worker database
+    it is the test owner login + SET ROLE litkb_ingest (`references_ingest.connect`'s rule), which is
+    what lets the kill test run this very command as a subprocess.
+
+    Exit status: `work` exits 1 when any job failed or lost its lease; `sweep` and `status` exit 0.
+    """
+    from litkb.extract import queue as Q
+
+    if args.queue_cmd == "work":
+        report = Q.work(lambda: Q.connect(args.db), args.root, worker=args.worker,
+                        max_jobs=args.max_jobs, lease=args.lease or Q.LEASE_SECONDS,
+                        ocr=Q.ocr_enabled(args.no_ocr), device=args.device,
+                        python=args.docling_python, derived=args.derived,
+                        extractor=Q.seam_extractor(args.db), files=args.files)
+        _print(report)
+        bad = sum(n for k, n in report["outcomes"].items()
+                  if k.startswith("failed") or k == "lease-lost")
+        return 1 if bad else 0
+    k = Q.connect(args.db)
+    try:
+        if args.queue_cmd == "sweep":
+            _print(Q.sweep(k, args.root, workstreams=args.workstream or (),
+                           ocr=Q.ocr_enabled(args.no_ocr), files=args.files,
+                           redo=args.redo))
+        else:
+            _print(Q.status(k))
+    finally:
+        k.close()
+    return 0
 
 
 def build_parser():
@@ -824,7 +947,10 @@ def build_parser():
                    help="stop at `held` (admitted, no PDF) without attempting acquisition; the "
                         "default SPENDS: open access, then the archive, then Sci-Hub "
                         "(decisions.yaml litkb-p0-foundation, SPEND RULE 2026-09-16)")
-    h.add_argument("--device", default="cuda", help="the docling device (cuda | cpu)")
+    h.add_argument("--device", default="cuda",
+                   help="the docling device (cuda | cpu | auto); chosen WITH its interpreter by "
+                        "litkb.extract.docling.device_pair, and a device the interpreter cannot "
+                        "serve is refused before anything runs")
     h.add_argument("--docling-python", dest="docling_python",
                    help="the extraction venv's python (default: litkb.extract.docling.VENV_PYTHON)")
     h.add_argument("--derived", help="where the tool artifacts go (default LITKB_HUNT_DERIVED)")
@@ -890,7 +1016,122 @@ def build_parser():
                     help="the read login (default: LITKB_READER_ROLE, else litkb_reader). Worker "
                          "databases litkb_test_wN admit ONLY litkb_test (provision_workers), so a "
                          "run against one passes --role litkb_test; the same variable hunt.py reads")
+
+    # ── retiring superseded run sets, 2026-09-22 (migration 0031, litkb/ops/retire.py) ──────
+    rn = sub.add_parser("runs", help="extraction runs: retire the superseded ones (MARKING, never "
+                                     "deleting; S4 run 3 decision D6)")
+    rnsub = rn.add_subparsers(dest="runs_cmd", required=True)
+    rr = rnsub.add_parser("retire", help="list what would be retired, what is excluded and why; "
+                                         "--apply records ONE op (who, when, why)")
+    rrg = rr.add_mutually_exclusive_group()
+    rrg.add_argument("--dry-run", dest="apply", action="store_false", default=False,
+                     help="the default: report, write nothing")
+    rrg.add_argument("--apply", dest="apply", action="store_true",
+                     help="record the retirement through the ingest login (litkb.ingest.connect)")
+    rr.add_argument("--reason", help="why this op retires these runs (required with --apply)")
+    rr.add_argument("--json", action="store_true", help="print the plan as JSON, not a table")
+    rr.add_argument("--out", help="write the plan as JSON to this path")
+    rr.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
+                    help="the read login (default: LITKB_READER_ROLE, else litkb_reader)")
+    # ── S4: the database-visible quarantine state and the readability classifier ─────────────
+    qa = sub.add_parser("quarantine", help="the quarantine state (litkb.quarantine_payloads, migration 0030)")
+    qsub = qa.add_subparsers(dest="quarantine_cmd", required=True)
+    qb = qsub.add_parser("backfill", help="a row for every payload already in the quarantine directory; dry run by "
+                                          "default, --apply writes (ingest login)")
+    qb.add_argument("--apply", action="store_true", help="write the rows (default: a dry run that writes nothing)")
+    qb.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT, else the store's)")
+    qb.add_argument("--json", action="store_true")
+    qb.add_argument("--out", help="also write the JSON document here (create-only)")
+    qb.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
+                    help="the read login for the census (default: LITKB_READER_ROLE, else litkb_reader)")
+    rd = sub.add_parser("readability", help="classify every acquired file into the closed readability "
+                                            "classes and write Reports/LITKB_READABILITY_<date>.csv")
+    rd.add_argument("--workstream", action="append", help="also classify this workstream's current files "
+                                                          "(repeatable; an id)")
+    rd.add_argument("--all-workstreams", action="store_true", help="every workstream's current files too")
+    rd.add_argument("--csv", help="output path (default Reports/LITKB_READABILITY_<today>.csv; create-only)")
+    rd.add_argument("--no-csv", action="store_true", help="print the counters only")
+    rd.add_argument("--record", action="store_true",
+                    help="record a quarantine row for each bound file refused bad-file/zero-content/"
+                         "probe-error (ingest login); default: write nothing")
+    rd.add_argument("--root", help="literature root (default LITKB_LITERATURE_ROOT, else the store's)")
+    rd.add_argument("--role", default=os.environ.get("LITKB_READER_ROLE") or "litkb_reader",
+                    help="the read login (default: LITKB_READER_ROLE, else litkb_reader)")
+    # ── the extraction queue, S4 run 3 (litkb/extract/queue.py, migration 0029) ─────────────
+    q = sub.add_parser("queue", help="the extraction queue: sweep (enqueue), work (claim, "
+                                     "extract, ingest under a lease), status")
+    qsub = q.add_subparsers(dest="queue_cmd", required=True)
+    qs = qsub.add_parser("sweep", help="enqueue one stage-5 job per active file with no current run "
+                                       "(page-range jobs for an OCR-routed file); the guards refuse "
+                                       "book, bad-file, probe-error, over-page-cap, scan-needs-ocr")
+    qs.add_argument("--workstream", action="append",
+                    help="also sweep this workstream's view (id or slug; repeatable)")
+    qs.add_argument("--redo", action="store_true",
+                    help="with --file: enqueue a stage-5 job at TODAY's run key for a named file "
+                         "whose current run sits at an OLDER key (never one already at today's "
+                         "key); every guard still applies")
+    qw = qsub.add_parser("work", help="claim jobs one at a time until the queue is empty")
+    qw.add_argument("--max-jobs", dest="max_jobs", type=int, help="stop after this many claims")
+    qw.add_argument("--lease", type=int, default=None,
+                    help="lease seconds (default litkb.extract.queue.LEASE_SECONDS, measured); "
+                         "the heartbeat renews at half of it")
+    qw.add_argument("--worker", help="the worker id recorded on each lease (default host:pid)")
+    qw.add_argument("--device", default="auto", help="the docling device: auto | cuda | cpu, "
+                                                     "chosen WITH its interpreter (device_pair)")
+    qw.add_argument("--docling-python", dest="docling_python",
+                    help="the extraction venv's python (default: chosen by device_pair)")
+    qw.add_argument("--derived", help="the artifact root (default: references.DERIVED_ROOT)")
+    for sp in (qs, qw):
+        sp.add_argument("--root", help="the literature root rel_path is relative to (default "
+                                       "LITKB_LITERATURE_ROOT, else the store's)")
+        sp.add_argument("--no-ocr", dest="no_ocr", action="store_true",
+                        help="OCR off (also LITKB_QUEUE_NO_OCR=1): an OCR-routed file is refused "
+                             "`scan-needs-ocr` and never started")
+        sp.add_argument("--file", dest="files", action="append",
+                        help="only this file id (repeatable)")
+    qsub.add_parser("status", help="counts by state and refusal, and pages remaining")
     return ap
+
+
+def cmd_runs(args, conn):
+    """`litkb runs retire [--apply]` — litkb/ops/retire.py, migration 0031.
+
+    It opens its OWN logins, like `reap`: the dry run is SELECTs only, so it reads as
+    `litkb_reader` (which is also what lets it run against live without a write credential), and
+    `--apply` hands the eligible list to `litkb.retire_extraction_runs`, which only the ingest
+    login may execute. The session label (--session or LITKB_SESSION) and --reason are recorded
+    with the op; nothing is deleted."""
+    from litkb.db import connect as _c
+    from litkb.ops import retire as _rt
+    from litkb.textnorm import norm_label
+
+    session = norm_label(args.session or os.environ.get("LITKB_SESSION") or "")
+    if args.apply and (not session.strip() or not (args.reason or "").strip()):
+        raise SystemExit("litkb runs retire --apply: a session label (--session or LITKB_SESSION) "
+                         "and --reason are both required — the op records who and why")
+    reader = _c.connect(args.db, args.role, autocommit=True)
+    ingest_conn = None
+    try:
+        if args.apply:
+            from litkb import ingest as _ingest
+
+            ingest_conn = _ingest.connect(args.db)
+        out = _rt.retire(reader, ingest_conn, apply=bool(args.apply), session=session,
+                         reason=args.reason)
+    finally:
+        reader.close()
+        if ingest_conn is not None:
+            ingest_conn.close()
+    doc = _rt.as_json(out)
+    if args.json:
+        _print(doc)
+    else:
+        for line in _rt.summary_lines(out):
+            print(line)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=1, default=str, ensure_ascii=False)
+    return 0
 
 
 class _NoConn:
@@ -919,7 +1160,15 @@ class _NoConn:
 #: `reap`: it reads litkb.files and litkb.file_versions on the READER login and writes no row at
 #: all, so the writer main() would hand it is a credential it never uses — and a worker database's
 #: pgpass has no litkb_writer line, which would make the command test-only.
-_OWN_LOGINS = ("promote", "hunt", "review-context", "reap")
+#: `runs`: the dry run reads on the READER login and `--apply` writes through the ingest login,
+#: each opened by cmd_runs; the writer is a credential it never uses.
+#: `quarantine` / `readability` (S4): a READER for the census and, only with --apply / --record, the
+#: INGEST login for the rows — never the writer, whose record_quarantine needs a workstream token
+#: these system operations do not have.
+#: `queue`: it runs as litkb_ingest through migration 0029's functions and opens that login itself
+#: (plus a second connection for the heartbeat), like `hunt`'s ingest step.
+_OWN_LOGINS = ("promote", "hunt", "review-context", "reap", "runs", "quarantine",
+               "readability", "queue")
 
 
 def main(argv=None, connect=None):
@@ -931,7 +1180,8 @@ def main(argv=None, connect=None):
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt, "reap": cmd_reap,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,
                 "review-check": cmd_review_check, "review-context": cmd_review_context,
-                "promote": cmd_promote}[args.cmd](args, conn)
+                "promote": cmd_promote, "runs": cmd_runs, "quarantine": cmd_quarantine,
+                "readability": cmd_readability, "queue": cmd_queue}[args.cmd](args, conn)
     finally:
         conn.close()
 

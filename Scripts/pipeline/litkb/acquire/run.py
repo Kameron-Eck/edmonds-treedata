@@ -210,6 +210,25 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
                                   "note": "already on disk; nothing written"}
     # END guard: acquisition sha256 dedupe against the disk
     pdf, txt = store.land(data, work["key"], sha)
+    # The default is the unguarded one, so removing the guard below leaves code that RUNS and binds
+    # with `pages` NULL — the mutation the S4 known-bad `fire_probe` makes — rather than a NameError
+    # the harness would report as DID NOT FIRE (Reports/LITKB_P3_REPORT_2026-09-15.md, row P8f).
+    pages = None
+    # BEGIN guard: a landed file whose page count cannot be read is never bound
+    # `binding.pdf_info` never raises: a failing `pdfinfo` returns {} and the file bound with `pages`
+    # NULL (S4 run 3 code survey C8). The page count now comes from the one probe that CAN fail
+    # (litkb.extract.probe, the same count the extraction queue and the readability classifier read),
+    # and when it fails the file is quarantined `probe-error` and never offered to attach_file.
+    from litkb.extract import probe as _probe
+    try:
+        pages = _probe.probe_pages(pdf)
+    except _probe.ProbeError as e:
+        qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], "probe-error", sha)
+        return "bad-file", {"sha256": sha, "md5": facts["md5"], "bytes": facts["bytes"],
+                            "source_url": source_url, "probe_error": str(e)[:300],
+                            "note": "the page count could not be read; never bound (fail closed)",
+                            "quarantined": store.rel(qpdf)}
+    # END guard: a landed file whose page count cannot be read is never bound
     info = _binding.pdf_info(pdf)
     # every title form, not only the work's stored one (_title_forms): the page prints the publisher's choice
     # ... and, where the landed page has no text layer at all, again on Docling's OCR of it
@@ -227,8 +246,8 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
              "obtained_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
              "pdf_metadata": {k: v for k, v in info.items() if k in ("Title", "Author", "Subject", "Creator",
                                                                       "Producer", "PDF version", "Pages")}}
-    if (info.get("Pages") or "").isdigit():
-        fjson["pages"] = int(info["Pages"])
+    if pages is not None:
+        fjson["pages"] = pages
     if txt:
         fjson["txt_extract_path"] = store.rel(final.with_suffix(".txt"))
     with conn.transaction():
@@ -314,9 +333,17 @@ def attach_in_place(conn, ws, token, work, path, *, store, agent, session):
     from litkb.admit import front
 
     rel = store.rel(path)
-    fjson = front.file_evidence(path, work["title"], work["first_author"], root=store.root,
-                                source_route="held-in-place", source_url=f"in place {rel}",
-                                title_forms=_forms(work)[1:])
+    try:
+        fjson = front.file_evidence(path, work["title"], work["first_author"], root=store.root,
+                                    source_route="held-in-place", source_url=f"in place {rel}",
+                                    title_forms=_forms(work)[1:])
+    except front.BindProbeError as e:
+        # the probe guard lives in front.file_evidence; here the refusal becomes an attempt, and the
+        # file (which acquisition did not create) stays exactly where it lies. acquire() records the
+        # quarantine state against this path: for a file refused in place the row IS the state.
+        return "bad-file", {"sha256": e.sha256, "bytes": e.nbytes, "probe_error": e.probe_error,
+                            "in_place": rel,
+                            "note": "the page count could not be read; not bound, left where it lies"}
     b = fjson["binding"]
     detail = {"sha256": fjson["sha256"], "md5": fjson["md5"], "bytes": fjson["bytes"], "binding": b, "in_place": rel}
     if b["verdict"] != "bound":
@@ -331,6 +358,34 @@ def attach_in_place(conn, ws, token, work, path, *, store, agent, session):
         detail["filed"] = rel
         return "ok", detail
     return ("duplicate-held" if res["outcome"] == "duplicate-file" else "binding-failed"), detail
+
+
+def quarantine_state(conn, ws, token, work, status, route, detail, attempt_id):
+    """The database row for what one attempt quarantined (migration 0030). -> None when the attempt
+    quarantined nothing, else `quarantine.try_record`'s result, which NEVER raises: the bytes have
+    already moved, and a missing row is exactly what `quarantine.quarantined_without_db_state` counts.
+
+    Called once per attempt, AFTER `record_attempt`, so the row links the attempt that refused the
+    bytes. Every quarantine this module makes leaves `detail["quarantined"]` (the moved path), whose
+    NAME carries the label `Store.to_quarantine`/`quarantine_new` gave it; that label is the reason,
+    read back from the one place it was written. `detail["in_place"]` with `probe_error` is the
+    refusal of a topic-folder file that is never moved (`attach_in_place`)."""
+    from litkb import quarantine as Q
+
+    rel = detail.get("quarantined")
+    if rel:
+        parsed = Q.parse_name(Path(rel).name)
+        reason = parsed["label"] if parsed else None
+        origin = Q.origin_of_label(reason)
+    elif detail.get("probe_error") and detail.get("in_place"):
+        rel, reason, origin = detail["in_place"], "probe-error", "bind-refusal"
+    else:
+        return None
+    return Q.try_record(Q.record, conn, ws, token, rel_path=rel, sha256=detail.get("sha256"),
+                        nbytes=detail.get("bytes") or 0, reason=reason, origin=origin,
+                        work_id=work["work_id"], attempt_id=attempt_id,
+                        detail={"attempt_status": status, "route": route,
+                                "note": detail.get("probe_error") or detail.get("note") or ""})
 
 
 def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session, budget=None, retry_dead=False,
@@ -351,6 +406,9 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
     #: when the route raised. `litkb.hunt` reads it for the precedence rule that decides between
     #: `blocked`, `api-error` and `held` (docs/SCHEMAS.md, the hunt's terminal states).
     route_detail = []
+    #: One entry per quarantine this call made: `quarantine.try_record`'s {"ok", "id"|"error", "rel_path"}.
+    #: A caller that finds `ok: False` reports it (hunt: the `quarantine-state-failed` refusal).
+    qrows = []
     if work["held_files"] and from_file is None:
         return {"outcome": "already-held", "attempts": attempts, "route_detail": route_detail}
     index = store.disk_index()
@@ -379,10 +437,16 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
                 status, detail = land_and_attach(conn, ws, token, work, data, route="browser",
                                                  source_url=f"manual file {Path(from_file).name}", store=store,
                                                  index=dedupe, agent=agent, session=session)
-        record_attempt(conn, ws, token, wid, "browser", work.get("doi") or work.get("arxiv"), status, detail)
+        aid = record_attempt(conn, ws, token, wid, "browser", work.get("doi") or work.get("arxiv"), status,
+                             detail)
+        # BEGIN call site: a hand-fetched file's quarantine gets its database row
+        q = quarantine_state(conn, ws, token, work, status, "browser", detail, aid)
+        # END call site: a hand-fetched file's quarantine gets its database row
+        if q is not None:
+            qrows.append(q)
         attempts.append(("browser", status))
         route_detail.append({"route": "browser", "status": status, "codes": [], "exception": ""})
-        return {"outcome": status, "attempts": attempts, "route_detail": route_detail}
+        return {"outcome": status, "attempts": attempts, "route_detail": route_detail, "quarantine_rows": qrows}
 
     prior = prior_attempts(conn, wid)
     for route in routes:
@@ -485,22 +549,29 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         # END guard: bytes a route refused are quarantined, never discarded
         else:
             status = r["status"]
-        record_attempt(conn, ws, token, wid, route, ident, status, detail, codes)
+        aid = record_attempt(conn, ws, token, wid, route, ident, status, detail, codes)
+        # BEGIN call site: a route's quarantine gets its database row
+        q = quarantine_state(conn, ws, token, work, status, route, detail, aid)
+        # END call site: a route's quarantine gets its database row
+        if q is not None:
+            qrows.append(q)
         attempts.append((route, status))
         route_detail.append({"route": route, "status": status, "codes": [int(c) for c in codes],
                              "exception": ""})
         printer(f"  {route}: {status}")
         if status == "ok":
-            return {"outcome": "ok", "attempts": attempts, "detail": detail, "route_detail": route_detail}
+            return {"outcome": "ok", "attempts": attempts, "detail": detail, "route_detail": route_detail,
+                    "quarantine_rows": qrows}
         if status == "duplicate-held":
             return {"outcome": "duplicate-held", "attempts": attempts, "detail": detail,
-                    "route_detail": route_detail}
+                    "route_detail": route_detail, "quarantine_rows": qrows}
     if not any(p[0] == "browser" and p[1] == "manual-step" for p in prior) or retry_dead:
         record_attempt(conn, ws, token, wid, "browser", work.get("doi"), "manual-step",
                        {"instruction": "no automated route landed a file; fetch it in one browser session, then "
                                        f"py -3.12 -m litkb acquire --key {work['key']} --from-file <path>"})
         attempts.append(("browser", "manual-step"))
-    return {"outcome": "not-acquired", "attempts": attempts, "route_detail": route_detail}
+    return {"outcome": "not-acquired", "attempts": attempts, "route_detail": route_detail,
+            "quarantine_rows": qrows}
 
 
 def file_from_path_facts(path):

@@ -2086,8 +2086,11 @@ _EXPECTED_EXECUTE = {
     # (0001:25 revokes EXECUTE on a new function from PUBLIC, so an ungranted one is dead to every
     # agent role). THIS MATRIX IS WHY THE GRANT IS DECLARED AND NOT JUST WRITTEN: the grant
     # shipped, and this row is where it had to be admitted.
+    # run_retirement_status: migration 0031's verdict on every extraction run (the dry run of
+    # `litkb runs retire`, qc/test_litkb_retire.py). SECURITY INVOKER and read-only, so the reader
+    # asks it with its own SELECT rights; the op that WRITES is the ingest login's.
     "litkb_reader": {"norm_identifier", "check_ws_token", "norm_search_text", "any_term_query",
-                     "canonical_newlines"},
+                     "canonical_newlines", "run_retirement_status"},
     # admit, approve_admission, attach_file: P2 admission (migration 0013, qc/test_litkb_p2.py)
     "litkb_writer": {"norm_identifier", "open_workstream", "abandon_workstream", "write_fact", "write_proposal",
                      "admit", "approve_admission", "attach_file",
@@ -2114,7 +2117,11 @@ _EXPECTED_EXECUTE = {
                      # normaliser must behave identically whichever login asks
                      "check_ws_token", "norm_search_text", "any_term_query",
                      # canonical_newlines: `use.locate_quote` runs on the writer connection
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # record_quarantine: the workstream side of the quarantine state (migration 0030,
+                     # qc/test_litkb_quarantine.py). quarantine_payloads carries workstream_id and is
+                     # guarded; acquisition and hunt present the token through this function alone
+                     "record_quarantine"},
     # promotion_chains: the promoter's SECURITY DEFINER read of _ws_chains, so `promote prepare` can
     # write the promotion report (migration 0018, referee F-5). No agent role holds it.
     "litkb_promoter": {"norm_identifier", "promote_prepare", "promote_commit", "promote_abandon",
@@ -2138,7 +2145,31 @@ _EXPECTED_EXECUTE = {
                      # canonical_newlines: 0026 grants the three roles in one line, ingest
                      # included, so the rule a block is later matched by is not defined
                      # differently for the role that wrote the block
-                     "canonical_newlines"},
+                     "canonical_newlines",
+                     # retire_extraction_runs: migration 0031 (qc/test_litkb_retire.py). The ONE
+                     # writer of run_retirement_ops / run_retirements, which grant INSERT to
+                     # nobody; SECURITY DEFINER, refusing a current, evidence-cited or
+                     # not-superseded run. Retirement MARKS runs and deletes nothing.
+                     "retire_extraction_runs",
+                     # record_quarantine_system: the SYSTEM side of the quarantine state (migration
+                     # 0030) — the reaper, the readability classifier and the backfill, which hold no
+                     # workstream token. Its origins are closed to reaper/classifier/legacy-backfill
+                     "record_quarantine_system",
+                     # clear_quarantine_system: the classifier clears its OWN row on a bound file it
+                     # now classes extracted (0030, builder-B Q6); moved payloads are refused by it
+                     "clear_quarantine_system",
+                     # the extraction queue (migration 0029, qc/test_litkb_queue.py; design §12.3,
+                     # S4). extraction_jobs and extraction_job_leases grant INSERT to NOBODY, so
+                     # these eight are their only writers; every holder call presents the lease
+                     # token (finish_job is the ownership gate). The six helpers they call
+                     # (_job_max_attempts, _lease_hash, _job_file_is_book, _job_lease_current,
+                     # _job_siblings, _job_dead_run — the failed run a dead job leaves) are
+                     # granted to no role.
+                     "enqueue_extraction", "claim_jobs", "renew_lease", "record_artifact",
+                     "stage_chunk", "finish_job", "fail_job", "refuse_job",
+                     # reopen_job: auditor-A F1 (a refusal that no longer holds goes back to
+                     # queued, one extraction_job_reopens row per reopen; its only writer)
+                     "reopen_job"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

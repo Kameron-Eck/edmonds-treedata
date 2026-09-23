@@ -107,6 +107,9 @@ REFS = "pipeline/litkb/extract/references.py"
 REFING = "pipeline/litkb/extract/references_ingest.py"
 REFCOV = "pipeline/litkb/extract/references_coverage.py"
 REFDRV = "qc/instruments/litkb_references_stage.py"
+#: The GROBID ownership rule (P6-D6, D10, D11) moved to `litkb.extract.grobid` in S4 run 3 (auditor-A
+#: HUNT), so hunt and the queue share it; its rows follow it there.
+GROBID = "pipeline/litkb/extract/grobid.py"
 RESOLVER = "pipeline/litkb/admit/resolver.py"
 
 #: `normalize_doi(x)` -> `(x)`: the canonicalisation simply does not happen at that call.
@@ -211,7 +214,7 @@ def register(block, replace, site):
     block("P6-D5", REFDRV, "guard: the stage-6 driver posts only the bytes its file row names",
           "bytes that no longer hash to the file row are posted and cached under the row's sha256",
           tests=TESTS_P6D)
-    replace("P6-D6", REFDRV, "        if self.started_here and not self.stopped:",
+    replace("P6-D6", GROBID, "        if self.started_here and not self.stopped:",
             "        if not self.stopped:",
             "GROBID is stopped at the end of a batch even when another process started it",
             tests=TESTS_P6D)
@@ -224,10 +227,10 @@ def register(block, replace, site):
     replace("P6-D9", REFCOV, "\"f.status = 'active' AND cr.stage = %(stage5)s", "\"cr.stage = %(stage5)s",
             "a quarantined or superseded current file version with blocks is selected and counted",
             tests=TESTS_P6D)
-    block("P6-D10", REFDRV, "guard: a running GROBID unit someone else started is waited for, never started",
+    block("P6-D10", GROBID, "guard: a running GROBID unit someone else started is waited for, never started",
           "a busy GROBID that misses the 5 s health probe is 'started' (grobid.sh restarts it under "
           "the worker that owns it)", tests=TESTS_P6D)
-    replace("P6-D11", REFDRV, "        self.started_here = bool(ok and launched)",
+    replace("P6-D11", GROBID, "        self.started_here = bool(ok and launched)",
             "        self.started_here = bool(ok)",
             "ownership taken whenever a launch succeeds, including 'already alive' (someone else's "
             "GROBID), so the driver stops it at the end", tests=TESTS_P6D)

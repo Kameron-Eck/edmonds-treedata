@@ -259,12 +259,22 @@ _SCANNED_DIRS = ("acquire", "admit")          # the globs test_acquisition_and_a
 #: `ops/reaper.py` (S3, 2026-09-21) is the module whose whole PURPOSE is to act on files in staging that no
 #: database row accounts for — the one place a delete would look most reasonable and be most final. It moves
 #: them through Store.to_quarantine and writes a .reason.json, and it is scanned here so that stays true.
-_SCANNED_FILES = ("hunt.py", "ops/reaper.py")
+#: `quarantine.py` and `readability.py` (S4, 2026-09-22) name `_quarantine` and import the store's root:
+#: the first records the quarantine state and plants the CONSTRUCTED payload `fire_quarantine` needs
+#: (create-only, into a temp root it refuses to confuse with the real one), the second reads every bound
+#: file and writes its CSV create-only. Neither deletes, and scanning them is what keeps that true.
+_SCANNED_FILES = ("hunt.py", "ops/reaper.py", "quarantine.py", "readability.py")
 _STORE_READ_ONLY = {
     "migrate_legacy/sources.py":
         "imports LITERATURE_ROOT to BUILD READ paths under the topic folders (<topic>/manifest.csv, "
         "<topic>/<stem>.pdf) for the legacy loader. It opens nothing for writing and _delete_offenders reports no "
         "call in it at all, so no delete path can hide there.",
+    "extract/queue.py":
+        "the extraction queue (S4 run 3, migration 0029). It imports LITERATURE_ROOT in literature_root() "
+        "to BUILD READ paths to bound PDFs (root / files.rel_path), which it opens only to hash and probe. "
+        "Everything it writes goes under derived_root() — references.DERIVED_ROOT, outside Literture\\ — "
+        "through write_atomic, whose one os.replace renames an artifact's own .partial onto that artifact; "
+        "it never names _litkb_staging or _quarantine and never moves, renames or deletes a corpus file.",
 }
 
 

@@ -58,6 +58,15 @@ import time
 VENV_PYTHON = os.environ.get(
     "LITKB_EXTRACT_PYTHON", r"D:\edmonds-pipeline\venv-docling\Scripts\python.exe")
 
+#: The CUDA build of the same venv (same docling pins, torch cu130; S4 run 3 data survey D8). The
+#: bulk pass and the bench already name it explicitly; :func:`device_pair` is what makes every
+#: other caller reach it when it asks for `cuda`.
+CUDA_VENV_PYTHON = os.environ.get(
+    "LITKB_EXTRACT_CUDA_PYTHON", r"D:\edmonds-pipeline\venv-docling-cuda\Scripts\python.exe")
+
+#: The devices :func:`device_pair` accepts. `auto` means "cuda if the interpreter can serve it".
+DEVICES = ("auto", "cuda", "cpu")
+
 _HERE = os.path.dirname(os.path.abspath(__file__))
 WORKER = os.path.join(_HERE, "docling_worker.py")
 
@@ -80,6 +89,15 @@ class DoclingError(RuntimeError):
         super().__init__(message)
         self.metrics = metrics
         self.stderr = stderr
+
+
+class DeviceUnavailable(DoclingError):
+    """A device was asked for that the chosen interpreter cannot serve.
+
+    Raised by :func:`device_pair` BEFORE any conversion runs. The failure it replaces was silent:
+    `device=cuda` under the CPU venv (torch `+cpu`) reached docling, which wrote a FAILED metrics
+    row (`AcceleratorDeviceNotAvailableError`) and no artifact, and S2's Maiti_2022 was ingested
+    GROBID-only with nothing saying why (S4 run 3 code survey, headline 1)."""
 
 
 class NoTextBlocks(DoclingError):
@@ -117,6 +135,11 @@ class Block:
     frame: str = "cropbox"            # "cropbox" as docling emits it; "mediabox" after to_mediabox()
     order_index: int = -1             # position in the document's reading order
     content_layer: str = "body"
+    #: THIS box's own share of the element's ``text`` — the slice Docling's ``charspan`` names
+    #: for this ``prov`` entry (:func:`prov_pieces`) — or None where the spans cannot be read
+    #: back exactly. ``text`` stays the WHOLE element's: matching compares the two tools' whole
+    #: readings of one element, and only a fragment's STORED text is cut to its own box.
+    piece: str | None = None
 
     @property
     def width(self):
@@ -295,13 +318,72 @@ def iter_blocks(doc, kinds=None, body_only=False):
             continue
         provs = item.get("prov") or []
         text = item.get("text") or ""
+        pieces = prov_pieces(item) if len(provs) > 1 else None
         for i, prov in enumerate(provs):
             page = int(prov["page_no"])
             h = page_size(doc, page)
             x0, y0, x1, y1 = to_canonical(prov["bbox"], h[1] if h else None)
             yield Block(page=page, x0=x0, y0=y0, x1=x1, y1=y1, kind=label, text=text,
                         element_id=item.get("self_ref"), box_index=i, box_count=len(provs),
-                        order_index=order, content_layer=layer)
+                        order_index=order, content_layer=layer,
+                        piece=pieces[i] if pieces is not None else None)
+
+
+def prov_pieces(item):
+    """-> [str per ``prov`` entry] that TILE ``item["text"]`` exactly, or None.
+
+    What the tool records, read rather than assumed. Docling joins the pieces of one element
+    that its reading-order model merged across a page or column break in
+    ``ReadingOrderModel._merge_elements`` (docling 2.127.0,
+    module ``docling.models.stages.reading_order.readingorder_model``, read 2026-09-22 in
+    ``venv-docling``): the first piece's prov gets ``charspan (0, len(its text))``; each merged
+    piece gets ``(len(text so far) + 1, len(text so far) + 1 + len(piece))`` — computed BEFORE the
+    join — and is then appended either after ONE space or, when the text so far ends with a soft
+    hyphen or with a hyphen before a lower-case continuation, onto the text with that last
+    character removed and no space. So a merged piece's ``charspan[0]`` is exact after a space
+    join and two characters too far after a hyphen join, and WHICH join happened is read off the
+    length the text had afterwards: the NEXT piece's ``charspan[0] - 1``, or the final text's
+    length for the last piece — ``charspan[1]`` after a space join, ``charspan[1] - 2`` after a
+    hyphen join.
+
+    MEASURED on the 260 stored Docling artifacts under ``litkb_derived`` (2026-09-22, builder-D2
+    report): ``charspan`` is populated on every ``prov`` of every text item; 1,956 items carry
+    more than one ``prov``, 1,358 of them on more than one page; on 1,845 the last span ends at
+    ``len(text)`` and on the other 111 two characters past it — the hyphen join.
+
+    The first piece's own ``charspan[1]`` is NOT used: a list item's text is re-written by the
+    list-item processor after that span is taken (it equals ``len(orig)``, not ``len(text)``, on
+    12,066 single-prov items of the same 260 files), so piece 0 simply ends where piece 1
+    begins. The space a join inserted stays at the END of the earlier piece, which is what makes
+    the pieces tile the text; ``"".join(pieces) == item["text"]`` is checked before returning.
+    Anything that does not read back exactly returns None, and the caller keeps the element's
+    whole text for that element — the old behaviour, never a guessed cut.
+    """
+    provs = item.get("prov") or []
+    text = item.get("text") or ""
+    try:
+        spans = [(int(p["charspan"][0]), int(p["charspan"][1])) for p in provs]
+    except (KeyError, TypeError, IndexError, ValueError):
+        return None
+    if len(spans) < 2 or spans[0][0] != 0:
+        return None
+    starts = [0]
+    for k in range(1, len(spans)):
+        s, e = spans[k]
+        after = spans[k + 1][0] - 1 if k + 1 < len(spans) else len(text)
+        if after == e:                                   # appended after one space
+            if s < 1 or s > len(text) or text[s - 1] != " ":
+                return None
+            starts.append(s)
+        elif after == e - 2:                             # appended onto a removed hyphen
+            starts.append(s - 2)
+        else:
+            return None
+    starts.append(len(text))
+    if any(b <= a for a, b in zip(starts, starts[1:])):
+        return None
+    pieces = [text[a:b] for a, b in zip(starts, starts[1:])]
+    return pieces if "".join(pieces) == text else None
 
 
 def blocks(doc, kinds=None, body_only=False):
@@ -866,6 +948,72 @@ def worker_available(python=None):
     return os.path.exists(python or VENV_PYTHON) and os.path.exists(WORKER)
 
 
+# ── the device and the interpreter, chosen as ONE pair ────────────────────────────────────
+#
+# S4 run 3 decision D4. Before this, the device came from a flag (hunt's default `cuda`) and the
+# interpreter from another (`VENV_PYTHON`, whose torch is `+cpu`), each defaulted independently,
+# and the pair they made could not run: docling raised inside the worker, the worker wrote a failed
+# metrics row, and the caller carried on with GROBID alone. Now one function picks both, asks the
+# INTERPRETER whether it can serve CUDA, and refuses a pair it cannot serve by name.
+
+_CUDA_ANSWERS = {}
+
+
+def interpreter_has_cuda(python):
+    """True when `python`'s torch reports `cuda.is_available()`. Asked once per interpreter path.
+
+    Asked in a subprocess — the extraction venv is never imported here (design M9). An interpreter
+    with no torch, or one that fails to start, answers False: it cannot serve CUDA."""
+    key = os.path.normcase(os.path.abspath(python))
+    if key not in _CUDA_ANSWERS:
+        import tempfile
+
+        try:
+            # -P and a neutral cwd: the secrets-shadow hazard of docling_worker's docstring applies
+            # to any `-c` run of the venv from the pipeline tree
+            proc = subprocess.run(
+                [python, "-P", "-c",
+                 "import sys, torch; sys.stdout.write('1' if torch.cuda.is_available() else '0')"],
+                capture_output=True, text=True, timeout=180, cwd=tempfile.gettempdir())
+            _CUDA_ANSWERS[key] = proc.returncode == 0 and proc.stdout.strip() == "1"
+        except (OSError, subprocess.TimeoutExpired):
+            _CUDA_ANSWERS[key] = False
+    return _CUDA_ANSWERS[key]
+
+
+def device_pair(device="auto", python=None):
+    """-> (device, python): the Docling device and the interpreter that runs it, chosen together.
+
+    * ``python`` given: that interpreter, and ``device`` is checked against it.
+    * ``python`` omitted: ``cpu`` runs :data:`VENV_PYTHON`; ``cuda`` and ``auto`` run
+      :data:`CUDA_VENV_PYTHON` when it exists, else :data:`VENV_PYTHON`.
+    * ``auto`` resolves to ``cuda`` when the interpreter can serve it, else ``cpu``.
+    * ``cuda`` on an interpreter that cannot serve it raises :class:`DeviceUnavailable` — FAIL
+      CLOSED, before anything is converted, never a failed metrics row.
+    """
+    if device not in DEVICES:
+        raise DoclingError(f"device must be one of {DEVICES}, not {device!r}")
+    if python is None:
+        python = VENV_PYTHON if device == "cpu" else (
+            CUDA_VENV_PYTHON if os.path.exists(CUDA_VENV_PYTHON) else VENV_PYTHON)
+    if not os.path.exists(python):
+        raise DoclingError(
+            f"the extraction venv python is not at {python}; docling is deliberately NOT "
+            f"installed in the project environment (design M9). Set LITKB_EXTRACT_PYTHON "
+            f"or LITKB_EXTRACT_CUDA_PYTHON.")
+    if device == "cpu":
+        return "cpu", python
+    cuda = interpreter_has_cuda(python)
+    # BEGIN guard: a cuda request the interpreter cannot serve fails closed
+    if device == "cuda" and not cuda:
+        raise DeviceUnavailable(
+            f"device=cuda was requested, but {python} cannot serve it (its torch reports "
+            f"cuda.is_available() False, or it has no torch). Use --device cpu, or point "
+            f"LITKB_EXTRACT_CUDA_PYTHON / --docling-python at a CUDA build.")
+    # END guard: a cuda request the interpreter cannot serve fails closed
+    return ("cuda" if cuda else "cpu"), python
+
+
 # ── the VRAM knobs, and which of them the measurement kept ────────────────────────────────
 #
 # THE PROBLEM. The 20 % headroom rule (design §12) means <= 3,277 MiB of the T2000's 4,096. P5's
@@ -973,7 +1121,14 @@ def run(jobs, metrics_path, python=None, warmup=None, warmup_pages=1, ocr=False,
     if formula:
         cmd.append("--formula")
     before = _count_lines(metrics_path)
-    proc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=timeout)
+    try:
+        proc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        # A worker that outlives its timeout is a FAILED conversion, reported the way every other
+        # one is. Uncaught, the TimeoutExpired reached the caller as a bare traceback (hunt would
+        # crash; the queue would lose the reason). subprocess.run has already killed the child.
+        raise DoclingError(f"the docling worker ran past its {timeout} s timeout",
+                           stderr=(e.stderr or "")[-4000:] if isinstance(e.stderr, str) else "") from e
     rows = _read_metrics(metrics_path)[before:]
     try:
         os.remove(jobs_file)

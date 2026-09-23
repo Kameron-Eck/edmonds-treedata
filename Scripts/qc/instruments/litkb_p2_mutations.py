@@ -368,6 +368,11 @@ site("E3rec", "litkb/textnorm.py::jsonb_safe::jsonb_safe", "{a0}", tests=TESTS_P
 site("E3inv", "litkb/extract/inventory.py::probe_file::jsonb_safe", "{a0}",
      tests=["qc/test_litkb_inventory.py"],
      what="stage 0 passes a PDF's /Info dictionary on with its NULs (the inventory copy of the E3 guard)")
+# The fourth reached copy (S4 run 3, 2026-09-22): every quarantine row's detail (migration 0030). A
+# quarantined NAME or a served error page can carry a NUL; its own set carries the case
+# (test_a_detail_carrying_a_nul_is_still_recorded).
+site("S4Q1", "litkb/quarantine.py::_detail::jsonb_safe", "{a0}", tests=["qc/test_litkb_quarantine.py"],
+     what="a quarantine row's detail goes to jsonb with its NULs (the quarantine-state copy of the E3 guard)")
 site("S1", "litkb/admit/front.py::add_candidate::_jsonb", _JSONB, tests=TESTS_P1P2,
      what="add_candidate sends raw/authors/ids to jsonb unguarded")
 site("S2", "litkb/admit/front.py::_call_admit::_jsonb", _JSONB, tests=TESTS_P1P2,
@@ -1668,6 +1673,14 @@ EQUIVALENT = {
         "Identical shape to run_audit's: `detail=f\"{type(e).__name__}: {redact(e)}\"` passed to result(), which "
         "redacts r['detail'] immediately. The outer redact is an unreachable second application, not a guard "
         "with its own reach.",
+    "litkb/ops/retire.py::status::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
+    "litkb/ops/retire.py::superseded_runs_unretired::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
+    "litkb/ops/retire.py::superseded_runs_held_by_evidence::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
+    "litkb/ops/retire.py::retire::_jsonb":
+        "litkb.ops.retire._jsonb IS psycopg's Jsonb and nothing else (`return Jsonb(v)`, no jsonb_safe): the site mutation replaces `_jsonb(x)` with `Jsonb(x)`, the identical call, so no mutation of this site can change a byte. It shares the NAME of the jsonb_safe wrappers in admit/front.py and acquire/run.py but not their guard: what it wraps is the stage-key dict built from references_ingest.run_key (code constants), never text from outside the process.",
 }
 
 
@@ -1717,6 +1730,20 @@ def _register_s3a2():
 
 
 _register_s3a2()
+
+
+def _register_s4d2():
+    """S4 run 3, builder-D2: migration 0031 (retiring superseded run sets) and the stage5-4
+    fragment text (qc/instruments/litkb_s4d2_mutations.py). Its own file for the S3 reason."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "litkb_s4d2_mutations", Path(__file__).resolve().parent / "litkb_s4d2_mutations.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.register(block, replace, site)
+
+
+_register_s4d2()
 
 
 # ── the first real use of the KB (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8, migration 0020) ────
@@ -2075,6 +2102,231 @@ hu(site, "RD19", "litkb/acquire/events.py::record_url_landing::redact", "{a0}",
         "fetched — a key in its query string is written to the row and printed by every later "
         "reader of the attempt (record_attempt redacts the DETAIL, RD14/RD16, and not this column)")
 
+# ── EQ: the extraction queue (S4 run 3; migration 0029, litkb/extract/queue.py) ──────────────
+# Every guard the queue added, one row per site. The lease gate is presented by SIX holder
+# functions and each has its OWN guard block (EQ1-EQ6), so removing any one of them is seen by the
+# parametrised holder test. The three real-tool tests are deselected (-k "not real"): they need a
+# GPU and LITKB_REAL_EXTRACT=1, and a baseline may not skip.
+MIG29 = f"{MIG}/0029_extraction_jobs.sql"
+TESTS_QUEUE = ["qc/test_litkb_queue.py", "-k", "not real"]
+QPY = f"{PKG}/extract/queue.py"
+
+
+def eq(fn, *a, **kw):
+    fn(*a, **kw)
+    M[-1]["tests"] = TESTS_QUEUE
+
+
+for _i, _fn in enumerate(("renew_lease", "record_artifact", "stage_chunk", "fail_job", "refuse_job"), 1):
+    eq(block, f"EQ{_i}", MIG29, f"guard: {_fn} presents the job's current lease",
+       f"{_fn} stops presenting the lease token: a worker whose lease was reclaimed (or a forged "
+       f"token) can still move the job")
+eq(block, "EQ6", MIG29, "guard: finish_job accepts only the job's current, unsuperseded lease",
+   "THE OWNERSHIP GATE: an expired worker that wakes after reassignment commits its blocks and "
+   "finishes a job another worker holds (plan S4 (c), mutated_leases_accepted=1)")
+eq(block, "EQ7", MIG29, "guard: finish_job points a job only at an ok run of its own file and run key",
+   "a job can be marked done against another file's run, or none: the queue says a file is "
+   "extracted when its own blocks never landed")
+eq(block, "EQ8", MIG29, "guard: enqueue_extraction refuses a book's file",
+   "the SQL half of litkb-book-policy at enqueue: a book's file enqueued with no refusal is queued")
+eq(block, "EQ9", MIG29, "guard: claim_jobs never hands out a book's job",
+   "a work retyped to book after its job was queued is still handed to a worker")
+eq(block, "EQ10", MIG29, "guard: a job whose every lease expired dies at the attempt ceiling",
+   "a file that kills its worker every time is handed out forever")
+eq(block, "EQ11", MIG29, "guard: the lease history is append-only",
+   "the lease history can be rewritten after the fact: which claim finished a job stops being "
+   "knowable, and mutated_leases_accepted has nothing to read")
+eq(replace, "EQ12", MIG29, "       AND (p_files IS NULL OR j.file_id = ANY (p_files))\n     ORDER BY j.pages NULLS LAST, j.enqueued_at, j.page_start NULLS FIRST, j.id\n     LIMIT 1 FOR UPDATE SKIP LOCKED;",
+   "       AND (p_files IS NULL OR j.file_id = ANY (p_files))\n     ORDER BY j.pages NULLS LAST, j.enqueued_at, j.page_start NULLS FIRST, j.id\n     LIMIT 1 FOR UPDATE;",
+   "claim_jobs waits on a row another claim holds instead of skipping it (design §14 P5 kill (c))")
+eq(replace, "EQ13", MIG29, "     WHERE (j.state = 'queued' OR (j.state = 'leased' AND j.lease_expires_at <= v_now))",
+   "     WHERE (j.state = 'queued' OR j.state = 'leased')",
+   "a LIVE lease is reclaimable: two workers hold one job (design §14 P5 kill (d))")
+eq(block, "EQ14", QPY, "guard: a book's file is never extracted",
+   "the Python half of litkb-book-policy (the only one a workstream-only file has)")
+eq(block, "EQ15", QPY, "guard: the bytes on disk are the bound file",
+   "a missing file, a non-PDF or bytes whose sha256 is not files.sha256 go to the extractor")
+eq(block, "EQ16", QPY, "guard: a page count that cannot be read is probe-error",
+   "a PDF whose page count cannot be read is queued as a native file instead of refused probe-error")
+eq(block, "EQ17", QPY, "guard: a file over the extraction page cap is never started",
+   "a file over EXTRACT_PAGE_CAP is extracted (plan S4 (c), over_cap_bound=1)")
+eq(block, "EQ18", QPY, "guard: an OCR-routed file with OCR off is refused, never started",
+   "with OCR off, a scan is queued and started instead of refused scan-needs-ocr")
+eq(block, "EQ19", QPY, "guard: an OCR-routed file whose image pages come back empty is never finished ok",
+   "the scan post-condition: an OCR pass that read nothing lands as an ok run with no text on its "
+   "image pages (plan S4 (c), scans_ocr_unrouted=1)")
+eq(block, "EQ20", QPY, "guard: page ranges assemble only when they tile the file and stay inside themselves",
+   "page ranges with a gap, a short end, or pages outside themselves are assembled into one run")
+eq(replace, "EQ21", QPY, "        refusal, error = facts.refusal, facts.error\n",
+   "        refusal, error = None, None\n",
+   "CALL SITE sweep: the enqueue ignores guard_file's verdict and queues every file")
+eq(replace, "EQ22", QPY, "    why, detail = facts.refusal, facts.error\n",
+   "    why, detail = None, None\n",
+   "CALL SITE _recheck: the claim-time re-check ignores guard_file's verdict (a job enqueued "
+   "before a guard changed is extracted)")
+eq(replace, "EQ23", f"{PKG}/extract/ingest.py",
+   "        if before_commit is not None:\n            before_commit(conn, run_id)\n",
+   "",
+   "CALL SITE ingest_file: the ownership gate is never called inside the ingest transaction, so "
+   "blocks commit whatever the lease says")
+eq(block, "EQ24", f"{PKG}/extract/docling.py", "guard: a cuda request the interpreter cannot serve fails closed",
+   "device=cuda under an interpreter without CUDA reaches docling (S2's Maiti_2022: a failed "
+   "metrics row and a GROBID-only run)")
+# builder-C (S4 run 3, the orchestrator's rulings on builder-A Q1 and Q2)
+eq(block, "EQ25", QPY, "guard: only a SCAN is refused — image pages outnumber the native-text pages",
+   "the scan post-condition refuses a NATIVE paper whole because OCR read nothing on its one "
+   "caption-less picture page (builder-A Q1): the file is lost for the sake of one image")
+eq(block, "EQ26", QPY, "guard: scans_ocr_unrouted counts only a SCAN, by the post-condition's own definition",
+   "scans_ocr_unrouted counts a native paper whose textless picture page finished correctly: the "
+   "counter and the post-condition disagree about what a scan is, and a correct run reads as a defect")
+eq(block, "EQ27", QPY, "guard: an extraction that produced no block fails as ZeroContent, by name",
+   "a file that produced no block dies on 0017's anonymous 'cannot be ok' error: the classifier "
+   "cannot tell zero-content from an extractor failure and leaves it unclassified")
+eq(block, "EQ28", MIG29, "guard: a job that dies on its last failure leaves a failed run",
+   "a job dead at the attempt ceiling leaves no extraction_runs row (design §12.3; builder-A Q2): "
+   "the death and its last error live on a queue row alone")
+eq(block, "EQ29", MIG29, "guard: a job that dies at claim leaves a failed run",
+   "a job whose every worker died leaves no failed run: the one death with no fail_job call is the "
+   "one with no durable record")
+# builder-A round 2 (S4 run 3, auditor-A F1/F3/F4, REDO, HUNT)
+eq(block, "EQ30", MIG29, "guard: a refusal made on the result is never reopened",
+   "the scan post-condition's refusal (OCR ran and read nothing) can be reopened, so the same empty "
+   "OCR pass is queued again on every sweep")
+eq(block, "EQ31", MIG29, "guard: a book is never reopened while its work is a book",
+   "a book's refused job goes back to queued (litkb-book-policy)")
+eq(block, "EQ32", MIG29, "guard: a sibling range refused under a live lease has that lease closed",
+   "the SQL book guard at claim refuses a leased sibling range and leaves its lease row looking like "
+   "a running lease forever (auditor-A F4)")
+eq(block, "EQ33", QPY, "guard: a refusal that still holds is never reopened",
+   "the sweep acts on a file whose refusal the guard still gives: with OCR off, a scan refused at "
+   "claim gets a new, unrefused whole-file job (auditor-A F1)")
+eq(replace, "EQ34", QPY,
+   '        reopenable = bool(existing) and all(st == "refused" and stage in ("enqueue", "claim")\n',
+   '        reopenable = bool(existing) and all(st == "refused" and stage in ("enqueue", "claim", "result")\n',
+   "the sweep asks to reopen a refusal made on the RESULT (only the database's own guard then stops it)")
+eq(block, "EQ35", QPY, "guard: --redo never re-extracts a file whose current run is at today's key",
+   "--redo enqueues a file whose current run is already today's extraction")
+eq(replace, "EQ36", QPY, "ocr=run_ocr, formula=False, device=self.device, cwd=worker_cwd())",
+   "ocr=run_ocr, formula=False, device=self.device, cwd=str(job.out_dir))",
+   "the Docling worker runs with the artifact directory as cwd again: past the Windows path limit "
+   "every job dies WinError 267 (auditor-A F3)")
+hu(replace, "EQ37", f"{PKG}/hunt.py", "        hold.close()\n", "        hold._stop()\n",
+   "CALL SITE hunt: GROBID is stopped after the hunt whoever started it — the live stage-6 driver's "
+   "service included (auditor-A HUNT)")
+eq(block, "EQ39", MIG29, "guard: a reopened job starts a new life at 0 attempts",
+   "a job reopened at the attempt ceiling dies at its next claim with a false cause (auditor-A R1)")
+eq(replace, "EQ40", QPY, "                self._grobid_up = bool(G.GrobidHold(wait=300).ensure())\n",
+   "                self._grobid_up = bool(G.start(wait=300, hold=True))\n",
+   "the queue worker takes GROBID through grobid.start again, which restarts a busy unit under its "
+   "owner (auditor-A R2)")
+M[-1]["tests"] = ["qc/test_litkb_grobid.py"]      # the R2 test lives beside the ownership rule
+M.append(dict(id="EQ41", kind="replace", file=f"{PKG}/extract/grobid.py",
+              old='    return r.returncode == 0, "alive after" in out\n',
+              new="    return r.returncode == 0, True\n",
+              what="launch_start claims ownership on any start, 'already alive' included, so a holder "
+                   "stops a GROBID it did not start (auditor-A R3)",
+              tests=["qc/test_litkb_grobid.py", "qc/test_litkb_references_stage.py", "qc/test_litkb_hunt.py"]))
+eq(block, "EQ38", QPY, "guard: a book in a manifest workstream counts as a book",
+   "books_extracted reads main's works only: a book proposed in a manifest workstream extracts "
+   "unseen (auditor-C N5)")
+
+# ── S4C: the readability classifier's QUEUE STEP (builder-C item 1c; litkb/readability.py) ─────
+TESTS_READ = ["qc/test_litkb_readability.py"]
+RPY = f"{PKG}/readability.py"
+block("S4C1", RPY, "guard: a waiting job is never a class",
+      "a file with a queued / leased / staged job reads as the class its evidence guesses (a scan "
+      "waiting for OCR reads scan-needs-ocr): 'waiting' becomes a class, against decision D8",
+      tests=TESTS_READ)
+block("S4C2", RPY, "guard: a dead job is zero-content only when its extraction produced no block",
+      "a job that died on an extractor error is folded into zero-content: the real finding (a tool "
+      "that fails on this file) disappears into a residue class", tests=TESTS_READ)
+block("S4C3", RPY, "guard: a refusal the file's own evidence contradicts is never the class",
+      "a STALE refusal (bad-file on bytes that were repaired) is taken as the file's class with no "
+      "cross-check: the queue's memory overrides the file's present", tests=TESTS_READ)
+replace("S4C4", RPY,
+        "    for state, test in ((\"dead\", lambda j: j[\"state\"] == \"dead\"),\n"
+        "                        (\"waiting\", lambda j: j[\"state\"] in QUEUE_WAITING),\n",
+        "    for state, test in ((\"waiting\", lambda j: j[\"state\"] in QUEUE_WAITING),\n"
+        "                        (\"dead\", lambda j: j[\"state\"] == \"dead\"),\n",
+        "a file with one DEAD range and a STAGED sibling reads as waiting: the staged range never "
+        "assembles, so the file waits forever as unclassified-waiting instead of surfacing the death "
+        "(orchestrator ruling Q2)", tests=TESTS_READ)
+replace("S4C5", RPY,
+        "qrows=mine, jobs=None if jobs is None else jobs.get(f[\"file_id\"], []))",
+        "qrows=mine, jobs=None)",
+        "CALL SITE classify_work_files: litkb_work's per-file view skips the queue step, so a file "
+        "waiting in the queue shows a class there that classify withholds", tests=TESTS_READ)
+
+# ── S4R: `litkb_acceptance.py readability` (builder-C; plan "### S4" (b)/(c)) ─────────────────
+# One row per GATED counter: its wiring zeroed. The test that seeds that counter's known-bad on a
+# clean drained worker database must go red — which is what shows the acceptance reads the counter
+# and does not merely print a name beside a 0.
+TESTS_ACC_READ = ["qc/test_litkb_acceptance.py", "-k", "readability"]
+_GATED_LOOP = "                gated[name] = value\n"
+replace("S4R1", ACCEPT,
+        '        gated["unclassified_acquired_files"] = res["counters"]["unclassified_acquired_files"]\n',
+        '        gated["unclassified_acquired_files"] = 0\n',
+        "`readability` reads unclassified_acquired_files as 0 whatever the classifier found",
+        tests=TESTS_ACC_READ)
+for _i, _name in enumerate(("stale_leases", "duplicate_blocks", "resumed_content_hash_mismatches",
+                            "books_extracted", "over_cap_bound", "scans_ocr_unrouted",
+                            "mutated_leases_accepted"), 2):
+    replace(f"S4R{_i}", ACCEPT, _GATED_LOOP,
+            f"                gated[name] = 0 if name == {_name!r} else value\n",
+            f"`readability` reads {_name} as 0 whatever litkb.extract.queue counted",
+            tests=TESTS_ACC_READ)
+replace("S4R9", ACCEPT, '            gated["quarantined_without_db_state"] = n\n',
+        '            gated["quarantined_without_db_state"] = 0\n',
+        "`readability` reads quarantined_without_db_state as 0 whatever lies under _quarantine/",
+        tests=TESTS_ACC_READ)
+block("S4R10", ACCEPT, "guard: a readability manifest edited after its freeze is refused",
+      "a manifest whose bed, roots or workstreams were edited after the freeze is graded as if frozen",
+      tests=TESTS_ACC_READ)
+block("S4R11", ACCEPT, "guard: a manifest is graded only on the database it was frozen on",
+      "a manifest frozen on one database grades another (or the same name recreated)",
+      tests=TESTS_ACC_READ)
+block("S4R12", ACCEPT, "guard: --fire refuses the live database before it opens a connection",
+      "`readability --fire` accepts `litkb`: the fire RESETS its database, so the knowledge base "
+      "would be dropped by one mistyped environment variable", tests=TESTS_ACC_READ)
+replace("S4R13", ACCEPT,
+        '    return (all(v == 0 for v in gated.values()) and reported.get("waits_on_migration") == 0)',
+        "    return True",
+        "`readability` exits 0 whatever it counted", tests=TESTS_ACC_READ)
+replace("S4R14", ACCEPT, '        reported["waits_on_migration"] = int(bool(missing))\n',
+        '        reported["waits_on_migration"] = 0\n',
+        "a database without 0029-0031 is reported as not waiting: the counters it could not read are "
+        "printed `unread` under a line that says nothing is missing", tests=TESTS_ACC_READ)
+# builder-A round 2 (auditor-C N1/N2 and DB SAFETY)
+block("S4R15", ACCEPT, "guard: --fire runs only on an explicitly named worker database",
+      "`readability --fire` with LITKB_TEST_DB unset resets the SHARED litkb_test", tests=TESTS_ACC_READ)
+replace("S4R16", ACCEPT,
+        '        ok = refusals == {("refused", "over-page-cap")} and g.get("claimed") == 0 and g.get("blocks") == 0\n',
+        "        ok = True\n",
+        "the cap fire's control is graded on its counter alone: 'refused over-page-cap, never started' "
+        "is not checked (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R17", ACCEPT,
+        '        ok = refusals == {("refused", "scan-needs-ocr")} and g.get("runs_ok") == 0 and g.get("blocks") == 0\n',
+        "        ok = True\n",
+        "the scan fire's control is graded on its counter alone: 'scan-needs-ocr, never extracted' is "
+        "not checked (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R18", ACCEPT,
+        '        ok = refusals == {("refused", "book")} and g.get("blocks") == 0 and cls == "book"\n',
+        '        ok = refusals == {("refused", "book")} and g.get("blocks") == 0\n',
+        "the book fire's control is not checked for 'the book class' (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R19", ACCEPT,
+        '''        ok = "lease refused" in str(g.get("raised") or "") and g.get("blocks_after_t1") == 0\n''',
+        "        ok = True\n",
+        "the lease fire's control is graded on its counter alone: 'the ownership gate goes RED' is not "
+        "checked (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R20", ACCEPT,
+        '''    return (on["probe_refused"] == 1 and on["bound"] == 0 and on.get("quarantine_reason") == "probe-error"\n''',
+        '''    return (on["probe_refused"] == 1 and on["bound"] == 0\n''',
+        "the probe fire does not check that the refused file is classed probe-error (auditor-C N1)",
+        tests=TESTS_ACC_READ)
+replace("S4R21", ACCEPT, "            and unclassified_after == unclassified_before)\n", "            )\n",
+        "the probe fire does not check that unclassified_acquired_files is unchanged (auditor-C N1)",
+        tests=TESTS_ACC_READ)
+
 
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.
@@ -2127,6 +2379,12 @@ SINK_ALLOW = {
     "litkb/commands.py::cmd_ws::print": (1,
         "The workstream id, slug, branch and the PATH the token was written to — the line itself says '(never "
         "printed)' of the token, and `token` is not in scope as a formatted value in this branch."),
+    "litkb/commands.py::cmd_runs::print": (1,
+        "`litkb runs retire` (S4 run 3, migration 0031): print(line) over litkb.ops.retire.summary_lines, "
+        "which formats ONLY database facts about extraction runs — stage names, run ids (uuids), work keys, "
+        "pipeline versions, counts — and the op id. It holds no credential: the reader's password is read "
+        "by libpq from the passfile, the ingest login's likewise, and no token or secret is in scope. "
+        "--json goes through _print instead."),
     "litkb/commands.py::cmd_reap::print": (3,
         "The staging census (S3, 2026-09-21). Three calls: the table lines litkb.ops.reaper.table() builds, the "
         "counters line, and the mode/run_id/root line. Every interpolated value is a fact about a FILE or about "
@@ -2137,6 +2395,21 @@ SINK_ALLOW = {
         "passfile and Python never sees, and it never reads a token file. Same reason as "
         "extract/inventory.py::report_new above, and the same shape — the call site is written to be VISIBLE to "
         "this checker rather than hidden behind a bound stream."),
+    "litkb/commands.py::cmd_quarantine::print": (4,
+        "The quarantine backfill census (S4 run 3, 2026-09-22). Four calls: one line per payload, the counters "
+        "line, the by-reason line and the mode/root/table line. Every interpolated value is a fact about a FILE "
+        "under _quarantine/ or about this run — an action word from the fixed set record/already-recorded/"
+        "unmapped, a reason from litkb.quarantine.REASONS (or the label a filename carries), a relpath under the "
+        "literature root, an acquisition-attempt or file uuid, an integer count, and the root path. It prints no "
+        "sidecar body and no attempt detail. Its connections are the READER login and, with --apply only, the "
+        "INGEST login, whose password libpq reads from its passfile and Python never sees; it reads no token "
+        "file. Same reason and shape as cmd_reap above."),
+    "litkb/commands.py::cmd_readability::print": (2,
+        "The readability classifier's summary (S4 run 3, 2026-09-22). Two calls: the counters line (a counter "
+        "name from litkb.readability.counters and an int) and the csv/workstreams/cap/table/recorded line (the "
+        "CSV path this command wrote, two ints, a boolean and an int). No row text, block text or evidence "
+        "string reaches stdout — those go only to the CSV. Its connections are the READER login and, with "
+        "--record only, the INGEST login (password from its passfile, never seen by Python); no token file."),
     # Stage 3 (Docling), added at the P4 merge 2026-09-15. The docling branch forked before this
     # sink checker existed, so these two sites reach it for the first time here.
     "litkb/extract/colab_formula_worker.py::main::print": (6,

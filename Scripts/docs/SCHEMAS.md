@@ -1925,9 +1925,126 @@ row of its own; the first live dry run called the FPGA proposal's snapshot an or
 2026-09-21) · `young` (a sibling lock
 suffix holds it open, or its mtime is under `--min-age-hours`, default 72) · `orphan` (neither).
 Only an `orphan` under `--apply` moves, and it moves to `_quarantine/` with a reason file
-(`Store.to_quarantine` + `write_reason`) — the reaper never deletes and never writes the database.
-`--dry-run` is the default. Counters, one line: `scanned owned young orphans quarantined
+(`Store.to_quarantine` + `write_reason`) — the reaper never deletes. **Since S4 it writes ONE
+database row per move** (corrected 2026-09-22; until then this paragraph said "never writes the
+database", which was true): a `litkb.quarantine_payloads` row, origin `reaper`, reason
+`staging-orphan`, through `record_quarantine_system` on the INGEST login, which `litkb reap
+--apply` opens for that alone. The row is written after the move; a row that cannot be written is
+listed in `errors` (exit 1) and the bytes stay moved. `--dry-run` is the default and writes nothing,
+to the disk or the database. Counters, one line: `scanned owned young orphans quarantined recorded
 skipped_errors`.
+
+## `litkb.run_retirement_ops` · `litkb.run_retirements` (litkb, migration 0031)
+
+Where the knowledge base answers **which superseded extraction runs a deliberate op has
+retired**. Retirement MARKS, it never deletes (S4 run 3 decision D6): the run row and its blocks,
+pages and references stay, `files.current_run_id` is untouched, and every reader that already
+reads only a file's current run (search, `use.locate_quote`, promotion's `run_is_current`) keeps
+its meaning. Both tables grant INSERT to nobody; their ONE writer is the SECURITY DEFINER function
+`litkb.retire_extraction_runs(runs uuid[], session text, reason text, keys jsonb)`, EXECUTE to
+`litkb_ingest` alone. SELECT to `litkb_reader` and `litkb_ingest`.
+
+| table | column | meaning |
+|---|---|---|
+| `run_retirement_ops` | `op_id` | one id per `--apply` (uuidv7) |
+| | `retired_at` · `retired_by` | when, and the LOGIN (`session_user`, never the definer) |
+| | `session_label` · `reason` | who (the `LITKB_SESSION` label) and why; both non-blank |
+| | `runs` | how many runs the op retired (>= 1) |
+| | `keys` | the stage keys the op was given, so the verdict can be re-read |
+| `run_retirements` | `run_id` (PK) · `op_id` | a run is retired at most once, by one op |
+| | `file_id` · `stage` | whose run, at which stage |
+| | `superseded_by` | the run that superseded it when it was retired (never itself) |
+| | `blocks` · `pages` · `reference_rows` | the run's rows at retirement — marked, not moved |
+
+**THE VERDICT, one home: `litkb.run_retirement_status(keys jsonb, runs uuid[])`** (SECURITY
+INVOKER, EXECUTE to `litkb_reader`): one row per run with `is_current`, `was_current`,
+`evidence_rows`, `superseded_by`, `retired_op` and `refusal`. SUPERSEDED means, for a run that
+was EVER current (a `file_current_run` row names it — every `5-reconcile` run the pointer left),
+that the file's pointer now names ANOTHER ok run of the SAME stage; for a run that was NEVER
+current (stage `6-references`, which never moves the pointer), that the file holds a NEWER ok run
+at the stage's CURRENT key, which the caller names in `keys` (the CLI reads it from
+`litkb.extract.references_ingest.run_key`). A key naming an OLDER run as current supersedes
+nothing. Only ok runs are ever superseded. `refusal` is the closed vocabulary, first match wins:
+`current` · `evidence` (a `use_evidence` row cites the run or one of its blocks) ·
+`already-retired` · `not-superseded`; NULL means retirable now (`litkb.ops.retire.REFUSALS` is a
+read of it, pinned by `qc/test_litkb_retire.py`). `retire_extraction_runs` re-checks the facts
+guard by guard before it writes and refuses the whole op on any one run.
+
+**The op: `py -3.12 -m litkb runs retire [--apply --reason R] [--json] [--out PATH]`**
+(`litkb.ops.retire`). The dry run is the default and writes nothing; it reads as `litkb_reader`
+and lists what an op would retire PER STAGE (runs, files, blocks, pages, references, versions),
+what it EXCLUDES by refusal, and names each evidence-held run by work key. `--apply` needs a
+session label and `--reason`, sends the whole eligible list in ONE call (one op id) through the
+ingest login. REPORTED counters, never gated (orchestrator ruling Q3): `superseded_runs_unretired`
+(retirable now; `litkb.ops.retire.superseded_runs_unretired(conn)`; an `--apply` takes it to 0)
+and `superseded_runs_held_by_evidence` (superseded but cited by `use_evidence`, so no op may
+retire them; `litkb.ops.retire.superseded_runs_held_by_evidence(conn)` -> `{count, works}`, the
+works named by key); the dry run also prints `runs_already_retired` and `current_runs`.
+
+**A retired run never becomes current again.** 0031 re-creates `litkb.set_current_run` as 0017's
+definition byte for byte plus one guard: a `p_new_run` named in `run_retirements` is refused
+(SQLSTATE 22023). Grants and the role matrix are unchanged (CREATE OR REPLACE keeps the ACL).
+
+## `litkb.blocks.provenance.page_text` and reconcile `stage5-4` (litkb, S4 run 3)
+
+`reconcile.PIPELINE_VERSION` moved `stage5-3` -> `stage5-4` (2026-09-22): a FRAGMENT of a
+multi-page or multi-column element whose text comes from the TOOL — an OCR page, or a page whose
+native slice is empty — now carries its own boxes' share of the element's text, not the whole
+element's. What changes: files extracted from now on get a `stage5-4` run key. What does not:
+every existing run keeps its key, rows and place, no pointer moves, nothing is re-extracted. A
+fragment on the tool path records which text it holds in `provenance.page_text`, closed
+vocabulary (`reconcile.PAGE_TEXT`):
+
+| value | the fragment's text is |
+|---|---|
+| `charspan` | its own Docling `prov` slice, read from `charspan` (`docling.prov_pieces`) |
+| `sentence` | the GROBID `<s>` sentences that BEGIN in its line boxes; a sentence over the break stays whole where it begins, and a fragment in which none begins is EMPTY (`grobid.sentence_pieces`) |
+| `element` | the element's WHOLE text: the tool's record could not be read back exactly (the stage5-3 behaviour, now labelled) |
+
+Absent on a fragment whose text is the native-layer slice, and on any non-fragment. The run's
+`metrics.fragment_page_text` counts the three.
+
+**THE LIMIT of `sentence` (orchestrator ruling Q1).** GROBID fragment text is placed by SENTENCE
+START: a sentence that runs from page 27 onto page 28 is stored — and so cited — on page 27, and
+page 28's fragment begins with the next sentence. GROBID records no position inside a sentence,
+so no finer cut is available from it. An EMPTY `sentence` fragment is KEPT as it is: it keeps the
+page span, its box and the fragment chain (`continues_from` / `continues_to`), and holds nothing
+to misquote. How many there are, MEASURED on all 229 stored P5 artifact pairs (2026-09-22,
+LITKB_FRAGMENT_TEXT_CORPUS_2026-09-22.csv): empty-text fragments 0 under stage5-3, 97 under stage5-4
+(every one `sentence`), in 33 files; empty-text blocks of any kind 142 -> 239.
+
+**Merges move with the text.** `_merge_regions` merges two readings of a region only when their
+text is the same (`_text_same`), so a fragment whose text changed can merge where it did not, or stop
+merging where it did. On the 229 files: blocks 82,166 -> 82,181 in 13 files, `merged_regions`
+21,000 -> 20,985, and in every one of the 13 the block change is exactly minus the merge change
+(`dropped_overmerges` unchanged); 22 boxes exist only under stage5-4 (15 of them empty-text
+fragments that no longer merge into a reading with words) and 7 only under stage5-3.
+
+## LITKB_FRAGMENT_TEXT_&lt;date&gt;.csv (Reports/, GENERATED — the stage5-4 before/after)
+
+Written by `qc/instruments/litkb_fragment_text.py --compare`, from two runs of the same
+instrument over the SAME stored artifacts, once on main's `pipeline/` (`before`, `stage5-3`) and
+once on the branch's (`after`, `stage5-4`). Population, read from live current runs as
+`litkb_reader`: `why=identical` (fragment blocks > 40 characters whose text is identical on two or
+more pages of one run — survey-code C3's set) and `why=tool-cross-page` (every cross-page fragment
+whose text came from the tool). One row per DB block: `work_key`, `group`, `page`, `source`,
+`db_text_source`, `db_len` (the stored block), `tei_on_disk` (False: a hunt-path file whose TEI
+was never written, re-run Docling-only, so its rows are `unmatched`), then per side `*_match`
+(`matched` / `unmatched` / `ambiguous`, by page and box within 0.01 pt), `*_len`, `*_page_text`,
+`*_group_identical` (all members matched and one text), `*_blocks_in_file`, and
+`before_reproduces_db` (the re-run's length equals the stored block's).
+
+## LITKB_FRAGMENT_TEXT_CORPUS_&lt;date&gt;.csv (Reports/, GENERATED — stage5-4 corpus-wide)
+
+Written by `qc/instruments/litkb_fragment_text.py --compare-corpus` from two `--corpus` runs over
+EVERY stored P5 artifact pair (TEI + Docling JSON + the PDF the census names), on main's `pipeline/`
+(before) and the branch's (after). One row per file plus a `TOTAL` row: `name`, `error`,
+`before_blocks` / `after_blocks`, `before_merged` / `after_merged` (reconcile's `merged_regions`),
+`*_dropped_overmerges`, `*_empty_text_blocks` (a text-bearing kind — not table or figure — whose
+text is empty), `*_empty_text_fragments` (those that are fragments), `after_empty_sentence_fragments`,
+`new_boxes` / `gone_boxes` (page + box, to 0.01 pt, present on one side only), `new_boxes_empty`,
+`after_page_text` (the run's `fragment_page_text` counts), and on the TOTAL row
+`files_blocks_changed`.
 
 ## LITKB_EDGE_RUN_&lt;date&gt;.csv (Reports/, GENERATED — the edge-case register's ledger)
 
@@ -2100,3 +2217,357 @@ which a 1-3 line window, scored the binder's way, reaches `BIND_RATIO`); `first_
 (`binding.window_refusal` of that window, empty when admissible); `best_index`; `best_ratio`;
 `binding_line` / `binding_ratio` (what a stored binding recorded, for the cross-check);
 `title_region_lines` (the constant's value when measured).
+
+## `litkb.quarantine_payloads` (litkb, migration 0030 — S4, the database-visible quarantine state)
+
+One row per REFUSED PAYLOAD, keyed by its path relative to the literature root (UNIQUE). Until S4
+`_quarantine/` was a directory only: the reason lived in a filename no code read back, and the
+reaper and `hunt.land_download` left no row at all. A path under `_quarantine/` is where the refused
+bytes were moved; any other path is a file REFUSED WHERE IT LIES — a bound file the readability
+classifier refuses, or an admission file whose page count could not be read — and there the row
+IS the state (the bytes are never moved). `file_versions` is not touched: its `work_id` is NOT NULL
+and most refused bytes have no admitted work (S4 run 3 decision D5).
+
+Columns: `id`, `rel_path` (UNIQUE), `sha256` of the refused bytes, `bytes`, `reason`, `origin`,
+`work_id` / `file_id` / `attempt_id` / `workstream_id` (nullable links), `detail` (jsonb, run
+through `textnorm.jsonb_safe`, mutation row S4Q1), `recorded_at`, and `cleared_at` / `cleared_by` /
+`cleared_reason` (all three set or none).
+
+**Clearing.** Only a `classifier` row on a BOUND file (a path outside `_quarantine/`, with a
+`file_id`) can be cleared (CHECK `quarantine_payloads_cleared_only_in_place`). When `litkb
+readability --record` classes that file `extracted`, it clears its own row through
+`litkb.clear_quarantine_system(id, session, reason)` (SECURITY DEFINER, EXECUTE to `litkb_ingest`,
+once only). A moved-payload row — acquisition guard, bind refusal, hunt-url, reaper, backfill — is
+NEVER cleared: those bytes stay refused. A cleared row the classifier refuses again is RE-OPENED by
+the same idempotent write (its cleared columns go back to NULL). `litkb_work` lists only uncleared
+rows; the read-only classifier REPORTS `stale_quarantine_rows` (uncleared classifier rows on files
+it now classes `extracted`, plus uncleared rows at a file's path whose sha256 is NOT the file's).
+**A row classes a file only when its sha256 is the file's `files.sha256`**: a row about other bytes
+at the same path (corrupt bytes refused in place, then a good copy bound there) never does
+(auditor-B F2). `quarantined_without_db_state` is unaffected: it counts payloads under
+`_quarantine/` only. Two CHECKs besides the
+vocabularies: a row outside `_quarantine/` must be the classifier's with a `file_id`, or an
+admission's `probe-error` (`quarantine_payloads_in_place_rule`); a system origin has no
+workstream and a writer origin always one (`quarantine_payloads_workstream_rule`).
+
+**`reason`** (closed; one home `litkb.quarantine.REASONS`, held equal to the CHECK by
+`qc/test_litkb_quarantine.py`): the shapes `not-a-pdf · truncated-pdf`; the route statuses a route
+returns WITH bytes `blocked · bad-file · not-in-archive · partner-404 · hash-mismatch`; the binding
+and attach outcomes `binding-failed · binding-pending · duplicate-held`; the legacy
+`annas.fetch_one` labels `duplicate-hash · content-mismatch`; the reaper's `staging-orphan`; the S4
+refusals `probe-error · zero-content`; `legacy` for a pre-litkb name with no label.
+
+**`origin`** (closed; `litkb.quarantine.ORIGINS`): `acquisition-guard` (`acquire.run`'s shape and
+route-refusal quarantines, `--from-file`), `bind-refusal` (`land_and_attach`'s binding verdict,
+attach refusal and page probe; an admission's probe refusal in place), `hunt-url`
+(`hunt.land_download` and the URL path's probe refusal), `reaper`, `classifier`, `legacy-backfill`.
+The legacy `acquire.annas.fetch_one` writes no row: it holds no database connection and no
+workstream; what it quarantines is picked up by the backfill and, until then, counted.
+
+**Writers.** `litkb.record_quarantine(ws, token, …)` — SECURITY DEFINER, presents the workstream
+token, EXECUTE to `litkb_writer` only, takes the three workstream origins and links only an attempt
+of the SAME workstream. `litkb.record_quarantine_system(…)` — SECURITY DEFINER, no token, EXECUTE to
+`litkb_ingest` only, takes `reaper · classifier · legacy-backfill`. Both are IDEMPOTENT ON THE PATH
+(the same path and sha256 returns the existing id; the same path with other bytes is refused,
+SQLSTATE 23505). No role holds a direct write; SELECT to `litkb_reader`, `litkb_writer`,
+`litkb_ingest`.
+
+**Every quarantine write leaves a row, best-effort.** The row is written AFTER the move, inside a
+savepoint (`quarantine.try_record`), and a failure is returned, never raised — the bytes are kept
+either way. `acquire()` returns them in `quarantine_rows`; hunt adds a `quarantine-state-failed`
+entry to `refusals[]` (its state and reason are unchanged); the reaper lists them in `errors`.
+THE COUNTER IS THE GATE: `quarantine.quarantined_without_db_state(conn, root=…)` counts every
+payload under `_quarantine/` — every file except `.reason.json` sidecars and the `.txt` companion of
+a payload stem — with no row for its path. Its known-bad is `quarantine.fire_quarantine` (a
+CONSTRUCTED payload planted in a temp root with no row moves it by one).
+
+**Backfill.** `py -3.12 -m litkb quarantine backfill [--apply]` gives every payload already on disk
+a row, origin `legacy-backfill`: reason from the `.reason.json` sidecar (`label`, else a reaper
+sidecar → `staging-orphan`, else its `shape`), else the name's `<stem>__<label>__<token>` label,
+else `legacy`. `attempt_id` is the attempt whose `detail->>'quarantined'` is the path, else the ONE
+attempt whose `detail->>'sha256'` matches (several → none, candidates listed in `detail`);
+`file_id` is the `files` row with the same sha256. One sha under several names is one row PER
+PATH. The dry run (default) reads on the reader login and writes nothing; `--apply` writes on the
+ingest login. A label outside `REASONS` is counted `unmapped` and NOT written.
+
+## litkb readability classes (`pipeline/litkb/readability.py`, S4 — decision D8)
+
+The ONE home of the closed classes. **File classes**: `extracted` with a reason `full ·
+docling-only · grobid-only · ocr · snapshot`, and the residue classes `scan-needs-ocr ·
+over-page-cap · zero-content · bad-file · probe-error · book · refused-registry`. **Work classes**:
+`no-file-any-route`, and `mixed` for a work whose files disagree (a work with an extracted file and
+a residue file is `mixed`, never `extracted`). `not-attempted` is REPORTED for a file-less work some
+applicable route never ran for, outside the gated universe. A file with no class is UNCLASSIFIED —
+never defaulted; `queued` / `leased` are not classes.
+
+The universe, the evidence and the rule order are the module docstring's (one home; not restated
+here). In one line each: `bad-file` = not on disk, sha256 ≠ `files.sha256`, or no `%PDF-` magic;
+`probe-error` = `probe.probe_pages` / `page_text_chars` raised; `book` = work `type = 'book'`;
+`over-page-cap` = pages > `probe.EXTRACT_PAGE_CAP` (Kam ruling litkb-extract-page-cap);
+`zero-content` = a text-layer file whose current run's canonical blocks carry no text;
+`scan-needs-ocr` = image pages (`probe.image_page_numbers`, decision D13: zero native characters
+AND at least one raster image) that no text block and no OCR'd run covers, or image pages and no
+run; `refused-registry` = unbound bytes in `_litkb_staging/` that only a
+REFUSED admission's checks name; `extracted` reasons from the run: stage `5-text-snapshot` →
+`snapshot`, metrics `ocr: true` or text on a zero-native-character page → `ocr`, else
+`docling_regions` / `grobid_regions` → `full` / `docling-only` / `grobid-only`.
+
+**The queue step** (`readability.with_queue`, S4 run 3 builder-C item 1c). For a file with NO current
+run, the verdict above is read against its `litkb.extraction_jobs` (at its most recently enqueued run
+key; `dead` read first, then waiting, refused, done): a queued / leased / staged job → UNCLASSIFIED
+(waiting); a `refused` job → its refusal, only when the evidence names the SAME class, else
+UNCLASSIFIED with both named (a stale refusal is never picked over the file's present); a `dead` job →
+`zero-content` when it died as `queue.ZeroContent`, else UNCLASSIFIED (an extractor error is a finding,
+never a class). Without migration 0029 the step reads nothing and `queue_table` = 0 says so.
+**A file with a dead page range** (orchestrator ruling Q2, S4 run 3): `dead` is final for that JOB,
+and the FILE takes the dead range's class — `zero-content` if it produced no block, else UNCLASSIFIED
+with flag `dead-error`. Its other ranges stay `staged` and never assemble (`stage_chunk` assembles only
+when every sibling is staged), so such a file holds no ok run; `dead` is read before `waiting` for
+exactly that reason (test `test_a_file_with_one_dead_range_takes_the_dead_ranges_class_…`, mutation S4C4).
+
+Counters (`readability.counters`): `unclassified_acquired_files` (file and staging rows with no
+class — the gated one) and the REPORTED `queue_table` (1 = the queue was read), `files_queue_waiting`,
+`files_queue_dead-error`, `files_queue_disagreement` (the files the queue step left unclassified, by
+why), `stale_quarantine_rows`, `acquired_files`, `files_<class>`, `extracted_<reason>`,
+`works`, `works_<class>`, `works_not-attempted`, `works_extracted`, `works_residue`,
+`works_unclassified`. Known-bads: `readability.fire_unclassified` (one rule dropped by name → a real
+file goes unclassified and the counter moves) and `readability.fire_probe` (a CONSTRUCTED
+unopenable PDF through `land_and_attach` on a worker database: refused and never bound; with the
+probe guard mutated off it binds with `pages` NULL).
+
+`litkb_work` (MCP) adds, beside its unchanged keys and four-state ladder: `files[].file_id`,
+`files[].readability` `{class, reason, evidence}`, `readability` (the work's rollup) and
+`quarantine` (every UNCLEARED `quarantine_payloads` row naming the work or one of its files; `null`
+on a database without migration 0030). `py -3.12 -m litkb readability [--workstream ID]
+[--all-workstreams] [--record]` writes the CSV below; `--record` (ingest login) records a
+`classifier` row for each bound file classed `bad-file`, `zero-content` or `probe-error`.
+
+## LITKB_READABILITY_&lt;date&gt;.csv (Reports/, GENERATED — the classifier's scored bed)
+
+Written create-only (never overwritten) by `py -3.12 -m litkb readability` from
+`readability.classify`. One row per acquired file (`row_kind = file`), per refused-admission
+staging payload (`staging`) and per main work (`work`). Columns, in order: `row_kind`, `key`,
+`work_id`, `file_id`, `rel_path`, `pages` (the probe's count, empty when it could not be read or the
+file is not a PDF), `image_pages` (how many image pages, decision D13), `class`
+(empty = UNCLASSIFIED), `reason` (the `extracted` reason; for a work, the reasons its files share),
+`evidence` (the rule's sentence), `quarantine_ids` (space-separated ids of the UNCLEARED
+`quarantine_payloads` rows naming the file),
+`current_run_id`, `blocks` (canonical blocks with text in the current run), `text_chars`, `scope`
+(`main`, or the workstream id a file was read from).
+
+## `litkb.extraction_jobs` + `litkb.extraction_job_leases` (litkb, migration 0029)
+
+The extraction queue of design §12.3-12.5 (LITKB_WORKPLAN.md "### S4"). One `extraction_jobs` row
+per (file, run key, page range); UNIQUE `NULLS NOT DISTINCT` on (file_id, stage, tool,
+tool_version, params_hash, pipeline_version, page_start, page_end), so a repeated sweep inserts
+nothing. `page_start`/`page_end` NULL = the whole file. The run key is stage 5's
+(`litkb.extract.ingest.run_key` with `CORPUS_PARAMS`) — the same key `litkb hunt` and the P5 bulk
+pass write, so an `ok` run either wrote marks the job `done` without running anything. `stage` is
+CHECKed to `5-reconcile` (S4 run 3 decision D7: stage 6 is not queued). No role holds a direct
+write on either table: the only writers are nine SECURITY DEFINER functions, EXECUTE to
+`litkb_ingest` alone and presenting no workstream token (files are main-owned):
+`enqueue_extraction`, `claim_jobs`, `renew_lease`, `record_artifact`, `stage_chunk`, `finish_job`,
+`fail_job`, `refuse_job(job, token, refusal, error, stage)`, `reopen_job` (pinned by
+`qc/test_litkb_p1.py`'s role matrix). SELECT for
+`litkb_reader`, `litkb_writer`, `litkb_ingest`. Driver: `pipeline/litkb/extract/queue.py`,
+`py -3.12 -m litkb queue sweep|work|status`; tests `qc/test_litkb_queue.py`.
+
+**`state`** (closed, `queue.STATES`): `queued` (claimable) · `leased` (a worker holds a live or
+expired lease) · `staged` (a page-range job whose artifact is recorded, waiting for the LAST range
+of its file to assemble all of them into ONE run) · `done` (`run_id` and `blocks_digest` set) ·
+`dead` (failed `litkb._job_max_attempts()` = 3 times, Kam's ruling litkb-extract-page-cap; the
+ceiling's one home is that SQL function) · `refused` (a guard's verdict; terminal, never claimed).
+`queued`, `leased` and `staged` are waiting states, not readability classes (S4 run 3 decision D8).
+
+**`refusal`** (closed, `queue.REFUSALS`; set iff `state = 'refused'`): `book` (the work's type is
+`book`, litkb-book-policy — decided in Python AND in SQL at enqueue and at claim) · `bad-file` (not
+on disk, no `%PDF-` in the first 1,024 bytes, or sha256 on disk ≠ `files.sha256`) · `probe-error`
+(`litkb.extract.probe.probe_pages` / `page_text_chars` raised) · `over-page-cap` (more than
+`probe.EXTRACT_PAGE_CAP` = 400 pages, litkb-extract-page-cap) · `scan-needs-ocr` (an OCR-routed file
+with OCR off, or the scan post-condition below). The same guard (`queue.guard_file`) runs at
+ENQUEUE and again at CLAIM. **`refusal_stage`** (set iff `refusal` is): `enqueue` (the sweep's
+guard) · `claim` (the claim-time re-check, the SQL book guard at claim) · `result` (the scan
+post-condition — OCR ran and read nothing).
+
+**Reopening a refusal** (auditor-A F1, S4 run 3 round 2). A refusal is terminal for the WORKER, not
+for ever. A sweep re-guards a file whose EVERY job at the key is `refused` at `enqueue` or `claim`;
+when `queue.guard_file` now passes, each refused job whose range the file still needs goes back to
+`queued` through `litkb.reopen_job(job, refusal, actor, why, route, pages, page_chars, image_pages)`
+— a compare-and-set on the refusal, refreshing the probe facts — and a range with no job at all (a
+whole-file refusal made with OCR off, the file now OCR-routed into ranges) is enqueued. A refusal
+the guard still gives is left alone — that rule lives in the SWEEP (it re-runs `guard_file`), not in
+the database: a direct `reopen_job` call can reopen e.g. an over-page-cap job, and the claim-time
+re-check then refuses it again. The database itself refuses (22023) to reopen a `result` refusal and a
+`book` refusal while the work is a book. `attempts` is RESET to 0 (a new life; the prior count is the
+audit row's `prior_attempts`). Every reopen appends one
+row to **`litkb.extraction_job_reopens`** (append-only: trigger refuses UPDATE/DELETE; no agent role
+may INSERT; SELECT for reader, writer, ingest): `id`, `job_id`, `reopened_at`, `actor` (the
+caller's worker id, `sweep@<host>:<pid>` by default), `db_login` (`session_user`), `why`, `refusal`,
+`refusal_stage`, `refused_error` (the `last_error` the refusal carried), `prior_attempts`.
+
+**`--redo`** (`litkb queue sweep --file <id> --redo`): the named files whose CURRENT run sits at an
+OLDER key than today's stage-5 run key are swept like files with no run (every guard applies); a file
+whose current run is at today's key is never re-extracted. The new run becomes current by
+`set_current_run`'s compare-and-set; the old run stays.
+
+**Routing** (`route`: `native` · `ocr`). A file is OCR-routed when ANY page is an IMAGE page: zero
+native characters AND at least one raster image (S4 run 3 decision D13, `probe.image_pages`; its
+docstring holds the measured basis). The probe facts are stored on the job: `page_chars` (normalised
+native characters per page) and `image_pages` (their 1-based numbers). Never the page-1
+`file_versions.has_text_layer`. An OCR-routed file is split
+into ranges of at most `queue.OCR_CHUNK_PAGES` = 22 pages (S4 run 3 decision D3); a native file is
+one whole-file job. Docling emits ABSOLUTE page numbers for a page range (measured 2026-09-22), so
+assembly shifts no page; `queue.assemble` refuses ranges that do not tile 1..`pages` or that name a
+page outside themselves.
+
+**Scan post-condition.** An OCR-routed file whose image pages ALL come back with no text
+(`queue.ocr_read_nothing`) is refused `scan-needs-ocr`, never finished `ok` — WHEN IT IS A SCAN:
+its image pages outnumber its native-text pages (`queue.is_scan`; native-text page = more than zero
+native characters in the job's `page_chars`; a blank page counts on neither side). A definition, not
+a tuned number (the orchestrator's ruling on builder-A Q1, S4 run 3). A file that is NOT a scan — a
+native paper whose one image page is a caption-less picture — finishes: its textless image pages are
+REPORTED in the run's metrics (`textless_image_pages`), never a refusal of the whole file. An image
+page has no native text, so every character on it is OCR's.
+
+**A dead job leaves a `failed` run** (design §12.3; builder-A Q2). At `dead` — `fail_job` at the
+ceiling, or `claim_jobs` finding every lease expired — `litkb._job_dead_run` (0029, granted to no
+role) writes a `failed` `extraction_runs` row at the job's OWN run key through 0017's
+`open_extraction_run` / `finish_extraction_run`, never current, with metrics `queue`, `job_state`
+(`dead`), `last_error` and `dead_jobs` (one entry per dead range: `job_id`, `page_start`, `page_end`,
+`attempts`, `last_error`, `died_at`). An `ok` run already at the key is left alone. A later successful
+ingest at that key reuses the run id and turns it `ok`, so the failure record stands exactly until the
+file is extracted. An extraction that produced NO block fails as `queue.ZeroContent`, whose
+`last_error` begins `ZeroContent:` (`queue.ZERO_CONTENT_ERROR`) — the evidence the readability
+classifier reads for `zero-content`; any other death is an extractor error it leaves unclassified.
+
+**The lease.** `claim_jobs(worker, n, lease_seconds, files uuid[] DEFAULT NULL)` takes queued jobs
+or jobs whose lease has EXPIRED, one row at a time under `FOR UPDATE SKIP LOCKED`, shortest file
+first; each claim increments `attempts` and `lease_seq`, and returns a TOKEN in plaintext once —
+only its sha256 is stored, in `extraction_job_lease_tokens` (job_id, seq, token_hash; written once,
+never changed), on which NO agent role holds any privilege (the rule `qc/test_litkb_p1.py` pins for
+every relation with a `token_hash` column). A job whose lease expired at every one of the
+ceiling's attempts is `dead` at the next claim. Every holder call presents the token; a token that
+is not the job's CURRENT lease, or whose lease a later claim superseded, is refused with
+**SQLSTATE `LKL01`** ("litkb lease refused"; `queue.LEASE_REFUSED`, raised in Python as
+`queue.LeaseLost`). `finish_job` is the ownership gate: the worker calls it INSIDE the ingest
+transaction (`extract.ingest.ingest_file(before_commit=…)`), so a refused finish rolls the blocks
+back. `queue.LEASE_SECONDS` = 375 (the longest single-job wall-clock in the existing metrics
+JSONL); the heartbeat renews at half of it. `metrics` (jsonb) holds the JOB's own measurements.
+
+**`extraction_job_leases`** — append-only history, one row per claim: `job_id`, `seq`, `owner`,
+`lease_seconds`, `claimed_at`, `expires_at` (moved by `renew_lease` while the lease is
+live), `superseded_at` (set when a later claim took an expired lease), `released_at` + `outcome`
+(`finished` · `staged` · `failed` · `dead` · `refused`, set by the holder's own call). A trigger
+refuses DELETE and every rewrite (identity columns never change; `superseded_at`, `released_at`,
+`outcome` are written once). A claim a worker never came back from reads `superseded_at` set,
+`released_at` NULL.
+
+**`blocks_digest`** (sha256 hex; `queue.blocks_digest` is its one implementation). Over every block
+of the run: the tuples `(page_no, reading_order, type, text)` sorted by (page_no, reading_order),
+each serialised as `json.dumps([page_no, reading_order, type, text or ""], ensure_ascii=False,
+separators=(",", ":"))`, joined by `\n`, UTF-8 encoded. Computed inside the ingest transaction from
+the rows just written, and again by a cold session from the database (`queue.run_rows`) or from
+the stored artifacts (`queue.reference_blocks`, which re-runs `extract.ingest.prepare` on the CPU).
+
+**Artifacts** go to `<references.DERIVED_ROOT>/<sha256>/5-reconcile/<tool>@<version>_<params_hash>/`
+as `<range>.s<lease_seq>.{docling.json,tei.xml,manifest.json}` (`<range>` is `whole` or
+`pNNN-NNN`), each written `.partial` + fsync + rename. `artifact_path` / `artifact_sha256` name the
+MANIFEST, which lists every tool output with its sha256; a reclaimed job whose manifest and files
+still hash as recorded is not extracted again.
+
+**`extraction_runs.metrics` keys the queue adds** (beside the reconciler's own): `seconds`
+(extraction + reconcile wall-clock), `pages`, `pages_per_s`, `peak_rss_bytes` (Docling's sampled
+peak), `peak_vram_mib` and `vram_baseline_mib` (whole-card `nvidia-smi` at 1 Hz; NULL off CUDA),
+`device`, `interpreter`, `ocr` (a JSON boolean on EVERY run the worker finishes — the key builder B's
+classifier reads for `extracted/ocr`), `ocr_engine`, `image_pages` (count),
+`ocr_chars_on_image_pages`, `textless_image_pages` (the image pages that came back with no text, in
+page order; `[]` when none — REPORTED for a file that is not a scan), `grobid_error`,
+`reconcile_seconds`, `jobs` (one entry
+per job: `job_id`, `page_start`, `page_end`, `attempts`, …), `attempts` (their sum), `chunks` (the
+page ranges; `[]` for a whole-file job), `queue`.
+
+**The S4 counters** (`queue.counters`, each a plain function of a connection; a reader login
+suffices): `stale_leases` (jobs `leased` with `lease_expires_at` past) · `mutated_leases_accepted`
+(done jobs whose `finished` lease row was superseded or followed by a later claim; the
+superseded clause can add no job while the `extraction_jobs_refusal` CHECK stands, measured —
+round 2, auditor-C N6) ·
+`duplicate_blocks` (in the current runs the queue finished: blocks beyond the first at one
+(page_no, reading_order); plus, for runs a RESUMED job — attempts > 1 — finished, blocks per
+(page_no, text) beyond the count the clean reference recomputed from the artifacts produces; a
+bare (page_no, text) repeat is not counted because correct current runs repeat a string on a page
+16,295 times live) · `resumed_content_hash_mismatches` (runs a resumed job finished whose committed
+digest differs from the database's blocks or from the reference; an unrecomputable reference
+counts) · `books_extracted` (files of a `type='book'` work with any block — a book in main OR in
+any workstream `queue.counters(conn, root, workstreams)` is given: the manifest's, auditor-C N5) ·
+`over_cap_bound`
+(files over `EXTRACT_PAGE_CAP` by `file_versions.pages` or `extraction_jobs.pages` with any block) ·
+`scans_ocr_unrouted` (OCR-routed files that are SCANS by `queue.is_scan` — the post-condition's own
+definition — whose current run carries no text on any image page). Known-bads that move each
+one: `pipeline/litkb/extract/queue_fire.py`; `qc/instruments/litkb_acceptance.py readability --fire`
+re-fires them by name (section below).
+
+## LITKB readability acceptance manifest (`qc/instruments/litkb_acceptance.py readability`, S4)
+
+The plan's "### S4" (b) as a command. `readability --freeze --workstream <slug> [--workstream …]
+--out <manifest.json>` writes a JSON manifest BEFORE the drain; `readability --manifest
+<manifest.json>` grades it; `readability --fire <name>` re-runs one (c) known-bad. Tests and the
+known-bad table: `qc/test_litkb_acceptance.py` (the `test_readability_*` rows); mutation rows S4R1-S4R14
+in `qc/instruments/litkb_p2_mutations.py`.
+
+**Manifest fields** (kind `litkb-readability`): `frozen_at` (the DATABASE's `now()`, read in the
+same REPEATABLE READ snapshot as the bed; `frozen_at_source` = `db`) · `repo`, `repo_head`,
+`code_committed` (`git status --porcelain` over the litkb package and the instrument is empty: true;
+dirty: false; git cannot say: null) · `db`, `db_name`, `db_oid` (`pg_database.oid`: a DROP + CREATE
+under the same name changes it) · `reader_role` · `repo_migration_tip`, `db_migration_tip` (the
+OWNER read, `litkb_owner` through `connect_admin`; `--passfile` sets PGPASSFILE for it, and without it
+libpq's own default resolution applies — the code names no owner passfile of its own, the `edges`
+freeze included (`db.connect`: the admin passwords stay in the shared pgpass file); null with
+`db_migration_tip_note` when unreadable),
+`required_migration` (31) · `workstreams` (`[{slug, id}]`, `main` first with id null — main is always
+graded) · `literature_root`, `quarantine_root` · `derived_root` (`queue.derived_root()`, the job
+artifact root) and `references_derived_root` · `extract_page_cap`, `ocr_chunk_pages`, `lease_seconds`
+(the code's constants at freeze) · `gated` (the nine names) · `bed` (every active current file in main
+and the named workstreams holding no block — `file_id`, `rel_path`, `sha256`, `scope`, `pages` and
+`image_pages` MEASURED by the page probe, `probe_error`) · `manifest_sha256` (sha256 of the sorted,
+compact JSON of every other field).
+
+**Grading refuses** (exit non-zero, nothing graded): a `manifest_sha256` that does not match the
+content; a constant the code no longer has; another database (name or oid); a workstream id that
+does not name its slug. The counters always use the code's constants, never the manifest's.
+
+**The one printed line** — GATED, in the plan's order, each read by the function that owns it:
+`unclassified_acquired_files` (`readability.classify(reader, workstreams, root=literature_root)` →
+file and staging rows with no class, the queue step included) · `stale_leases`, `duplicate_blocks`,
+`resumed_content_hash_mismatches`, `books_extracted`, `over_cap_bound`, `scans_ocr_unrouted`,
+`mutated_leases_accepted` (`queue.counters(reader, literature_root, manifest workstreams)`, definitions in the
+`litkb.extraction_jobs` section above) · `quarantined_without_db_state`
+(`quarantine.quarantined_without_db_state(reader, root=literature_root)`: payloads under `_quarantine/`
+with no row for their path). Then REPORTED: `files_without_reference_stage` and
+`reference_anchor_rate` (each numerator/denominator, `references_coverage.reference_counters`) ·
+`acquired_files`, `stale_quarantine_rows`, `queue_table`, `files_queue_waiting`,
+`files_queue_dead-error`, `files_queue_disagreement`, `files_<class>`, `extracted_<reason>`,
+`works…` (`readability.counters`) · `superseded_runs_unretired`, `superseded_runs_held_by_evidence`
+(`ops.retire`) · `bed_files`, `bed_without_blocks` (bed files that still hold no block) ·
+`waits_on_migration` (1 when any of `litkb.extraction_jobs` (0029), `litkb.quarantine_payloads` (0030),
+`litkb.run_retirements` (0031) is absent to the reader — the db tip below 31, measured without the owner
+credential; the counters those relations carry then print `unread`). Exit 0 only when every gated
+counter is 0 and `waits_on_migration` is 0.
+
+**`--fire <name>`** runs only when `LITKB_TEST_DB` is set EXPLICITLY to a worker database
+`litkb_test_w<N>` (unset, or the shared `litkb_test`, is refused — round 2, auditor-C DB SAFETY), and
+`readability_fire` itself REFUSES `litkb` (and any name outside `litkb_test*`) before a connection opens. It owns that database: the suite's advisory lock, reset, migrate — so the
+control reads 0 by construction, and all seven names can be fired back to back in one worker database
+(ruling Q3). The fixtures are also salted per call (`queue_fire._salt`), so the fires run back to back
+WITHOUT a reset too (`test_readability_every_fire_runs_back_to_back_in_one_worker_db_without_a_reset`). It prints the guard-ON control line and the known-bad line and exits 0
+only on FIRED — the counter's move AND the control arm's own plan clause (round 2, auditor-C
+N1/N2): cap refused `over-page-cap`, never claimed, 0 blocks; scan refused `scan-needs-ocr`, no ok run;
+book refused `book` AND classed `book` by the classifier; lease refused by the ownership gate (LKL01),
+nothing landed; probe never bound, its quarantine row's reason `probe-error`, and
+`unclassified_acquired_files` unchanged across the fire. Names: `kill` (a `litkb queue work` subprocess tree killed mid-batch on the synthetic
+extractor and rerun: FIRED when the killed worker left exactly one stale lease, the rerun exits 0, a job
+was resumed, every file's content digest equals an uninterrupted run's and every counter is back at its
+baseline — 0 duplicates) · `lease` (`mutated_leases_accepted` 0 → 1) · `cap` (`over_cap_bound` 0 → 1) ·
+`probe` (control: refused `probe-error`, 0 bound; known-bad: bound 1 with pages NULL) · `scan`
+(`scans_ocr_unrouted` 0 → 1; needs Anderson 1957 and its recorded no-OCR artifact on the machine) ·
+`book` (`books_extracted` 0 → 1) · `quarantine` (`quarantined_without_db_state` 0 → 1). `--manifest`
+beside `--fire` is checked (content hash and constants) and named in the output; it grades nothing.

@@ -37,6 +37,22 @@ class AdmissionError(RuntimeError):
     pass
 
 
+class BindProbeError(AdmissionError):
+    """A file offered for binding whose PAGE COUNT could not be read (`litkb.extract.probe.probe_pages`
+    raised). Fail closed: the file is never attached (LITKB_WORKPLAN.md "### S4": "a PDF whose
+    page-count probe ERRORS → classed `probe-error` ... and never bound").
+
+    It carries what a quarantine row needs — the path relative to the literature root, the sha256 and
+    the byte count of the refused file — so each caller can record the refusal in the place it knows
+    about: `admit_registry`/`admit_manual` against the file where it lies (admission never moves a
+    file), `acquire.run.attach_in_place` the same way, and `hunt` after moving its own download."""
+
+    def __init__(self, message, *, rel_path, sha256, nbytes, probe_error):
+        super().__init__(message)
+        self.rel_path, self.sha256, self.nbytes, self.probe_error = rel_path, sha256, nbytes, probe_error
+        self.quarantine_row = None
+
+
 def _jsonb(v):
     from psycopg.types.json import Jsonb
 
@@ -101,6 +117,20 @@ def file_evidence(file_path, registry_title, first_author, *, root=None, source_
     except ValueError:
         raise AdmissionError(f"{p} is not under the literature root {root}") from None
     facts = file_facts(p)
+    # The default is the unguarded one: removing the guard below leaves code that RUNS and binds with
+    # `pages` NULL, rather than a NameError the harness reports as DID NOT FIRE.
+    pages = None
+    # BEGIN guard: a file whose page count cannot be read is never bound (admission)
+    # `binding.pdf_info` never raises (S4 run 3 code survey C8), so until S4 a file whose page count
+    # could not be read bound with `pages` NULL. The count now comes from the probe that CAN fail.
+    from litkb.extract import probe as _probe
+    try:
+        pages = _probe.probe_pages(p)
+    except _probe.ProbeError as e:
+        raise BindProbeError(f"{rel}: the page count could not be read ({e}); the file is not bound",
+                             rel_path=rel, sha256=facts["sha256"], nbytes=facts["bytes"],
+                             probe_error=str(e)[:300]) from e
+    # END guard: a file whose page count cannot be read is never bound (admission)
     info = _binding.pdf_info(p)
     # OCR only where the first page has no text layer to read: bind_any_with_ocr re-binds a
     # `binding-pending` and leaves every other verdict exactly as bind_any returned it.
@@ -111,8 +141,8 @@ def file_evidence(file_path, registry_title, first_author, *, root=None, source_
            "pdf_metadata": {k: v for k, v in info.items() if k in ("Title", "Author", "Subject", "Creator",
                                                                     "Producer", "CreationDate", "PDF version",
                                                                     "Encrypted", "Pages")}}
-    if (info.get("Pages") or "").isdigit():
-        out["pages"] = int(info["Pages"])
+    if pages is not None:
+        out["pages"] = pages
     if txt.exists():
         out["txt_extract_path"] = txt.relative_to(root).as_posix()
     if source_route:
@@ -120,6 +150,18 @@ def file_evidence(file_path, registry_title, first_author, *, root=None, source_
     if source_url:
         out["source_url"] = source_url
     return out
+
+
+def _probe_refused(conn, ws, token, err):
+    """Record an admission's probe refusal against the file WHERE IT LIES (admission never moves a
+    file): the quarantine row IS the state (migration 0030, origin `bind-refusal`). Best-effort, like
+    every quarantine row — the result rides on the exception, which the caller re-raises."""
+    from litkb import quarantine as Q
+
+    err.quarantine_row = Q.try_record(Q.record, conn, ws, token, rel_path=err.rel_path, sha256=err.sha256,
+                                      nbytes=err.nbytes, reason="probe-error", origin="bind-refusal",
+                                      detail={"via": "admission", "probe_error": err.probe_error})
+    return err
 
 
 def _labels(agent, session):
@@ -228,7 +270,12 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
     key = key or make_key(first, year, work["title"])
     file_json = None
     if file_path:
-        file_json = file_evidence(file_path, work["title"], first, root=root, title_forms=forms)
+        try:
+            file_json = file_evidence(file_path, work["title"], first, root=root, title_forms=forms)
+        except BindProbeError as e:
+            # BEGIN call site: a registry admission's probe refusal gets its database row
+            raise _probe_refused(conn, ws, token, e)
+            # END call site: a registry admission's probe refusal gets its database row
     if candidate_id is None:
         candidate_id = add_candidate(
             conn, ws, token, source=source, source_detail=source_detail, title=claimed.get("title") or work["title"],
@@ -278,7 +325,12 @@ def admit_manual(conn, ws, token, *, title, authors, year, file_path, source_not
     work = {"type": work_type, "title": title, "authors": fam_list, "year": int(year) if year else None}
     ids = [{"scheme": i["scheme"], "value": i["value"], "verified_by": "manual",
             "evidence": {"source": source_note}} for i in identifiers]
-    file_json = file_evidence(file_path, title, first, root=root) if file_path else None
+    try:
+        file_json = file_evidence(file_path, title, first, root=root) if file_path else None
+    except BindProbeError as e:
+        # BEGIN call site: a manual admission's probe refusal gets its database row
+        raise _probe_refused(conn, ws, token, e)
+        # END call site: a manual admission's probe refusal gets its database row
     if candidate_id is None:
         candidate_id = add_candidate(conn, ws, token, source="manual", source_detail=source_note, title=title,
                                      authors=fam_list, year=year)

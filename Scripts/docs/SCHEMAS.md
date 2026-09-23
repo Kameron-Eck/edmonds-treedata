@@ -2573,3 +2573,17 @@ baseline — 0 duplicates) · `lease` (`mutated_leases_accepted` 0 → 1) · `ca
 (`scans_ocr_unrouted` 0 → 1; needs Anderson 1957 and its recorded no-OCR artifact on the machine) ·
 `book` (`books_extracted` 0 → 1) · `quarantine` (`quarantined_without_db_state` 0 → 1). `--manifest`
 beside `--fire` is checked (content hash and constants) and named in the output; it grades nothing.
+
+<!-- S4.5 builder A (hardening subcommand + cassette/replay layer): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+<!-- S4.5 builder B1 (identifier model, migration 0032): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+<!-- S4.5 builder B2 (adjudication: refuse verb, decision log, withdraw, operator-bind gate, migration 0034): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+<!-- S4.5 builder C1 (ledger vocabulary + acquisition substrate, migration 0033): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+<!-- S4.5 builder C2A (Stage A + Stage B rungs): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+<!-- S4.5 builder C2B (Stage C + Stage E + Sci-Hub part 1 rungs): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+<!-- end of S4.5 builder sections -->

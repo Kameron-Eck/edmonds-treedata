@@ -2337,6 +2337,30 @@ replace("S4R21", ACCEPT, "            and unclassified_after == unclassified_bef
         tests=TESTS_ACC_READ)
 
 
+# ==== S4.5 builder A mutation rows (hardening subcommand + cassette/replay layer) — append ONLY between these two markers ====
+# ==== end S4.5 builder A rows ====
+
+
+# ==== S4.5 builder B1 mutation rows (identifier model, migration 0032) — append ONLY between these two markers ====
+# ==== end S4.5 builder B1 rows ====
+
+
+# ==== S4.5 builder B2 mutation rows (adjudication: refuse verb, decision log, withdraw, operator-bind gate, migration 0034) — append ONLY between these two markers ====
+# ==== end S4.5 builder B2 rows ====
+
+
+# ==== S4.5 builder C1 mutation rows (ledger vocabulary + acquisition substrate, migration 0033) — append ONLY between these two markers ====
+# ==== end S4.5 builder C1 rows ====
+
+
+# ==== S4.5 builder C2A mutation rows (Stage A + Stage B rungs) — append ONLY between these two markers ====
+# ==== end S4.5 builder C2A rows ====
+
+
+# ==== S4.5 builder C2B mutation rows (Stage C + Stage E + Sci-Hub part 1 rungs) — append ONLY between these two markers ====
+# ==== end S4.5 builder C2B rows ====
+
+
 def call_sites(root=None):
     """Every call of a HELPERS name under Scripts/pipeline/litkb -> {site_id: {"file", "lines", "calls"}}.
 
@@ -2495,6 +2519,25 @@ SINK_ALLOW = {
         "socket, and its one connection goes through litkb.ingest.connect(), whose password libpq reads from the "
         "passfile and Python never sees."),
 }
+
+# ==== S4.5 builder A SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
+# ==== end S4.5 builder A SINK_ALLOW / EQUIVALENT ====
+
+# ==== S4.5 builder B1 SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
+# ==== end S4.5 builder B1 SINK_ALLOW / EQUIVALENT ====
+
+# ==== S4.5 builder B2 SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
+# ==== end S4.5 builder B2 SINK_ALLOW / EQUIVALENT ====
+
+# ==== S4.5 builder C1 SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
+# ==== end S4.5 builder C1 SINK_ALLOW / EQUIVALENT ====
+
+# ==== S4.5 builder C2A SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
+# ==== end S4.5 builder C2A SINK_ALLOW / EQUIVALENT ====
+
+# ==== S4.5 builder C2B SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
+# ==== end S4.5 builder C2B SINK_ALLOW / EQUIVALENT ====
+
 
 
 def sink_sites(root=None):

@@ -2172,6 +2172,24 @@ _EXPECTED_EXECUTE = {
                      "reopen_job"},
     "public": set(),
 }
+# ==== S4.5 builder A role-matrix additions (hardening subcommand + cassette/replay layer) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# ==== end S4.5 builder A role-matrix additions ====
+
+# ==== S4.5 builder B1 role-matrix additions (identifier model, migration 0032) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# ==== end S4.5 builder B1 role-matrix additions ====
+
+# ==== S4.5 builder B2 role-matrix additions (adjudication: refuse verb, decision log, withdraw, operator-bind gate, migration 0034) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# ==== end S4.5 builder B2 role-matrix additions ====
+
+# ==== S4.5 builder C1 role-matrix additions (ledger vocabulary + acquisition substrate, migration 0033) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# ==== end S4.5 builder C1 role-matrix additions ====
+
+# ==== S4.5 builder C2A role-matrix additions (Stage A + Stage B rungs) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# ==== end S4.5 builder C2A role-matrix additions ====
+
+# ==== S4.5 builder C2B role-matrix additions (Stage C + Stage E + Sci-Hub part 1 rungs) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# ==== end S4.5 builder C2B role-matrix additions ====
+
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}
 _EXPECTED_WRITES["litkb_ingest"] = {(t, "INSERT") for t in _EXTRACTION_TABLES}
 

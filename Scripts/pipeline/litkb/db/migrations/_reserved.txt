@@ -19,6 +19,9 @@
 # NNNN  why
 
 0024  RETIRED — reserved 2026-09-20 for work/20260920-web-source-gate, merged without a migration; the number is retired, never reuse it
+0032  IN FLIGHT - S4.5 (ladder-1) identifier model: scheme_registry, identifier provenance, parent-work columns (LITKB_WORKPLAN.md S4.5 item 1)
+0033  IN FLIGHT - S4.5 (ladder-1) acquisition ledger vocabulary: attempt sub_status/terminal/retriable/kind/served sha, route back-off state (S4.5 items 1-2)
+0034  IN FLIGHT - S4.5 (ladder-1) adjudication: refuse verb, decision log, withdraw_version, operator-bind gate (S4.5 item 1)
 #
 # 0027 is no longer reserved: it landed on work/20260920-litkb-s1a as
 # 0027_hunt_request_title_scheme.sql (hunt_requests.ref_scheme gains 'title'; LITKB_WORKPLAN.md

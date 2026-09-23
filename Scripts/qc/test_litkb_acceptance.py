@@ -2010,8 +2010,10 @@ def test_readability_fire_refuses_a_database_that_is_not_a_worker_database(mod, 
 
     monkeypatch.setenv("LITKB_TEST_DB", db)
     monkeypatch.setattr(mod, "_edge_run", lambda: pytest.fail("the fire reached past its guard"))
+    # straight to readability_fire: since round 2 the CLI's own _fire_db refuses these names FIRST
+    # (test_readability_fire_runs_only_on_an_explicitly_named_worker_db), which would answer for this guard
     with pytest.raises(SystemExit, match="writes, resets and migrates its database"):
-        mod.main(["readability", "--fire", "cap"])
+        mod.readability_fire("cap", db=db, workdir="unused")
 
 
 @pg_only
@@ -2095,3 +2097,57 @@ def test_readability_every_fire_runs_back_to_back_in_one_worker_db_without_a_res
         migrate.apply(conn)
     print("\n".join(ln for _n, _f, lines in results for ln in lines))
     assert [n for n, fired, _l in results if not fired] == [], results
+
+
+
+# ── S4 run 3 round 2 (auditor-C N1/N2, DB SAFETY) ──────────────────────────────────────
+
+@pytest.mark.parametrize("db", [None, "", "litkb_test", "litkb_test_wmatching", "litkb", "litkb_test_w"])
+def test_readability_fire_runs_only_on_an_explicitly_named_worker_db(mod, monkeypatch, db):
+    """DB SAFETY (auditor-C). `--fire` RESETS its database. Unset, LITKB_TEST_DB used to mean the
+    SHARED `litkb_test`; now anything but an explicit `litkb_test_w<N>` is refused before anything
+    is opened — the CLI never reaches the fire."""
+    from litkb.db import connect as _c  # noqa: F401 — imported under the worker db, before the env changes
+
+    if db is None:
+        monkeypatch.delenv("LITKB_TEST_DB", raising=False)
+    else:
+        monkeypatch.setenv("LITKB_TEST_DB", db)
+    monkeypatch.setattr(mod, "readability_fire", lambda *a, **k: pytest.fail("the fire ran"))
+    with pytest.raises(SystemExit, match="worker database named explicitly"):
+        mod.main(["readability", "--fire", "cap"])
+    monkeypatch.setenv("LITKB_TEST_DB", "litkb_test_w7")
+    assert mod._fire_db() == "litkb_test_w7"
+
+
+def _arm(**kw):
+    base = {"jobs": [], "claimed": 0, "blocks": 0, "runs_ok": 0, "raised": None, "blocks_after_t1": 0}
+    base.update(kw)
+    return base
+
+
+@pytest.mark.parametrize("name,good,bad", [
+    ("cap", _arm(jobs=[("refused", "over-page-cap", 0, None, None)]),
+     _arm(jobs=[("refused", "over-page-cap", 1, None, None)], claimed=1)),            # started
+    ("scan", _arm(jobs=[("refused", "scan-needs-ocr", 0, 1, None)]),
+     _arm(jobs=[("done", None, 1, 1, "r")], runs_ok=1, blocks=82)),                   # extracted, 0 chars
+    ("book", _arm(jobs=[("refused", "book", 0, None, None)], file_id="F"),
+     _arm(jobs=[("refused", "book", 0, None, None)], file_id="G")),                   # not classed book
+    ("lease", _arm(raised="litkb: lease refused for extraction job x"),
+     _arm(raised=None, blocks_after_t1=2)),                                           # the gate stayed quiet
+])
+def test_readability_fire_grades_each_control_by_the_plans_clause(mod, name, good, bad):
+    """auditor-C N2: a fire's control arm must show the plan's own clause, not only a counter at 0.
+    CONSTRUCTED arms: the good one passes, the bad one — whose counter would still read 0 — does not."""
+    classes = {"F": "book", "G": None}
+    assert mod._control_clause(name, good, classes)[0] is True
+    assert mod._control_clause(name, bad, classes)[0] is False
+
+
+def test_readability_fire_probe_grades_all_three_clauses(mod):
+    """auditor-C N1: never bound, classed probe-error, unclassified unchanged — each alone breaks it."""
+    on = {"probe_refused": 1, "bound": 0, "quarantine_reason": "probe-error"}
+    assert mod._probe_clause(on, 0, 0) is True
+    assert not mod._probe_clause(dict(on, bound=1), 0, 0)
+    assert not mod._probe_clause(dict(on, quarantine_reason=None), 0, 0)
+    assert not mod._probe_clause(on, 0, 1)

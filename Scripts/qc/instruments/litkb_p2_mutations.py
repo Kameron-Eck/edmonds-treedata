@@ -2213,6 +2213,9 @@ eq(replace, "EQ36", QPY, "ocr=run_ocr, formula=False, device=self.device, cwd=wo
 hu(replace, "EQ37", f"{PKG}/hunt.py", "        hold.close()\n", "        hold._stop()\n",
    "CALL SITE hunt: GROBID is stopped after the hunt whoever started it — the live stage-6 driver's "
    "service included (auditor-A HUNT)")
+eq(block, "EQ38", QPY, "guard: a book in a manifest workstream counts as a book",
+   "books_extracted reads main's works only: a book proposed in a manifest workstream extracts "
+   "unseen (auditor-C N5)")
 
 # ── S4C: the readability classifier's QUEUE STEP (builder-C item 1c; litkb/readability.py) ─────
 TESTS_READ = ["qc/test_litkb_readability.py"]
@@ -2280,6 +2283,36 @@ replace("S4R14", ACCEPT, '        reported["waits_on_migration"] = int(bool(miss
         '        reported["waits_on_migration"] = 0\n',
         "a database without 0029-0031 is reported as not waiting: the counters it could not read are "
         "printed `unread` under a line that says nothing is missing", tests=TESTS_ACC_READ)
+# builder-A round 2 (auditor-C N1/N2 and DB SAFETY)
+block("S4R15", ACCEPT, "guard: --fire runs only on an explicitly named worker database",
+      "`readability --fire` with LITKB_TEST_DB unset resets the SHARED litkb_test", tests=TESTS_ACC_READ)
+replace("S4R16", ACCEPT,
+        '        ok = refusals == {("refused", "over-page-cap")} and g.get("claimed") == 0 and g.get("blocks") == 0\n',
+        "        ok = True\n",
+        "the cap fire's control is graded on its counter alone: 'refused over-page-cap, never started' "
+        "is not checked (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R17", ACCEPT,
+        '        ok = refusals == {("refused", "scan-needs-ocr")} and g.get("runs_ok") == 0 and g.get("blocks") == 0\n',
+        "        ok = True\n",
+        "the scan fire's control is graded on its counter alone: 'scan-needs-ocr, never extracted' is "
+        "not checked (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R18", ACCEPT,
+        '        ok = refusals == {("refused", "book")} and g.get("blocks") == 0 and cls == "book"\n',
+        '        ok = refusals == {("refused", "book")} and g.get("blocks") == 0\n',
+        "the book fire's control is not checked for 'the book class' (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R19", ACCEPT,
+        '''        ok = "lease refused" in str(g.get("raised") or "") and g.get("blocks_after_t1") == 0\n''',
+        "        ok = True\n",
+        "the lease fire's control is graded on its counter alone: 'the ownership gate goes RED' is not "
+        "checked (auditor-C N2)", tests=TESTS_ACC_READ)
+replace("S4R20", ACCEPT,
+        '''    return (on["probe_refused"] == 1 and on["bound"] == 0 and on.get("quarantine_reason") == "probe-error"\n''',
+        '''    return (on["probe_refused"] == 1 and on["bound"] == 0\n''',
+        "the probe fire does not check that the refused file is classed probe-error (auditor-C N1)",
+        tests=TESTS_ACC_READ)
+replace("S4R21", ACCEPT, "            and unclassified_after == unclassified_before)\n", "            )\n",
+        "the probe fire does not check that unclassified_acquired_files is unchanged (auditor-C N1)",
+        tests=TESTS_ACC_READ)
 
 
 def call_sites(root=None):

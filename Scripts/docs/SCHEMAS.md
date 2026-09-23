@@ -2485,14 +2485,18 @@ page ranges; `[]` for a whole-file job), `queue`.
 
 **The S4 counters** (`queue.counters`, each a plain function of a connection; a reader login
 suffices): `stale_leases` (jobs `leased` with `lease_expires_at` past) · `mutated_leases_accepted`
-(done jobs whose `finished` lease row was superseded or followed by a later claim) ·
+(done jobs whose `finished` lease row was superseded or followed by a later claim; the
+superseded clause can add no job while the `extraction_jobs_refusal` CHECK stands, measured —
+round 2, auditor-C N6) ·
 `duplicate_blocks` (in the current runs the queue finished: blocks beyond the first at one
 (page_no, reading_order); plus, for runs a RESUMED job — attempts > 1 — finished, blocks per
 (page_no, text) beyond the count the clean reference recomputed from the artifacts produces; a
 bare (page_no, text) repeat is not counted because correct current runs repeat a string on a page
 16,295 times live) · `resumed_content_hash_mismatches` (runs a resumed job finished whose committed
 digest differs from the database's blocks or from the reference; an unrecomputable reference
-counts) · `books_extracted` (files of a main `type='book'` work with any block) · `over_cap_bound`
+counts) · `books_extracted` (files of a `type='book'` work with any block — a book in main OR in
+any workstream `queue.counters(conn, root, workstreams)` is given: the manifest's, auditor-C N5) ·
+`over_cap_bound`
 (files over `EXTRACT_PAGE_CAP` by `file_versions.pages` or `extraction_jobs.pages` with any block) ·
 `scans_ocr_unrouted` (OCR-routed files that are SCANS by `queue.is_scan` — the post-condition's own
 definition — whose current run carries no text on any image page). Known-bads that move each
@@ -2532,7 +2536,7 @@ does not name its slug. The counters always use the code's constants, never the 
 `unclassified_acquired_files` (`readability.classify(reader, workstreams, root=literature_root)` →
 file and staging rows with no class, the queue step included) · `stale_leases`, `duplicate_blocks`,
 `resumed_content_hash_mismatches`, `books_extracted`, `over_cap_bound`, `scans_ocr_unrouted`,
-`mutated_leases_accepted` (`queue.counters(reader, literature_root)`, definitions in the
+`mutated_leases_accepted` (`queue.counters(reader, literature_root, manifest workstreams)`, definitions in the
 `litkb.extraction_jobs` section above) · `quarantined_without_db_state`
 (`quarantine.quarantined_without_db_state(reader, root=literature_root)`: payloads under `_quarantine/`
 with no row for their path). Then REPORTED: `files_without_reference_stage` and
@@ -2546,12 +2550,17 @@ with no row for their path). Then REPORTED: `files_without_reference_stage` and
 credential; the counters those relations carry then print `unread`). Exit 0 only when every gated
 counter is 0 and `waits_on_migration` is 0.
 
-**`--fire <name>`** runs on `LITKB_TEST_DB` and REFUSES `litkb` (and any name outside `litkb_test*`)
-before a connection opens. It owns that database: the suite's advisory lock, reset, migrate — so the
+**`--fire <name>`** runs only when `LITKB_TEST_DB` is set EXPLICITLY to a worker database
+`litkb_test_w<N>` (unset, or the shared `litkb_test`, is refused — round 2, auditor-C DB SAFETY), and
+`readability_fire` itself REFUSES `litkb` (and any name outside `litkb_test*`) before a connection opens. It owns that database: the suite's advisory lock, reset, migrate — so the
 control reads 0 by construction, and all seven names can be fired back to back in one worker database
 (ruling Q3). The fixtures are also salted per call (`queue_fire._salt`), so the fires run back to back
 WITHOUT a reset too (`test_readability_every_fire_runs_back_to_back_in_one_worker_db_without_a_reset`). It prints the guard-ON control line and the known-bad line and exits 0
-only on FIRED. Names: `kill` (a `litkb queue work` subprocess tree killed mid-batch on the synthetic
+only on FIRED — the counter's move AND the control arm's own plan clause (round 2, auditor-C
+N1/N2): cap refused `over-page-cap`, never claimed, 0 blocks; scan refused `scan-needs-ocr`, no ok run;
+book refused `book` AND classed `book` by the classifier; lease refused by the ownership gate (LKL01),
+nothing landed; probe never bound, its quarantine row's reason `probe-error`, and
+`unclassified_acquired_files` unchanged across the fire. Names: `kill` (a `litkb queue work` subprocess tree killed mid-batch on the synthetic
 extractor and rerun: FIRED when the killed worker left exactly one stale lease, the rerun exits 0, a job
 was resumed, every file's content digest equals an uninterrupted run's and every counter is back at its
 baseline — 0 duplicates) · `lease` (`mutated_leases_accepted` 0 → 1) · `cap` (`over_cap_bound` 0 → 1) ·

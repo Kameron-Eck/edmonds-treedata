@@ -1102,22 +1102,40 @@ def stale_leases(conn):
 
 def mutated_leases_accepted(conn):
     """Done jobs finished by a claim that was not their current one: a `finished` lease row that was
-    superseded, or that a later claim of the same job followed. The ownership gate keeps this 0."""
+    SUPERSEDED (a reclaim, or a refusal of the whole file while it was leased — the book guard at
+    claim, refuse_job's siblings), or that a LATER CLAIM of the same job followed. The ownership gate
+    keeps this 0.
+
+    The later-claim clause is what c2 fires. The `superseded_at` clause can add no job today
+    (auditor-C N6, MEASURED in qc/test_litkb_queue.py): a supersession with no later claim is a
+    sibling range cut off by a whole-file refusal, and a refused job cannot become `done` even with
+    the lease gate removed — the `extraction_jobs_refusal` CHECK refuses it. It stays as the
+    history's own reading, should that CHECK ever change. The former third clause,
+    ``l.seq <> j.lease_seq``, was removed: ``lease_seq`` only moves in claim_jobs, which inserts that
+    claim's lease row in the same statement, and the history is append-only, so ``lease_seq > l.seq``
+    IS a later row."""
     return conn.execute(
         "SELECT count(DISTINCT j.id) FROM litkb.extraction_jobs j "
         "JOIN litkb.extraction_job_leases l ON l.job_id = j.id AND l.outcome = 'finished' "
-        "WHERE j.state = 'done' AND (l.superseded_at IS NOT NULL OR l.seq <> j.lease_seq "
+        "WHERE j.state = 'done' AND (l.superseded_at IS NOT NULL "
         "  OR EXISTS (SELECT 1 FROM litkb.extraction_job_leases l2 WHERE l2.job_id = j.id AND l2.seq > l.seq))"
     ).fetchone()[0]
 
 
-def books_extracted(conn):
-    """FILES of a `type='book'` work (main's type) carrying at least one block, in any run."""
+def books_extracted(conn, workstreams=()):
+    """FILES of a `type='book'` work carrying at least one block, in any run. A work is a book by
+    main's version OR by its version in any of ``workstreams`` (the plan's (b): "all workstreams in
+    the manifest, not main only"; auditor-C N5) — a workstream-only book is still a book."""
     return conn.execute(
-        "SELECT count(DISTINCT fv.file_id) FROM litkb.main_works w "
+        "WITH books AS (SELECT work_id FROM litkb.main_works WHERE type = 'book' "
+        # BEGIN guard: a book in a manifest workstream counts as a book
+        "  UNION SELECT work_id FROM litkb.ws_works "
+        "   WHERE view_workstream_id = ANY (%s::uuid[]) AND type = 'book'"
+        # END guard: a book in a manifest workstream counts as a book
+        ") SELECT count(DISTINCT fv.file_id) FROM books w "
         "JOIN litkb.file_versions fv ON fv.work_id = w.work_id "
-        "WHERE w.type = 'book' AND EXISTS (SELECT 1 FROM litkb.blocks b WHERE b.file_id = fv.file_id)"
-    ).fetchone()[0]
+        "WHERE EXISTS (SELECT 1 FROM litkb.blocks b WHERE b.file_id = fv.file_id)",
+        ([str(w) for w in workstreams],)).fetchone()[0]
 
 
 def over_cap_bound(conn):
@@ -1236,9 +1254,12 @@ def duplicate_blocks(conn, root=None):
     return n
 
 
-def counters(conn, root=None):
+def counters(conn, root=None, workstreams=()):
+    """The gated S4 queue counters. ``workstreams`` (the manifest's) reach every counter that reads a
+    WORK's version (only books_extracted does: the others read files, jobs and runs, which are
+    workstream-agnostic identity rows)."""
     return {"stale_leases": stale_leases(conn), "duplicate_blocks": duplicate_blocks(conn, root),
             "resumed_content_hash_mismatches": resumed_content_hash_mismatches(conn, root),
-            "books_extracted": books_extracted(conn), "over_cap_bound": over_cap_bound(conn),
+            "books_extracted": books_extracted(conn, workstreams), "over_cap_bound": over_cap_bound(conn),
             "scans_ocr_unrouted": scans_ocr_unrouted(conn),
             "mutated_leases_accepted": mutated_leases_accepted(conn)}

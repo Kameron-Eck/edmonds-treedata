@@ -2133,7 +2133,7 @@ def check_readability(manifest, *, conn=None, db=None):
             gated["quarantined_without_db_state"] = n
             offences += [f"quarantined without a database row: {p}" for p in paths[:20]]
         if 29 not in absent:
-            for name, value in Q.counters(conn, root).items():
+            for name, value in Q.counters(conn, root, ws_ids).items():
                 gated[name] = value
         offences += [f"unclassified: {r['rel_path']} ({r['evidence'][:160]})" for r in res["rows"]
                      if r["row_kind"] in ("file", "staging") and r["class"] is None][:50]
@@ -2181,8 +2181,63 @@ def readability_line(gated, reported):
     return " ".join(f"{k}={_fmt(v)}" for k, v in (*gated.items(), *reported.items()))
 
 
+#: The worker databases `--fire` may reset: `litkb.db.provision.provision_workers` names them
+#: `litkb_test_w<N>`. The shared `litkb_test`, `litkb_test_wmatching` and the rest are not workers.
+_FIRE_WORKER_DB = re.compile(r"litkb_test_w\d+")
+
+
 def _fire_db():
-    return os.environ.get("LITKB_TEST_DB") or "litkb_test"
+    """The database `--fire` resets: LITKB_TEST_DB, set EXPLICITLY to a worker (`litkb_test_w<N>`).
+    Unset, it used to fall back to the SHARED `litkb_test`, which a cold `--fire` would then reset
+    under whatever else uses it (auditor-C, DB SAFETY)."""
+    db = os.environ.get("LITKB_TEST_DB")
+    # BEGIN guard: --fire runs only on an explicitly named worker database
+    if not db or not _FIRE_WORKER_DB.fullmatch(db.strip()):
+        raise SystemExit(f"litkb_acceptance readability --fire resets its database, so it runs only on a "
+                         f"worker database named explicitly: set LITKB_TEST_DB=litkb_test_w<N> (got {db!r}; "
+                         f"the shared litkb_test is never reset from here)")
+    # END guard: --fire runs only on an explicitly named worker database
+    return db.strip()
+
+
+#: What each (c) row's CONTROL arm must also show — the plan's own clause, not only its counter
+#: (auditor-C N2): cap "refused with the over-page-cap reason, never started"; scan "`scan-needs-ocr`,
+#: never 'extracted, 0 chars'"; book "the `book` class"; lease "the ownership gate goes RED".
+def _control_clause(name, g, classes=None):
+    """-> (ok, text) for one fire's guarded arm ``g`` (a queue_fire result arm)."""
+    jobs = [tuple(j) for j in g.get("jobs") or []]
+    refusals = {(j[0], j[1]) for j in jobs}
+    if name == "cap":
+        # BEGIN guard: the cap fire's control is refused over-page-cap and never started
+        ok = refusals == {("refused", "over-page-cap")} and g.get("claimed") == 0 and g.get("blocks") == 0
+        # END guard: the cap fire's control is refused over-page-cap and never started
+        return ok, f"refusals={sorted(refusals)} claimed={g.get('claimed')} blocks={g.get('blocks')}"
+    if name == "scan":
+        # BEGIN guard: the scan fire's control is scan-needs-ocr, never an ok run
+        ok = refusals == {("refused", "scan-needs-ocr")} and g.get("runs_ok") == 0 and g.get("blocks") == 0
+        # END guard: the scan fire's control is scan-needs-ocr, never an ok run
+        return ok, f"refusals={sorted(refusals)} runs_ok={g.get('runs_ok')} blocks={g.get('blocks')}"
+    if name == "book":
+        cls = (classes or {}).get(g.get("file_id"))
+        # BEGIN guard: the book fire's control is refused book and classed book
+        ok = refusals == {("refused", "book")} and g.get("blocks") == 0 and cls == "book"
+        # END guard: the book fire's control is refused book and classed book
+        return ok, f"refusals={sorted(refusals)} blocks={g.get('blocks')} class={cls}"
+    if name == "lease":
+        # BEGIN guard: the lease fire's control is refused by the ownership gate and lands nothing
+        ok = "lease refused" in str(g.get("raised") or "") and g.get("blocks_after_t1") == 0
+        # END guard: the lease fire's control is refused by the ownership gate and lands nothing
+        return ok, f"gate_raised={int(bool(g.get('raised')))} blocks_after_stale_finish={g.get('blocks_after_t1')}"
+    return True, ""
+
+
+def _probe_clause(on, unclassified_before, unclassified_after):
+    """The plan's probe row, all three: never bound, classed `probe-error` (its quarantine row's
+    reason), `unclassified_acquired_files` unchanged (auditor-C N1)."""
+    # BEGIN guard: the probe fire's control is not bound, classed probe-error, and leaves unclassified unchanged
+    return (on["probe_refused"] == 1 and on["bound"] == 0 and on.get("quarantine_reason") == "probe-error"
+            and unclassified_after == unclassified_before)
+    # END guard: the probe fire's control is not bound, classed probe-error, and leaves unclassified unchanged
 
 
 def _counter_arms(out, counter):
@@ -2238,11 +2293,17 @@ def readability_fire(name, *, db, workdir, conn=None):
                 lines.append(f"fire={name} CANNOT RUN on this machine: {e}")
                 return {"name": name, "lines": lines, "fired": False}
             base, control, bad = _counter_arms(out, counter)
+            classes = None
+            if name == "book":
+                all_ws = [r[0] for r in conn.execute("SELECT id FROM litkb.workstreams").fetchall()]
+                res = R.classify(conn, all_ws, root=work, with_works=False)
+                classes = {r["file_id"]: r["class"] for r in res["rows"] if r["row_kind"] == "file"}
+            clause_ok, clause = _control_clause(name, out["guarded"], classes)
             lines.append(f"fire={name} arm=control {counter}={control} baseline={base} "
-                         f"blocks={out['guarded'].get('blocks')}")
+                         f"blocks={out['guarded'].get('blocks')} {clause}")
             lines.append(f"fire={name} arm=known-bad {counter}={bad} baseline={base} "
                          f"blocks={out['mutated'].get('blocks')}")
-            fired = (control - base == 0) and (bad - base == 1)
+            fired = (control - base == 0) and (bad - base == 1) and clause_ok
         elif name == "kill":
             pdfs = [F.constructed_pdf(work / "Validation" / f"Kill_{i}.pdf", 2 + i, note=f"readability fire {i} {F._salt()}")
                     for i in range(3)]
@@ -2260,13 +2321,20 @@ def readability_fire(name, *, db, workdir, conn=None):
             fired = (out["state"] == "killed" and stale - base["stale_leases"] == 1 and equal and resumed
                      and out["rerun_exit"] == 0 and all(after[k] == base[k] for k in after))
         elif name == "probe":
+            def unclassified():
+                all_ws = [r[0] for r in conn.execute("SELECT id FROM litkb.workstreams").fetchall()]
+                return R.unclassified_acquired_files(conn, all_ws, root=work / "guard_on")[0]
+
+            before = unclassified()
             on = R.fire_probe(db, root=work / "guard_on", guard=True)
+            after = unclassified()
             off = R.fire_probe(db, root=work / "guard_off", guard=False)
             lines.append(f"fire=probe arm=control probe_refused={on['probe_refused']} bound={on['bound']} "
-                         f"status={on['status']}")
+                         f"class={on.get('quarantine_reason')} unclassified_acquired_files={after} "
+                         f"(before {before}) status={on['status']}")
             lines.append(f"fire=probe arm=known-bad bound={off['bound']} bound_pages_null={off['bound_pages_null']} "
                          f"status={off['status']}")
-            fired = on["probe_refused"] == 1 and on["bound"] == 0 and off["bound"] == 1
+            fired = _probe_clause(on, before, after) and off["bound"] == 1
         else:  # quarantine
             out = Qr.fire_quarantine(conn, root=work)
             lines.append(f"fire=quarantine arm=control quarantined_without_db_state={out['before']}")

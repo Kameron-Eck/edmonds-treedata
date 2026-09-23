@@ -966,7 +966,7 @@ def _reopens(pg, f):
 
 @pg_only
 @pytest.mark.skipif(not HUDSON.is_file(), reason="Hudson 1978 (a real scan) is not on this machine")
-def test_f1_a_real_scan_refused_at_claim_by_an_ocr_off_worker_is_reopened_by_an_ocr_on_sweep(pg, root):
+def test_f1_a_hudson_scan_copy_refused_at_claim_by_an_ocr_off_worker_is_reopened_by_ocr_on(pg, root):
     """auditor-A F1, on a REAL scan copy (Hudson 1978: 11 image pages of 12 -> one 22-page range).
     Swept with OCR ON, claimed by an OCR-OFF worker -> refused `scan-needs-ocr` AT CLAIM. A sweep with
     OCR still off leaves it refused (the refusal still holds). A sweep with OCR on reopens it: the
@@ -1158,3 +1158,77 @@ def test_the_cli_takes_redo():
 
     a = commands.build_parser().parse_args(["queue", "sweep", "--file", "x", "--redo"])
     assert (a.redo, a.files) == (True, ["x"])
+
+
+@pg_only
+def test_n5_a_workstream_only_book_counts_in_books_extracted(pg, root):
+    """auditor-C N5. A work that is a book ONLY in a workstream's view (a proposal main has never
+    seen), with a file carrying a block: books_extracted counts it when that workstream is named (the
+    manifest's workstreams), and main alone cannot see it."""
+    from litkb.extract import ingest as ING
+    from litkb.extract import reconcile as R
+
+    ws = F.open_ws(pg.conn)
+    # `_write_version` in PROPOSAL mode: the work and its file exist in the workstream only (the
+    # readability suite's `_seed(mode='proposal')`), so main_works never names this book
+    work_id = pg.one("SELECT entity_id FROM litkb._write_version('proposal', 'work', NULL, %s, NULL, %s, "
+                     "NULL, %s, 'setup', 'setup')",
+                     (pg.Jsonb({"key": f"Book_2020_{uuid.uuid4().hex[:8]}-ws"}),
+                      pg.Jsonb({"type": "book", "title": f"A workstream book {uuid.uuid4().hex}",
+                                "authors": []}), ws))[0]
+    pdf = F.constructed_pdf(root / "Validation" / "WsBook.pdf", 2, note=uuid.uuid4().hex)
+    fid = pg.one("SELECT entity_id FROM litkb._write_version('proposal', 'file', NULL, %s, NULL, %s, NULL, "
+                 "%s, 'setup', 'setup')", (pg.Jsonb({"sha256": Q.sha256_file(pdf)}),
+                                           pg.Jsonb({"work_id": str(work_id), "rel_path": "Validation/WsBook.pdf",
+                                                     "status": "active"}), ws))[0]
+    assert pg.one("SELECT count(*) FROM litkb.main_works WHERE work_id = %s", (work_id,))[0] == 0
+    k = _k()
+    try:
+        before_main, before_ws = Q.books_extracted(k), Q.books_extracted(k, [ws])
+        prep = ING.prepare(str(pdf), None, F.synthetic_doc(pdf))
+        ING.ingest_file(k, fid, prep["canonical"], prep["disagreements"], prep["stats"], pages=prep["pages"],
+                        pipeline_version=R.PIPELINE_VERSION, params=ING.CORPUS_PARAMS)
+        assert Q.books_extracted(k) == before_main                  # main has no such book
+        assert Q.books_extracted(k, [ws]) == before_ws + 1          # the manifest's workstream does
+        assert Q.counters(k, root, [ws])["books_extracted"] == before_ws + 1
+    finally:
+        k.close()
+
+
+@pg_only
+def test_n6_a_lease_the_book_guard_cut_off_cannot_finish_even_with_the_gate_removed(pg, root):
+    """auditor-C N6, MEASURED rather than assumed: a `finished` lease row that is superseded with NO
+    later claim of its job cannot exist. The only such supersession is a sibling range cut off by a
+    whole-file refusal (the book guard at claim, refuse_job), and a refused job cannot become `done`
+    even with finish_job's lease gate removed (CREATE OR REPLACE on this worker database, restored
+    after): the `extraction_jobs_refusal` CHECK refuses `done` with a refusal still set, the finish
+    rolls back, nothing lands, and mutated_leases_accepted stays put. So the counter's `superseded_at`
+    clause can never add a job beyond its later-claim clause today; it is kept as the history's own
+    reading, and this test is the fire that shows why no fire of it exists."""
+    f, pdf = _file(pg, root, "CutOffFinish", 50, text=False)
+    _sweep(root, [f])
+    k = _k()
+    try:
+        before = Q.mutated_leases_accepted(k)
+        (a,) = Q.claim(k, "A", 1, 600, [f])
+        run = _ok_run_at_key(k, f, pdf)
+        work_id, cur, title = pg.one(
+            "SELECT w.work_id, w.version_id, w.title FROM litkb.main_works w JOIN litkb.main_files f "
+            "ON f.work_id = w.work_id WHERE f.file_id = %s", (f,))
+        ws = F.open_ws(pg.conn)
+        pg.one("SELECT litkb._write_version('fact', 'work', %s, NULL, %s, %s, 'retyped a book', %s, "
+               "'setup', 'setup')", (work_id, cur, pg.Jsonb({"type": "book", "title": title, "authors": []}), ws))
+        assert Q.claim(k, "B", 1, 60, [f]) == []                     # the book guard refuses the file
+        assert pg.one("SELECT superseded_at IS NOT NULL FROM litkb.extraction_job_leases "
+                      "WHERE job_id = %s AND seq = %s", (a.job_id, a.lease_seq)) == (True,)
+        assert pg.one("SELECT count(*) FROM litkb.extraction_job_leases WHERE job_id = %s AND seq > %s",
+                      (a.job_id, a.lease_seq))[0] == 0                # no later claim of A's job
+        with F.sql_guard_off(pg.conn, "litkb.finish_job(uuid, text, uuid, text, jsonb)",
+                             "guard: finish_job accepts only the job's current, unsuperseded lease"):
+            with pytest.raises(pg.errors.CheckViolation, match="extraction_jobs_refusal"):
+                Q._sql(k, "SELECT litkb.finish_job(%s, %s, %s, %s, '{}'::jsonb)",
+                       (a.job_id, a.token, run, "0" * 64))
+        assert pg.one("SELECT state, refusal FROM litkb.extraction_jobs WHERE id = %s", (a.job_id,)) ==             ("refused", "book")
+        assert Q.mutated_leases_accepted(k) == before
+    finally:
+        k.close()

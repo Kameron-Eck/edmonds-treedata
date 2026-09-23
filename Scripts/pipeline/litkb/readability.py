@@ -828,11 +828,18 @@ def fire_probe(db, *, root, guard=True):
         status, detail = run.land_and_attach(writer, ws, token, w, data, route="browser",
                                              source_url="CONSTRUCTED fire_probe", store=store,
                                              index={"sha256": {}, "md5": {}}, agent="fire", session="fire")
+        # the database row `acquire()` writes after every attempt that quarantined bytes: the refused
+        # file's CLASS is that row's reason (auditor-C N1 — "classed `probe-error`")
+        qrow = run.quarantine_state(writer, ws, token, w, status, "browser", detail, None)
         got = owner.execute("SELECT count(*), count(*) FILTER (WHERE pages IS NULL) FROM litkb.main_files "
                             "WHERE work_id = %s", (res["work_id"],)).fetchone()
         return {"probe_refused": int(status == "bad-file" and bool(detail.get("probe_error"))),
                 "bound": int(got[0]), "bound_pages_null": int(got[1]), "status": status,
-                "sha256": hashlib.sha256(data).hexdigest(), "quarantined": detail.get("quarantined")}
+                "sha256": hashlib.sha256(data).hexdigest(), "quarantined": detail.get("quarantined"),
+                "quarantine_reason": owner.execute(
+                    "SELECT reason FROM litkb.quarantine_payloads WHERE sha256 = %s ORDER BY recorded_at "
+                    "DESC LIMIT 1", (hashlib.sha256(data).hexdigest(),)).fetchone()[0]
+                if (qrow or {}).get("ok") else None, "workstream_id": str(ws)}
     finally:
         binding.bind_any_with_ocr, probe.probe_pages = saved_bind, saved_probe
         writer.close()

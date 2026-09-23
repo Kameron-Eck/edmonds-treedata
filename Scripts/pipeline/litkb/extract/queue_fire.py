@@ -376,7 +376,7 @@ def fire_cap(conn, workdir):
         guard = python_guard_off("over-page-cap") if arm == "mutated" else contextlib.nullcontext()
         with guard:
             swept, worked = sweep_and_work(conn, root, [fid])
-        out[arm] = {"jobs": file_jobs(conn, fid), "claimed": worked["claimed"],
+        out[arm] = {"jobs": file_jobs(conn, fid), "claimed": worked["claimed"], "file_id": str(fid),
                     "blocks": blocks_of(conn, fid), "over_cap_bound": Q.over_cap_bound(conn)}
     return out
 
@@ -402,7 +402,7 @@ def fire_book(conn, workdir):
                     conn, "litkb.claim_jobs(text, integer, integer, uuid[])",
                     "guard: claim_jobs never hands out a book's job"))
             sweep_and_work(conn, root, [fid])
-        out[arm] = {"jobs": file_jobs(conn, fid), "blocks": blocks_of(conn, fid),
+        out[arm] = {"jobs": file_jobs(conn, fid), "blocks": blocks_of(conn, fid), "file_id": str(fid),
                     "books_extracted": Q.books_extracted(conn)}
     return out
 

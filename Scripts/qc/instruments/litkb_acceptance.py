@@ -2186,6 +2186,19 @@ def readability_line(gated, reported):
 _FIRE_WORKER_DB = re.compile(r"litkb_test_w\d+")
 
 
+def reserved_worker_dbs(plan=None):
+    """The RESERVED worker databases, read from their ONE home: the per-session protocol line of
+    LITKB_WORKPLAN.md ("free: w3, w7, w9; w2, w8, w10 and w11 are RESERVED ..."). Parsed, not copied,
+    so the plan and `--fire` cannot disagree. FAIL CLOSED: a plan whose line cannot be read raises."""
+    text = Path(plan or PLAN_DEFAULT).read_text(encoding="utf-8")
+    m = re.search(r"free:\s*[^;]*;\s*(.*?)\s+are\s+RESERVED", re.sub(r"\s+", " ", text))
+    names = re.findall(r"\bw(\d+)\b", m.group(1)) if m else []
+    if not names:
+        raise SystemExit(f"litkb_acceptance: the RESERVED worker databases could not be read from {plan or PLAN_DEFAULT} "
+                         f"(its 'free: …; … are RESERVED' line); --fire refuses to run without that list")
+    return tuple(f"litkb_test_w{n}" for n in names)
+
+
 def _fire_db():
     """The database `--fire` resets: LITKB_TEST_DB, set EXPLICITLY to a worker (`litkb_test_w<N>`).
     Unset, it used to fall back to the SHARED `litkb_test`, which a cold `--fire` would then reset
@@ -2197,6 +2210,12 @@ def _fire_db():
                          f"worker database named explicitly: set LITKB_TEST_DB=litkb_test_w<N> (got {db!r}; "
                          f"the shared litkb_test is never reset from here)")
     # END guard: --fire runs only on an explicitly named worker database
+    # BEGIN guard: --fire never resets a RESERVED worker database
+    if db.strip() in reserved_worker_dbs():
+        raise SystemExit(f"litkb_acceptance readability --fire refuses {db.strip()!r}: it is RESERVED "
+                         f"(LITKB_WORKPLAN.md, the per-session protocol line: {', '.join(reserved_worker_dbs())}); "
+                         f"resetting it breaks whoever holds it (auditor-C reset w10 this way)")
+    # END guard: --fire never resets a RESERVED worker database
     return db.strip()
 
 

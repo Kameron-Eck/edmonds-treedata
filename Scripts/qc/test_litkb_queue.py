@@ -1197,14 +1197,14 @@ def test_n5_a_workstream_only_book_counts_in_books_extracted(pg, root):
 
 @pg_only
 def test_n6_a_lease_the_book_guard_cut_off_cannot_finish_even_with_the_gate_removed(pg, root):
-    """auditor-C N6, MEASURED rather than assumed: a `finished` lease row that is superseded with NO
-    later claim of its job cannot exist. The only such supersession is a sibling range cut off by a
-    whole-file refusal (the book guard at claim, refuse_job), and a refused job cannot become `done`
-    even with finish_job's lease gate removed (CREATE OR REPLACE on this worker database, restored
-    after): the `extraction_jobs_refusal` CHECK refuses `done` with a refusal still set, the finish
-    rolls back, nothing lands, and mutated_leases_accepted stays put. So the counter's `superseded_at`
-    clause can never add a job beyond its later-claim clause today; it is kept as the history's own
-    reading, and this test is the fire that shows why no fire of it exists."""
+    """One supersession path, measured: a sibling range cut off by a whole-file refusal (the book
+    guard at claim) cannot become `done` even with finish_job's lease gate removed (CREATE OR REPLACE on
+    this worker database, restored after) — the `extraction_jobs_refusal` CHECK refuses `done` with a
+    refusal still set, the finish rolls back, nothing lands. That path does NOT make the counter's
+    `superseded_at` clause dead: a job that dies at the attempt ceiling is superseded with no refusal
+    and no later claim, and its stale finish is caught by that clause alone
+    (test_n6_a_stale_finish_on_a_job_dead_at_the_ceiling_is_counted_by_the_superseded_clause —
+    auditor-C's re-check refuted my round-2 "cannot exist")."""
     f, pdf = _file(pg, root, "CutOffFinish", 50, text=False)
     _sweep(root, [f])
     k = _k()
@@ -1265,3 +1265,41 @@ def test_r1_a_job_reopened_at_the_attempt_ceiling_starts_a_new_life(pg, root):
                   "ON j.id = o.job_id WHERE j.file_id = %s", (f,)) == (ceiling,)
     assert _work(root, [f])["outcomes"] == {"done": 1}
     assert _jobs(pg, f)[0][:3] == ("done", None, 1)
+
+
+
+@pg_only
+def test_n6_a_stale_finish_on_a_job_dead_at_the_ceiling_is_counted_by_the_superseded_clause(pg, root):
+    """auditor-C re-check, the `superseded_at` clause of mutated_leases_accepted ALONE. Three claims
+    whose leases all expire; the next claim finds the job at the attempt ceiling, supersedes the third
+    lease and marks the job `dead` — no refusal, no later claim. Holder 3 then finishes with
+    finish_job's lease gate removed (CREATE OR REPLACE on this worker database, restored after): the
+    job goes `done`, and only the superseded clause can count it (the later-claim clause finds no
+    later lease row)."""
+    f, pdf = _file(pg, root, "DeadThenFinished", 2)
+    _sweep(root, [f])
+    ceiling = pg.one("SELECT litkb._job_max_attempts()")[0]
+    k = _k()
+    try:
+        before = Q.mutated_leases_accepted(k)
+        holders = []
+        for i in range(ceiling):
+            holders.append(Q.claim(k, f"h{i}", 1, 1, [f])[0])
+            time.sleep(1.2)
+        assert Q.claim(k, "next", 1, 60, [f]) == []
+        last = holders[-1]
+        assert pg.one("SELECT state, refusal FROM litkb.extraction_jobs WHERE id = %s", (last.job_id,)) == \
+            ("dead", None)
+        assert pg.one("SELECT superseded_at IS NOT NULL FROM litkb.extraction_job_leases WHERE job_id = %s "
+                      "AND seq = %s", (last.job_id, last.lease_seq)) == (True,)
+        assert pg.one("SELECT count(*) FROM litkb.extraction_job_leases WHERE job_id = %s AND seq > %s",
+                      (last.job_id, last.lease_seq))[0] == 0
+        run = _ok_run_at_key(k, f, pdf)
+        with F.sql_guard_off(pg.conn, "litkb.finish_job(uuid, text, uuid, text, jsonb)",
+                             "guard: finish_job accepts only the job's current, unsuperseded lease"):
+            Q._sql(k, "SELECT litkb.finish_job(%s, %s, %s, %s, '{}'::jsonb)",
+                   (last.job_id, last.token, run, "0" * 64))
+        assert pg.one("SELECT state FROM litkb.extraction_jobs WHERE id = %s", (last.job_id,)) == ("done",)
+        assert Q.mutated_leases_accepted(k) == before + 1
+    finally:
+        k.close()

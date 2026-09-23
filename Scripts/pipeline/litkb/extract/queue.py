@@ -1106,11 +1106,13 @@ def mutated_leases_accepted(conn):
     claim, refuse_job's siblings), or that a LATER CLAIM of the same job followed. The ownership gate
     keeps this 0.
 
-    The later-claim clause is what c2 fires. The `superseded_at` clause can add no job today
-    (auditor-C N6, MEASURED in qc/test_litkb_queue.py): a supersession with no later claim is a
-    sibling range cut off by a whole-file refusal, and a refused job cannot become `done` even with
-    the lease gate removed — the `extraction_jobs_refusal` CHECK refuses it. It stays as the
-    history's own reading, should that CHECK ever change. The former third clause,
+    Both clauses are LOAD-BEARING, each with its own known-bad in qc/test_litkb_queue.py. The
+    later-claim clause is what c2 fires (a reclaimed lease). The `superseded_at` clause alone sees a
+    job that DIED at the attempt ceiling: claim_jobs supersedes its expired lease and marks it `dead`
+    with NO later claim and no refusal, so a stale holder's finish — were the gate gone — lands on it
+    with nothing else to show (auditor-C re-check, measured on w3; my round-2 claim that the clause
+    was unreachable was wrong: the refusal CHECK only covers a sibling cut off by a whole-file
+    refusal). `reopen_job` gives it a second such path. The former third clause,
     ``l.seq <> j.lease_seq``, was removed: ``lease_seq`` only moves in claim_jobs, which inserts that
     claim's lease row in the same statement, and the history is append-only, so ``lease_seq > l.seq``
     IS a later row."""

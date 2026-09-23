@@ -728,6 +728,31 @@ def file_under_key(store, key, download):
 
 # ── steps 2-3: extract and ingest, the P5 per-file path ────────────────────────────────────
 
+def grobid_tei(pdf_path, timing, hold=None):
+    """GROBID's TEI for one hunted file, or None with ``timing["grobid_error"]`` set.
+
+    GROBID is stopped afterwards ONLY if this call's own start launched it (the ONE ownership rule,
+    `litkb.extract.grobid.GrobidHold`). Before S4 run 3 hunt stopped any GROBID it found up — so a
+    hunt run while the stage-6 driver (or a queue worker) was using the service would have killed
+    it mid-request (auditor-A HUNT). ``hold`` is a test seam: a GrobidHold built on fakes."""
+    from litkb.extract import grobid as G
+
+    t0 = time.monotonic()
+    hold = hold or G.GrobidHold(wait=300)
+    tei = None
+    try:
+        hold.ensure()
+        tei, _m = G.extract(pdf_path, url=hold.url, concurrency=1, sample_rss=False)
+    except (G.GrobidError, G.GrobidUnavailable) as e:
+        timing["grobid_error"] = f"{type(e).__name__}: {e}"[:300]
+    finally:
+        # BEGIN call site: hunt stops GROBID only through the ownership rule
+        hold.close()
+        # END call site: hunt stops GROBID only through the ownership rule
+    timing["grobid"] = round(time.monotonic() - t0, 2)
+    return tei
+
+
 def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="cuda",
                        docling_python=None, grobid=True, progress=None):
     """GROBID → Docling → reconcile → ingest → set current run, for ONE file.
@@ -745,7 +770,6 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
     """
     from litkb import ingest as ingest_login
     from litkb.extract import docling as D
-    from litkb.extract import grobid as G
     from litkb.extract import ingest as ing
     from litkb.extract import inventory as I
     from litkb.extract import reconcile as R
@@ -760,18 +784,7 @@ def extract_and_ingest(db, file_id, pdf_path, *, timing, derived=None, device="c
     rec = I.probe_file(pdf_path)
     tei = None
     if grobid and rec["route"] in ("native", "mixed", "cover-sheet"):
-        t0 = time.monotonic()
-        started = G.start(wait=300, hold=True)
-        try:
-            if not started:
-                raise G.GrobidError("GROBID did not come up under WSL")
-            tei, _m = G.extract(pdf_path, concurrency=1, sample_rss=False)
-        except G.GrobidError as e:
-            timing["grobid_error"] = f"{type(e).__name__}: {e}"[:300]
-        finally:
-            if started:
-                G.stop()
-        timing["grobid"] = round(time.monotonic() - t0, 2)
+        tei = grobid_tei(pdf_path, timing)
 
     t0 = time.monotonic()
     doc_json = os.path.join(derived, rec["sha256"] + ".docling.json")

@@ -1710,3 +1710,61 @@ def test_the_snapshot_path_emits_no_state_or_reason_outside_the_closed_vocabular
                           ("api-error", "fetch-transient"), ("api-error", "empty-response"),
                           ("blocked", "403")):
         assert H.reason_ok(state, reason), (state, reason)
+
+
+
+# ── GROBID ownership (S4 run 3, auditor-A HUNT) ─────────────────────────────────────────
+
+class _Svc:
+    """A GROBID as `GrobidHold` sees it (the stage-6 driver test's model): `unit` is systemd's word."""
+
+    def __init__(self, unit):
+        self.unit, self.calls = unit, []
+
+    def hold(self):
+        from litkb.extract import grobid as G
+
+        return G.GrobidHold(health=lambda url: self.calls.append("health") or self.unit == "active",
+                            unit_state=lambda: self.unit, launch=self._launch, stop=self._stop,
+                            hold=lambda: None, sleep=lambda s: None, wait=2, poll=1)
+
+    def _launch(self):
+        self.calls.append("launch")
+        if self.unit == "active":
+            return True, False
+        self.unit = "active"
+        return True, True
+
+    def _stop(self):
+        self.calls.append("stop")
+        self.unit = "inactive"
+
+
+def test_hunt_never_stops_a_grobid_it_did_not_start(monkeypatch):
+    """A GROBID already up (the stage-6 driver's, a queue worker's) is used and LEFT RUNNING; one this
+    hunt launched is stopped once, afterwards. Before the fix hunt stopped any GROBID it found up."""
+    from litkb import hunt as H
+    from litkb.extract import grobid as G
+
+    monkeypatch.setattr(G, "extract", lambda path, **kw: (b"<TEI/>", {}))
+    theirs = _Svc("active")
+    timing = {}
+    assert H.grobid_tei("x.pdf", timing, hold=theirs.hold()) == b"<TEI/>"
+    assert "stop" not in theirs.calls and "launch" not in theirs.calls and theirs.unit == "active"
+    mine = _Svc("inactive")
+    assert H.grobid_tei("x.pdf", timing, hold=mine.hold()) == b"<TEI/>"
+    assert mine.calls.count("launch") == 1 and mine.calls.count("stop") == 1
+
+
+def test_hunt_records_a_grobid_that_will_not_come_up_and_stops_nothing(monkeypatch):
+    from litkb import hunt as H
+    from litkb.extract import grobid as G
+
+    monkeypatch.setattr(G, "extract", lambda path, **kw: pytest.fail("posted to a GROBID that is down"))
+    busy = _Svc("active")
+    h = busy.hold()
+    h._health = lambda url: False                  # up per systemd, never answering
+    timing = {}
+    assert H.grobid_tei("x.pdf", timing, hold=h) is None
+    assert "GrobidUnavailable" in timing["grobid_error"]
+    assert "stop" not in busy.calls and "launch" not in busy.calls

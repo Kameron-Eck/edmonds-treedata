@@ -46,6 +46,33 @@ transcript before rotation). Read order: `CLAUDE.md` → `WORKPLAN.md` → `STAT
 
 ════════════════ LOG  (newest first — append new entries directly below this line) ════════════════
 
+## 2026-09-22  litkb S4 LANDED (run 3): everything acquired readable or classified; S4.5 kit written, launch is Kam's
+goal:    S4 from scratch (Kam). Extraction queue w/ lease+resume, per-file completeness classifier, residue classes,
+         fail-closed page cap, scan OCR on T2000, DB-visible quarantine, reference stage over every file w/ blocks.
+decided: litkb-live-migration-by-session (Kam: "I should not be doing anything by hand") -> session applies its merged
+         migrations after the merged-candidate audit. litkb-extract-page-cap = 400 pages / 3 attempts (Kam: "400 is
+         fine, keep going"). D1-D18 in jobs/litkb-s4-run3/STATE.md: OCR chunk 22 pp (longest pass measured inside the
+         VRAM rule); device+interpreter chosen as a PAIR; image page = ZERO native chars + raster image (my first
+         <200 rule misrouted figure pages); retirement MARKS, never deletes; stage-6 version litkb-p6-1 -> p6-2.
+did:     4 builders + 1 (A queue 0029, B quarantine+classifier 0030, D2 retire 0031 + per-page fragment text
+         stage5-4, C integration + `litkb_acceptance.py readability`, D1 stage-6 driver). Auditors on every MERGED
+         candidate: found invalid-SQL mutant scored FIRED, GROBID ownership race, path-only quarantine match,
+         0031 evidence double count, 5 whole-suite reds, hunt stopping others' GROBID -> all fixed pre-merge.
+         main 3ebf43c (D1), 4400374 (S4), 6fc8bf7 (follow-up). 0029-0031 applied LIVE 20:58:59 in 0.85 s between
+         two stage-6 files. Backfill 69 quarantine rows. Freeze -> sweep 31 jobs -> worker killed mid-job
+         (taskkill /T) -> lease expired -> worker 2 reclaimed + drained 31/31. Maiti_2022 re-extracted (Docling
+         0 -> 240 regions). 687 runs retired. GRADE exit 0, 9 gated counters 0; cold --fire 7/7 FIRED.
+         Stage 6 (2 detached passes, 8.05 h): files_without_reference_stage=4/263 (the 4 scans: GROBID
+         reads the text layer, a scan has none), reference_anchor_rate=343/343; arXiv+S2 429s -> resolved
+         6,317/10,224 is a floor.
+killed:  "Docling produced nothing" on Maiti = config fault (cuda under CPU venv), not a residue class.
+         reopening a refused range via the DB alone — the rule lives in the sweep.
+open:    first-work-1's 3 proposed uses on Maiti anchor in a superseded run (my redo) -> rebase before promotion;
+         --redo has no evidence guard. Codex read OWED (quota).
+files:   Reports/LITKB_READABILITY_2026-09-22.md (+ _3.csv), LITKB_WORKPLAN.md (Where we are, protocol, register),
+         decisions.yaml, _derived/s4-5/ (kit: s4-5-prompt.txt, mcp.json, launch-s4-5.sh; gitignored).
+         LAUNCH IS KAM'S: wt.exe -w new "C:\Program Files\Git\bin\bash.exe" -lc /d/edmonds-pipeline/treedata/_derived/s4-5/launch-s4-5.sh
+
 ## 2026-09-22  litkb LAUNCH AUTHORITY: only Kam launches; S4 fresh kit; S4.7 Colab boundary = strips
 goal:    Kam: "Implement your best judgement on S4.7. Also i want to start S4 from scratch. And I dont want it to
          launch S5 at the end. Only I can launch a session"

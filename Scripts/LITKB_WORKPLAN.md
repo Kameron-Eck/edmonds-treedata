@@ -70,25 +70,26 @@ Update this block only. Everything else in the file changes when a session lands
   → `state_or_reason_mismatches=0 tracebacks=0 held_for_ruling=0` (from Scripts/; `--replay`
   EXECUTES the register against the named worker database — one process on that database at a
   time, like pytest).
-- **Next, in order:** (1) **S4 run 3 — Kam launches it himself** from a new terminal window:
-  `wt.exe -w new "C:\Program Files\Git\bin\bash.exe" -lc /d/edmonds-pipeline/treedata/_derived/s4/launch-s4.sh`
-  (`_derived/s4/s4-prompt.txt` matches the "### S4" block; `LITKB_SESSION=s4-run3`; workstream slug
-  `readability-2`). Runs 1 and 2 are PARKED untrusted on
-  `github/archive/2026-09-21-litkb-s4-{q1,q2,r}-untrusted` — nothing merged, no migration applied,
-  no `extraction_jobs` table exists; their one live trace is the `readability-1` workstream row,
-  which is nobody's. `state='open'` is not a signal: every workstream row reads `open`
-  (`SELECT state, count(*) FROM litkb.workstreams GROUP BY 1` as `litkb_reader`) because nothing
-  ever closes one. Entry condition: the preflight command in "Per-session protocol", every counter
-  0. Its kit was regenerated FROM SCRATCH on 2026-09-22 from the "### S4" block (Kam: "i want to start
-  S4 from scratch"); the patched kit is archived beside it. (2) **S4.5**, launched by KAM and by nobody
-  else (`litkb-session-launch-authority`, 2026-09-22: a session never launches a session) — S4 ends by
-  WRITING _derived/s4-5/ (the prompt from the "### S4.5" block, mcp.json with LITKB_SESSION s4-5, the
-  launch script) and STOPPING; workstream slug `ladder-1`, the way S4's is
-  `readability-2`, so the launch is verified by EFFECTS on that slug's workstreams row) — it now carries the Sci-Hub workaround's
-  first rung (item 5b: freeze gate, bban, the three route fixes), pulled forward from S4.6 on the
-  2026-09-22 diagnosis because the fix is the ledger vocabulary S4.5 owns. (3) **S4.6**, (4) **S4.7**, each launched
-  by Kam from the kit the session before it wrote; (5) **S5** once its entry condition is met, launched
-  by Kam. Then S6, S7. No session launches the next: it writes the kit and stops.
+- **S4 landed 2026-09-22 (run 3; runs 1-2 stay parked untrusted, `readability-1` is nobody's).**
+  Record: `Reports/LITKB_READABILITY_2026-09-22.md` (every id, the grade, the cold re-fire of every (c)
+  row, the live kill-and-resume on the real bed, the bounded outcomes). Rulings: `litkb-extract-page-cap`,
+  `litkb-live-migration-by-session` — the session applied 0029-0031 to litkb itself after the merged
+  candidate's audit. The grade, from Scripts/:
+  `py -3.12 qc/instruments/litkb_acceptance.py readability --manifest ../_derived/readability/readability-2-manifest.json`
+  → the nine gated counters 0 (the manifest sits under the untracked `_derived/`); a cold session
+  re-fires each (c) row with `LITKB_TEST_DB=litkb_test_w7 py -3.12 qc/instruments/litkb_acceptance.py
+  readability --fire <kill|lease|cap|probe|scan|book|quarantine>`. REPORTED: the reference stage ran
+  detached over every file with blocks (the record's §4 "Stage 6, final" line). Owed from S4: the
+  proposed uses of `first-work-1` on Maiti_2022 need a rebase before promotion (record §5.2), and the
+  Codex read of S4's code (quota).
+- **Next, in order:** (1) **S4.5 — Kam launches it** from a new terminal window:
+  `wt.exe -w new "C:\Program Files\Git\bin\bash.exe" -lc /d/edmonds-pipeline/treedata/_derived/s4-5/launch-s4-5.sh`
+  — the kit S4 wrote (the prompt from the "### S4.5" block, `LITKB_SESSION=s4-5`, workstream slug
+  `ladder-1`, so the launch is verified by EFFECTS on that slug's workstreams row); its entry condition is
+  the preflight command in "Per-session protocol", every counter 0, then S4's grade above still 0. It
+  carries the Sci-Hub workaround's first rung (item 5b). (2) **S4.6**, (3) **S4.7**, each launched by Kam
+  from the kit the session before it wrote; (4) **S5** once its entry condition is met, launched by Kam.
+  Then S6, S7. No session launches the next: it writes the kit and stops.
 - **Ops residue, nobody's ruling** (`Reports/LITKB_RULED_HUNTS_2026-09-21.md` §9, re-measured
   2026-09-21): the fetched files of the ruled run's URL rows sit in `_litkb_staging/filed/` with no
   `file_versions` row — 187's protocol PDF and both copies of 235's report — UNBOUND; the reaper
@@ -1423,7 +1424,8 @@ Orchestrator = the chat session; ≤ 3 agents. Opus **builder** in its own workt
 `qc/test_litkb_edges.py`), and taking a reserved one collides with the one-pytest-per-worker-database
 hazard below → Opus **auditor** re-runs every claim from source on a
 fresh worker DB (every real defect so far came from an auditor) → fix → `py -3.12 qc/landed.py`
-→ commit on `work/<date>-<slug>` → landed per CLAUDE.md §3.1 → Kam applies any migration. Codex
+→ commit on `work/<date>-<slug>` → landed per CLAUDE.md §3.1 → the session applies its own merged
+migrations to live after the merged-candidate audit (`litkb-live-migration-by-session`). Codex
 reviews every grammar and is the last stage of every proving run. Worker reports:
 `D:\tools\claude-config\jobs\litkb-<session>\<worker>.md`, ≤ 15 lines returned. Migration
 numbers reserved in `pipeline/litkb/db/migrations/_reserved.txt` first. Concurrency and model
@@ -1449,7 +1451,9 @@ moved (`Reports/LITKB_CODEX_STAGE_2026-09-20.md`; reports with session ids under
 `Reports/codex/`). Codex version at proof: codex-cli 0.155.1, prompt on stdin, model-facing
 schema derived by the wrapper (strict structured output refuses optional properties).
 
-Inherited hazards: live migrations are Kam's to apply; the MCP server is stale after a merge
+Inherited hazards: a live migration is applied by the session only after an independent audit of
+the MERGED candidate, between two writes of any running driver (the runner sets no lock timeout;
+`litkb-live-migration-by-session`); the MCP server is stale after a merge
 until `/mcp` reconnect; agents stall on background jobs (brief foreground polling); usage quota
 is Kam's to read. `litkb review-context` opens `litkb_reader`, which the shared pgpass holds for
 `litkb` only — against a worker database it fails `no password supplied`, the same credentials
@@ -1511,7 +1515,6 @@ fresh checkouts, by construction, and `qc/test_experiments.py` skips gitignored 
 
 | item | owner |
 |---|---|
-| no extraction queue, no fail-closed page cap, zero-content/multi-file works, cross-page `page_no`, metrics in JSONL, superseded run sets, the `book` residue class, a quarantine with no database state; the no-text-layer scans | S4 |
 | the substrate: `blocked` in no route's `DEAD_STATUSES`; registry transients re-run by hand; the arXiv-client question; Crossref `relation` dropped and its yield unmeasured; a different DOI called a duplicate at 0.70; no ISBN scheme; a long creator string crashes the key rule; no served-bytes hash on the attempt row; a re-served bad file re-quarantined, never skipped; a refused-duplicate landing left unowned on disk; no second-session refuse verb; the approve guard never made to fire. The ladder: an untyped `bad-file`/`blocked` ledger where mature codebases carry typed sub-states; no landing-page-to-PDF rung (Unpaywall's own answers are landing pages litkb books as `bad-file`); no record-class filter, no work-class router (preprints sent to the archive route); Crossref `link[]` never read; no Semantic Scholar or OpenAlex PDF lookup; no Wayback rung; the `bad-file` rows never read | S4.5 |
 | no grey-literature rung at all (USFS, USGS, NTRS, OSTI, DSpace with MD5, ArcGIS Online, city portals); the book namespace unreachable by construction (scidb by DOI); DDoS-Guard blocks booked as `not-in-archive`; Sci-Hub mirror lists compiled into `run.py`; no credentialed rung and no ruling on institutional access; no coverage instrument against the tracker | S4.6 |
 | ligature repair at the symptom, not the CMap; the vector-complexity pre-filter absent (GIS figures hang the extractor); `extracted: true` with no quality tier, so a LOW-tier scan can supply a quote; no measured OCR arbitration on the corpus's own scans; formula LaTeX `unverified` with no verification ladder; the L4 formula re-crop of Reynolds_2000 and Montgomery_1991 never ran; no `word_count` on files | S4.7 |

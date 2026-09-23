@@ -750,3 +750,56 @@ def test_without_the_queue_table_the_classifier_is_the_pre_queue_one_and_says_so
     row = _row(res, s["file_id"])
     assert row["class"] == "scan-needs-ocr" and row["queue_flag"] is None, row
     assert res["queue_table"] is False and res["counters"]["queue_table"] == 0, res["counters"]
+
+
+# ── auditor-B fixes (candidate 2cbc551) ──────────────────────────────────────────────────────
+
+@pg_only
+def test_a_row_about_other_bytes_at_the_same_path_never_classes_the_file(env):
+    """F2, the auditor's reproduction: CONSTRUCTED unopenable bytes refused IN PLACE at a path (a
+    `probe-error` / `bind-refusal` row with THEIR sha256), then a good copy of a real native paper
+    bound at the SAME path, with no run. The row describes other bytes: the file is UNCLASSIFIED
+    (waiting) — never `probe-error` — it counts in `unclassified_acquired_files`, and the row is
+    reported in `stale_quarantine_rows`."""
+    import hashlib as _h
+
+    from litkb import quarantine as Q
+    from litkb import readability as R
+    from litkb.db import connect as c
+
+    rel = _copy(env, NATIVE)
+    bad = R._constructed_unopenable_pdf(salt=uuid.uuid4().hex)
+    w = c.connect(c.DB_TEST, "litkb_test", autocommit=True)
+    w.execute("SET ROLE litkb_writer")
+    ws2, token = env["conn"].execute(
+        "SELECT workstream_id, token FROM litkb.open_workstream(%s, 'work/f2', NULL, 'f2', NULL)",
+        (f"f2-{uuid.uuid4().hex[:8]}",)).fetchone()
+    try:
+        Q.record(w, ws2, token, rel_path=rel, sha256=_h.sha256(bad).hexdigest(), nbytes=len(bad),
+                 reason="probe-error", origin="bind-refusal")
+    finally:
+        w.close()
+    s = _seed(env, rel)
+    res = _classify(env)
+    row = _row(res, s["file_id"])
+    assert row["class"] is None, row
+    assert row["stale_quarantine"] == 1 and row["stale_quarantine_ids"] and row["quarantine_ids"] == "", row
+    assert res["counters"]["stale_quarantine_rows"] >= 1
+    n, missing = R.unclassified_acquired_files(env["conn"], root=env["root"])
+    assert rel in missing
+
+
+@pg_only
+def test_the_gated_counter_is_the_number_of_unclassified_file_and_staging_rows(env):
+    """F3: `counters()["unclassified_acquired_files"]` — the value the CLI prints and the acceptance
+    grades — is exactly the unclassified file + staging rows, and a waiting file moves it by one."""
+    from litkb import readability as R
+
+    before = _classify(env, with_works=False)
+    _seed(env, _copy(env, NATIVE))                     # native, no run: waiting
+    after = _classify(env, with_works=False)
+    for res in (before, after):
+        want = sum(1 for r in res["rows"] if r["row_kind"] in ("file", "staging") and r["class"] is None)
+        assert res["counters"]["unclassified_acquired_files"] == want
+        assert R.counters(res)["unclassified_acquired_files"] == want
+    assert after["counters"]["unclassified_acquired_files"] == before["counters"]["unclassified_acquired_files"] + 1

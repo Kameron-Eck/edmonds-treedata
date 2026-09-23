@@ -645,3 +645,85 @@ def test_only_a_classifier_row_on_a_bound_file_can_be_cleared(pg):
     assert got == ("s1", "extracted"), got
     n, _missing = Q.quarantined_without_db_state(pg.conn, root=Path("does-not-exist"))
     assert n == 0, "the counter reads payloads under _quarantine/ only"
+
+
+# ── auditor-B fixes (candidate 2cbc551): tests for guards no test fired ─────────────────────
+
+@pg_only
+def test_a_registry_admission_whose_file_cannot_be_probed_is_refused_with_a_row(pg, tmp_path):
+    """F4a: `admit_registry --file` on an unopenable file (the registry answered from a stub, no
+    network): BindProbeError, no admission, and an in-place `probe-error` row."""
+    from litkb.admit import front
+
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    doi, title, rec = P2M._synthetic()
+    root = tmp_path / "Lit"
+    f = root / "Validation" / "Unopenable_2020_registry.pdf"
+    f.parent.mkdir(parents=True)
+    f.write_bytes(_unopenable())
+    n0 = pg.one("SELECT count(*) FROM litkb.admissions")[0]
+    with pytest.raises(front.BindProbeError) as ei:
+        front.admit_registry(w, ws, pg.tokens[ws], doi=doi, file_path=f, root=root, agent="q", session="q-reg",
+                             client=P2M.RegistryStub({doi: rec}), pacer=P2M._nopace())
+    assert ei.value.quarantine_row["ok"], ei.value.quarantine_row
+    rows = _rows(pg, rel_path="Validation/Unopenable_2020_registry.pdf")
+    assert [(r[3], r[4], r[8]) for r in rows] == [("probe-error", "bind-refusal", str(ws))], rows
+    assert pg.one("SELECT count(*) FROM litkb.admissions")[0] == n0
+
+
+@pg_only
+def test_the_backfill_links_no_attempt_when_several_share_the_bytes_and_none_names_the_path(pg, tmp_path):
+    """F4b: the ambiguity rule (live: DelgadoQuiros_2025's staging-orphan). Two attempts carry the
+    payload's sha256 and neither names its path: link NONE, list both — choosing one is a guess."""
+    from litkb import quarantine as Q
+
+    root = tmp_path / "Lit"
+    body = f"ambiguous {uuid.uuid4().hex}".encode()
+    sha = hashlib.sha256(body).hexdigest()
+    p = _plant(root, f"Amb_2026_x__staging-orphan__{sha[:12]}.download", body)
+    ws, w = pg.ws(), pg.session("litkb_writer")
+    ids = []
+    for _ in range(2):
+        cand = P2M._cand(pg, w, ws)
+        ids.append(str(w.execute("SELECT litkb.record_acquisition_attempt(%s, %s, NULL, %s, 'open_access', NULL, "
+                                 "'binding-failed', %s, NULL)",
+                                 (ws, pg.tokens[ws], cand,
+                                  pg.jsonb({"sha256": sha, "quarantined": "_quarantine/elsewhere.pdf"}))
+                                 ).fetchone()[0]))
+    it = next(r for r in Q.backfill_plan(pg.conn, root=root) if r["rel_path"] == Q.rel_of(root, p))
+    assert it["attempt_id"] is None and sorted(it["attempt_candidates"]) == sorted(ids), it
+
+
+@pg_only
+def test_a_hunt_whose_quarantine_row_fails_reports_quarantine_state_failed(henv, monkeypatch):
+    """F4c: the row is written AFTER the move; when it cannot be written the hunt keeps its verdict
+    (`refused` / `not-a-pdf`, the bytes kept) and says so in `refusals[]` as `quarantine-state-failed`."""
+    from litkb import quarantine as Q
+
+    def refuse(*a, **k):
+        raise RuntimeError("the database refused the row")
+    monkeypatch.setattr(Q, "record", refuse)
+    url = f"https://example.org/{uuid.uuid4().hex}.pdf"
+    res = _hunt(henv, url, fetch=lambda u, timeout=180: (200, P2M.HTML_SERVED_AS_PDF), key="Html_2026_q-fail")
+    assert (res["state"], res["reason"]) == ("refused", "not-a-pdf"), res
+    codes = [r["code"] for r in res["refusals"]]
+    assert "quarantine-state-failed" in codes, res["refusals"]
+    entry = next(r for r in res["refusals"] if r["code"] == "quarantine-state-failed")
+    assert entry["rel_path"] == res["quarantined"] and "refused the row" in entry["detail"], entry
+    assert (henv["root"] / res["quarantined"]).read_bytes() == P2M.HTML_SERVED_AS_PDF
+
+
+@pg_only
+def test_the_cleared_state_check_refuses_clearing_a_moved_payload_even_as_owner(pg):
+    """F4d: the CHECK `quarantine_payloads_cleared_only_in_place` is the belt behind
+    `clear_quarantine_system`'s guard. As the table's OWNER (no function in the way) a direct UPDATE
+    that clears a moved (reaper) row is refused, SQLSTATE 23514."""
+    from litkb import quarantine as Q
+
+    ing = pg.session("litkb_ingest")
+    rid = Q.record_system(ing, rel_path=f"_quarantine/K_2026_x__staging-orphan__{uuid.uuid4().hex[:12]}.download",
+                          sha256=_sha(), nbytes=1, reason="staging-orphan", origin="reaper")
+    with pytest.raises(pg.errors.CheckViolation) as ei:
+        pg.conn.execute("UPDATE litkb.quarantine_payloads SET cleared_at = now(), cleared_by = 'owner', "
+                        "cleared_reason = 'x' WHERE id = %s", (rid,))
+    assert ei.value.sqlstate == "23514" and "cleared_only_in_place" in str(ei.value)

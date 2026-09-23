@@ -2166,7 +2166,10 @@ _EXPECTED_EXECUTE = {
                      # _job_siblings, _job_dead_run — the failed run a dead job leaves) are
                      # granted to no role.
                      "enqueue_extraction", "claim_jobs", "renew_lease", "record_artifact",
-                     "stage_chunk", "finish_job", "fail_job", "refuse_job"},
+                     "stage_chunk", "finish_job", "fail_job", "refuse_job",
+                     # reopen_job: auditor-A F1 (a refusal that no longer holds goes back to
+                     # queued, one extraction_job_reopens row per reopen; its only writer)
+                     "reopen_job"},
     "public": set(),
 }
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}

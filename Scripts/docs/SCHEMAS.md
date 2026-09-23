@@ -2364,10 +2364,11 @@ nothing. `page_start`/`page_end` NULL = the whole file. The run key is stage 5's
 (`litkb.extract.ingest.run_key` with `CORPUS_PARAMS`) — the same key `litkb hunt` and the P5 bulk
 pass write, so an `ok` run either wrote marks the job `done` without running anything. `stage` is
 CHECKed to `5-reconcile` (S4 run 3 decision D7: stage 6 is not queued). No role holds a direct
-write on either table: the only writers are eight SECURITY DEFINER functions, EXECUTE to
+write on either table: the only writers are nine SECURITY DEFINER functions, EXECUTE to
 `litkb_ingest` alone and presenting no workstream token (files are main-owned):
 `enqueue_extraction`, `claim_jobs`, `renew_lease`, `record_artifact`, `stage_chunk`, `finish_job`,
-`fail_job`, `refuse_job` (pinned by `qc/test_litkb_p1.py`'s role matrix). SELECT for
+`fail_job`, `refuse_job(job, token, refusal, error, stage)`, `reopen_job` (pinned by
+`qc/test_litkb_p1.py`'s role matrix). SELECT for
 `litkb_reader`, `litkb_writer`, `litkb_ingest`. Driver: `pipeline/litkb/extract/queue.py`,
 `py -3.12 -m litkb queue sweep|work|status`; tests `qc/test_litkb_queue.py`.
 
@@ -2384,8 +2385,27 @@ on disk, no `%PDF-` in the first 1,024 bytes, or sha256 on disk ≠ `files.sha25
 (`litkb.extract.probe.probe_pages` / `page_text_chars` raised) · `over-page-cap` (more than
 `probe.EXTRACT_PAGE_CAP` = 400 pages, litkb-extract-page-cap) · `scan-needs-ocr` (an OCR-routed file
 with OCR off, or the scan post-condition below). The same guard (`queue.guard_file`) runs at
-ENQUEUE and again at CLAIM. One re-open, by design: a whole-file `scan-needs-ocr` refusal made with
-OCR OFF gets its page-range jobs from the next sweep made with OCR ON.
+ENQUEUE and again at CLAIM. **`refusal_stage`** (set iff `refusal` is): `enqueue` (the sweep's
+guard) · `claim` (the claim-time re-check, the SQL book guard at claim) · `result` (the scan
+post-condition — OCR ran and read nothing).
+
+**Reopening a refusal** (auditor-A F1, S4 run 3 round 2). A refusal is terminal for the WORKER, not
+for ever. A sweep re-guards a file whose EVERY job at the key is `refused` at `enqueue` or `claim`;
+when `queue.guard_file` now passes, each refused job whose range the file still needs goes back to
+`queued` through `litkb.reopen_job(job, refusal, actor, why, route, pages, page_chars, image_pages)`
+— a compare-and-set on the refusal, refreshing the probe facts — and a range with no job at all (a
+whole-file refusal made with OCR off, the file now OCR-routed into ranges) is enqueued. A refusal
+the guard still gives is left alone. The database itself refuses (22023) to reopen a `result`
+refusal and a `book` refusal while the work is a book. `attempts` is kept. Every reopen appends one
+row to **`litkb.extraction_job_reopens`** (append-only: trigger refuses UPDATE/DELETE; no agent role
+may INSERT; SELECT for reader, writer, ingest): `id`, `job_id`, `reopened_at`, `actor` (the
+caller's worker id, `sweep@<host>:<pid>` by default), `db_login` (`session_user`), `why`, `refusal`,
+`refusal_stage`, `refused_error` (the `last_error` the refusal carried).
+
+**`--redo`** (`litkb queue sweep --file <id> --redo`): the named files whose CURRENT run sits at an
+OLDER key than today's stage-5 run key are swept like files with no run (every guard applies); a file
+whose current run is at today's key is never re-extracted. The new run becomes current by
+`set_current_run`'s compare-and-set; the old run stays.
 
 **Routing** (`route`: `native` · `ocr`). A file is OCR-routed when ANY page is an IMAGE page: zero
 native characters AND at least one raster image (S4 run 3 decision D13, `probe.image_pages`; its

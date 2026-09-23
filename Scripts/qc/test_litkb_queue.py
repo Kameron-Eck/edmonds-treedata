@@ -355,13 +355,27 @@ def test_claim_jobs_refuses_a_work_retyped_to_book_after_enqueue(pg, root):
     assert _jobs(pg, f)[0][:2] == ("refused", "book")
 
 
+def _ok_run_at_key(k, f, pdf):
+    """An ok stage-5 run of file ``f`` at TODAY's run key (a synthetic document), -> its id."""
+    from litkb.extract import ingest as ING
+    from litkb.extract import reconcile as R
+
+    prep = ING.prepare(str(pdf), None, F.synthetic_doc(pdf))
+    return ING.ingest_file(k, f, prep["canonical"], prep["disagreements"], prep["stats"],
+                           pages=prep["pages"], pipeline_version=R.PIPELINE_VERSION,
+                           params=ING.CORPUS_PARAMS)["run_id"]
+
+
 _HOLDER_CALLS = {
     "renew_lease": ("SELECT litkb.renew_lease(%s, %s)", ()),
     "record_artifact": ("SELECT litkb.record_artifact(%s, %s, 'x', %s, '{}'::jsonb)", ("0" * 64,)),
     "stage_chunk": ("SELECT litkb.stage_chunk(%s, %s)", ()),
-    "finish_job": ("SELECT litkb.finish_job(%s, %s, NULL, %s, '{}'::jsonb)", ("0" * 64,)),
+    # an OK run of the job's OWN file at its key (made below), so that with the lease gate gone
+    # nothing else refuses the stale finish: the test then fails on its assertion (DID NOT RAISE),
+    # not on the own-run check's error (auditor-A F2)
+    "finish_job": ("SELECT litkb.finish_job(%s, %s, %s, %s, '{}'::jsonb)", ("RUN", "0" * 64)),
     "fail_job": ("SELECT litkb.fail_job(%s, %s, 'x')", ()),
-    "refuse_job": ("SELECT litkb.refuse_job(%s, %s, 'bad-file', 'x')", ()),
+    "refuse_job": ("SELECT litkb.refuse_job(%s, %s, 'bad-file', 'x', 'claim')", ()),
 }
 
 
@@ -370,15 +384,17 @@ _HOLDER_CALLS = {
 def test_every_holder_call_refuses_a_superseded_or_forged_token(pg, root, call):
     """Each of the six lease-holder functions presents the token through its OWN guard block: a
     superseded token (T1 after T2 reclaimed) and a forged one are refused LKL01, and nothing moves."""
-    f, _ = _file(pg, root, f"Holder_{call}", 30, text=False)       # a range job, so stage_chunk applies
+    f, pdf = _file(pg, root, f"Holder_{call}", 30, text=False)     # a range job, so stage_chunk applies
     _sweep(root, [f])
     k = _k()
+    run = _ok_run_at_key(k, f, pdf) if call == "finish_job" else None
     try:
         (t1,) = Q.claim(k, "T1", 1, 1, [f])
         time.sleep(1.3)
         (t2,) = Q.claim(k, "T2", 1, 60, [f])
         assert t2.job_id == t1.job_id and t2.lease_seq == t1.lease_seq + 1
         sql, extra = _HOLDER_CALLS[call]
+        extra = tuple(run if x == "RUN" else x for x in extra)
         before = pg.one("SELECT state, lease_seq, lease_expires_at, artifact_path FROM litkb.extraction_jobs "
                         "WHERE id = %s", (t1.job_id,))
         for token in (t1.token, uuid.uuid4().hex * 2, None):
@@ -934,3 +950,211 @@ def test_real_cuda_under_the_cpu_venv_is_refused_by_name():
     with pytest.raises(D.DeviceUnavailable):
         D.device_pair("cuda", D.VENV_PYTHON)
     assert D.device_pair("auto", D.VENV_PYTHON)[0] == "cpu"
+
+
+# ── S4 run 3 round 2 (auditor-A F1, F3, F4, REDO) ───────────────────────────────────────
+
+HUDSON = CORPUS / "Validation" / "Hudson_1978_natural-identity-exponential-families.pdf"
+
+
+def _reopens(pg, f):
+    return pg.conn.execute(
+        "SELECT o.actor, o.db_login, o.why, o.refusal, o.refusal_stage, o.refused_error "
+        "FROM litkb.extraction_job_reopens o JOIN litkb.extraction_jobs j ON j.id = o.job_id "
+        "WHERE j.file_id = %s ORDER BY o.reopened_at", (f,)).fetchall()
+
+
+@pg_only
+@pytest.mark.skipif(not HUDSON.is_file(), reason="Hudson 1978 (a real scan) is not on this machine")
+def test_f1_a_real_scan_refused_at_claim_by_an_ocr_off_worker_is_reopened_by_an_ocr_on_sweep(pg, root):
+    """auditor-A F1, on a REAL scan copy (Hudson 1978: 11 image pages of 12 -> one 22-page range).
+    Swept with OCR ON, claimed by an OCR-OFF worker -> refused `scan-needs-ocr` AT CLAIM. A sweep with
+    OCR still off leaves it refused (the refusal still holds). A sweep with OCR on reopens it: the
+    job is `queued` again, with one audit row saying who, when, why and what was lifted, and the
+    next OCR-on worker extracts it."""
+    pdf = F.real_copy(HUDSON, root / "Validation" / HUDSON.name)
+    ws = F.open_ws(pg.conn)
+    f = F.add_file(pg.conn, ws, F.add_work(pg.conn, ws), pdf, root)
+    assert _sweep(root, [f], ocr=True)["enqueued"] == 1
+    rep = _work(root, [f], ocr=False)
+    assert rep["outcomes"] == {"refused": 1}, rep
+    assert _jobs(pg, f)[0][:2] == ("refused", "scan-needs-ocr") and _jobs(pg, f)[0][3] == 1
+    assert pg.one("SELECT refusal_stage FROM litkb.extraction_jobs WHERE file_id = %s", (f,)) == ("claim",)
+    still = _sweep(root, [f], ocr=False)
+    assert (still["reopened"], still["enqueued"], still["already"]) == (0, 0, 1), still
+    assert [j[:2] for j in _jobs(pg, f)] == [("refused", "scan-needs-ocr")] and _reopens(pg, f) == []
+    back = _sweep(root, [f], ocr=True, actor="test-f1")
+    assert (back["reopened"], back["enqueued"]) == (1, 0), back
+    assert [j[0] for j in _jobs(pg, f)] == ["queued"]
+    (actor, login, why, refusal, stage, err), = _reopens(pg, f)
+    assert (actor, refusal, stage) == ("test-f1", "scan-needs-ocr", "claim")
+    assert login and "no longer holds" in why and "OCR is off" in (err or "")
+    assert _work(root, [f], ocr=True)["outcomes"] == {"done": 1}
+
+
+@pg_only
+def test_f1_a_refusal_made_on_the_result_is_never_reopened(pg, root):
+    """The scan post-condition's refusal (OCR ran and read nothing) is refused a reopen BY THE
+    DATABASE, and the sweep never even asks for one."""
+    f, _ = _file(pg, root, "ResultRefused", 3, text=False)
+    _sweep(root, [f])
+    assert _work(root, [f], extractor=F.SyntheticExtractor(silent_pages={1, 2, 3}))["outcomes"] == {"refused": 1}
+    jid, stage = pg.one("SELECT id, refusal_stage FROM litkb.extraction_jobs WHERE file_id = %s", (f,))
+    assert stage == "result"
+    try:
+        out = _sweep(root, [f], ocr=True)
+    except Exception as e:  # noqa: BLE001 — the sweep must not even ask
+        pytest.fail(f"the sweep asked to reopen a result refusal: {e}")
+    assert (out["reopened"], out["enqueued"], out["already"]) == (0, 0, 1)
+    k = _k()
+    try:
+        with pytest.raises(pg.errors.InvalidParameterValue):
+            k.execute("SELECT litkb.reopen_job(%s, 'scan-needs-ocr', 'test', 'forced', 'ocr', 3, "
+                      "NULL, NULL)", (jid,))
+    finally:
+        k.close()
+    assert _jobs(pg, f)[0][:2] == ("refused", "scan-needs-ocr") and _reopens(pg, f) == []
+
+
+@pg_only
+def test_f1_a_book_is_never_reopened_while_its_work_is_a_book(pg, root):
+    f, _ = _file(pg, root, "BookReopen", 2, work_type="book")
+    _sweep(root, [f])
+    jid = pg.one("SELECT id FROM litkb.extraction_jobs WHERE file_id = %s", (f,))[0]
+    k = _k()
+    try:
+        with pytest.raises(pg.errors.InvalidParameterValue):
+            k.execute("SELECT litkb.reopen_job(%s, 'book', 'test', 'forced', 'native', 2, NULL, NULL)",
+                      (jid,))
+        # a compare-and-set: the wrong refusal changes nothing and answers false
+        assert k.execute("SELECT litkb.reopen_job(%s, 'bad-file', 'test', 'x', 'native', 2, NULL, NULL)",
+                         (jid,)).fetchone()[0] is False
+    finally:
+        k.close()
+    assert _jobs(pg, f)[0][:2] == ("refused", "book") and _reopens(pg, f) == []
+
+
+@pg_only
+def test_f1_the_reopen_trail_is_append_only_and_reopen_names_who_and_why(pg, root):
+    f, pdf = _file(pg, root, "BadThenFixed", 2)
+    good = pdf.read_bytes()
+    pdf.write_bytes(good + b"% damaged\n")
+    assert _sweep(root, [f])["refused"] == {"bad-file": 1}
+    pdf.write_bytes(good)                                      # the bytes are the bound file again
+    assert _sweep(root, [f], actor="test-trail")["reopened"] == 1
+    jid = pg.one("SELECT id FROM litkb.extraction_jobs WHERE file_id = %s", (f,))[0]
+    for sql in ("UPDATE litkb.extraction_job_reopens SET why = 'rewritten' WHERE job_id = %s",
+                "DELETE FROM litkb.extraction_job_reopens WHERE job_id = %s"):
+        with pytest.raises(pg.errors.InsufficientPrivilege):
+            pg.one(sql, (jid,))
+    k = _k()
+    try:
+        with pytest.raises(pg.errors.InsufficientPrivilege):
+            k.execute("INSERT INTO litkb.extraction_job_reopens (job_id, actor, why, refusal, refusal_stage) "
+                      "VALUES (%s, 'x', 'y', 'bad-file', 'enqueue')", (jid,))
+        with pytest.raises(pg.errors.InvalidParameterValue):
+            k.execute("SELECT litkb.reopen_job(%s, 'bad-file', '', 'why', 'native', 2, NULL, NULL)", (jid,))
+    finally:
+        k.close()
+    assert _work(root, [f])["outcomes"] == {"done": 1}
+
+
+@pg_only
+def test_f4_a_book_found_at_claim_closes_its_leased_siblings_leases(pg, root):
+    """auditor-A F4. Worker A holds range 1 of a 3-range file under a LIVE lease; the work is retyped
+    to book; worker B's claim of range 2 hits the SQL book guard and refuses the whole file. Range 1's
+    lease row is closed (superseded) at that moment — not left looking like a running lease — A can
+    move nothing any more, and the counters read correctly: no stale lease, nothing accepted."""
+    f, _ = _file(pg, root, "BookMidway", 50, text=False)
+    assert _sweep(root, [f])["enqueued"] == 3
+    k = _k()
+    try:
+        before = Q.mutated_leases_accepted(k)
+        (a,) = Q.claim(k, "A", 1, 600, [f])
+        assert a.page_start == 1
+        work_id, cur, title = pg.one(
+            "SELECT w.work_id, w.version_id, w.title FROM litkb.main_works w JOIN litkb.main_files f "
+            "ON f.work_id = w.work_id WHERE f.file_id = %s", (f,))
+        ws = F.open_ws(pg.conn)
+        pg.one("SELECT litkb._write_version('fact', 'work', %s, NULL, %s, %s, 'retyped a book', %s, "
+               "'setup', 'setup')", (work_id, cur, pg.Jsonb({"type": "book", "title": title, "authors": []}), ws))
+        assert Q.claim(k, "B", 1, 60, [f]) == []
+        rows = pg.conn.execute("SELECT state, refusal, refusal_stage FROM litkb.extraction_jobs "
+                               "WHERE file_id = %s ORDER BY page_start", (f,)).fetchall()
+        assert rows == [("refused", "book", "claim")] * 3, rows
+        superseded, released = pg.one("SELECT superseded_at IS NOT NULL, released_at IS NOT NULL "
+                                      "FROM litkb.extraction_job_leases WHERE job_id = %s AND seq = %s",
+                                      (a.job_id, a.lease_seq))
+        assert superseded, "range 1's live lease was left open when its job was refused"
+        assert released is False                     # the holder never released it: it was cut short
+        with pytest.raises(Q.LeaseLost):
+            Q.renew(k, a)
+        assert Q.stale_leases(k) == 0 or pg.one(
+            "SELECT count(*) FROM litkb.extraction_jobs WHERE file_id = %s AND state = 'leased'", (f,))[0] == 0
+        assert pg.one("SELECT count(*) FROM litkb.extraction_jobs j WHERE j.file_id = %s AND j.state = 'leased'",
+                      (f,))[0] == 0
+        assert Q.mutated_leases_accepted(k) == before
+    finally:
+        k.close()
+
+
+def test_f3_the_docling_worker_runs_from_a_short_neutral_cwd(monkeypatch, tmp_path):
+    """auditor-A F3. However deep the artifact directory, the worker's cwd is the short, empty
+    `worker_cwd()`, never the artifact directory (which passed the Windows path limit)."""
+    from litkb.extract import docling as D
+
+    seen = {}
+
+    def fake_run(jobs, metrics_path, **kw):
+        seen["cwd"] = kw.get("cwd")
+        return []
+
+    monkeypatch.setattr(D, "run", fake_run)
+    deep = tmp_path / ("d" * 80) / ("e" * 80)
+    deep.mkdir(parents=True)
+    ext = Q.ToolExtractor("cpu", sys.executable, ocr=True, grobid=False)
+    with pytest.raises(Q.ExtractError):
+        ext(Q.Job(pdf="x.pdf", out_dir=deep, prefix="p001-001.s1", page_range=(1, 1), route="ocr"))
+    assert seen["cwd"] == Q.worker_cwd() and seen["cwd"] != str(deep)
+    assert len(seen["cwd"]) < len(str(deep)) and "secrets" not in pathlib.Path(seen["cwd"]).parts
+
+
+@pg_only
+def test_redo_re_extracts_a_file_whose_current_run_is_at_an_older_key_only(pg, root):
+    """`queue sweep --file F --redo` (S2's Maiti_2022): a file whose CURRENT run sits at an OLDER key
+    gets a job at today's key and a new current run; a file whose current run IS at today's key gets
+    nothing; a book with an old-key run is still refused (every guard applies); --redo names files."""
+    from litkb.extract import ingest as ING
+
+    old, old_pdf = _file(pg, root, "RedoOld", 2)
+    cur, cur_pdf = _file(pg, root, "RedoCurrent", 2)
+    book, book_pdf = _file(pg, root, "RedoBook", 2, work_type="book")
+    k = _k()
+    try:
+        for f, pdf, version in ((old, old_pdf, "stage5-old-test"), (book, book_pdf, "stage5-old-test")):
+            prep = ING.prepare(str(pdf), None, F.synthetic_doc(pdf))
+            ING.ingest_file(k, f, prep["canonical"], prep["disagreements"], prep["stats"],
+                            pages=prep["pages"], pipeline_version=version, params=ING.CORPUS_PARAMS)
+        now_run = _ok_run_at_key(k, cur, cur_pdf)
+        old_run = pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (old,))[0]
+        assert _sweep(root, [old, cur, book])["files"] == 0           # without --redo: nothing
+        with pytest.raises(ValueError):
+            Q.sweep(k, root, redo=True)                               # --redo names its files
+    finally:
+        k.close()
+    out = _sweep(root, [old, cur, book], redo=True)
+    assert (out["files"], out["enqueued"], out["refused"]) == (2, 2, {"book": 1}), out  # a refused job is a row too
+    assert _jobs(pg, cur) == []
+    assert _work(root, [old, cur, book])["outcomes"] == {"done": 1}
+    new_run = pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (old,))[0]
+    assert new_run != old_run and pg.one("SELECT pipeline_version FROM litkb.extraction_runs WHERE id = %s",
+                                         (new_run,))[0] == Q.run_key(old)["pipeline_version"]
+    assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (cur,))[0] == now_run
+    assert _sweep(root, [old], redo=True)["files"] == 0               # now at today's key: never again
+
+
+def test_the_cli_takes_redo():
+    from litkb import commands
+
+    a = commands.build_parser().parse_args(["queue", "sweep", "--file", "x", "--redo"])
+    assert (a.redo, a.files) == (True, ["x"])

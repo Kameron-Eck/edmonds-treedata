@@ -2188,6 +2188,31 @@ eq(block, "EQ28", MIG29, "guard: a job that dies on its last failure leaves a fa
 eq(block, "EQ29", MIG29, "guard: a job that dies at claim leaves a failed run",
    "a job whose every worker died leaves no failed run: the one death with no fail_job call is the "
    "one with no durable record")
+# builder-A round 2 (S4 run 3, auditor-A F1/F3/F4, REDO, HUNT)
+eq(block, "EQ30", MIG29, "guard: a refusal made on the result is never reopened",
+   "the scan post-condition's refusal (OCR ran and read nothing) can be reopened, so the same empty "
+   "OCR pass is queued again on every sweep")
+eq(block, "EQ31", MIG29, "guard: a book is never reopened while its work is a book",
+   "a book's refused job goes back to queued (litkb-book-policy)")
+eq(block, "EQ32", MIG29, "guard: a sibling range refused under a live lease has that lease closed",
+   "the SQL book guard at claim refuses a leased sibling range and leaves its lease row looking like "
+   "a running lease forever (auditor-A F4)")
+eq(block, "EQ33", QPY, "guard: a refusal that still holds is never reopened",
+   "the sweep acts on a file whose refusal the guard still gives: with OCR off, a scan refused at "
+   "claim gets a new, unrefused whole-file job (auditor-A F1)")
+eq(replace, "EQ34", QPY,
+   '        reopenable = bool(existing) and all(st == "refused" and stage in ("enqueue", "claim")\n',
+   '        reopenable = bool(existing) and all(st == "refused" and stage in ("enqueue", "claim", "result")\n',
+   "the sweep asks to reopen a refusal made on the RESULT (only the database's own guard then stops it)")
+eq(block, "EQ35", QPY, "guard: --redo never re-extracts a file whose current run is at today's key",
+   "--redo enqueues a file whose current run is already today's extraction")
+eq(replace, "EQ36", QPY, "ocr=run_ocr, formula=False, device=self.device, cwd=worker_cwd())",
+   "ocr=run_ocr, formula=False, device=self.device, cwd=str(job.out_dir))",
+   "the Docling worker runs with the artifact directory as cwd again: past the Windows path limit "
+   "every job dies WinError 267 (auditor-A F3)")
+hu(replace, "EQ37", f"{PKG}/hunt.py", "        hold.close()\n", "        hold._stop()\n",
+   "CALL SITE hunt: GROBID is stopped after the hunt whoever started it — the live stage-6 driver's "
+   "service included (auditor-A HUNT)")
 
 # ── S4C: the readability classifier's QUEUE STEP (builder-C item 1c; litkb/readability.py) ─────
 TESTS_READ = ["qc/test_litkb_readability.py"]

@@ -133,7 +133,17 @@ def _page_sizes(pdf):
 
     doc = pdfium.PdfDocument(str(pdf))
     try:
-        return [doc[i].get_size() for i in range(len(doc))]
+        out = []
+        # each page closed before the next is opened: a page left for the garbage collector
+        # can be finalised while doc.close() iterates the document's kids, and pypdfium2 5.13
+        # then raises 'Set changed size during iteration' (seen once, 2026-09-22)
+        for i in range(len(doc)):
+            page = doc[i]
+            try:
+                out.append(page.get_size())
+            finally:
+                page.close()
+        return out
     finally:
         doc.close()
 

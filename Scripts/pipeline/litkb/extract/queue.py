@@ -381,10 +381,35 @@ def _workstream_id(conn, ws):
     return row[0]
 
 
-def population(conn, workstreams=(), files=None):
+#: `--redo` (S2's Maiti_2022): the named files whose CURRENT run sits at a key that is not the stage-5
+#: run key of today — their current run is not the extraction the queue would make now.
+_REDO_POP = """
+SELECT f.file_id, f.sha256, f.rel_path, w.type, r.stage, r.tool, r.tool_version, r.params_hash,
+       r.pipeline_version
+  FROM litkb.main_files f JOIN litkb.main_works w ON w.work_id = f.work_id
+  JOIN litkb.extraction_runs r ON r.id = f.current_run_id
+ WHERE f.status = 'active' AND f.file_id = ANY (%s::uuid[])"""
+
+
+def at_current_key(key, stage, tool, tool_version, params_hash, pipeline_version):
+    return (key["stage"], key["tool"], key["tool_version"], key["params_hash"],
+            key["pipeline_version"]) == (stage, tool, tool_version, params_hash, pipeline_version)
+
+
+def population(conn, workstreams=(), files=None, redo=False):
     """Active files with no current run: main's, plus each named workstream's view. One row per
-    file; ``files`` (file ids) keeps only those."""
+    file; ``files`` (file ids) keeps only those. ``redo`` adds the named ``files`` whose current
+    run is at an OLDER key — never one whose current run is at today's key."""
     rows = {r[0]: r for r in conn.execute(_MAIN_POP).fetchall()}
+    if redo:
+        if not files:
+            raise ValueError("--redo re-extracts NAMED files only: pass --file")
+        for fid, sha, rel, typ, *run in conn.execute(_REDO_POP, ([str(f) for f in files],)).fetchall():
+            # BEGIN guard: --redo never re-extracts a file whose current run is at today's key
+            if at_current_key(run_key(fid), *run):
+                continue
+            # END guard: --redo never re-extracts a file whose current run is at today's key
+            rows.setdefault(fid, (fid, sha, rel, typ))
     for ws in workstreams:
         for r in conn.execute(_WS_POP, (_workstream_id(conn, ws),)).fetchall():
             rows.setdefault(r[0], r)
@@ -413,30 +438,60 @@ def enqueue(conn, file_id, lo, hi, facts, refusal=None, error=None):
                                    error)).fetchone()
 
 
-def sweep(conn, root=None, *, workstreams=(), ocr=None, files=None):
+def sweep(conn, root=None, *, workstreams=(), ocr=None, files=None, redo=False, actor=None):
     """Enqueue every file of :func:`population` that has no job at the stage-5 run key.
 
-    Idempotent: the UNIQUE key makes a second sweep insert nothing. One exception, by design: a file
-    refused ``scan-needs-ocr`` at the whole-file key because OCR was OFF gets its page-range jobs
-    once a sweep runs with OCR ON (the refusal was the switch's, not the file's)."""
+    Idempotent: the UNIQUE key makes a second sweep insert nothing.
+
+    REOPEN (auditor-A F1). A file whose every job at the key is ``refused`` — at ENQUEUE or at CLAIM,
+    never on the RESULT — is guarded again, now. When the guard passes, the refusal no longer holds:
+    each refused job whose range the file still needs goes back to ``queued`` through
+    ``litkb.reopen_job`` (one audit row each: ``actor``, when, why), and a range with no job at all
+    (a file refused whole-file with OCR off, now OCR-routed into ranges) is enqueued. A refusal the
+    guard still gives is left alone, and so is any file with a job in any other state or a refusal
+    made on the result (the scan post-condition: OCR ran and read nothing).
+
+    ``redo`` (with ``files``): see :func:`population`."""
     ocr = ocr_enabled() if ocr is None else ocr
     root = literature_root(root)
-    out = {"files": 0, "enqueued": 0, "refused": {}, "already": 0, "ocr": ocr}
-    for file_id, sha, rel_path, work_type in population(conn, workstreams, files):
+    actor = actor or f"sweep@{socket.gethostname()}:{os.getpid()}"
+    out = {"files": 0, "enqueued": 0, "refused": {}, "already": 0, "reopened": 0, "ocr": ocr,
+           "redo": bool(redo)}
+    for file_id, sha, rel_path, work_type in population(conn, workstreams, files, redo):
         out["files"] += 1
-        existing = _jobs_at_key(conn, file_id, run_key(file_id))
-        switch_only = existing and ocr and all(
-            st == "refused" and rf == "scan-needs-ocr" and lo is None for lo, st, rf in existing)
-        if existing and not switch_only:
+        existing = _refused_at_key(conn, file_id, run_key(file_id))
+        # BEGIN guard: only a file whose EVERY job was refused before a result is re-guarded
+        reopenable = bool(existing) and all(st == "refused" and stage in ("enqueue", "claim")
+                                            for _id, _lo, _hi, st, _rf, stage in existing)
+        # END guard: only a file whose EVERY job was refused before a result is re-guarded
+        if existing and not reopenable:
             out["already"] += 1
             continue
         facts = guard_file(root / rel_path.replace("\\", "/"), sha, work_type, ocr=ocr)
         refusal, error = facts.refusal, facts.error
-        if switch_only and refusal == "scan-needs-ocr":
-            out["already"] += 1
-            continue
         ranges = (chunk_ranges(facts.pages) if refusal is None and facts.route == "ocr"
                   else [(None, None)])
+        if existing:
+            # BEGIN guard: a refusal that still holds is never reopened
+            if refusal is not None:
+                out["already"] += 1
+                continue
+            # END guard: a refusal that still holds is never reopened
+            with conn.transaction():
+                have = {(lo, hi): (jid, rf) for jid, lo, hi, _st, rf, _stage in existing}
+                for lo, hi in ranges:
+                    if (lo, hi) in have:
+                        jid, rf = have[(lo, hi)]
+                        why = (f"the sweep's guard now passes (ocr={'on' if ocr else 'off'}, "
+                               f"route {facts.route}, {facts.pages} pages): {rf} no longer holds")
+                        if conn.execute("SELECT litkb.reopen_job(%s, %s, %s, %s, %s, %s, %s, %s)",
+                                        (jid, rf, actor, why, facts.route, facts.pages,
+                                         facts.page_chars, facts.image_pages)).fetchone()[0]:
+                            out["reopened"] += 1
+                    else:
+                        _job, inserted = enqueue(conn, file_id, lo, hi, facts)
+                        out["enqueued"] += int(bool(inserted))
+            continue
         with conn.transaction():          # a file's ranges land together or not at all
             for lo, hi in ranges:
                 _job, inserted = enqueue(conn, file_id, lo, hi, facts, refusal, error)
@@ -445,6 +500,15 @@ def sweep(conn, root=None, *, workstreams=(), ocr=None, files=None):
         if refusal:
             out["refused"][refusal] = out["refused"].get(refusal, 0) + 1
     return out
+
+
+def _refused_at_key(conn, file_id, key):
+    """Every job of the file at ``key``: (id, page_start, page_end, state, refusal, refusal_stage)."""
+    return conn.execute(
+        "SELECT id, page_start, page_end, state, refusal, refusal_stage FROM litkb.extraction_jobs "
+        "WHERE file_id = %(file_id)s AND stage = %(stage)s AND tool = %(tool)s "
+        "AND tool_version = %(tool_version)s AND params_hash = %(params_hash)s "
+        "AND pipeline_version = %(pipeline_version)s ORDER BY page_start NULLS FIRST", key).fetchall()
 
 
 # ── claiming, and the heartbeat ─────────────────────────────────────────────────────────
@@ -696,8 +760,11 @@ class ToolExtractor:
             from litkb.extract import grobid as G
 
             try:
-                self._grobid_up = bool(G.start(wait=300, hold=True))
-            except Exception as e:  # noqa: BLE001
+                # the ONE ownership rule (G.GrobidHold): a unit systemd says is running is waited
+                # for, never (re)started under its owner; and this worker never closes the hold,
+                # so it stops no GROBID at all
+                self._grobid_up = bool(G.GrobidHold(wait=300).ensure())
+            except Exception as e:  # noqa: BLE001 — GrobidUnavailable included
                 self._grobid_up, self.grobid_error = False, f"{type(e).__name__}: {e}"
             if not self._grobid_up and not self.grobid_error:
                 self.grobid_error = "GROBID did not come up under WSL"
@@ -731,7 +798,7 @@ class ToolExtractor:
             rows = D.run([{"pdf": job.pdf, "out": str(out),
                            "pages": list(job.page_range) if job.page_range else None}],
                          str(job.out_dir / "metrics_docling.jsonl"), python=self.python,
-                         ocr=run_ocr, formula=False, device=self.device, cwd=str(job.out_dir))
+                         ocr=run_ocr, formula=False, device=self.device, cwd=worker_cwd())
         finally:
             peak = sampler.stop() if sampler is not None else None
         row = rows[0] if rows else {}
@@ -744,6 +811,22 @@ class ToolExtractor:
             raise ExtractError(f"docling produced no artifact: {row.get('error') or 'no metrics row'}")
         files["docling"] = str(out)
         return files, m
+
+
+def worker_cwd():
+    """A SHORT working directory for the Docling worker process (auditor-A F3).
+
+    The artifact directory — ``<derived>/<sha256>/5-reconcile/<tool>@<version>_<params>`` — was the
+    cwd, and under a long ``--derived`` root it passed the Windows current-directory limit: every job
+    died ``NotADirectoryError: [WinError 267]`` and went dead. The worker needs no cwd of its own
+    (every path it is handed is absolute), only a NEUTRAL one: ``docling_worker``'s CWD IS
+    LOAD-BEARING note — no ``secrets`` directory may shadow the stdlib on its path. So a dedicated
+    empty directory under the system temp: short, and holding nothing but the worker's jobs file."""
+    import tempfile
+
+    d = os.path.join(tempfile.gettempdir(), "litkb-docling-cwd")
+    os.makedirs(d, exist_ok=True)
+    return d
 
 
 # ── the worker ──────────────────────────────────────────────────────────────────────────
@@ -772,7 +855,7 @@ def _recheck(conn, c, pdf, sha, work_type, ocr):
     facts = guard_file(pdf, sha, work_type, ocr=ocr)
     why, detail = facts.refusal, facts.error
     if why:
-        _sql(conn, "SELECT litkb.refuse_job(%s, %s, %s, %s)", (c.job_id, c.token, why, detail))
+        _sql(conn, "SELECT litkb.refuse_job(%s, %s, %s, %s, 'claim')", (c.job_id, c.token, why, detail))
         _trace("refuse", job=c.job_id, refusal=why, at_claim=True)
         return why
     return None
@@ -817,7 +900,7 @@ def _ingest(conn, c, file_id, pdf, tei, doc, parts, jobs, route, image_pages, pa
     # BEGIN guard: an OCR-routed file whose image pages come back empty is never finished ok
     why, detail = scan_postcondition(route, image_pages, prep["canonical"], c.page_chars)
     if why:
-        _sql(conn, "SELECT litkb.refuse_job(%s, %s, %s, %s)", (c.job_id, c.token, why, detail))
+        _sql(conn, "SELECT litkb.refuse_job(%s, %s, %s, %s, 'result')", (c.job_id, c.token, why, detail))
         _trace("refuse", job=c.job_id, refusal=why, at_claim=False)
         return "refused"
     # END guard: an OCR-routed file whose image pages come back empty is never finished ok

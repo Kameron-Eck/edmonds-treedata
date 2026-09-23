@@ -794,7 +794,8 @@ def cmd_queue(args, conn):
     try:
         if args.queue_cmd == "sweep":
             _print(Q.sweep(k, args.root, workstreams=args.workstream or (),
-                           ocr=Q.ocr_enabled(args.no_ocr), files=args.files))
+                           ocr=Q.ocr_enabled(args.no_ocr), files=args.files,
+                           redo=args.redo))
         else:
             _print(Q.status(k))
     finally:
@@ -1065,6 +1066,10 @@ def build_parser():
                                        "book, bad-file, probe-error, over-page-cap, scan-needs-ocr")
     qs.add_argument("--workstream", action="append",
                     help="also sweep this workstream's view (id or slug; repeatable)")
+    qs.add_argument("--redo", action="store_true",
+                    help="with --file: enqueue a stage-5 job at TODAY's run key for a named file "
+                         "whose current run sits at an OLDER key (never one already at today's "
+                         "key); every guard still applies")
     qw = qsub.add_parser("work", help="claim jobs one at a time until the queue is empty")
     qw.add_argument("--max-jobs", dest="max_jobs", type=int, help="stop after this many claims")
     qw.add_argument("--lease", type=int, default=None,

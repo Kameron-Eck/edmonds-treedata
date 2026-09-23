@@ -38,6 +38,15 @@
 -- below are the only writers, EXECUTE to litkb_ingest only, with no workstream token — files are
 -- main-owned identity rows, exactly like set_current_run (design §4.3 row: "No workstream_id").
 --
+-- REOPENING (auditor-A F1). A refusal is terminal for the WORKER, not forever: `reopen_job` puts a
+-- `refused` job back to `queued` when the caller (the sweep) finds its refusal no longer holds —
+-- `scan-needs-ocr` made by an OCR-off worker, seen by a sweep with OCR on, is the case that made it
+-- necessary: a page-range job refused at claim could otherwise never be claimed again, because the
+-- UNIQUE key stops the same range being enqueued twice. Every reopen appends a row to
+-- `extraction_job_reopens` (who, when, why, and the refusal it lifted). Two refusals are never
+-- reopened, by the database itself: one made on the RESULT (the scan post-condition: OCR ran and
+-- read nothing — a sweep cannot see that it no longer holds), and `book` while the work is a book.
+--
 -- STAGE. `5-reconcile` only (S4 run 3 decision D7: stage 6 runs through its own file-keyed driver
 -- and is not queued in S4). Widening the CHECK is a later migration.
 
@@ -71,6 +80,9 @@ CREATE TABLE extraction_jobs (
                    CHECK (state IN ('queued', 'leased', 'staged', 'done', 'dead', 'refused')),
   refusal          text CHECK (refusal IS NULL OR refusal IN
                    ('over-page-cap', 'book', 'probe-error', 'bad-file', 'scan-needs-ocr')),
+  -- where the refusal was decided: at `enqueue` (the sweep's guard), at `claim` (the claim-time
+  -- re-check, the SQL book guard), or on the `result` (the scan post-condition)
+  refusal_stage    text CHECK (refusal_stage IS NULL OR refusal_stage IN ('enqueue', 'claim', 'result')),
   attempts         integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
   lease_seq        integer NOT NULL DEFAULT 0 CHECK (lease_seq >= 0),
   lease_owner      text,
@@ -87,6 +99,7 @@ CREATE TABLE extraction_jobs (
   CONSTRAINT extraction_jobs_range CHECK (
     (page_start IS NULL AND page_end IS NULL) OR (page_start >= 1 AND page_end >= page_start)),
   CONSTRAINT extraction_jobs_refusal CHECK ((state = 'refused') = (refusal IS NOT NULL)),
+  CONSTRAINT extraction_jobs_refusal_stage CHECK ((refusal IS NULL) = (refusal_stage IS NULL)),
   CONSTRAINT extraction_jobs_lease CHECK (
     (state = 'leased') = (lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL)),
   CONSTRAINT extraction_jobs_done CHECK (
@@ -162,6 +175,29 @@ END
 $$;
 CREATE TRIGGER extraction_job_lease_tokens_immutable BEFORE UPDATE OR DELETE ON extraction_job_lease_tokens
   FOR EACH ROW EXECUTE FUNCTION litkb._job_lease_token_immutable();
+
+-- The audit trail of every reopened refusal (auditor-A F1): which job, when, who (the caller's
+-- worker id AND the database login it came through), why, and the refusal it lifted with the
+-- error that refusal carried. Append-only: written by reopen_job alone, never changed.
+CREATE TABLE extraction_job_reopens (
+  id            uuid PRIMARY KEY DEFAULT uuidv7(),
+  job_id        uuid NOT NULL REFERENCES extraction_jobs (id),
+  reopened_at   timestamptz NOT NULL DEFAULT clock_timestamp(),
+  actor         text NOT NULL CHECK (actor <> ''),
+  db_login      text NOT NULL DEFAULT session_user,
+  why           text NOT NULL CHECK (why <> ''),
+  refusal       text NOT NULL,
+  refusal_stage text NOT NULL,
+  refused_error text
+);
+CREATE FUNCTION litkb._job_reopen_immutable() RETURNS trigger
+LANGUAGE plpgsql SET search_path = litkb, public, pg_temp AS $$
+BEGIN
+  RAISE EXCEPTION 'litkb: extraction_job_reopens is append-only' USING ERRCODE = '42501';
+END
+$$;
+CREATE TRIGGER extraction_job_reopens_append_only BEFORE UPDATE OR DELETE ON extraction_job_reopens
+  FOR EACH ROW EXECUTE FUNCTION litkb._job_reopen_immutable();
 
 -- ── helpers (not granted: only the definer functions below call them) ─────────────────────
 
@@ -280,11 +316,12 @@ BEGIN
   -- END guard: enqueue_extraction refuses a book's file
   INSERT INTO extraction_jobs (file_id, stage, page_start, page_end, tool, tool_version, params_hash,
                                pipeline_version, route, pages, page_chars, image_pages, state, refusal,
-                               last_error,
+                               refusal_stage, last_error,
                                finished_at)
   VALUES (p_file, p_stage, p_page_start, p_page_end, p_tool, p_tool_version, p_params_hash,
           p_pipeline_version, p_route, p_pages, p_page_chars, p_image_pages,
           CASE WHEN v_refusal IS NULL THEN 'queued' ELSE 'refused' END, v_refusal,
+          CASE WHEN v_refusal IS NULL THEN NULL ELSE 'enqueue' END,
           CASE WHEN v_refusal IS NULL THEN NULL ELSE left(v_error, 2000) END,
           CASE WHEN v_refusal IS NULL THEN NULL ELSE now() END)
   ON CONFLICT ON CONSTRAINT extraction_jobs_key DO NOTHING
@@ -343,8 +380,16 @@ BEGIN
     END IF;
     -- BEGIN guard: claim_jobs never hands out a book's job
     IF _job_file_is_book(r.file_id) THEN
-      UPDATE extraction_jobs j SET state = 'refused', refusal = 'book', lease_owner = NULL,
-             lease_expires_at = NULL, finished_at = v_now,
+      -- BEGIN guard: a sibling range refused under a live lease has that lease closed
+      -- (auditor-A F4) — its holder is superseded by the refusal, exactly as refuse_job does, so the
+      -- history never shows a lease that was cut short as one that is still running
+      UPDATE extraction_job_leases l SET superseded_at = v_now
+        FROM extraction_jobs s
+       WHERE s.id IN (SELECT _job_siblings(r.id)) AND s.state = 'leased'
+         AND l.job_id = s.id AND l.seq = s.lease_seq AND l.superseded_at IS NULL;
+      -- END guard: a sibling range refused under a live lease has that lease closed
+      UPDATE extraction_jobs j SET state = 'refused', refusal = 'book', refusal_stage = 'claim',
+             lease_owner = NULL, lease_expires_at = NULL, finished_at = v_now,
              last_error = 'the work is a book (litkb-book-policy), found at claim'
        WHERE j.id = r.id OR (j.id IN (SELECT _job_siblings(r.id))
                              AND j.state IN ('queued', 'staged', 'leased'));
@@ -516,10 +561,12 @@ BEGIN
 END
 $$;
 
--- A guard that fired AFTER the claim: the claim-time re-check (a job enqueued before a guard
--- changed) or the scan post-condition. Terminal. A file-level refusal refuses every unfinished
+-- A guard that fired AFTER the claim: the claim-time re-check (p_stage `claim`: a job enqueued before
+-- a guard changed) or the scan post-condition (p_stage `result`). Terminal for the worker; only
+-- reopen_job lifts it, and never a `result` refusal. A file-level refusal refuses every unfinished
 -- range of the file with it.
-CREATE FUNCTION litkb.refuse_job(p_job uuid, p_token text, p_refusal text, p_error text) RETURNS void
+CREATE FUNCTION litkb.refuse_job(p_job uuid, p_token text, p_refusal text, p_error text, p_stage text)
+RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = litkb, public, pg_temp AS $$
 DECLARE
   v_job extraction_jobs%ROWTYPE;
@@ -528,8 +575,13 @@ BEGIN
   -- BEGIN guard: refuse_job presents the job's current lease
   PERFORM _job_lease_current(p_job, p_token);
   -- END guard: refuse_job presents the job's current lease
+  IF p_stage IS NULL OR p_stage NOT IN ('claim', 'result') THEN
+    RAISE EXCEPTION 'litkb: a refusal after a claim is made at claim or on the result, not %', p_stage
+      USING ERRCODE = '22023';
+  END IF;
   SELECT * INTO v_job FROM extraction_jobs WHERE id = p_job;
-  UPDATE extraction_jobs SET state = 'refused', refusal = p_refusal, last_error = left(p_error, 2000),
+  UPDATE extraction_jobs SET state = 'refused', refusal = p_refusal, refusal_stage = p_stage,
+         last_error = left(p_error, 2000),
          lease_owner = NULL, lease_expires_at = NULL, finished_at = v_now
    WHERE id = p_job;
   UPDATE extraction_job_leases SET released_at = v_now, outcome = 'refused'
@@ -538,11 +590,55 @@ BEGIN
     FROM extraction_jobs s
    WHERE s.id IN (SELECT _job_siblings(p_job)) AND s.state = 'leased'
      AND l.job_id = s.id AND l.seq = s.lease_seq AND l.superseded_at IS NULL;
-  UPDATE extraction_jobs SET state = 'refused', refusal = p_refusal,
+  UPDATE extraction_jobs SET state = 'refused', refusal = p_refusal, refusal_stage = p_stage,
          last_error = left('refused with its file''s range ' || v_job.page_start || '-' || v_job.page_end
                            || ': ' || coalesce(p_error, ''), 2000),
          lease_owner = NULL, lease_expires_at = NULL, finished_at = v_now
    WHERE id IN (SELECT _job_siblings(p_job)) AND state IN ('queued', 'leased', 'staged');
+END
+$$;
+
+-- Reopen a refused job whose refusal the CALLER found no longer holds (auditor-A F1): back to
+-- `queued`, with the probe facts the caller just read, and one extraction_job_reopens row. A
+-- compare-and-set on the refusal: -> false, and nothing changes, when the job is not `refused` with
+-- exactly `p_refusal` (someone moved it first). The database refuses outright to reopen the two
+-- refusals it can tell still hold. `attempts` is kept: a refusal is not a failed attempt, and the
+-- count stays the record of how often the job was claimed.
+CREATE FUNCTION litkb.reopen_job(p_job uuid, p_refusal text, p_actor text, p_why text,
+                                 p_route text, p_pages integer, p_page_chars integer[],
+                                 p_image_pages integer[])
+RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = litkb, public, pg_temp AS $$
+DECLARE
+  v_job extraction_jobs%ROWTYPE;
+BEGIN
+  IF p_actor IS NULL OR btrim(p_actor) = '' OR p_why IS NULL OR btrim(p_why) = '' THEN
+    RAISE EXCEPTION 'litkb: a reopen names who and why' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO v_job FROM extraction_jobs WHERE id = p_job FOR UPDATE;
+  IF NOT FOUND OR v_job.state <> 'refused' OR v_job.refusal IS DISTINCT FROM p_refusal THEN
+    RETURN false;
+  END IF;
+  -- BEGIN guard: a refusal made on the result is never reopened
+  IF v_job.refusal_stage = 'result' THEN
+    RAISE EXCEPTION 'litkb: job % was refused % on its RESULT (the extraction ran); a sweep cannot see that it no longer holds',
+      p_job, v_job.refusal USING ERRCODE = '22023';
+  END IF;
+  -- END guard: a refusal made on the result is never reopened
+  -- BEGIN guard: a book is never reopened while its work is a book
+  IF v_job.refusal = 'book' AND _job_file_is_book(v_job.file_id) THEN
+    RAISE EXCEPTION 'litkb: job % is a book''s (litkb-book-policy); it stays refused', p_job
+      USING ERRCODE = '22023';
+  END IF;
+  -- END guard: a book is never reopened while its work is a book
+  INSERT INTO extraction_job_reopens (job_id, actor, why, refusal, refusal_stage, refused_error)
+  VALUES (p_job, p_actor, p_why, v_job.refusal, v_job.refusal_stage, v_job.last_error);
+  UPDATE extraction_jobs SET state = 'queued', refusal = NULL, refusal_stage = NULL,
+         last_error = left('reopened (' || v_job.refusal || ' no longer holds): ' || p_why, 2000),
+         finished_at = NULL, route = p_route, pages = p_pages, page_chars = p_page_chars,
+         image_pages = p_image_pages
+   WHERE id = p_job;
+  RETURN true;
 END
 $$;
 
@@ -551,14 +647,16 @@ $$;
 -- qc/test_litkb_p1.py pins it). SELECT for the readers the S4 counters and `litkb queue status`
 -- use. The token hashes are in extraction_job_lease_tokens, which no agent role may read at all
 -- (qc/test_litkb_p1.py: no relation with a token_hash column is agent-readable).
-REVOKE ALL ON extraction_jobs, extraction_job_leases FROM PUBLIC;
-GRANT SELECT ON extraction_jobs, extraction_job_leases TO litkb_reader, litkb_writer, litkb_ingest;
+REVOKE ALL ON extraction_jobs, extraction_job_leases, extraction_job_reopens FROM PUBLIC;
+GRANT SELECT ON extraction_jobs, extraction_job_leases, extraction_job_reopens
+  TO litkb_reader, litkb_writer, litkb_ingest;
 REVOKE ALL ON extraction_job_lease_tokens FROM PUBLIC, litkb_reader, litkb_writer, litkb_promoter, litkb_ingest;
 
 REVOKE EXECUTE ON FUNCTION litkb._job_max_attempts(), litkb._lease_hash(text),
   litkb._job_file_is_book(uuid), litkb._job_lease_current(uuid, text), litkb._job_siblings(uuid),
   litkb._job_dead_run(uuid),
-  litkb._job_lease_history_append_only(), litkb._job_lease_token_immutable() FROM PUBLIC;
+  litkb._job_lease_history_append_only(), litkb._job_lease_token_immutable(),
+  litkb._job_reopen_immutable() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION
   litkb.enqueue_extraction(uuid, text, text, text, text, text, integer, integer, text, integer, integer[], integer[], text, text),
   litkb.claim_jobs(text, integer, integer, uuid[]),
@@ -567,7 +665,8 @@ REVOKE EXECUTE ON FUNCTION
   litkb.stage_chunk(uuid, text),
   litkb.finish_job(uuid, text, uuid, text, jsonb),
   litkb.fail_job(uuid, text, text),
-  litkb.refuse_job(uuid, text, text, text) FROM PUBLIC;
+  litkb.refuse_job(uuid, text, text, text, text),
+  litkb.reopen_job(uuid, text, text, text, text, integer, integer[], integer[]) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION
   litkb.enqueue_extraction(uuid, text, text, text, text, text, integer, integer, text, integer, integer[], integer[], text, text),
   litkb.claim_jobs(text, integer, integer, uuid[]),
@@ -576,4 +675,5 @@ GRANT EXECUTE ON FUNCTION
   litkb.stage_chunk(uuid, text),
   litkb.finish_job(uuid, text, uuid, text, jsonb),
   litkb.fail_job(uuid, text, text),
-  litkb.refuse_job(uuid, text, text, text) TO litkb_ingest;
+  litkb.refuse_job(uuid, text, text, text, text),
+  litkb.reopen_job(uuid, text, text, text, text, integer, integer[], integer[]) TO litkb_ingest;

@@ -109,6 +109,29 @@ def _retire_fn(pg, runs, keys=None):
                   ([str(r) for r in runs], pg.Jsonb(keys) if keys is not None else None), conn=ingest)[0]
 
 
+def _refusal(pg, fn):
+    """-> the database error `fn` raised, or None. The kills below ASSERT on what comes back — its
+    class and its words — so a guard that is removed shows up as a failed assertion (the op went
+    through, or a DIFFERENT layer refused it), never as an error escaping the test (auditor-D2 F2)."""
+    try:
+        fn()
+    except pg.psycopg.Error as e:
+        return e
+    return None
+
+
+def _assert_refused(err, cls, words):
+    assert err is not None, f"not refused at all (expected {cls.__name__}: {words!r})"
+    assert isinstance(err, cls) and words in str(err), (
+        f"refused by the wrong guard: {type(err).__name__}: {str(err).splitlines()[0]} "
+        f"(expected {cls.__name__}: {words!r})")
+
+
+def _status(pg, run_id, keys=_KEYS):
+    return pg.one("SELECT refusal, superseded_by, evidence_rows FROM litkb.run_retirement_status(%s) "
+                  "WHERE run_id = %s", (pg.Jsonb(keys), run_id))
+
+
 @pg_only
 def test_the_op_retires_exactly_the_superseded_run_nothing_cites(pg):
     """The brief's own case: current C, superseded A (cited by evidence) and B. Exactly B."""
@@ -148,16 +171,19 @@ def test_the_dry_run_writes_nothing(pg):
 @pg_only
 def test_kill_the_current_run_is_refused_by_the_database(pg):
     w = _world(pg)
-    with pytest.raises(pg.errors.InvalidParameterValue, match="current run"):
-        _retire_fn(pg, [w["c"]], _KEYS)
+    _assert_refused(_refusal(pg, lambda: _retire_fn(pg, [w["c"]], _KEYS)),
+                    pg.errors.InvalidParameterValue, "current run")
     assert pg.one("SELECT count(*) FROM litkb.run_retirements WHERE file_id = %s", (w["file"],))[0] == 0
 
 
 @pg_only
 def test_kill_an_evidence_cited_run_is_refused_by_the_database(pg):
+    """The world's run A is cited by exactly ONE use_evidence row. That is the guard's boundary: one
+    row must hold the run (auditor-D2 A2 — a `> 1` mutant survived while the count was doubled)."""
     w = _world(pg)
-    with pytest.raises(pg.errors.InvalidParameterValue, match="cited by use_evidence"):
-        _retire_fn(pg, [w["a"]], _KEYS)
+    assert _status(pg, w["a"]) == ("evidence", w["c"], 1)
+    _assert_refused(_refusal(pg, lambda: _retire_fn(pg, [w["a"]], _KEYS)),
+                    pg.errors.InvalidParameterValue, "cited by use_evidence")
     assert pg.one("SELECT count(*) FROM litkb.run_retirements WHERE file_id = %s", (w["file"],))[0] == 0
 
 
@@ -169,8 +195,53 @@ def test_kill_a_run_that_was_never_superseded_is_refused_by_the_database(pg):
     failed, _ = _run(pg, file_id, status="failed", current=False)
     orphan, _ = _run(pg, file_id, current=False)
     for r in (failed, orphan):
-        with pytest.raises(pg.errors.InvalidParameterValue, match="not superseded"):
-            _retire_fn(pg, [r], _KEYS)
+        _assert_refused(_refusal(pg, lambda: _retire_fn(pg, [r], _KEYS)),
+                        pg.errors.InvalidParameterValue, "not superseded")
+
+
+@pg_only
+def test_the_not_null_superseded_by_is_the_backstop_under_the_superseded_guard(pg):
+    """The superseded guard is doubled by a CONSTRAINT: run_retirements.superseded_by is NOT NULL,
+    and a run that is not superseded has none. Shown firing on its own, as the owner (no function in
+    the way): the table cannot hold a retirement that names no superseding run."""
+    w = _world(pg)
+    op = pg.one("INSERT INTO litkb.run_retirement_ops (session_label, reason, runs) "
+                "VALUES ('t', 'constraint probe', 1) RETURNING op_id")[0]
+    err = _refusal(pg, lambda: pg.conn.execute(
+        "INSERT INTO litkb.run_retirements (run_id, op_id, file_id, stage, superseded_by, blocks, "
+        "pages, reference_rows) VALUES (%s, %s, %s, '5-reconcile', NULL, 1, 1, 0)",
+        (w["b"], op, w["file"])))
+    _assert_refused(err, pg.errors.NotNullViolation, "superseded_by")
+
+
+@pg_only
+def test_kill_a_failed_run_is_never_superseded_even_by_a_newer_run_at_the_key(pg):
+    """0031's "only ok runs are ever superseded" (auditor-D2 A1): a FAILED never-current stage-6 run
+    at the old key, OLDER than an ok run at the current key, is `not-superseded` — never retired."""
+    _, _, file_id = _file(pg)
+    _run(pg, file_id)
+    failed, _ = _run(pg, file_id, stage="6-references", current=False, key=_S6_OLD, status="failed",
+                     age_minutes=60)
+    _run(pg, file_id, stage="6-references", current=False, key=_S6_NEW)
+    assert _status(pg, failed) == ("not-superseded", None, 0)
+    assert RT.plan(pg.session("litkb_reader"), _KEYS, files=[file_id])["eligible"] == []
+    _assert_refused(_refusal(pg, lambda: _retire_fn(pg, [failed], _KEYS)),
+                    pg.errors.InvalidParameterValue, "not superseded")
+
+
+@pg_only
+def test_evidence_rows_counts_each_evidence_row_once(pg):
+    """auditor-D2 F4: a use_evidence row names its run AND a block of that run; counting both legs
+    counted every row twice. One row -> 1; a second row on another block of the same run -> 2."""
+    w = _world(pg)
+    assert _status(pg, w["a"])[2] == 1
+    uv = pg.one("SELECT use_version_id FROM litkb.use_evidence WHERE run_id = %s", (w["a"],))[0]
+    blk = pg.one("INSERT INTO litkb.blocks (file_id, run_id, page_no, type, text) VALUES (%s, %s, 2, "
+                 "'paragraph', 'A second quoted passage.') RETURNING id", (w["file"], w["a"]))[0]
+    pg.conn.execute("INSERT INTO litkb.use_evidence (use_version_id, block_id, run_id, page, quote, "
+                    "char_start, char_end, stance) VALUES (%s, %s, %s, 2, 'second', 2, 8, 'context')",
+                    (uv, blk, w["a"]))
+    assert _status(pg, w["a"])[2] == 2
 
 
 @pg_only
@@ -182,8 +253,9 @@ def test_kill_the_pointer_never_moves_back_onto_a_retired_run(pg):
     w = _world(pg)
     _retire_fn(pg, [w["b"]], _KEYS)
     ingest = pg.session("litkb_ingest")
-    with pytest.raises(pg.errors.InvalidParameterValue, match="is retired"):
-        ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["c"], w["b"]))
+    _assert_refused(_refusal(pg, lambda: ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)",
+                                                        (w["file"], w["c"], w["b"]))),
+                    pg.errors.InvalidParameterValue, "is retired")
     assert pg.one("SELECT current_run_id FROM litkb.files WHERE id = %s", (w["file"],))[0] == w["c"]
     d, _ = _run(pg, w["file"], current=False)
     ingest.execute("SELECT litkb.set_current_run(%s, %s, %s)", (w["file"], w["c"], d))
@@ -210,8 +282,8 @@ def test_the_two_reported_counters_name_what_is_left(pg):
 def test_a_run_is_retired_once(pg):
     w = _world(pg)
     _retire_fn(pg, [w["b"]], _KEYS)
-    with pytest.raises(pg.errors.UniqueViolation, match="already retired"):
-        _retire_fn(pg, [w["b"]], _KEYS)
+    _assert_refused(_refusal(pg, lambda: _retire_fn(pg, [w["b"]], _KEYS)),
+                    pg.errors.UniqueViolation, "already retired")
 
 
 @pg_only
@@ -248,8 +320,8 @@ def test_kill_a_stale_key_named_as_current_supersedes_nothing(pg):
     new, _ = _run(pg, file_id, stage="6-references", current=False, key=_S6_NEW)
     stale = {"6-references": _S6_OLD}
     assert RT.plan(pg.session("litkb_reader"), stale, files=[file_id])["eligible"] == []
-    with pytest.raises(pg.errors.InvalidParameterValue, match="not superseded"):
-        _retire_fn(pg, [new], stale)
+    _assert_refused(_refusal(pg, lambda: _retire_fn(pg, [new], stale)),
+                    pg.errors.InvalidParameterValue, "not superseded")
 
 
 @pg_only
@@ -274,26 +346,63 @@ def test_the_python_refusal_vocabulary_is_the_sqls(pg):
     assert tuple(re.findall(r"THEN '([a-z-]+)'", tail)) == RT.REFUSALS
 
 
-def test_the_cli_is_a_dry_run_unless_told_and_apply_needs_who_and_why(monkeypatch):
-    """--apply without a session label and a reason is refused BEFORE any login is opened. The
-    database named is the worker one, so a mutant that got past the refusal could never reach
-    live (worker databases admit only litkb_test)."""
+_OPENED = "a login was OPENED: the --apply refusal was bypassed"
+
+
+def _no_logins(monkeypatch):
+    """Every login cmd_runs could open raises a SystemExit that SAYS so, so a bypassed refusal is a
+    failed assertion on the message, never a connection error (auditor-D2 F2, R6)."""
+    from litkb import ingest as _ingest
+    from litkb.db import connect as c
+
+    def opened(*a, **kw):
+        raise SystemExit(_OPENED)
+    monkeypatch.setattr(c, "connect", opened)
+    monkeypatch.setattr(_ingest, "connect", opened)
+
+
+def _cli_exit(argv):
     from litkb import commands
     from litkb.db import connect as c
+
+    with pytest.raises(SystemExit) as ei:
+        commands.main(["--db", c.DB_TEST, *argv])
+    return str(ei.value)
+
+
+def test_the_cli_is_a_dry_run_unless_told_and_apply_needs_who_and_why(monkeypatch):
+    """--apply without a session label and a reason is refused BEFORE any login is opened."""
+    from litkb import commands
 
     a = commands.build_parser().parse_args(["runs", "retire"])
     assert a.cmd == "runs" and a.runs_cmd == "retire" and a.apply is False
     assert "runs" in commands._OWN_LOGINS
     monkeypatch.delenv("LITKB_SESSION", raising=False)
-    with pytest.raises(SystemExit, match="--reason"):
-        commands.main(["--db", c.DB_TEST, "runs", "retire", "--apply"])
-    with pytest.raises(SystemExit, match="--reason"):
-        commands.main(["--db", c.DB_TEST, "--session", "s4", "runs", "retire", "--apply"])
+    _no_logins(monkeypatch)
+    for argv in (["runs", "retire", "--apply"],                               # neither
+                 ["--session", "s4", "runs", "retire", "--apply"],            # no reason
+                 ["runs", "retire", "--apply", "--reason", "superseded"]):    # no session
+        msg = _cli_exit(argv)
+        assert "--reason" in msg and msg != _OPENED, (argv, msg)
+
+
+def test_a_session_label_of_invisible_characters_is_no_session_label(monkeypatch):
+    """cmd_runs normalises the label (textnorm.norm_label) BEFORE the who/why check: a label made only
+    of invisible characters is truthy and survives .strip(), and without the normalisation it would
+    sign the op as a session nobody can read."""
+    monkeypatch.delenv("LITKB_SESSION", raising=False)
+    _no_logins(monkeypatch)
+    msg = _cli_exit(["--session", "\u200b\u2060", "runs", "retire", "--apply", "--reason", "r"])
+    assert "--reason" in msg and msg != _OPENED, msg
 
 
 def test_the_op_refuses_to_apply_without_who_and_why():
-    with pytest.raises(ValueError, match="session label and a reason"):
+    try:
         RT.retire(_NoRead(), object(), apply=True, session=" ", reason="r", keys={})
+        err = None
+    except ValueError as e:
+        err = e
+    assert err is not None and "session label and a reason" in str(err), err
 
 
 class _NoRead:

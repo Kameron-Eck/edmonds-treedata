@@ -1349,8 +1349,8 @@ def test_the_gold_cross_page_paragraph_is_stored_on_the_page_it_is_printed_on():
 # per box: Docling's per-prov `charspan`, GROBID's `<s>` coordinates.
 
 def test_prov_pieces_tile_the_text_across_a_space_join_and_a_hyphen_join_CONSTRUCTED():
-    """CONSTRUCTED items with the exact charspans docling 2.127.0's `_merge_elements` writes
-    (readingorder_model.py:657-686): a merged piece's span is taken BEFORE the join, so it is
+    """CONSTRUCTED items with the exact charspans docling 2.127.0's
+    `ReadingOrderModel._merge_elements` writes: a merged piece's span is taken BEFORE the join, so it is
     exact after a space and two characters too far after a removed hyphen."""
     from litkb.extract import docling as D
 
@@ -1369,6 +1369,10 @@ def test_prov_pieces_tile_the_text_across_a_space_join_and_a_hyphen_join_CONSTRU
     assert D.prov_pieces({"text": "alpha beta gamma", "prov": [{"charspan": [0, 5]},
                                                                {"charspan": [3, 9]}]}) is None
     assert D.prov_pieces({"text": "alpha beta", "prov": [{"charspan": [0, 5]}, {}]}) is None
+    # a span whose LENGTH says "space join" but whose text has no space before it: the join the
+    # span describes is not the text we hold, so no cut (auditor-D2 A3: this check had no test)
+    assert D.prov_pieces({"text": "alphaXbeta gamma", "prov": [{"charspan": [0, 5]},
+                                                               {"charspan": [6, 16]}]}) is None
 
 
 _TEI_CROSS_PAGE = """<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><div>

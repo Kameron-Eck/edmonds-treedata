@@ -77,10 +77,15 @@ RETURNS TABLE (run_id uuid, file_id uuid, stage text, pipeline_version text, sta
                is_current boolean, was_current boolean, evidence_rows bigint,
                superseded_by uuid, retired_op uuid, refusal text)
 LANGUAGE sql STABLE SET search_path = litkb, public, pg_temp AS $$
+  -- One row per (evidence row, run it cites): the row's own run_id, and the run of the block it
+  -- quotes. The two are normally the same run (0007/0026 keep them equal), so this is a UNION of
+  -- (id, run) PAIRS, never a UNION ALL: a UNION ALL counted every evidence row twice (auditor-D2 F4:
+  -- live has ONE row per held run, reported as 2). The UNION is the one thing that makes the count
+  -- below a count of EVIDENCE ROWS, and a column a threshold is read from (mutation row D2R9).
   WITH cited AS (
-    SELECT e.run_id AS rid FROM use_evidence e
-    UNION ALL
-    SELECT b.run_id FROM use_evidence e JOIN blocks b ON b.id = e.block_id),
+    SELECT e.id AS eid, e.run_id AS rid FROM use_evidence e
+    UNION
+    SELECT e.id, b.run_id FROM use_evidence e JOIN blocks b ON b.id = e.block_id),
   facts AS (
     SELECT r.id, r.file_id, r.stage, r.pipeline_version, r.status, r.created_at,
            r.tool, r.tool_version, r.params_hash,

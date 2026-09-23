@@ -5,6 +5,12 @@
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_fragment_text.py --compare <before.jsonl> <after.jsonl> \
         --csv ../Reports/LITKB_FRAGMENT_TEXT_2026-09-22.csv
 
+CORPUS-WIDE (auditor-D2 F5/F6): ``--corpus --out <rows.jsonl>`` re-runs reconcile on EVERY stored P5
+artifact pair (TEI + Docling JSON + the PDF the census names), one JSON line per file, and
+``--compare-corpus BEFORE AFTER --csv ../Reports/LITKB_FRAGMENT_TEXT_CORPUS_2026-09-22.csv`` counts,
+per file and in a TOTAL row, the blocks, the merges, the empty-text blocks and fragments, and the
+boxes that exist after and not before.
+
 WHICH CODE is measured is the ``PYTHONPATH`` the caller gives: the same instrument run once over
 main's ``pipeline/`` (``stage5-3``) and once over the branch's (``stage5-4``), on the SAME inputs,
 is the before/after. The instrument records ``reconcile.PIPELINE_VERSION`` in every row, so a row
@@ -173,13 +179,127 @@ def compare(before_path, after_path, csv_path):
     return out
 
 
+# ── corpus-wide (auditor-D2 F5/F6): every stored P5 artifact pair, not only the cross-page set ──
+
+#: Block kinds that carry TEXT. A table's or a figure's `text` is empty or a caption by design, so an
+#: empty one is not a fragment that lost its words.
+TEXT_KINDS = ("paragraph", "heading", "caption", "footnote", "reference", "equation", "furniture",
+              "title", "author", "affiliation")
+
+
+def _box(c):
+    return f"{c.page}:" + ",".join(f"{v:.2f}" for v in c.bbox)
+
+
+def _one_file(args):
+    """Reconcile ONE stored P5 artifact pair (TEI + Docling JSON + the PDF) with whatever `litkb` is on
+    the path. -> a summary row, or {"sha", "error"}; never raises (one bad file is not a run)."""
+    sha, rec = args
+    from litkb.extract import docling as D
+    from litkb.extract import inventory as I
+    from litkb.extract import reconcile as R
+
+    try:
+        pdf = rec["path"]
+        tei_path = os.path.join(P5_DERIVED, "tei", sha + ".tei.xml")
+        tei = open(tei_path, "rb").read() if os.path.exists(tei_path) else None
+        doc = D.load(os.path.join(P5_DERIVED, "docling", sha + ".docling.json"))
+        canonical, _dis, st = R.reconcile(pdf, tei, doc, rec, ocr_pages=rec.get("ocr_pages") or (),
+                                          frames=I.page_frames(pdf))
+        empty = [c for c in canonical if c.kind in TEXT_KINDS and not (c.text or "").strip()]
+        return {"sha": sha, "name": os.path.basename(pdf), "version": R.PIPELINE_VERSION,
+                "blocks": len(canonical), "merged_regions": st["merged_regions"],
+                "dropped_overmerges": st["dropped_overmerges"],
+                "fragment_page_text": st.get("fragment_page_text") or {},
+                "empty_text_blocks": len(empty),
+                "empty_text_fragments": sum(1 for c in empty if (c.extractor or {}).get("fragment")),
+                "empty_sentence_fragments": sum(1 for c in empty
+                                                if (c.extractor or {}).get("page_text") == "sentence"),
+                "boxes": sorted(_box(c) for c in canonical),
+                "empty_boxes": sorted(_box(c) for c in empty)}
+    except Exception as e:  # noqa: BLE001 - reported per file, never a dead run
+        return {"sha": sha, "error": f"{type(e).__name__}: {e}"[:300]}
+
+
+def measure_corpus(workers=4):
+    import concurrent.futures
+
+    census = _census()
+    shas = sorted(f.split(".")[0] for f in os.listdir(os.path.join(P5_DERIVED, "docling"))
+                  if f.endswith(".docling.json"))
+    todo = [(s, census[s]) for s in shas if s in census]
+    with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as ex:
+        return list(ex.map(_one_file, todo))
+
+
+def compare_corpus(before_path, after_path, csv_path):
+    """-> per-file rows (and a TOTAL row) comparing two corpus runs: blocks, empty-text blocks and
+    fragments, and how many of the AFTER boxes did not exist BEFORE (and how many of those are empty)."""
+    def load(p):
+        with open(p, encoding="utf-8") as fh:
+            return {r["sha"]: r for r in (json.loads(line) for line in fh)}
+
+    b, a = load(before_path), load(after_path)
+    out = []
+    for sha in sorted(set(b) | set(a)):
+        x, y = b.get(sha, {}), a.get(sha, {})
+        if "error" in x or "error" in y or not x or not y:
+            out.append({"name": x.get("name") or y.get("name") or sha, "error": x.get("error") or y.get("error")
+                        or "missing on one side"})
+            continue
+        bb, ab = set(x["boxes"]), set(y["boxes"])
+        new = ab - bb
+        out.append({
+            "name": x["name"], "error": "",
+            "before_blocks": x["blocks"], "after_blocks": y["blocks"],
+            "before_merged": x["merged_regions"], "after_merged": y["merged_regions"],
+            "before_dropped_overmerges": x["dropped_overmerges"],
+            "after_dropped_overmerges": y["dropped_overmerges"],
+            "before_empty_text_blocks": x["empty_text_blocks"], "after_empty_text_blocks": y["empty_text_blocks"],
+            "before_empty_text_fragments": x["empty_text_fragments"],
+            "after_empty_text_fragments": y["empty_text_fragments"],
+            "after_empty_sentence_fragments": y["empty_sentence_fragments"],
+            "new_boxes": len(new), "gone_boxes": len(bb - ab),
+            "new_boxes_empty": len(new & set(y["empty_boxes"])),
+            "after_page_text": json.dumps(y["fragment_page_text"], sort_keys=True),
+        })
+    ok = [r for r in out if not r["error"]]
+    total = {"name": "TOTAL", "error": f"{len(out) - len(ok)} files errored"}
+    for k in ok[0] if ok else []:
+        if k not in ("name", "error", "after_page_text"):
+            total[k] = sum(r[k] for r in ok)
+    total["files_blocks_changed"] = sum(1 for r in ok if r["before_blocks"] != r["after_blocks"])
+    out.append(total)
+    cols = list(dict.fromkeys(k for r in out for k in r))
+    with open(csv_path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=cols)
+        w.writeheader()
+        w.writerows(out)
+    return total
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--label", choices=("before", "after"))
     ap.add_argument("--out")
     ap.add_argument("--compare", nargs=2, metavar=("BEFORE", "AFTER"))
     ap.add_argument("--csv")
+    ap.add_argument("--corpus", action="store_true",
+                    help="every stored P5 artifact pair (with --out: one JSON line per file)")
+    ap.add_argument("--compare-corpus", nargs=2, metavar=("BEFORE", "AFTER"))
+    ap.add_argument("--workers", type=int, default=4)
     a = ap.parse_args(argv)
+    if a.compare_corpus:
+        total = compare_corpus(a.compare_corpus[0], a.compare_corpus[1], a.csv)
+        print(json.dumps(total))
+        return 0
+    if a.corpus:
+        rows = measure_corpus(a.workers)
+        with open(a.out, "w", encoding="utf-8") as fh:
+            for r in rows:
+                fh.write(json.dumps(r, default=str) + "\n")
+        print(f"corpus rows={len(rows)} errors={sum('error' in r for r in rows)} out={a.out}")
+        return 0
     if a.compare:
         out = compare(a.compare[0], a.compare[1], a.csv)
         print(f"rows={len(out)} csv={a.csv}")

@@ -2230,7 +2230,13 @@ def readability_fire(name, *, db, workdir, conn=None):
             fn, counter = {"cap": (F.fire_cap, "over_cap_bound"), "book": (F.fire_book, "books_extracted"),
                            "scan": (F.fire_scan, "scans_ocr_unrouted"),
                            "lease": (F.fire_lease, "mutated_leases_accepted")}[name]
-            out = fn(conn, work)
+            try:
+                out = fn(conn, work)
+            except FileNotFoundError as e:
+                # fire_scan needs the REAL Anderson 1957 copy and its recorded no-OCR artifact: on a
+                # machine without them the known-bad CANNOT RUN — never reported as fired, never a pass
+                lines.append(f"fire={name} CANNOT RUN on this machine: {e}")
+                return {"name": name, "lines": lines, "fired": False}
             base, control, bad = _counter_arms(out, counter)
             lines.append(f"fire={name} arm=control {counter}={control} baseline={base} "
                          f"blocks={out['guarded'].get('blocks')}")

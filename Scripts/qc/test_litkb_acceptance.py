@@ -1999,10 +1999,18 @@ def test_readability_a_manifest_with_other_constants_or_a_swapped_workstream_is_
 @pytest.mark.parametrize("db", ["litkb", "LITKB ", "postgres"])
 def test_readability_fire_refuses_a_database_that_is_not_a_worker_database(mod, monkeypatch, db):
     """`--fire` resets and migrates its database. `litkb` — and anything that is not `litkb_test*` —
-    is refused before a connection is opened (the `--replay` rule)."""
+    is refused before a connection is opened (the `--replay` rule).
+
+    THE GUARD UNDER TEST IS ISOLATED. `litkb.db.connect` refuses a bad LITKB_TEST_DB by itself, at
+    IMPORT time — so run alone in a fresh process (nothing had imported it yet) this test passed with
+    the guard block removed: connect.py answered for it. Measured 2026-09-22 (mutation S4R12, `-k`):
+    3 passed under the mutant. Importing connect BEFORE the environment changes takes that layer out,
+    and the match is the guard's own sentence, so only the guard can make this test pass."""
+    from litkb.db import connect as _c  # noqa: F401 — imported under the worker db, before the env changes
+
     monkeypatch.setenv("LITKB_TEST_DB", db)
     monkeypatch.setattr(mod, "_edge_run", lambda: pytest.fail("the fire reached past its guard"))
-    with pytest.raises(SystemExit, match="refuses"):
+    with pytest.raises(SystemExit, match="writes, resets and migrates its database"):
         mod.main(["readability", "--fire", "cap"])
 
 
@@ -2044,3 +2052,17 @@ def test_readability_fire_names_and_gated_counters_are_the_plans(mod):
         "books_extracted", "quarantined_without_db_state", "over_cap_bound", "scans_ocr_unrouted",
         "mutated_leases_accepted")
     assert set(READABILITY_KNOWN_BADS) == set(mod.READABILITY_GATED)
+
+
+@pg_only
+def test_readability_a_fire_that_cannot_run_is_never_reported_fired(mod, litkb_pg_base, tmp_path, monkeypatch):
+    """INJECTED: the REAL Anderson 1957 copy `--fire scan` needs is pointed at a path that does not
+    exist (a machine without the corpus). The fire says CANNOT RUN and is not FIRED — a known-bad that
+    did not run is neither a fire nor a pass. fire_scan refuses before it writes anything."""
+    from litkb.db import connect as c
+    from litkb.extract import queue_fire as F
+
+    monkeypatch.setattr(F, "ANDERSON", tmp_path / "absent" / "Anderson_1957.pdf")
+    _psycopg, conn, _ran = litkb_pg_base
+    out = mod.readability_fire("scan", db=c.DB_TEST, workdir=tmp_path, conn=conn)
+    assert out["fired"] is False and "CANNOT RUN" in out["lines"][-1], out["lines"]

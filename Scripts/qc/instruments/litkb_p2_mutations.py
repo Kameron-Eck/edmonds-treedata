@@ -2219,6 +2219,7 @@ eq(replace, "EQ40", QPY, "                self._grobid_up = bool(G.GrobidHold(wa
    "                self._grobid_up = bool(G.start(wait=300, hold=True))\n",
    "the queue worker takes GROBID through grobid.start again, which restarts a busy unit under its "
    "owner (auditor-A R2)")
+M[-1]["tests"] = ["qc/test_litkb_grobid.py"]      # the R2 test lives beside the ownership rule
 M.append(dict(id="EQ41", kind="replace", file=f"{PKG}/extract/grobid.py",
               old='    return r.returncode == 0, "alive after" in out\n',
               new="    return r.returncode == 0, True\n",

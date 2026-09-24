@@ -1,0 +1,40 @@
+attempt_id,sub_status,basis,free_to_fix,cause,route,http_codes,kept,kept_bytes,at
+01a0a070-5aec-7999-8962-d74180f33eb4,challenge_or_bot_check,detail,,open_access books blocked only when Client.is_challenge fired,open_access,200 200 403 403,,,2026-09-14 08:01:53.001543-07:00
+01a0a071-0f4c-76b4-a892-cd876eccac30,challenge_or_bot_check,detail,,open_access books blocked only when Client.is_challenge fired,open_access,200 200 200 403,,,2026-09-14 08:02:39.177281-07:00
+01a0a07a-0c39-74f1-b576-e355e2b6e53d,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200,,,2026-09-14 08:12:28.216950-07:00
+01a0adc8-29a1-7037-8809-abf8c46e2760,challenge_or_bot_check,bytes,,cloudflare,open_access,403,_quarantine/Pfitzmann_2022_doclaynet-large-human-annotated__blocked__b65a33b17354.pdf,5631,2026-09-16 22:12:51.358190-07:00
+01a0adcf-b7af-7c47-afbd-fccf1166e18b,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200,,,2026-09-16 22:21:06.479495-07:00
+01a0add0-8982-7d2c-8bdf-03c4276f8bd8,challenge_or_bot_check,bytes,,cloudflare,open_access,403,_quarantine/Pfitzmann_2022_doclaynet-large-human-annotated__blocked__8228fc78930e.pdf,5631,2026-09-16 22:22:00.192219-07:00
+01a0add7-31b0-7347-9689-5781e8500cec,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200,,,2026-09-16 22:29:16.463936-07:00
+01a0add8-88f2-7d8f-b2ac-27b13e67572a,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200,,,2026-09-16 22:30:44.338582-07:00
+01a0c371-702a-79de-928d-abbb9dc06f4e,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 03:09:46.535274-07:00
+01a0c372-0de6-71bf-9d9e-e3b501d72872,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 03:10:26.915262-07:00
+01a0c372-204e-791f-8374-91b04eff7ed4,challenge_or_bot_check,bytes,,cloudflare,open_access,403,_quarantine/Pfitzmann_2022_doclaynet-large-human-annotated__blocked__90787a37f1e6.pdf,5631,2026-09-21 03:10:31.627988-07:00
+01a0c379-cd16-7866-a4df-cd0ba65fa16e,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 03:18:54.614258-07:00
+01a0c37d-b93e-70a4-a45d-83f2f314e7ee,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 03:23:11.670583-07:00
+01a0c37d-e379-72f0-b8c1-f2e9f11a9f93,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 03:23:22.486504-07:00
+01a0c6c1-2e6a-7665-8759-60fa947df723,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 18:35:44.234075-07:00
+01a0c715-9e68-78b4-852b-eb486da673d4,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:07:57.928255-07:00
+01a0c717-00f1-7651-871c-e61136a72099,challenge_or_bot_check,bytes,,akamai,open_access,403 403,_quarantine/Morgan_2024_deep-learning-urban-tree__blocked__e8853a7785a1.pdf,409,2026-09-21 20:09:28.688979-07:00
+01a0c717-5ca6-7e52-b32d-06f1d55fb6b2,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:09:52.166601-07:00
+01a0c717-bb07-7198-8ada-ec586d7d6c4f,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:10:16.326820-07:00
+01a0c718-84f9-71b9-9312-9754720f6e98,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:11:08.024764-07:00
+01a0c718-92dd-762f-a3bf-7ffab898c9ee,challenge_or_bot_check,bytes,,cloudflare,open_access,403,_quarantine/Storey_2018_normalizing-shadows-multi-temporal__blocked__895472cc13aa.pdf,5848,2026-09-21 20:11:11.580986-07:00
+01a0c719-ac9d-7794-951e-e8827c297a57,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:12:23.709142-07:00
+01a0c71a-7cae-7907-87d6-4f48e00912c7,challenge_or_bot_check,detail,,open_access books blocked only when Client.is_challenge fired,open_access,403 403 200,_quarantine/Li_2022_identification-undocumented-buildings-cadastral__blocked__e00d18e93898.pdf,832805,2026-09-21 20:13:16.974150-07:00
+01a0c71b-4960-75f4-bc43-abb350c1ddec,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:14:09.376118-07:00
+01a0c71b-57e0-7b79-8fdd-14063275b31f,challenge_or_bot_check,bytes,,cloudflare,open_access,403,_quarantine/Schindler_2024_efficient-tree-mapping-through__blocked__1b1168363042.pdf,5604,2026-09-21 20:14:13.088189-07:00
+01a0c71b-b482-7f43-9fec-7e27fade5c00,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:14:36.802697-07:00
+01a0c71b-cdd8-7139-9144-172e0a251550,challenge_or_bot_check,bytes,,cloudflare,open_access,403 403,_quarantine/Hao_2023_co-effect-image-resolution__blocked__12f23971bc10.pdf,5775,2026-09-21 20:14:43.287676-07:00
+01a0c71c-97d2-7cc7-bbd6-5a1bf1229a6e,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:15:34.994522-07:00
+01a0c71e-5da7-7faf-be6d-422d8b844532,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:17:31.175714-07:00
+01a0c71e-7579-757c-a342-18692ecf3c3e,challenge_or_bot_check,bytes,,akamai,open_access,403 403,_quarantine/Chen_2023_urban-tree-canopy-mapping__blocked__a3b93f589df6.pdf,413,2026-09-21 20:17:37.270164-07:00
+01a0c71e-d5fe-7bbc-8884-adc28bc7129c,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:18:01.982451-07:00
+01a0c71e-f062-72c4-bdc2-00112f1634da,challenge_or_bot_check,bytes,,cloudflare,open_access,403 403,_quarantine/He_2025_samois-efficient-fine-tuned__blocked__b9c174f57627.pdf,5775,2026-09-21 20:18:08.737734-07:00
+01a0c71f-cf8e-7e72-9fc1-581a780a8e8c,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:19:05.870640-07:00
+01a0c720-17bd-7b75-8fdb-a24786c6def8,challenge_or_bot_check,bytes,,akamai,open_access,403 200 403,_quarantine/Wang_2025_unmanned-aerial-vehicle-uav__blocked__9318ccbd6426.pdf,413,2026-09-21 20:19:24.349314-07:00
+01a0c720-7d47-7d77-a37f-8333918a2802,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:19:50.343538-07:00
+01a0c721-6195-7409-be32-9701219bb51f,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:20:48.788942-07:00
+01a0c722-cdeb-77bb-8022-0c9c557ab911,challenge_or_bot_check,bytes,,akamai,open_access,403 200 403,_quarantine/Coulter_2008_assessment-spatial-co-registration__blocked__21a1d970dfbb.pdf,411,2026-09-21 20:22:22.058983-07:00
+01a0c724-04bf-744f-9fc7-c4708213b1d8,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:23:41.630964-07:00
+01a0c72d-074c-7445-8e06-f674a5e17622,challenge_or_bot_check,detail,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:33:32.107993-07:00

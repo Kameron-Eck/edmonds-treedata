@@ -1,0 +1,154 @@
+{
+  "client": {
+    "class": "litkb.netutil.Client",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
+  },
+  "doi": "10.1371/journal.pone.0326562",
+  "final": {
+    "status": 200,
+    "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0326562",
+    "verdict": "landing",
+    "why": "a page with citation metadata"
+  },
+  "grant": "brief-C2b-stage-c.md item 2 (S4.5, 2026-09-23): one GET of one real landing page per publisher rule, a DOI of that publisher from the corpus; nothing else",
+  "hops": [
+    {
+      "n": 0,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.1371/journal.pone.0326562"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a3fb682a9a4fdf27-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:53:05 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=7UScyacsSXAi1kzMrr3fNAu9C5B0nD72ThuKxwippX1sEc1NnkoOr9GfZwXzpr40hx7TtW6vuUwhsDxFmdHbPJp4FN8hfn%2FQaVEGGR%2FSP4OS2JPJTbKtIbQ%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Wed, 23 Sep 2026 18:06:01 GMT",
+          "location": "https://dx.plos.org/10.1371/journal.pone.0326562",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 181,
+        "scrubbed": false,
+        "sha256": "48121dfa4e7554f444371776305789a39797b8abba98d0bbb3a7ddca55abe0c8",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://dx.plos.org/10.1371/journal.pone.0326562"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Alt-Svc": "h3=\":443\"; ma=2592000",
+          "Connection": "close",
+          "Content-Length": "338",
+          "Content-Type": "text/html; charset=iso-8859-1",
+          "Date": "Wed, 23 Sep 2026 17:53:05 GMT",
+          "Location": "https://journals.plos.org/plosone/doi?id=10.1371/journal.pone.0326562",
+          "Server": "Apache",
+          "Strict-Transport-Security": "max-age=31536000",
+          "Via": "1.1 google"
+        },
+        "length": 338,
+        "scrubbed": false,
+        "sha256": "886700822b6866098cf7926299c5e161ffd1a0d112fcc3673b0098965f13fcb4",
+        "status": 301
+      }
+    },
+    {
+      "n": 2,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://journals.plos.org/plosone/doi?id=10.1371/journal.pone.0326562"
+      },
+      "response": {
+        "body_file": "hop2.body",
+        "headers": {
+          "Alt-Svc": "h3=\":443\"; ma=2592000",
+          "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+          "Connection": "close",
+          "Content-Language": "en-US",
+          "Content-Length": "0",
+          "Date": "Wed, 23 Sep 2026 17:53:06 GMT",
+          "Expires": "0",
+          "Location": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0326562",
+          "Pragma": "no-cache",
+          "Server": "Apache",
+          "Strict-Transport-Security": "max-age=31536000",
+          "Via": "1.1 google",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY",
+          "X-XSS-Protection": "1; mode=block"
+        },
+        "length": 0,
+        "scrubbed": false,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "status": 301
+      }
+    },
+    {
+      "n": 3,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0326562"
+      },
+      "response": {
+        "body_file": "hop3.body",
+        "headers": {
+          "Alt-Svc": "h3=\":443\"; ma=2592000",
+          "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+          "Connection": "close",
+          "Content-Language": "en-US",
+          "Content-Type": "text/html;charset=UTF-8",
+          "Date": "Wed, 23 Sep 2026 17:53:06 GMT",
+          "Expires": "0",
+          "Pragma": "no-cache",
+          "Server": "Apache",
+          "Strict-Transport-Security": "max-age=31536000",
+          "Transfer-Encoding": "chunked",
+          "Vary": "Accept-Encoding",
+          "Via": "1.1 google",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY",
+          "X-XSS-Protection": "1; mode=block"
+        },
+        "length": 295865,
+        "scrubbed": false,
+        "sha256": "e474c5d0c4a3b05ab9589e6fe6b9ed76d42c8aa07059f553347996f9f07c5402",
+        "status": 200
+      }
+    }
+  ],
+  "kind": "litkb-landing-recording",
+  "recorded_at": "2026-09-23T17:53:06.515989+00:00",
+  "rule": "plos",
+  "scrub": "litkb.cassette.scrub_bytes / scrub_url (registered secrets), then the client-address mask of qc/instruments/litkb_landing_record.py (client_ips / scrub_ips); a scrubbed body's sha256 is of the bytes as written",
+  "version": 1,
+  "walk": {
+    "accept": "text/html",
+    "max_hops": 10,
+    "meta_refresh": true
+  },
+  "work_key": "VelasquezCamacho_2025_monitoring-temporal-changes-large"
+}

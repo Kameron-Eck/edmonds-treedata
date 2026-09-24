@@ -96,8 +96,10 @@ HEADING_KINDS = ("title", "heading")
 NO_FILE = ("the work is admitted and no PDF is bound to it, and this hunt could not attempt "
            "acquisition for it (the work is not yet visible in main). Run "
            "`litkb acquire --key <key>` (open access, then the archive, then Sci-Hub) or "
-           "`--from-file <PDF>`, then hunt the reference again — the second hunt picks up at the "
-           "bound file.")
+           "`--from-file <PDF>`, then hunt the reference again. A `--from-file` bind is a PROPOSAL "
+           "(migration 0034's operator-bind gate): the proposing workstream's next hunt picks up at it, "
+           "and every other workstream sees it only once a second session approves it "
+           "(`litkb approve-files <version_id>`).")
 
 #: SPEND RULE (Kam, 2026-09-16 night; decisions.yaml litkb-p0-foundation): a hunt proceeds to
 #: acquisition — open access, then the archive by DOI — BY DEFAULT. `--no-spend` / `spend=False`
@@ -108,11 +110,13 @@ NO_SPEND = ("the work is admitted and no PDF is bound to it. This hunt was told 
             "Run `litkb acquire --key <key>` or hunt again without --no-spend — the default hunt "
             "spends.")
 
-#: Every automated route was tried (open access, then the archive, then Sci-Hub) and none of them
-#: landed a file. `acquisition.attempts` names what each route answered.
-SPEND_EXHAUSTED = ("hunt spent by default (open access, then the archive, then Sci-Hub) and none "
-                   "of them landed a file; see `acquisition.attempts`. "
-                   "`litkb acquire --key <key> --from-file <PDF>` is the manual route.")
+#: Every automated route was tried (the whole registered ladder since S4.5 — `run.ladder_routes`: Stages
+#: A, B, C and E, then the shadow tier its switch allows) and none of them landed a file.
+#: `acquisition.attempts` names what each route answered.
+SPEND_EXHAUSTED = ("hunt spent by default (every rung of the acquisition ladder the registry holds) and "
+                   "none of them landed a file; see `acquisition.attempts`. "
+                   "`litkb acquire --key <key> --from-file <PDF>` is the manual route: it lands a PROPOSAL "
+                   "a second session approves (`litkb approve-files <version_id>`).")
 
 
 class HuntRefused(Exception):
@@ -633,38 +637,62 @@ def guess_fields(text, info, title=None, author=None, year=None, *, text_label="
     return t, a, y, how
 
 
-def land_download(store, stem, data):
-    """Bytes → ``_litkb_staging/incoming/<stem>.download``, then the shape check.
+#: The hunt refusal a URL download ends in when THE ACCEPTANCE TEST refuses it, by the refusal's quarantine label
+#: (`litkb.acquire.accept.quarantine_label`): the two byte failures keep the words this path has always answered,
+#: and bytes that ARE a PDF but not an article (a first-page stub, a preview) are an `admission-refused` — the
+#: hunt's closed REASONS do not grow in S4.5 (seam integrator-w2, S4.5 decision D17).
+ACCEPTANCE_REFUSALS = {"not-a-pdf": "not-a-pdf", "truncated-pdf": "truncated-pdf", "bad-file": "admission-refused"}
 
-    -> (the .download path, sha256). Raises HuntRefused('not-a-pdf'/'truncated-pdf') with the
-    quarantined path, never a deletion: the store holds no delete call at all.
+
+def land_download(store, stem, data, *, url=None, headers=None):
+    """Bytes → ``_litkb_staging/incoming/<stem>.download``, then THE ACCEPTANCE TEST.
+
+    -> (the .download path, sha256). Raises HuntRefused('not-a-pdf'/'truncated-pdf'/'admission-refused')
+    with the quarantined path, never a deletion: the store holds no delete call at all.
 
     It stops at ``.download`` because the work's KEY is not known yet — it is derived from the
     document's own first page, which is on the other side of this function. Nothing reads a PDF
     by its extension between here and :func:`file_under_key`: pypdfium2 is handed a path.
+
+    S4.5 decision D17 (seam integrator-w2): "every binding path runs the acceptance test" — the plan's
+    "the same acceptance test as every route" (item 5b). The URL path's own shape check (`pdf_shape`: header
+    and trailer) is replaced by `litkb.acquire.accept.accept`, which holds those two rules and adds the byte
+    floor, the qpdf check and the stub rules (on the bytes, the served Content-Type and the URL). A URL admission
+    has no registry record yet, so the record-reading steps (volume, cited) ABSTAIN (`metadata_fetched=False`,
+    guard 18: a verdict never rests on metadata that could not be fetched). `offer_to_bind` itself cannot run
+    here — it needs an admitted work and this path admits one AFTER the bytes (`front.admit_web`) — so the test
+    runs where the bytes arrive, before anything reads them, and its refusal keeps them in _quarantine/ with the
+    verdict in the sidecar. Bytes it had to unwrap (a gzip or tar holding the PDF) land as the PDF it found.
     """
     import hashlib
 
-    from litkb.acquire.store import pdf_shape
+    from litkb.acquire import accept as _accept
+    from litkb.acquire.store import reason_path
 
     sha = hashlib.sha256(data).hexdigest()
-    dl = store.write_new(store.free_name(store.incoming, stem, ".download"), data)
+    landed = data
     # BEGIN guard: a hunted download that is not a whole PDF is quarantined, never admitted
     # The 2026-09-15 incident in one line: 295,657 bytes of HTML written under a .pdf name and
     # admitted as a paper. The check is on the BYTES, before anything reads them as a document,
     # and the refusal keeps them — under a name that says what is wrong with them — because a
     # deletion is what made that incident unrecoverable rather than merely wrong.
-    shape, why = pdf_shape(data)
-    if shape != "pdf":
-        qpdf, _qtxt = store.to_quarantine(dl, None, stem, shape, sha)
-        qwhy = store.write_reason(qpdf, {
-            "status": "bad-file", "shape": shape, "reason": why, "route": "hunt",
-            "sha256": sha, "bytes": len(data), "moved_from": store.rel(dl),
-            "at": _now().isoformat()})
-        raise HuntRefused("not-a-pdf" if shape == "not-a-pdf" else shape, why,
-                          quarantined=store.rel(qpdf), quarantine_reason=store.rel(qwhy),
-                          sha256=sha, bytes=len(data))
+    v = _accept.accept(data, headers=headers, url=url, metadata_fetched=False)
+    if v.verdict != "accept":
+        label = _accept.quarantine_label(v.sub_status)
+        dl = store.write_new(store.free_name(store.incoming, stem, ".download"), data)
+        qpdf, _qtxt = store.to_quarantine(dl, None, stem, label, sha, reason={
+            "status": "bad-file", "shape": label, "sub_status": v.sub_status, "reason": v.reason,
+            "route": "hunt", "sha256": sha, "bytes": len(data), "moved_from": store.rel(dl),
+            "acceptance": v.summary(), "at": _now().isoformat()})
+        qwhy = reason_path(qpdf)                    # to_quarantine writes the sidecar (S4.5 item 8)
+        raise HuntRefused(ACCEPTANCE_REFUSALS[label], v.reason,
+                          quarantined=store.rel(qpdf), quarantine_reason=store.rel(qwhy), quarantine_label=label,
+                          sha256=sha, bytes=len(data), sub_status=v.sub_status, acceptance=v.summary())
+    if v.facts.get("unwrapped"):
+        landed = v.pdf
+        sha = hashlib.sha256(landed).hexdigest()
     # END guard: a hunted download that is not a whole PDF is quarantined, never admitted
+    dl = store.write_new(store.free_name(store.incoming, stem, ".download"), landed)
     return dl, sha
 
 
@@ -877,7 +905,8 @@ def _classify_fetch(status, data, url):
         raise HuntBlocked("403", f"the host answered 403 for {url}: it refused this client. No "
                                  "header, cookie or solver is added to get past a protection - "
                                  "fetch it in a browser session and hand it in with "
-                                 "`litkb acquire --key <key> --from-file <PDF>`.", status=st)
+                                 "`litkb acquire --key <key> --from-file <PDF>` (a PROPOSAL a second "
+                                 "session approves: `litkb approve-files`).", status=st)
     if st in (0, 408, 429) or 500 <= st <= 599:
         raise HuntApiError("fetch-transient",
                            f"the URL answered {st} - a transient answer, not a verdict on the "
@@ -1298,15 +1327,21 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                     progress=progress)
         # END guard: an HTML page is a web source in its own right, not a failed PDF download
         try:
-            dl, sha = land_download(store, stem, data)
+            dl, sha = land_download(store, stem, data, url=ref,
+                                    headers={"Content-Type": content_type} if content_type else None)
         except HuntRefused as e:
             # BEGIN call site: a hunted download the shape guard quarantined gets its database row
             if e.extra.get("quarantined"):
                 from litkb import quarantine as Q
+                # the quarantine REASON is the payload's label (litkb.quarantine.REASONS), never the hunt's
+                # refusal code: a stub the acceptance test refused is `admission-refused` to the hunt and `bad-file`
+                # to the quarantine (seam integrator-w2, S4.5 decision D17)
                 row = Q.try_record(Q.record, writer, ws_id, token, rel_path=e.extra["quarantined"],
                                    sha256=e.extra.get("sha256"), nbytes=e.extra.get("bytes") or 0,
-                                   reason=e.code, origin="hunt-url",
-                                   detail={"refused": e.code, "moved_from": "incoming"})
+                                   reason=e.extra.get("quarantine_label") or e.code, origin="hunt-url",
+                                   detail={"refused": e.code, "moved_from": "incoming",
+                                           **({"sub_status": e.extra["sub_status"]} if e.extra.get("sub_status")
+                                              else {})})
                 e.extra["quarantine_row"] = row
                 _quarantine_rows_failed([row], refusals)
             # END call site: a hunted download the shape guard quarantined gets its database row
@@ -1349,7 +1384,13 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
             # the hunt ends where an admission that refused the file already ends: `admission-refused`
             # (no new state and no new reason — hunt.STATES / REASONS are unchanged).
             from litkb import quarantine as Q
-            qpdf, _qtxt = store.to_quarantine(pdf, _txt, stem, "probe-error", sha)
+            # a sentence, held in a name: a string literal under a dict's "reason" key reads, to
+            # test_every_state_and_reason_this_module_emits_is_listed, as a hunt REASON word
+            why = "the file's page count could not be read, so it was never bound (fail closed)"
+            qpdf, _qtxt = store.to_quarantine(pdf, _txt, stem, "probe-error", sha, reason={
+                "status": "admission-refused", "label": "probe-error", "shape": "pdf", "route": "hunt-url",
+                "reason": why, "probe_error": e.probe_error, "sha256": sha, "bytes": len(data),
+                "moved_from": store.rel(pdf), "at": _now().isoformat()})
             # BEGIN call site: a hunted file the bind probe refused gets its database row
             row = Q.try_record(Q.record, writer, ws_id, token, rel_path=store.rel(qpdf), sha256=sha,
                                nbytes=len(data), reason="probe-error", origin="hunt-url",
@@ -1364,9 +1405,20 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                               quarantine_row=row) from None
         timing["admit"] = round(time.monotonic() - t0, 2)
         if res.get("outcome") != "proposed":
+            offered = None
+            # BEGIN guard: a refused-duplicate landing is offered to its work, never left unowned
+            # (LITKB_WORKPLAN.md S4.5 item 1: "a landing that offers a refused-duplicate file to its
+            # work through check 3"). Before S4.5 the PDF stayed in _litkb_staging/filed/ with no row
+            # at all — 187's protocol PDF and 235's two copies are still there (survey-data §0.10).
+            offered = _offer_refused_landing(writer, ws_id, token, res, pdf, _txt, out, refusals,
+                                             sha=sha, data=data, store=store, stem=stem, url=ref,
+                                             http_status=status, agent=agent, session=session)
+            # END guard: a refused-duplicate landing is offered to its work, never left unowned
+            where = {"quarantined": offered["quarantined"]} if offered and offered.get("quarantined") \
+                else {"landed": store.rel(pdf)}
             raise HuntRefused("admission-refused",
                               "the web source was not admitted; the checks say why.",
-                              admission=_thin(res), landed=store.rel(pdf))
+                              admission=_thin(res), **where, **({"offered": offered} if offered else {}))
         out["admission"] = _thin(res)
         # BEGIN call site: the URL path records its acquisition event
         # The acquisition-event contract (litkb/acquire/events.py): one provenance shape for every
@@ -1535,12 +1587,14 @@ def _finish_snapshot(db, ws_id, held, file_id, blocks, out, timing, refusals, *,
 
 
 def _default_acquire(conn, ws_id, token, work, *, store, agent, session):
-    """The acquisition `_spend_on_held` calls by default: the same `litkb acquire` route logic
-    (open access, then Anna's Archive by DOI, then Sci-Hub by DOI), at its own defaults. A test
-    passes `acquirer=` to stub this without opening a socket."""
-    from litkb.acquire.run import acquire
+    """The acquisition `_spend_on_held` calls by default: the `litkb acquire` ladder over EVERY rung the
+    registry holds (`run.ladder_routes`: Stages A, B, C and E, then the shadow tier its one switch allows),
+    not only today's three — seam integrator-w2 (S4.5 decision D19: a rung that registers is reached by
+    `hunt`). A test passes `acquirer=` to stub this without opening a socket."""
+    from litkb.acquire.run import acquire, ladder_routes
 
-    return acquire(conn, ws_id, token, work, store=store, agent=agent, session=session)
+    return acquire(conn, ws_id, token, work, store=store, agent=agent, session=session,
+                   routes=ladder_routes())
 
 
 def _spend_on_held(db, ws_id, token, ref, kind, held, out, timing, refusals, *, spend, agent,
@@ -1826,6 +1880,104 @@ def _record_acquisition_event(conn, ws_id, token, work_id, out, refusals, *, url
         out["acquisition_event"] = {"ok": False, "route": events.ROUTE, "error": detail}
         refusals.append({"code": "acquisition-event-failed", "message": EVENT_FAILED,
                          "detail": detail, "sha256": sha256, "route": events.ROUTE})
+
+
+#: The admission refusals whose landed file is offered to a work ALREADY in the base (S4.5 item 1).
+#: `duplicate` names that work (check 2's identifier lookup); `duplicate-review` names the title-near
+#: works (`matches`, pg_trgm similarity >= `litkb._title_dup_threshold()`), tried most similar first.
+#: A `refused` admission at `file_duplicate` means the BYTES are already held, so nothing is offered and
+#: the copy is quarantined `duplicate-held`. Every other refusal (check 3 on the claim, a key collision)
+#: leaves the file where it lies, as before S4.5, and `unowned_landings` counts it
+#: (qc/instruments/litkb_hardening_b2.py).
+OFFERED_OUTCOMES = ("duplicate", "duplicate-review")
+
+
+def _offer_reason(offers):
+    """The quarantine REASON (litkb.quarantine.REASONS — no new word; that vocabulary is migration 0030's
+    CHECK) for a refused-duplicate landing no work took, from what each offer answered."""
+    said = [o.get("outcome") for o in offers]
+    if "probe-error" in said:
+        return "probe-error"
+    if "duplicate-file" in said:
+        return "duplicate-held"
+    verdicts = {o.get("binding") for o in offers if o.get("outcome") == "refused"}
+    if verdicts:
+        return "binding-pending" if verdicts == {"binding-pending"} else "binding-failed"
+    # no work could run check 3 (every target is only a PROPOSAL, not in main) or the bytes are held
+    return "duplicate-held"
+
+
+def _offer_refused_landing(conn, ws_id, token, res, pdf, txt, out, refusals, *, sha, data, store, stem,
+                           url, http_status, agent, session):
+    """A URL landing whose OWN admission was refused as a duplicate, offered to the existing work
+    through check 3 (`litkb.attach_file`, which re-checks the binding against THAT work's main title).
+
+    -> None when the refusal is not a duplicate (the file stays where it lies, as before S4.5);
+       {"outcome": "proposed", "work_id", "file_id", "file_version", "state", "offers"} when a work took it
+       — a PROPOSED file version (the file JSON says `source_route='web'`, so migration 0034's
+       operator-bind gate writes a proposal a second session decides), with its acquisition event;
+       {"outcome": "quarantined", "reason", "quarantined", "quarantine_row", "offers"} when none did —
+       moved to _quarantine/ with a `.reason.json` and a `quarantine_payloads` row (origin `hunt-url`).
+
+    Never left unowned: every branch that returns a dict leaves the bytes owned by a version row or by
+    a quarantine row. The hunt's state stays `refused/admission-refused` (the closed STATES/REASONS do
+    not grow in S4.5); what happened to the file rides on the result's `offered`."""
+    from litkb import quarantine as Q
+    from litkb.acquire import run as _run
+    from litkb.admit import front
+
+    outcome = res.get("outcome")
+    if outcome == "duplicate" and res.get("work_id"):
+        targets = [str(res["work_id"])]
+    elif outcome == "duplicate-review":
+        ranked = sorted(res.get("matches") or [], key=lambda m: -(m.get("similarity") or 0))
+        targets = list(dict.fromkeys(str(m["work_id"]) for m in ranked if m.get("work_id")))
+    elif outcome == "refused" and res.get("refused_at") == "file_duplicate":
+        targets = []
+    else:
+        return None
+    offers = []
+    for wid in targets:
+        work = _run.work_record(conn, work_id=wid)
+        if work is None:
+            offers.append({"work_id": wid, "outcome": "not-in-main"})
+            continue
+        forms = work.get("title_forms") or [work["title"]]
+        try:
+            fjson = front.file_evidence(pdf, forms[0], work["first_author"], root=store.root,
+                                        source_route="web", source_url=url, title_forms=forms[1:])
+        except front.BindProbeError as e:
+            offers.append({"work_id": wid, "outcome": "probe-error", "probe_error": e.probe_error})
+            break                      # the page count cannot be read: no work can take this file
+        att = front.offer_file(conn, ws_id, token, wid, fjson, agent, session)
+        offers.append({"work_id": wid, "key": work["key"], "outcome": att.get("outcome"),
+                       "binding": (att.get("binding") or fjson.get("binding") or {}).get("verdict")})
+        if att.get("outcome") == "attached":
+            _record_acquisition_event(conn, ws_id, token, wid, out, refusals, url=url, sha256=sha, data=data,
+                                      http_status=http_status, filed=store.rel(pdf))
+            return {"outcome": "proposed", "work_id": wid, "file_id": str(att["file_id"]),
+                    "file_version": str(att["file_version"]), "state": att.get("state"), "offers": offers}
+        if att.get("outcome") == "duplicate-file":
+            break                      # the bytes are held already: no other work can take them either
+    reason = _offer_reason(offers)
+    moved_from = store.rel(pdf)
+    # the sidecar is built BEFORE the move: it is this landing's whole story (admission, offers, source).
+    # The store writes the sidecar itself (S4.5 item 8: `Store.to_quarantine(..., reason=)`, builder C1b) and
+    # this body is that argument — a generic store sidecar must never stand in for it (the landing tests read
+    # its `reason` key). Seam integrator-w2 (B2 x C1b; auditor-C1b r3 F1, builder-B2 r2 F7): the positional
+    # word is the quarantine label, the keyword the sidecar's body; a `write_reason` after the move would meet
+    # the store's own sidecar already beside the payload and write nothing.
+    sidecar = {"status": "admission-refused", "admission": _thin(res), "reason": reason, "route": "hunt-url",
+               "source_url": url, "sha256": sha, "bytes": len(data), "moved_from": moved_from, "offers": offers,
+               "at": _now().isoformat()}
+    qpdf, _qtxt = store.to_quarantine(pdf, txt, stem, reason, sha, reason=sidecar)
+    row = Q.try_record(Q.record, conn, ws_id, token, rel_path=store.rel(qpdf), sha256=sha, nbytes=len(data),
+                       reason=reason, origin="hunt-url", work_id=targets[0] if targets else None,
+                       detail={"refused": "admission-refused", "admission": _thin(res), "offers": offers,
+                               "moved_from": moved_from})
+    _quarantine_rows_failed([row], refusals)
+    return {"outcome": "quarantined", "reason": reason, "quarantined": store.rel(qpdf),
+            "quarantine_row": row, "offers": offers}
 
 
 def _thin(res):

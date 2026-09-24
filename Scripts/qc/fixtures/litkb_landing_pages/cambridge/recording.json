@@ -1,0 +1,178 @@
+{
+  "client": {
+    "class": "litkb.netutil.Client",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
+  },
+  "doi": "10.1017/s0003055418000783",
+  "final": {
+    "status": 200,
+    "url": "https://www.cambridge.org/core/journals/american-political-science-review/article/abs/using-a-probabilistic-model-to-assist-merging-of-largescale-administrative-records/DB2955F64A1F4E262C5B9B26C6D7552E",
+    "verdict": "landing",
+    "why": "a page with citation metadata"
+  },
+  "grant": "brief-C2b-stage-c.md item 2 (S4.5, 2026-09-23): one GET of one real landing page per publisher rule, a DOI of that publisher from the corpus; nothing else",
+  "hops": [
+    {
+      "n": 0,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.1017/s0003055418000783"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a3fb67b4ad0c354f-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:46 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=YBBBjrHJZKx8NJCVts29Q%2FlJ5SBUeKAFqlJWB4zLOOZYwcFyz9XN%2F%2F5Kc8agZnbteos%2F0hm4g6Fg1flfiLQ2hHnIEcQkxLprk5%2FNxA8iizmtmk1wnAnqsJw%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Wed, 23 Sep 2026 18:02:50 GMT",
+          "location": "https://www.cambridge.org/core/product/identifier/S0003055418000783/type/journal_article",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 261,
+        "scrubbed": false,
+        "sha256": "f6d1c549f5c06397ac4c771c76b742d5c68e2d5b3e9ba58e1806821e985bbcc8",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.cambridge.org/core/product/identifier/S0003055418000783/type/journal_article"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "CF-RAY": "a3fb67b60e16a3ad-SEA",
+          "Cache-Control": "private, no-cache, no-store, must-revalidate",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:47 GMT",
+          "Expires": "-1",
+          "Location": "/core/journals/american-political-science-review/article/using-a-probabilistic-model-to-assist-merging-of-largescale-administrative-records/DB2955F64A1F4E262C5B9B26C6D7552E",
+          "Pragma": "no-cache",
+          "Referrer-Policy": "no-referrer-when-downgrade",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=15552000; includeSubDomains",
+          "Transfer-Encoding": "chunked",
+          "Vary": "Accept",
+          "Via": "1.1 varnish (Varnish/6.0)",
+          "X-Content-Type-Options": "nosniff",
+          "X-DNS-Prefetch-Control": "off",
+          "X-Download-Options": "noopen",
+          "X-Frame-Options": "SAMEORIGIN",
+          "X-Varnish": "353009224",
+          "X-XSS-Protection": "1; mode=block",
+          "cf-cache-status": "DYNAMIC",
+          "x-served-by": ""
+        },
+        "length": 400,
+        "scrubbed": false,
+        "sha256": "50215b91c99eca233ca17518dcb1df171cad940f38dbb48d6544eff5754b844d",
+        "status": 301
+      }
+    },
+    {
+      "n": 2,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.cambridge.org/core/journals/american-political-science-review/article/using-a-probabilistic-model-to-assist-merging-of-largescale-administrative-records/DB2955F64A1F4E262C5B9B26C6D7552E"
+      },
+      "response": {
+        "body_file": "hop2.body",
+        "headers": {
+          "CF-RAY": "a3fb67b81c02a366-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:47 GMT",
+          "Location": "/core/journals/american-political-science-review/article/abs/using-a-probabilistic-model-to-assist-merging-of-largescale-administrative-records/DB2955F64A1F4E262C5B9B26C6D7552E",
+          "Referrer-Policy": "no-referrer-when-downgrade",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=15552000; includeSubDomains",
+          "Transfer-Encoding": "chunked",
+          "Vary": "Accept",
+          "Via": "1.1 varnish (Varnish/6.0)",
+          "X-Content-Type-Options": "nosniff",
+          "X-DNS-Prefetch-Control": "off",
+          "X-Download-Options": "noopen",
+          "X-Frame-Options": "SAMEORIGIN",
+          "X-Varnish": "351428870",
+          "X-XSS-Protection": "1; mode=block",
+          "cf-cache-status": "DYNAMIC",
+          "x-served-by": ""
+        },
+        "length": 396,
+        "scrubbed": false,
+        "sha256": "5b3f83865408b9efcfca0bcf62a40251981e460612b8fbebad852b9a5b839738",
+        "status": 302
+      }
+    },
+    {
+      "n": 3,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.cambridge.org/core/journals/american-political-science-review/article/abs/using-a-probabilistic-model-to-assist-merging-of-largescale-administrative-records/DB2955F64A1F4E262C5B9B26C6D7552E"
+      },
+      "response": {
+        "body_file": "hop3.body",
+        "headers": {
+          "CF-RAY": "a3fb67bafe3bfa42-SEA",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:48 GMT",
+          "Expires": "0",
+          "Pragma": "no-cache",
+          "Referrer-Policy": "no-referrer-when-downgrade",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=15552000; includeSubDomains",
+          "Transfer-Encoding": "chunked",
+          "Vary": "Accept-Encoding",
+          "Via": "1.1 varnish (Varnish/6.0)",
+          "X-Content-Type-Options": "nosniff",
+          "X-DNS-Prefetch-Control": "off",
+          "X-Download-Options": "noopen",
+          "X-Frame-Options": "SAMEORIGIN",
+          "X-Varnish": "353234962",
+          "X-XSS-Protection": "1; mode=block",
+          "cf-cache-status": "DYNAMIC",
+          "tdm-policy": "https://www.cambridge.org/core/tdm/tdm-policy.json",
+          "tdm-reservation": "1",
+          "x-served-by": ""
+        },
+        "length": 997661,
+        "scrubbed": true,
+        "sha256": "e8e57c14ca73ac9c6a41e9ec4ec3071bb9d9f9a5af0004ae80838fe6174e63af",
+        "status": 200
+      }
+    }
+  ],
+  "kind": "litkb-landing-recording",
+  "recorded_at": "2026-09-23T17:52:49.057463+00:00",
+  "rule": "cambridge",
+  "scrub": "litkb.cassette.scrub_bytes / scrub_url (registered secrets), then the client-address mask of qc/instruments/litkb_landing_record.py (client_ips / scrub_ips); a scrubbed body's sha256 is of the bytes as written",
+  "version": 1,
+  "walk": {
+    "accept": "text/html",
+    "max_hops": 10,
+    "meta_refresh": true
+  },
+  "work_key": "Enamorado_2019_probabilistic-model-assist-merging"
+}

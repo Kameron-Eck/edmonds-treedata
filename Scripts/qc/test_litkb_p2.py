@@ -119,9 +119,18 @@ def make_pdf(lines, info=None):
     return out
 
 
+#: Body lines on a synthetic paper's page. Since S4.5 every rung's bytes pass THE acceptance test before they
+#: bind (litkb.acquire.accept: a 5,000-byte floor, and fewer than 3,000 characters with no reference heading
+#: is a stub); 8 lines made a 1.6 KB page the test refuses `too_small`. 44 lines MEASURED 2026-09-23
+#: (integrator-w1, scratch probe_fixture.py): 5,843 bytes, 5,069 characters, accepted — 40 is the smallest
+#: count that clears the floor with a 32-hex salt; 44 leaves room for a short title.
+PAPER_BODY_LINES = 44
+
+
 def paper_pdf(title, author, salt=None, info=None):
     salt = salt or uuid.uuid4().hex
-    filler = [f"Body text line {i} of a synthetic paper about canopy mapping and validation, id {salt}." for i in range(8)]
+    filler = [f"Body text line {i} of a synthetic paper about canopy mapping and validation, id {salt}."
+              for i in range(PAPER_BODY_LINES)]
     return make_pdf(["Journal of Synthetic Studies 1 (2020) 1-10", title, f"{author} and A. Coauthor", ""] + filler,
                     info=info)
 
@@ -421,6 +430,14 @@ def test_store_writes_only_new_files_into_staging_or_quarantine(tmp_path):
 HTML_SERVED_AS_PDF = (b"<!DOCTYPE html>\n<html><head><title>404 Not Found</title></head>\n"
                       b"<body><h1>Not Found</h1><p>The requested repository item does not exist.</p>"
                       b"</body></html>\n")
+
+
+def salted_html():
+    """HTML_SERVED_AS_PDF with a per-call comment: a route that serves the SAME bytes twice on one worker
+    database meets the rejected-hash lookup (migration 0033, S4.5 item 1) the second time, so a test about
+    what acquisition does with a FRESH bad download salts its payload (the precedent: the quarantine
+    suite's `_unopenable`, salted because files.sha256 is UNIQUE across the shared worker database)."""
+    return HTML_SERVED_AS_PDF + f"<!-- {uuid.uuid4().hex} -->\n".encode()
 
 
 @pytest.mark.parametrize("case, shape, needle", [
@@ -1372,7 +1389,8 @@ def _store(tmp_path):
 
 def _oa(monkeypatch, url="https://oa.example/paper.pdf"):
     from litkb.acquire import open_access
-    monkeypatch.setattr(open_access, "unpaywall_locations", lambda doi: ([url], "stub"))
+    # `client=`: since S4.5 the default lookup is asked THROUGH the route's client (decision D3)
+    monkeypatch.setattr(open_access, "unpaywall_locations", lambda doi, client=None: ([url], "stub"))
 
 
 def _acquire(pg, w, ws, work, store, pdf_bytes, routes=("open_access",), **kw):
@@ -1385,6 +1403,27 @@ def _acquire(pg, w, ws, work, store, pdf_bytes, routes=("open_access",), **kw):
 def _attempts(pg, wid):
     return pg.conn.execute("SELECT route, status, detail FROM litkb.acquisition_attempts WHERE work_id = %s ORDER BY at, id",
                            (wid,)).fetchall()
+
+
+def _proposed_file(pg, ws, work_id, cols):
+    """The file an `acquire --from-file` bind wrote for `work_id`. Since migration 0034 (the operator-bind gate,
+    decisions.yaml `litkb-from-file-version-state`) it is a PROPOSAL: visible in its own workstream's view and
+    NOT in main until a second session approves it. -> the row of `cols` from `litkb.ws_files`."""
+    assert pg.one("SELECT count(*) FROM litkb.main_files WHERE work_id = %s", (work_id,))[0] == 0, \
+        "a --from-file bind reached main without a second session's approval"
+    return pg.one(f"SELECT {cols} FROM litkb.ws_files WHERE view_workstream_id = %s AND work_id = %s "
+                  "AND state = 'proposed'", (ws, work_id))
+
+
+def _approve_proposed(pg, w, work_id):
+    """A SECOND session approves the work's proposed file (front.decide_files, migration 0034), so main holds
+    it — the state a pre-gate `--from-file` bind reached in one step."""
+    from litkb.admit import front
+    ws2 = pg.ws()
+    v = [p["version_id"] for p in front.pending_file_proposals(w) if p["work_id"] == str(work_id)]
+    assert len(v) == 1, v
+    front.decide_files(w, ws2, pg.tokens[ws2], "approve", v, None, "p2-approver", "p2-second-session")
+    assert pg.one("SELECT count(*) FROM litkb.main_files WHERE work_id = %s", (work_id,))[0] == 1
 
 
 def _files_under(p):
@@ -1422,7 +1461,11 @@ def test_acquire_quarantines_a_download_that_does_not_bind(pg, tmp_path, monkeyp
     assert [(a[0], a[1]) for a in rows] == [("open_access", "binding-failed"), ("browser", "manual-step")]
     assert "attach" not in rows[0][2], "a file that did not bind was offered to the database"
     q = _files_under(store.quarantine)
-    assert len(q) == 2 and any("__binding-failed__" in n for n in q), q
+    # the payload, its .txt extract, and (S4.5 item 8) the .reason.json Store.to_quarantine now writes itself
+    assert len(q) == 3 and any("__binding-failed__" in n for n in q), q
+    side = json.loads(next(Path(store.quarantine).glob("*.reason.json")).read_text(encoding="utf-8"))
+    assert (side["status"], side["label"], side["route"]) == ("binding-failed", "binding-failed", "open_access"), side
+    assert rows[0][2]["quarantine_reason"].endswith(".reason.json"), rows[0][2]
     assert _files_under(store.filed) == [] and _files_under(store.incoming) == []
     assert pg.one("SELECT count(*) FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))[0] == 0
 
@@ -1442,7 +1485,11 @@ def test_acquire_keeps_a_bad_download_in_quarantine_and_never_deletes_it(pg, tmp
     ws, w = pg.ws(), pg.session("litkb_writer")
     work, store = _admitted(pg, w, ws), _store(tmp_path)
     whole = paper_pdf(work["title"], "T. Tester")
-    planted = HTML_SERVED_AS_PDF if case == "html_served_as_pdf" else whole[:len(whole) // 2]
+    # salted: since S4.5 (migration 0033) acquisition never quarantines bytes a second time — the
+    # rejected-hash lookup matches them by sha256 across the whole (shared) worker database
+    # the truncated case stops before the TRAILER: since S4.5 the acceptance test reads the 5,000-byte floor
+    # before the %%EOF rule, so a cut below the floor is `too_small`, not a truncation (integrator-w1)
+    planted = (salted_html() if case == "html_served_as_pdf" else whole[:whole.rindex(b"trailer")])
     _oa(monkeypatch)
     out = _acquire(pg, w, ws, work, store, planted)
     assert out["outcome"] == "not-acquired", out
@@ -1537,8 +1584,8 @@ def test_acquire_from_file_binds_an_unheld_file_in_a_topic_folder_in_place(pg, t
     kw = dict(store=store, agent="acq", session="acq-inplace", pacer=_nopace(), printer=lambda *a: None)
     out = run.acquire(w, ws, pg.tokens[ws], work, from_file=held, **kw)
     assert out["outcome"] == "ok", out
-    row = pg.one("SELECT rel_path, binding->>'verdict', source_route FROM litkb.main_files WHERE work_id = %s",
-                 (work["work_id"],))
+    # S4.5 (migration 0034): the in-place bind is a PROPOSAL, not main's version of record
+    row = _proposed_file(pg, ws, work["work_id"], "rel_path, binding->>'verdict', source_route")
     assert row == ("Validation/Tester_2020_held-in-place.pdf", "bound", "held-in-place"), row
     assert _files_under(store.staging) == [] and _files_under(store.quarantine) == [] and _file_state(held) == before
     assert [(a[0], a[1]) for a in _attempts(pg, work["work_id"])] == [("browser", "ok")]
@@ -1588,11 +1635,12 @@ def test_acquire_from_file_takes_a_pdf_that_already_lies_in_incoming(pg, tmp_pat
     kw = dict(store=store, agent="acq", session="acq-incoming", pacer=_nopace(), printer=lambda *a: None)
     out = run.acquire(w, ws, pg.tokens[ws], work, from_file=handed, **kw)
     assert out["outcome"] == "ok", out
-    row = pg.one("SELECT rel_path, binding->>'verdict' FROM litkb.main_files WHERE work_id = %s",
-                 (work["work_id"],))
+    # S4.5 (migration 0034): the hand-fetched bind is a PROPOSAL until a second session approves it
+    row = _proposed_file(pg, ws, work["work_id"], "rel_path, binding->>'verdict'")
     assert row == (f"_litkb_staging/filed/{work['key']}.pdf", "bound"), row
     assert (store.root / row[0]).read_bytes() == data
     assert _files_under(store.quarantine) == []
+    _approve_proposed(pg, w, work["work_id"])
     # and a GENUINE duplicate is still refused: the same bytes, already held for another work
     other = _admitted(pg, w, ws, title=work["title"])
     second = store.incoming / "Handed_2020_by-curl-again.pdf"
@@ -1626,8 +1674,9 @@ def test_acquire_binds_a_first_page_that_prints_only_the_bare_title_of_a_subtitl
     out = run.acquire(w, ws, pg.tokens[ws], work, store=store, from_file=handed, agent="acq", session="acq-sub",
                       pacer=_nopace(), printer=lambda *a: None)
     assert out["outcome"] == "ok", out
-    row = pg.one("SELECT binding->>'registry_title', binding->>'matched_title_form', binding->>'verdict' "
-                 "FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))
+    # S4.5 (migration 0034): a --from-file bind is a PROPOSAL; its binding is what the second session reviews
+    row = _proposed_file(pg, ws, work["work_id"],
+                         "binding->>'registry_title', binding->>'matched_title_form', binding->>'verdict'")
     assert row == (joined, bare, "bound"), row
     assert _files_under(store.quarantine) == []
 
@@ -1665,8 +1714,9 @@ def test_acquire_binds_a_held_in_place_file_by_any_title_form(pg, tmp_path):
     out = run.acquire(w, ws, pg.tokens[ws], work, store=store, from_file=held, agent="acq", session="acq-place",
                       pacer=_nopace(), printer=lambda *a: None)
     assert out["outcome"] == "ok", out
-    row = pg.one("SELECT rel_path, binding->>'registry_title', binding->>'matched_title_form' "
-                 "FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))
+    # S4.5 (migration 0034): an in-place --from-file bind is a PROPOSAL
+    row = _proposed_file(pg, ws, work["work_id"],
+                         "rel_path, binding->>'registry_title', binding->>'matched_title_form'")
     assert row == ("Validation/Tester_2020_held-bare-title.pdf", joined, bare), row
     assert _file_state(held) == before and _files_under(store.staging) == []
 
@@ -1700,11 +1750,12 @@ def test_a_quarantined_file_can_bind_once_the_record_is_corrected(pg, tmp_path, 
     fixed = run.acquire(w, ws, pg.tokens[ws], right, store=store, from_file=q[0], agent="acq", session="acq-requar",
                         pacer=_nopace(), printer=lambda *a: None)
     assert fixed["outcome"] == "ok", fixed
-    row = pg.one("SELECT rel_path, binding->>'verdict' FROM litkb.main_files WHERE work_id = %s",
-                 (right["work_id"],))
+    # S4.5 (migration 0034): the re-bind by hand is a PROPOSAL until a second session approves it
+    row = _proposed_file(pg, ws, right["work_id"], "rel_path, binding->>'verdict'")
     assert row == (f"_litkb_staging/filed/{right['key']}.pdf", "bound"), row
     assert (store.root / row[0]).read_bytes() == data
     assert _file_state(q[0]) == before, "the quarantined copy was moved, rewritten or deleted"
+    _approve_proposed(pg, w, right["work_id"])
     # and a GENUINE duplicate is still refused: the same bytes, now ACTIVE on that work
     third = _admitted(pg, w, ws, title=right["title"])
     again = run.acquire(w, ws, pg.tokens[ws], third, store=store, from_file=q[0], agent="acq", session="acq-requar",
@@ -1771,8 +1822,8 @@ def test_a_nul_character_in_pdf_metadata_never_breaks_an_attach(pg, tmp_path, mo
     out = run.acquire(w, ws, pg.tokens[ws], work, store=store, agent="acq", session="acq-nul", pacer=_nopace(),
                       printer=lambda *a: None, from_file=held)
     assert out["outcome"] == "ok", out
-    assert pg.one("SELECT pdf_metadata->>'Creator' FROM litkb.main_files WHERE work_id = %s",
-                  (work["work_id"],))[0] == "Acrobat 3.0 Capture Plug-in"
+    # S4.5 (migration 0034): the in-place bind is a PROPOSAL; the NUL-stripped metadata is on its version
+    assert _proposed_file(pg, ws, work["work_id"], "pdf_metadata->>'Creator'")[0] == "Acrobat 3.0 Capture Plug-in"
 
 
 @pytest.mark.parametrize("cmd", ["admit", "approve", "acquire"])
@@ -1940,7 +1991,11 @@ def test_acquire_does_not_retry_a_dead_route(pg, tmp_path):
     out = run.acquire(w, ws, pg.tokens[ws], work, store=store, routes=("annas",), agent="acq", session="acq-2",
                       annas_session=(stub, "SEKRIT"), pacer=_nopace(), printer=lambda *a: None)
     assert stub.calls == []
-    assert [(a[0], a[1]) for a in _attempts(pg, work["work_id"])] == [("annas", "not-in-archive"), ("browser", "manual-step")]
+    # since S4.5 (guard 14) the skip is itself an attempt, with its reason; nothing was asked
+    assert [(a[0], a[1]) for a in _attempts(pg, work["work_id"])] == [
+        ("annas", "not-in-archive"), ("annas", "skipped"), ("browser", "manual-step")]
+    assert pg.one("SELECT sub_status FROM litkb.acquisition_attempts WHERE work_id = %s AND status = 'skipped'",
+                  (work["work_id"],))[0] == "dead_route"
     assert out["outcome"] == "not-acquired"
 
 
@@ -2343,7 +2398,7 @@ def test_live_crossref_matches_the_fixture():
 @live
 def test_live_unpaywall_lists_an_open_access_copy():
     from litkb.acquire import open_access
-    urls, note = open_access.unpaywall_locations("10.1371/journal.pone.0326562")
+    urls, note, *_meta = open_access.unpaywall_locations("10.1371/journal.pone.0326562")   # (urls, note, meta)
     assert urls, note
 
 

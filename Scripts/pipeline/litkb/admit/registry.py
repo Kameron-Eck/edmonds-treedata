@@ -101,6 +101,10 @@ def crossref_record(client, doi, pacer):
     if not isinstance(msg, dict):
         return None, st
     rec = parse_crossref(msg, doi)
+    # The raw message the admission already fetched, kept for the HARVEST (S4.5 item 1; decision D2: its
+    # `alternative-id`, `ISBN`, `ISSN`/`issn-type` and `relation` were discarded here until S4.5).
+    # `litkb.admit.harvest.from_registry_record` reads it; nothing else does, and no request is added.
+    rec["_raw"] = msg
     return (rec if rec["title"] else None), st
 
 
@@ -122,7 +126,10 @@ def datacite_record(client, doi, pacer):
              "issue": None, "pages": None, "publisher": attrs.get("publisher"),
              "type": {"dataset": "dataset", "report": "report", "text": "report", "preprint": "preprint",
                       "dissertation": "thesis", "book": "book"}.get(rtype, "report"),
-             "url": DATACITE_WORK.format(doi=doi)} if titles else None), st
+             "url": DATACITE_WORK.format(doi=doi),
+             # the attributes the admission already fetched, for the HARVEST (S4.5 item 1, decision D2):
+             # `identifiers`, `alternateIdentifiers` and `relatedIdentifiers` were discarded until S4.5
+             "_raw": attrs} if titles else None), st
 
 
 def arxiv_record(client, arxiv_id, pacer):

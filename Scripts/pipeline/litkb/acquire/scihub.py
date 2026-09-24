@@ -19,6 +19,7 @@ landing page is a page this route read, never a file it was offered.
 import re
 import urllib.parse
 
+from litkb.acquire import accept as _accept
 from litkb.config import SCIHUB_MIRRORS
 from litkb.netutil import Client, redact
 
@@ -73,7 +74,8 @@ def fetch_scihub(doi, pacer, *, client=None, mirrors=MIRRORS):
         st2, _hd2, pdf = client.get(link, accept="application/pdf", timeout=300)
         codes.append(int(st2 or 0))
         phost = urllib.parse.urlparse(link).netloc
-        if (pdf or b"").startswith(b"%PDF-"):
+        # the acceptance test's header rule (ONE home, litkb.acquire.accept.quick_magic; seam integrator-w1)
+        if _accept.quick_magic(pdf):
             return {"status": "downloaded", "pdf": pdf, "source_url": link, "http_codes": codes,
                     "tried": tried + [f"{host}->{phost}:{st2}=ok"], "detail": ""}
         if pdf and rejected is None:          # what the PDF LINK served instead: kept, never dropped

@@ -117,11 +117,16 @@ def chain_rows(conn, workstream_id):
     _ws_chains: no agent role may execute either, which is why the report is built here rather than
     by a tool holding a reader connection."""
     rows = conn.execute(
-        "SELECT entity, entity_id::text, states, problems, deps, conflict, "
-        "       cardinality(version_ids), cardinality(evidence_ids) "
-        "FROM litkb.promotion_chains(%s) ORDER BY entity, entity_id", (workstream_id,)).fetchall()
+        "SELECT c.entity, c.entity_id::text, c.states, c.problems, c.deps, c.conflict, "
+        "       cardinality(c.version_ids), cardinality(c.evidence_ids), c.head::text, "
+        # `lone_file`: a file chain whose WORK main already holds (LONE_FILE_WHY). The promoter reads
+        # these tables: SELECT on every litkb table is granted to it (migration 0006).
+        "       (c.entity = 'file' AND EXISTS (SELECT 1 FROM litkb.file_versions fv "
+        "          JOIN litkb.works w ON w.id = fv.work_id AND w.current_version_id IS NOT NULL "
+        "         WHERE fv.version_id = c.head)) "
+        "FROM litkb.promotion_chains(%s) c ORDER BY c.entity, c.entity_id", (workstream_id,)).fetchall()
     return [dict(zip(("entity", "entity_id", "states", "problems", "deps", "conflict",
-                      "versions", "evidence"), r)) for r in rows]
+                      "versions", "evidence", "head", "lone_file"), r)) for r in rows]
 
 
 def hold_reasons(conn, promotion_id):
@@ -147,15 +152,39 @@ def hold_reasons(conn, promotion_id):
     return out
 
 
+#: The held reason a LONE file proposal gets in place of `_ws_chains`' admission sentence (S4.5 builder-B2;
+#: auditor-B2 round 2 F1). Before migration 0034 `attach_file` wrote every file as a fact, so no workstream
+#: headed a file chain on a work already in main; 0034's operator-bind gate (`litkb-from-file-version-state`)
+#: makes every `acquire --from-file` bind exactly that. `_ws_chains` (migration 0019) gives EVERY file chain
+#: the sentence "enters main only through litkb.approve_admission", and following it fails for this one —
+#: the work's admission is not a proposed manual one (55000). The verb that moves it is
+#: litkb.decide_file_versions, which takes the workstream's HEAD version (the `{head}` below).
+LONE_FILE_WHY = ("lone-file: a proposed file version for a work main already holds (an `acquire --from-file` "
+                 "bind is one); no admission moves it and promotion never does. A SECOND session decides it: "
+                 "`litkb approve-files {head}` or `litkb refuse-files {head} --reason R` "
+                 "(litkb.decide_file_versions, migration 0034) — BEFORE `promote commit`: commit closes this "
+                 "workstream, a closed workstream's proposal is decided by nothing (D3), and after it only "
+                 "`promote rebase` into an open workstream reaches it")
+
+
 def chain_why(chain, reasons=None):
     """Why this chain is where it is — one list, for the report and for the tool's JSON alike.
 
     The chain's own problems first, then anything `promotions.conflicts` recorded for it that the
-    problems do not already say (the fixpoint's dependency holds), then the base-moved conflict."""
+    problems do not already say (the fixpoint's dependency holds), then the base-moved conflict.
+    A LONE file chain (`chain_rows`' `lone_file`) names the verb that decides it in place of
+    `_ws_chains`' admission sentence, which names a verb that refuses it (LONE_FILE_WHY)."""
     why = list(chain["problems"] or [])
     for r in (reasons or {}).get(f"{chain['entity']}:{chain['entity_id']}", []):
         if r not in why:
             why.append(r)
+    # (after the merge: prepare records the chain's own problems in `promotions.conflicts` too, so the
+    # admission sentence arrives from BOTH lists — measured 2026-09-23 on the first run of the test)
+    # BEGIN guard: a lone file proposal's held reason names the verb that decides it
+    if chain.get("lone_file"):
+        lone = LONE_FILE_WHY.format(head=chain.get("head") or "<version>")
+        why = list(dict.fromkeys(lone if p.startswith("admission:") else p for p in why))
+    # END guard: a lone file proposal's held reason names the verb that decides it
     if not why and chain["conflict"]:
         why = ["conflict: the base moved under this chain"]
     return why

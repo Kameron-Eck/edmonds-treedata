@@ -15,9 +15,9 @@
   "held_for_ruling": "question + evidence, for a row whose expected state only Kam can settle"
  },
  "_replay_stub_kinds": {
-  "registry": "none (404 to everything, a TERMINAL miss) · status:<n> (one status to everything) · record (a Crossref record for this row's DOI, so admission lands in main) · title_gate (the frozen Crossref search body of qc/fixtures/litkb_title_gate_wrong_work.json)",
+  "registry": "none (404 to everything, a TERMINAL miss) · status:<n> (one status to everything) · record (a Crossref record for this row's DOI, so admission lands in main; optional `title`/`author`/`year` carry the REAL record's fields, which a ladder row that lands a recorded PDF needs for binding) · title_gate (the frozen Crossref search body of qc/fixtures/litkb_title_gate_wrong_work.json)",
   "fetch": "explode (any call fails the row) · pdf (200 + the bytes fixture) · html (200 + builder B's real Crossref-blog fixture, declared text/html) · status:<n> (that status, no bytes)",
-  "routes": "none (acquisition must not be reached) · acquirer (a synthetic acquire() return built from `outcome` + `route_detail`) · real-oa-raises (the REAL acquire() ladder restricted to open access, with litkb.acquire.open_access.fetch_open_access raising)",
+  "routes": "none (acquisition must not be reached) · acquirer (a synthetic acquire() return built from `outcome` + `route_detail`) · real-oa-raises (the REAL acquire() ladder restricted to open access, with litkb.acquire.open_access.fetch_open_access raising) · ladder (S4.5 item 7: the REAL acquire() ladder, every request answered by a recorded cassette - `cassette` names a fixture index, else the run's recorded index; `routes` the routes the live pass reached; `mirrors` the Sci-Hub mirrors it was recorded against). `pending_recording` on an `acquirer` row says what recording takes it off the stub",
   "extract": "off (extract=False) · stub (extract_and_ingest returns a fixed artifact pair; `tei`/`docling` pick the reason) · raise:<ExceptionClass>"
  },
  "vocabulary": {
@@ -207,6 +207,10 @@
     },
     "routes": {
      "kind": "acquirer",
+     "pending_recording": {
+      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
+      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
+     },
      "outcome": "not-acquired",
      "route_detail": [
       {
@@ -456,6 +460,10 @@
     },
     "routes": {
      "kind": "acquirer",
+     "pending_recording": {
+      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
+      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
+     },
      "outcome": "not-acquired",
      "route_detail": [
       {
@@ -741,6 +749,10 @@
     },
     "routes": {
      "kind": "acquirer",
+     "pending_recording": {
+      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
+      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
+     },
      "outcome": "not-acquired",
      "route_detail": [
       {
@@ -883,6 +895,10 @@
     },
     "routes": {
      "kind": "acquirer",
+     "pending_recording": {
+      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
+      "until": "this row is replay-only (live.why: no corpus row exists and reaching the quota margin would cost ~985 archive downloads), so NO live recording can ever exist for it; taking it off the stub needs a CONSTRUCTED cassette (an account page at the margin) or a ruling - an open question for the orchestrator, not a recording to fake"
+     },
      "outcome": "not-acquired",
      "route_detail": [
       {
@@ -1073,6 +1089,10 @@
     },
     "routes": {
      "kind": "acquirer",
+     "pending_recording": {
+      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
+      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
+     },
      "outcome": "not-acquired",
      "route_detail": [
       {

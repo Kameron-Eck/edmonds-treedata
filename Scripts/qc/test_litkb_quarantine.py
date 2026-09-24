@@ -74,10 +74,14 @@ def _rows(pg, **where):
 
 def _unopenable():
     """CONSTRUCTED (`readability._constructed_unopenable_pdf`), salted per call: `files.sha256` is
-    UNIQUE across the shared worker database."""
+    UNIQUE across the shared worker database. The salt's comment line also pads the file past the
+    acceptance test's byte floor: since S4.5 a rung's bytes meet `litkb.acquire.accept` before the bind,
+    and the bare 244-byte file was refused `too_small` there, before the page probe it exists to reach
+    (seam integrator-w1)."""
     from litkb import readability as R
+    from litkb.acquire import accept as A
 
-    return R._constructed_unopenable_pdf(salt=uuid.uuid4().hex)
+    return R._constructed_unopenable_pdf(salt=uuid.uuid4().hex + " " + "p" * A.MIN_PDF_BYTES)
 
 
 # ── the vocabulary has one home ───────────────────────────────────────────────────────────────
@@ -366,7 +370,7 @@ def test_every_acquisition_quarantine_leaves_a_row_linked_to_its_attempt(pg, tmp
     ws, w = pg.ws(), pg.session("litkb_writer")
     work, store = P2M._admitted(pg, w, ws), _store(tmp_path)
     P2M._oa(monkeypatch)
-    body = (P2M.HTML_SERVED_AS_PDF if case == "route-refused-bytes"
+    body = (P2M.salted_html() if case == "route-refused-bytes"
             else P2M.paper_pdf("Tidal mixing fronts in the Irish Sea", "J. Simpson"))
     out = _acquire(pg, w, ws, work, store, body)
     aid, status, detail = _attempt(pg, work["work_id"], "open_access")[0]
@@ -413,10 +417,11 @@ def test_a_quarantine_whose_row_fails_keeps_the_bytes_and_says_so(pg, tmp_path, 
     def refuse(*a, **k):
         raise RuntimeError("the database refused the row")
     monkeypatch.setattr(Q, "record", refuse)
-    out = _acquire(pg, w, ws, work, store, P2M.HTML_SERVED_AS_PDF)
+    served = P2M.salted_html()     # fresh bytes: the rejected-hash lookup (0033) never re-quarantines
+    out = _acquire(pg, w, ws, work, store, served)
     assert out["quarantine_rows"] and out["quarantine_rows"][0]["ok"] is False, out
     _aid, status, detail = _attempt(pg, work["work_id"], "open_access")[0]
-    assert status == "bad-file" and (store.root / detail["quarantined"]).read_bytes() == P2M.HTML_SERVED_AS_PDF
+    assert status == "bad-file" and (store.root / detail["quarantined"]).read_bytes() == served
     n, missing = Q.quarantined_without_db_state(pg.conn, root=store.root)
     assert missing == [detail["quarantined"]], missing
 
@@ -429,10 +434,16 @@ def test_a_landed_file_whose_page_count_cannot_be_read_is_never_bound(pg, tmp_pa
     (so the shape guard passes it) whose catalog pypdfium2 cannot load. It is quarantined
     `probe-error` with its row, the attempt says why, and nothing is bound."""
     from litkb import quarantine as Q
+    from litkb.acquire import accept as A
 
     ws, w = pg.ws(), pg.session("litkb_writer")
     work, store = P2M._admitted(pg, w, ws), _store(tmp_path)
     P2M._oa(monkeypatch)
+    # Where a rung's bytes meet the acceptance test first (the merged ladder), its libqpdf step (S4.5 decision
+    # D14) refuses THIS file `corrupt_pdf_header` before any bind (pinned in qc/test_litkb_accept.py). The probe
+    # guard this test exists for is the one bytes reach when libqpdf passes them and pdfium cannot open them,
+    # so the libqpdf step is stubbed clean here (builder-C1b fix round 2).
+    monkeypatch.setattr(A, "qpdf_check", lambda data, runner=None, notes=None: "clean")
     data = _unopenable()
     out = _acquire(pg, w, ws, work, store, data)
     assert out["outcome"] == "not-acquired", out
@@ -475,12 +486,18 @@ def test_fire_probe_refuses_with_the_guard_and_binds_pages_null_without_it(tmp_p
 
 
 @pg_only
-def test_a_topic_folder_file_whose_page_count_cannot_be_read_is_refused_in_place(pg, tmp_path):
+def test_a_topic_folder_file_whose_page_count_cannot_be_read_is_refused_in_place(pg, tmp_path, monkeypatch):
     """`attach_in_place` goes through `front.file_evidence`, where the admission side of the guard
     lives. The file is not acquisition's: it is left exactly where it lies, and its row is recorded
     against THAT path (the row is the state)."""
+    from litkb.acquire import accept as A
     from litkb.acquire import run
 
+    # `--from-file` runs the acceptance test first since S4.5 decision D17 (integrator-w2), and its libqpdf step
+    # (D14) refuses this CONSTRUCTED file as damaged — a hard byte failure — before the probe; the guard this test
+    # exists for is the one bytes reach when libqpdf passes them and pdfium cannot open them, so the libqpdf step
+    # is stubbed clean here (S4.5 decision D16; builder-C1b's pattern for the ladder's probe test)
+    monkeypatch.setattr(A, "qpdf_check", lambda data, runner=None, notes=None: "clean")
     ws, w = pg.ws(), pg.session("litkb_writer")
     work, store = P2M._admitted(pg, w, ws), _store(tmp_path)
     src = store.root / "Validation" / "Unopenable_2020_in-place.pdf"
@@ -565,14 +582,19 @@ def test_a_hunted_download_that_is_not_a_pdf_leaves_a_row(henv):
 
 
 @pg_only
-def test_a_hunted_pdf_the_bind_probe_refuses_is_quarantined_with_a_row(henv):
+def test_a_hunted_pdf_the_bind_probe_refuses_is_quarantined_with_a_row(henv, monkeypatch):
     """The URL path: the bytes pass the shape guard (header + trailer), the claimed fields are given,
     and the admission's file evidence cannot count the pages. The hunt ends where an admission that
     refused its file already ends — `refused` / `admission-refused`, no new state or reason — with the
     download moved to `_quarantine/` under `probe-error` and its row written."""
     from litkb import hunt as H
     from litkb import quarantine as Q
+    from litkb.acquire import accept as A
 
+    # the URL path runs THE acceptance test since S4.5 decision D17 (integrator-w2); its libqpdf step (D14)
+    # refuses this CONSTRUCTED file before the bind probe, so it is stubbed clean here to keep a test that
+    # reaches the probe (S4.5 decision D16)
+    monkeypatch.setattr(A, "qpdf_check", lambda data, runner=None, notes=None: "clean")
     url = f"https://example.org/{uuid.uuid4().hex}.pdf"
     data = _unopenable()
     res = _hunt(henv, url, fetch=lambda u, timeout=180: (200, data), key="Unopenable_2026_q-probe",

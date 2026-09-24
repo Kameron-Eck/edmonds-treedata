@@ -34,6 +34,7 @@ py-modules = ["lake", "pipeline_log", "registry_from_manifests", "cost_report",
 
 [tool.setuptools.package-data]
 "litkb.db" = ["migrations/*.sql"]
+"litkb.acquire" = ["landing_rules.json"]   # S4.5 builder-C2b: Stage C's declarative per-publisher rule table
 
 # Lint gate (refactor follow-up, 2026-09-01): F-rules ONLY, deliberately.
 #   F821 undefined-name caught 7 live bugs on first run (5 clean_argv NameErrors

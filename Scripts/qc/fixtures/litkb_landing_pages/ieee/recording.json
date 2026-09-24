@@ -1,0 +1,93 @@
+{
+  "client": {
+    "class": "litkb.netutil.Client",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
+  },
+  "doi": "10.1109/tpami.2024.3498346",
+  "final": {
+    "status": 202,
+    "url": "https://ieeexplore.ieee.org/document/10752992/",
+    "verdict": "challenge_or_bot_check",
+    "why": "waf-202"
+  },
+  "grant": "brief-C2b-stage-c.md item 2 (S4.5, 2026-09-23): one GET of one real landing page per publisher rule, a DOI of that publisher from the corpus; nothing else",
+  "hops": [
+    {
+      "n": 0,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.1109/tpami.2024.3498346"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a3fb67888ae1d451-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:39 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=SA7eSzS7B30ZZdbXAQvnZRUeb7%2F8rqfHOau8UKPAdivNcKreoaE74lVg1oPs0inlX3dbFpXj%2BsAze60dCjFG6OZnANpzNFLwrTVdFSkHiqT7sw%2Fvjan3Il8%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Wed, 23 Sep 2026 18:06:01 GMT",
+          "location": "https://ieeexplore.ieee.org/document/10752992/",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 177,
+        "scrubbed": false,
+        "sha256": "1a5085b20ceb4c96b33e5659f56e6cbf42d6d9a961f151d31f5fa483a901e73f",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://ieeexplore.ieee.org/document/10752992/"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Access-Control-Allow-Methods": "OPTIONS,GET,POST",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Expose-Headers": "x-amzn-waf-action",
+          "Access-Control-Max-Age": "86400",
+          "Cache-Control": "no-store, max-age=0",
+          "Connection": "close",
+          "Content-Length": "2055",
+          "Content-Type": "text/html; charset=UTF-8",
+          "Date": "Wed, 23 Sep 2026 17:52:39 GMT",
+          "Server": "CloudFront",
+          "Via": "1.1 ccd80bade77fd2bbb09f5b5036b4b632.cloudfront.net (CloudFront)",
+          "X-Amz-Cf-Id": "JHRKywHv17O_p2Cmgldy5vl2uc9MTozdk7aVtUd8_6NrXmtlIeMOaQ==",
+          "X-Amz-Cf-Pop": "SEA900-P5",
+          "X-Cache": "Error from cloudfront",
+          "x-amzn-waf-action": "challenge"
+        },
+        "length": 2055,
+        "scrubbed": false,
+        "sha256": "a39cf4651078c3977b3070cca348cc1811a0b038e252f3867853e4efc7f14e96",
+        "status": 202
+      }
+    }
+  ],
+  "kind": "litkb-landing-recording",
+  "recorded_at": "2026-09-23T17:52:39.976090+00:00",
+  "rule": "ieee",
+  "scrub": "litkb.cassette.scrub_bytes / scrub_url (registered secrets), then the client-address mask of qc/instruments/litkb_landing_record.py (client_ips / scrub_ips); a scrubbed body's sha256 is of the bytes as written",
+  "version": 1,
+  "walk": {
+    "accept": "text/html",
+    "max_hops": 10,
+    "meta_refresh": true
+  },
+  "work_key": "Wang_2025_comprehensive-survey-forgetting-deep"
+}

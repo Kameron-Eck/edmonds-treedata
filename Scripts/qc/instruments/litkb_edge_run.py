@@ -71,7 +71,30 @@ EDGE_CSV_COLUMNS = ("row_id", "class", "mode", "ref", "ref_scheme",
                     "expected_state", "expected_reason", "observed_state", "observed_reason",
                     "ok", "refusal_codes", "work_id", "admission_id", "file_id", "run_id",
                     "attempt_statuses", "route_detail", "new_admissions", "report", "seconds",
-                    "traceback", "started_at", "message")
+                    "traceback", "started_at", "message",
+                    # S4.5 item 7: what the replay actually RAN for this row, measured here rather
+                    # than read off the register — `stub` is the synthetic acquirer
+                    # (`replay_rows_graded_against_stubs` counts it), `ladder` the real
+                    # `litkb.acquire.run.acquire` against a cassette; the guard's non-local
+                    # attempts during the row; the cassette's misses during the row
+                    "acquirer", "network_calls", "cassette_misses")
+
+#: What the `acquirer` column says, read off the acquirer function the row ACTUALLY installed (each
+#: factory tags its function), never off the register's `routes.kind`: `stub` is the SYNTHETIC return
+#: (`_acquirer_stub`), `ladder` the REAL acquisition ladder against a recorded cassette (S4.5 item 7),
+#: `real-oa-raises` the real ladder with one route made to raise, `none` no acquirer installed.
+ACQUIRER_TAG = "_litkb_acquirer"
+
+
+def _tagged(fn, what):
+    setattr(fn, ACQUIRER_TAG, what)
+    return fn
+
+
+#: The stand-in archive key a replay logs in with. The live pass logged in with the real key, which
+#: `netutil.add_secret` registered and the cassette therefore recorded only as `<KEY>`; registering
+#: this string the same way makes the replayed login's body hash to the same key. It is not a key.
+REPLAY_ANNAS_KEY = "litkb-replay-stand-in-archive-key"
 
 #: The live modes a register row may declare. `waits-on-migration` is NEVER written in the
 #: fixture: it is DECIDED AT FREEZE by measuring `db_migration_tip` against the row's own
@@ -202,7 +225,8 @@ def _base_row(row, mode, *, replay=False):
             "observed_state": "", "observed_reason": "", "ok": "", "refusal_codes": "",
             "work_id": "", "admission_id": "", "file_id": "", "run_id": "",
             "attempt_statuses": "", "route_detail": "", "new_admissions": "", "report": "",
-            "seconds": "", "traceback": "0", "started_at": "", "message": ""}
+            "seconds": "", "traceback": "0", "started_at": "", "message": "",
+            "acquirer": "", "network_calls": "", "cassette_misses": ""}
 
 
 def _call(hunt_fn, kwargs):
@@ -301,17 +325,28 @@ _SUITE_LOCK = 0x6C6B7473        # "lkts" — qc/conftest.py::litkb_pg_base's loc
                                 # on the same worker database serialise instead of racing
 
 
+#: Body lines on `_pdf_bytes`'s page: MEASURED 2026-09-23 (integrator-w1) — 50 lines with the shortest
+#: salt this module passes ("edge") make a page the acceptance test accepts (see `_pdf_bytes`).
+PDF_BODY_LINES = 50
+
+
 def _pdf_bytes(title, author, salt="edge"):
     """A one-page text PDF pdftotext reads back — the SHAPE of `qc/test_litkb_p2.py::make_pdf`,
     reimplemented here rather than imported because an instrument that imports a test module
     inherits its fixtures and its collection. Generated rather than shipped as a binary so the
     title on page 1 is always the row's own: check 3 binds the CLAIMED title against that page,
-    and one committed PDF could only ever satisfy one row."""
+    and one committed PDF could only ever satisfy one row.
+
+    Since S4.5 a rung's bytes pass THE acceptance test before they bind (litkb.acquire.accept: a
+    5,000-byte floor; under 3,000 characters with no reference heading is a stub), so the page carries
+    PDF_BODY_LINES body lines of a fixed width: 8 short lines made a 1.1 KB page the ladder refused
+    `too_small` (seam integrator-w1; the same change as `qc/test_litkb_p2.py::paper_pdf`)."""
     def esc(s):
         return s.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
     lines = ["Journal of Synthetic Studies 1 (2020) 1-10", title, f"{author} and A. Coauthor", ""]
-    lines += [f"Body text line {i} of a synthetic document, id {salt}." for i in range(8)]
+    lines += [f"Body text line {i} of a synthetic document about canopy mapping and validation, id {salt}."
+              for i in range(PDF_BODY_LINES)]
     content = "BT /F1 9 Tf 40 760 Td 12 TL " + " ".join(f"({esc(ln)}) '" for ln in lines) + " ET"
     objs = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1400 792] /Contents 4 0 R "
@@ -392,7 +427,11 @@ def _registry_stub(spec, row):
     if kind.startswith("status:"):
         return _StatusRegistry(kind.split(":", 1)[1])
     if kind == "record":
-        return _RecordRegistry(row.get("ref"), title=f"A synthetic record for {row['id']}")
+        # `title`/`author`/`year` in the spec are the REAL record's fields (S4.5 item 7): a row
+        # replayed through the real ladder lands a recorded PDF, and binding reads that PDF's page 1
+        # against the work's title — a synthetic title would refuse the right bytes
+        return _RecordRegistry(row.get("ref"), title=spec.get("title") or f"A synthetic record for {row['id']}",
+                               author=spec.get("author") or "Tester", year=spec.get("year") or 2020)
     if kind == "title_gate":
         fx = json.loads((FIXTURES / "litkb_title_gate_wrong_work.json").read_text(encoding="utf-8"))
         return _BodyRegistry(json.dumps(fx["crossref_search_body"]).encode("utf-8"))
@@ -440,7 +479,91 @@ def _acquirer_stub(spec):
         return {"outcome": outcome,
                 "attempts": [(d["route"], d["status"]) for d in detail],
                 "route_detail": detail}
-    return _acquire
+    return _tagged(_acquire, "stub")
+
+
+def _replay_open_session(key_file=None, client=None):
+    """`litkb.acquire.annas.open_session` for a replay: the same login, with the stand-in key
+    (REPLAY_ANNAS_KEY) instead of the key file, so a replay needs no secret on disk. The login POST
+    and the account page are answered by the cassette; `Client.login` finds the account cookie the
+    cassette adopts by NAME (litkb.cassette._set_cookie)."""
+    from litkb.netutil import Client, add_secret
+
+    add_secret(REPLAY_ANNAS_KEY)
+    c = client if client is not None else Client()
+    ok, _st = c.login(REPLAY_ANNAS_KEY)
+    return (c, REPLAY_ANNAS_KEY) if ok else (None, None)
+
+
+def _ladder_acquirer(spec):
+    """The REAL `litkb.acquire.run.acquire` (S4.5 item 7) — the function `hunt._default_acquire`
+    calls — run under whatever cassette `litkb.cassette.use` has installed, so every `Client` a route
+    builds replays from it. What differs from a live hunt, and only this: the pacers do not sleep
+    (timing is not part of an answer), the archive login uses the stand-in key
+    (`_replay_open_session`), `routes` may name the routes the LIVE run actually reached (a route the
+    live database dead-skipped was never recorded, and a fresh replay database has no attempt to
+    skip it on), and `mirrors` pins the Sci-Hub mirrors the recording was made against.
+
+    A pinned mirror is also NAMED to the ladder's pre-fetch policy (`_pinned_mirror_policy`; seam
+    integrator-w1, A x C1a): since S4.5 the ladder asks `litkb.acquire.policy.decide` for every mirror
+    host BEFORE the request and refuses a host no policy line names — so a row pinned to a CONSTRUCTED
+    `.invalid` mirror, or to a loopback recording server, was refused before its cassette was ever read."""
+    routes = tuple(spec.get("routes") or ())
+    mirrors = tuple(spec.get("mirrors") or ())
+
+    def _acquire(conn, ws_id, token, work, *, store, agent, session):
+        import contextlib
+
+        from litkb.acquire import run as R
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch("litkb.acquire.annas.open_session", _replay_open_session))
+            if mirrors:
+                stack.enter_context(mock.patch("litkb.config.SCIHUB_MIRRORS", mirrors))
+                stack.enter_context(mock.patch("litkb.acquire.policy.POLICY", _pinned_mirror_policy(mirrors)))
+            # a row that names no routes replays the ladder the live hunt asks (`hunt._default_acquire`: every
+            # registered rung, `run.ladder_routes` — seam integrator-w2), not only today's three
+            return R.acquire(conn, ws_id, token, work, store=store, agent=agent, session=session,
+                             routes=routes or R.ladder_routes(), pacer=_no_wait_pacer(),
+                             annas_pacer=_no_wait_pacer(), printer=lambda *a, **k: None)
+    return _tagged(_acquire, "ladder")
+
+
+def _pinned_mirror_policy(mirrors):
+    """`litkb.acquire.policy.POLICY` plus one `scihub` line for each pinned mirror host no line names
+    exactly, in the tier every real mirror's line carries (shadow, with the shadow corpus freeze date).
+    A real mirror keeps its own line; only a host the register PINS is added, and only for this
+    replay. -> the policy tuple."""
+    import urllib.parse
+
+    from litkb.acquire import policy as P
+
+    named = {(p.route, p.host) for p in P.POLICY}
+    extra = []
+    for m in mirrors:
+        host = urllib.parse.urlparse(m).netloc or m
+        if ("scihub", host) not in named:
+            named.add(("scihub", host))
+            extra.append(P.PolicyLine("scihub", host, P.SHADOW,
+                                      "a Sci-Hub mirror a replayed register row pins (litkb_edge_run)",
+                                      P.SHADOW_CORPUS_FROZEN_AT))
+    return P.POLICY + tuple(extra)
+
+
+def _row_cassette(spec, run_cassette):
+    """The cassette a `ladder` row replays from: its own (`routes.cassette`, a path under qc/fixtures
+    or absolute — the CONSTRUCTED fixtures use this) or the run's (the recorded index the live pass
+    wrote). -> a replay-mode `litkb.cassette.Cassette`, or None when neither exists."""
+    from litkb import cassette as C
+
+    own = spec.get("cassette")
+    if own:
+        p = Path(own) if Path(own).is_absolute() else FIXTURES / own
+        bodies = spec.get("bodies")
+        if bodies and not Path(bodies).is_absolute():
+            bodies = FIXTURES / bodies
+        return C.Cassette(p, "replay", bodies=bodies or (run_cassette.bodies if run_cassette else None))
+    return run_cassette
 
 
 def _real_oa_acquirer():
@@ -452,7 +575,7 @@ def _real_oa_acquirer():
 
         return acquire(conn, ws_id, token, work, store=store, agent=agent, session=session,
                        routes=("open_access",), printer=lambda *a, **k: None)
-    return _acquire
+    return _tagged(_acquire, "real-oa-raises")
 
 
 def _extract_stub(spec):
@@ -541,8 +664,14 @@ def _seed(conn, ws_id, spec, row):
     return {"key": key, "work_id": str(work_id), "file_id": str(file_id), "run_id": str(run_id)}
 
 
-def replay_row(row, *, conn, db, tmp, hunt=None):
-    """One register row, re-run against stubs on the worker database. -> the CSV row dict."""
+def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cassettes_used=None):
+    """One register row, re-run against stubs on the worker database. -> the CSV row dict.
+
+    `cassette` is the run's recorded index (a replay-mode `litkb.cassette.Cassette`) that `ladder`
+    rows without one of their own replay from; `guard` is the `litkb.cassette.SocketGuard` the whole
+    replay runs inside, read here only to count this row's share of its attempts. `cassettes_used`
+    (a list, optional) collects every cassette a row replayed from — the run's AND a row's own — so
+    the caller's staleness diff reads all of them (auditor-A round 1, F1)."""
     from litkb import workstream
 
     if hunt is None:
@@ -589,10 +718,29 @@ def replay_row(row, *, conn, db, tmp, hunt=None):
 
     routes = rp.get("routes") or {}
     rkind = routes.get("kind") or "none"
+    row_cassette = None
     if rkind == "acquirer":
         kwargs["acquirer"] = _acquirer_stub(routes)
     elif rkind == "real-oa-raises":
         kwargs["acquirer"] = _real_oa_acquirer()
+    elif rkind == "ladder":
+        row_cassette = _row_cassette(routes, cassette)
+        # BEGIN guard: a ladder row is answered by its recorded cassette or not at all
+        if row_cassette is None:
+            out["traceback"] = "1"
+            out["acquirer"] = "ladder"
+            out["message"] = (f"{row['id']} is a `ladder` row with no cassette: neither routes.cassette "
+                              "nor a recorded run index was given, and a ladder row is never "
+                              "answered by anything else")
+            return out
+        # END guard: a ladder row is answered by its recorded cassette or not at all
+        if cassettes_used is not None and not any(c is row_cassette for c in cassettes_used):
+            cassettes_used.append(row_cassette)
+        kwargs["acquirer"] = _ladder_acquirer(routes)
+    elif rkind != "none":
+        raise ValueError(f"litkb_edge_run: unknown routes kind {rkind!r}")
+    # measured off what was INSTALLED, so code that put a ladder row back on the stub is counted
+    out["acquirer"] = getattr(kwargs.get("acquirer"), ACQUIRER_TAG, "none") if kwargs.get("acquirer") else "none"
 
     # A PROPOSAL IN ANOTHER WORKSTREAM CANNOT BE SEEDED AS A FACT. `_write_version('fact', …)`
     # writes a promoted row every view can see, which is the opposite of what E04 is about. The
@@ -638,23 +786,45 @@ def replay_row(row, *, conn, db, tmp, hunt=None):
 
     # every admission on this database is this replay's, so before/after is the honest measure
     before = conn.execute("SELECT count(*) FROM litkb.admissions").fetchone()[0]
+    net_before = len(guard.blocked) if guard is not None else 0
+    miss_before = len(row_cassette.misses) if row_cassette is not None else 0
     t0 = time.monotonic()
     out["started_at"] = _utc_now_text()
     try:
         for p in patches:
             p.start()
-        res, tb = _call(hunt, kwargs)
+        if row_cassette is not None:
+            from litkb import cassette as C
+
+            # the row's reference is the tag the live pass recorded under (litkb.cassette docstring)
+            row_cassette.begin_row(row.get("ref"))
+            with C.use(row_cassette):
+                res, tb = _call(hunt, kwargs)
+        else:
+            res, tb = _call(hunt, kwargs)
     finally:
         for p in reversed(patches):
             p.stop()
     out["seconds"] = round(time.monotonic() - t0, 2)
     out["new_admissions"] = max(
         0, conn.execute("SELECT count(*) FROM litkb.admissions").fetchone()[0] - before)
+    out["network_calls"] = (len(guard.blocked) - net_before) if guard is not None else ""
+    misses = row_cassette.misses[miss_before:] if row_cassette is not None else []
+    out["cassette_misses"] = len(misses) if row_cassette is not None else ""
     if res is None:
         out["traceback"] = "1"
         out["message"] = tb
     else:
         out.update(_observed(res))
+    # BEGIN guard: a cassette miss fails the row closed
+    # A miss is absorbed by the ladder's own boundaries (a raising route is an `api-error` attempt),
+    # so the row's (state, reason) can still come out looking like an answer. It is not one: the
+    # ladder was asked something the recording never saw. The row is a traceback, named.
+    if misses:
+        out["traceback"] = "1"
+        out["message"] = ("CassetteMiss: " + "; ".join(f"{m['key']['method']} {m['key']['url']} ({m['why']})"
+                                                       for m in misses[:3]))[:500]
+    # END guard: a cassette miss fails the row closed
     return out
 
 
@@ -671,7 +841,8 @@ def _no_wait_pacer():
     return Pacer(interval=0, sleep=lambda s: None)
 
 
-def run_replay(register, out_csv, *, db, tmp, only=None, hunt=None, db_tip=None, conn=None):
+def run_replay(register, out_csv, *, db, tmp, only=None, hunt=None, db_tip=None, conn=None,
+               cassette=None, guard=None, cassettes_used=None):
     """Every non-held, hunt-shaped row, on a WORKER database.
 
     `conn` IS NOT AN OPTIMISATION — IT IS THE DEADLOCK. `qc/conftest.py`'s `litkb_pg_base` resets
@@ -702,13 +873,20 @@ def run_replay(register, out_csv, *, db, tmp, only=None, hunt=None, db_tip=None,
             migrate.reset(conn)
             migrate.apply(conn)
         only = set(only or ())
-        for row in rows_of(register):
-            if not is_hunt_row(row):
-                continue
-            if only and row["id"] not in only:
-                continue
-            written.append(replay_row(row, conn=conn, db=db, tmp=tmp, hunt=hunt))
-            write_csv(out_csv, written)
+        import contextlib
+
+        # the guard is entered ONCE around every row (S4.5 item 7: "the same guard active inside
+        # replay, where every refused connect is COUNTED"); each row reads its own share of it
+        with (guard if guard is not None else contextlib.nullcontext()):
+            for row in rows_of(register):
+                if not is_hunt_row(row):
+                    continue
+                if only and row["id"] not in only:
+                    continue
+                written.append(replay_row(row, conn=conn, db=db, tmp=tmp, hunt=hunt,
+                                          cassette=cassette, guard=guard,
+                                          cassettes_used=cassettes_used))
+                write_csv(out_csv, written)
     finally:
         if own:
             try:

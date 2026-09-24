@@ -72,6 +72,13 @@ _LITKB_LIVE = "litkb_live"
 
 
 def pytest_configure(config):
+    # the no-network guard's port list includes every port this process binds on loopback; record them
+    # from the start, so a server a module-scoped fixture binds before any test's guard is known too
+    try:
+        from litkb.cassette import watch_loopback_binds
+        watch_loopback_binds()
+    except Exception:                                            # noqa: BLE001 — `_no_network` fails closed
+        pass
     config.addinivalue_line(
         "markers",
         f"{_LITKB_MARK}: needs the local litkb PostgreSQL server (localhost:5433, role "
@@ -134,6 +141,122 @@ def pytest_terminal_summary(terminalreporter):
             line += (f"  <- {counts['skipped']} SKIPPED: litkb server/role/psycopg absent, "
                      "so those guards were NOT tested")
         terminalreporter.write_line(line)
+
+
+# ── no test reaches the network (S4.5 item 7; brief-COMMON rule 11) ──────────────────────────
+# S4 found a test that had written 22 real registry-cache files: it had reached Crossref, and nothing
+# in the suite could have said so, because litkb's client never raises — an unreachable host is
+# `status 0` and a test built on a stub-shaped answer can pass either way. So every test now runs
+# inside `litkb.cassette.SocketGuard` (the one home of the guard; the replay runs inside the same
+# class), which COUNTS and refuses every connect to a non-loopback host and every lookup of a
+# non-loopback name, and this fixture FAILS the test at teardown when the count is not zero —
+# a test that reached for the network is a finding even when it passed.
+#
+# ALLOWED: loopback as HOST AND PORT (Codex finding X3, brief-CONTRACTS.md; auditor-A round 2, F3),
+# never "every loopback port": a loopback port can forward off the machine (a proxy, an SSH tunnel, a
+# solver), and a connect to it would be allowed and uncounted. The ports (`_suite_ports`):
+#   * PostgreSQL's, `litkb.db.connect.PORT` (LITKB_PGPORT, 5433). libpq opens that socket in C, so the
+#     guard never sees it; the port is listed so the allowlist says what the suite may reach.
+#   * GROBID's, the port of `litkb.extract.grobid.DEFAULT_URL` (GROBID_URL, http://localhost:8070) when
+#     its host is loopback — a local service. The tests that need it are `litkb_live` and skip without
+#     LITKB_LIVE=1; measured (builder-A round 1, LITKB_SOCKET_GUARD_LOG over the whole suite): no
+#     non-live test touched it. A remote GROBID_URL is the network and is not listed.
+#   * every port THIS process bound on loopback (`litkb.cassette.watch_loopback_binds`, installed at
+#     configure time): a test's own local HTTP server, and asyncio's self-pipe, which on Windows is a
+#     loopback socketpair (the p8 and web-gate MCP tests' ports in that measurement).
+# Loopback NAMES resolve so psycopg's own host lookup still works. A test that needs a port nothing
+# listens on binds one itself and does not listen (`test_process_pdf_raises_when_unreachable`).
+# EXCEPTED: a `litkb_live` test while LITKB_LIVE=1 — reaching the network is what it is for.
+# NOT COVERED: a SUBPROCESS a test starts (`py -m litkb …`) — the patch lives in this interpreter.
+# NOT COVERED: an asyncio connect on Windows' Proactor loop (`asyncio.open_connection`): it connects through
+# `_overlapped.ConnectEx` in C, below the Python-level patches (auditor-A round 3 F2, DS2: measured on loopback).
+# Latent — no litkb module and no test opens an asyncio network connection (grep, same audit); the ladder is
+# urllib. The REPLAY guard fails closed on it (the loop's own self-pipe connect is refused). Integrator-w2.
+# Set LITKB_SOCKET_GUARD_LOG=<file> to append every loopback port a test touched (a measurement).
+#
+# NO PROXY, NO SOLVER (auditor-A round 1, F11). Loopback is allowed, so a proxy on a loopback port
+# (HTTP(S)_PROXY / ALL_PROXY, or a Windows system proxy urllib reads from the registry) or a local
+# FlareSolverr (FLARESOLVERR_URL) would carry a test's request OFF the machine through an allowed
+# connect, uncounted. Every test therefore runs with the proxy variables and FLARESOLVERR_URL unset and
+# NO_PROXY=* (which also makes urllib ignore the registry proxy): every request connects directly, where
+# the guard sees its real host. A test that needs one of them sets it itself (monkeypatch).
+# FAIL CLOSED: when the litkb package imports but `litkb.cassette` does not, the run is on the wrong
+# code (a worktree without PYTHONPATH=pipeline reaches MAIN's install) and every test fails, named —
+# the guard is never silently off. Only a tree with no litkb package at all runs unguarded.
+_PROXY_ENV = ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "FTP_PROXY",
+              "http_proxy", "https_proxy", "all_proxy", "ftp_proxy", "FLARESOLVERR_URL")
+_SUITE_PORTS = []
+
+
+def _suite_ports():
+    """The named loopback ports every test may reach (the comment above): PostgreSQL's and a loopback
+    GROBID's, each read from its one home. A home that cannot be read adds nothing — the guard is then
+    STRICTER (only this process's own ports), never wider."""
+    if _SUITE_PORTS:
+        return _SUITE_PORTS[0]
+    from urllib.parse import urlsplit
+
+    from litkb.cassette import is_loopback
+    ports = set()
+    try:
+        from litkb.db.connect import PORT
+        ports.add(int(PORT))
+    except Exception:                                            # noqa: BLE001
+        pass
+    try:
+        from litkb.extract.grobid import DEFAULT_URL
+        u = urlsplit(DEFAULT_URL)
+        if is_loopback(u.hostname):
+            ports.add(int(u.port or (443 if u.scheme == "https" else 80)))
+    except Exception:                                            # noqa: BLE001
+        pass
+    _SUITE_PORTS.append(frozenset(ports))
+    return _SUITE_PORTS[0]
+
+
+@pytest.fixture(autouse=True)
+def _no_network(request, monkeypatch):
+    import importlib.util
+    import os
+
+    if os.environ.get("LITKB_LIVE") == "1" and _LITKB_LIVE in request.keywords:
+        yield
+        return
+    try:
+        from litkb.cassette import SocketGuard
+    except Exception as e:                                       # noqa: BLE001
+        # BEGIN guard: the no-network guard fails closed when litkb imports without it
+        if importlib.util.find_spec("litkb") is not None:
+            pytest.fail(f"qc/conftest.py cannot import litkb.cassette ({type(e).__name__}: {e}) although "
+                        "the litkb package imports: this run is on the wrong litkb (from a worktree, set "
+                        "PYTHONPATH=pipeline). The no-network guard fails closed.", pytrace=False)
+        # END guard: the no-network guard fails closed when litkb imports without it
+        yield            # a tree without the litkb package has nothing of litkb's to guard
+        return
+    # BEGIN guard: no test reaches the network through a proxy or a solver
+    for name in _PROXY_ENV:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("NO_PROXY", "*")
+    monkeypatch.setenv("no_proxy", "*")
+    # END guard: no test reaches the network through a proxy or a solver
+    guard = SocketGuard(allow_ports=_suite_ports(), label=f"qc/conftest.py no-network guard ({request.node.name})")
+    with guard:
+        yield
+    log = os.environ.get("LITKB_SOCKET_GUARD_LOG")
+    if log:
+        local = sorted({f"{a['host']}:{a['port']}" for a in guard.attempts
+                        if a["allowed"] and a["port"] is not None})
+        if local:
+            with open(log, "a", encoding="utf-8") as fh:
+                fh.write(f"{request.node.nodeid}\t{' '.join(local)}\n")
+    reached = guard.blocked
+    # BEGIN guard: a test that reached for the network fails
+    if reached:
+        seen = "\n  ".join(f"{a['how']} {a['host']}:{a['port']}" for a in reached[:10])
+        pytest.fail(f"TEST REACHED FOR THE NETWORK: {request.node.nodeid}\n  {seen}\n\n"
+                    "Give it a stub or a recorded cassette (litkb.cassette); never widen the guard. "
+                    "A test that needs the real network is marked litkb_live.", pytrace=False)
+    # END guard: a test that reached for the network fails
 
 
 def _fingerprint(p):

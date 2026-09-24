@@ -1,0 +1,89 @@
+{
+  "client": {
+    "class": "litkb.netutil.Client",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
+  },
+  "doi": "10.3390/rs15030765",
+  "final": {
+    "status": 403,
+    "url": "https://www.mdpi.com/2072-4292/15/3/765",
+    "verdict": "challenge_or_bot_check",
+    "why": "akamai"
+  },
+  "grant": "brief-C2b-stage-c.md item 2 (S4.5, 2026-09-23): one GET of one real landing page per publisher rule, a DOI of that publisher from the corpus; nothing else",
+  "hops": [
+    {
+      "n": 0,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.3390/rs15030765"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a3fb672e880aa347-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:25 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=SXFWQvF%2FUOlOEK%2FKBBIIuwGyuItV3mxqlZCslentdKJPlPm4WZJ1eJ9WY4oJ88NmYir1jR%2FMoW3h2N974NU0fLBB0XFZt1Q%2BSg%2BfIS2o6A1kGio%2BI3Q3Hx8%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Wed, 23 Sep 2026 18:02:50 GMT",
+          "location": "https://www.mdpi.com/2072-4292/15/3/765",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 163,
+        "scrubbed": false,
+        "sha256": "28845e6bc12d622befa23e52b971f76662425b61dbf7856ee18d58594cf833a0",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.mdpi.com/2072-4292/15/3/765"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Akamai-GRN": "0.c737cb17.1790185945.4d0b015",
+          "Cache-Control": "max-age=0, no-cache, no-store",
+          "Connection": "close",
+          "Content-Length": "398",
+          "Content-Type": "text/html",
+          "Date": "Wed, 23 Sep 2026 17:52:25 GMT",
+          "Expires": "Wed, 23 Sep 2026 17:52:25 GMT",
+          "Mime-Version": "1.0",
+          "Pragma": "no-cache",
+          "Server-Timing": "cdn-cache; desc=HIT",
+          "Strict-Transport-Security": "max-age=31536000"
+        },
+        "length": 398,
+        "scrubbed": false,
+        "sha256": "b1773495a087d25a4ea1dbfa2eb626cfca0b0f3819b950318cbd7962eebb04e4",
+        "status": 403
+      }
+    }
+  ],
+  "kind": "litkb-landing-recording",
+  "recorded_at": "2026-09-23T17:52:25.540969+00:00",
+  "rule": "mdpi",
+  "scrub": "litkb.cassette.scrub_bytes / scrub_url (registered secrets), then the client-address mask of qc/instruments/litkb_landing_record.py (client_ips / scrub_ips); a scrubbed body's sha256 is of the bytes as written",
+  "version": 1,
+  "walk": {
+    "accept": "text/html",
+    "max_hops": 10,
+    "meta_refresh": true
+  },
+  "work_key": "Chen_2023_urban-tree-canopy-mapping"
+}

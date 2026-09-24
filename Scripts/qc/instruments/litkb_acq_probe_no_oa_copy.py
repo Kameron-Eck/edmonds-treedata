@@ -80,7 +80,7 @@ def unpaywall(doi):
         from litkb.acquire.open_access import unpaywall_locations
     except ImportError:
         return "", "litkb not importable (run from Scripts/ with PYTHONPATH=pipeline, or install -e .)"
-    urls, note = unpaywall_locations(doi)
+    urls, note, *_meta = unpaywall_locations(doi)      # (urls, note, meta) since S4.5 C1a (D3)
     return (urls[0] if urls else ""), note
 
 

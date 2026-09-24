@@ -270,8 +270,9 @@ class TestFile(Base):
     def test_hash_mismatch_quarantines(self):
         r = self.run_job(self.routes(make_pdf(b"wrong paper")))
         self.assertEqual(r["status"], "hash-mismatch")
-        self.assertEqual(self.quarantined(), [f"Efron_2004_test__hash-mismatch__"
-                                              f"{hashlib.md5(make_pdf(b'wrong paper')).hexdigest()}.pdf"])
+        # the payload, and (S4.5 item 8) the .reason.json the legacy _quarantine now writes beside it
+        stem = f"Efron_2004_test__hash-mismatch__{hashlib.md5(make_pdf(b'wrong paper')).hexdigest()}"
+        self.assertEqual(self.quarantined(), [f"{stem}.pdf", f"{stem}.reason.json"])
         self.assertFalse(os.path.exists(os.path.join(self.paths["dest"], "Efron_2004_test.pdf")))
 
     def test_bad_file_header(self):

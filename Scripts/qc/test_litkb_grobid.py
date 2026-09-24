@@ -429,10 +429,17 @@ def test_grobid_error_carries_status_and_body():
 
 
 def test_process_pdf_raises_when_unreachable(tmp_path):
+    import socket
+
     p = tmp_path / "x.pdf"
     p.write_bytes(b"%PDF-1.4\n")
-    with pytest.raises(grobid.GrobidError):
-        grobid.process_pdf(str(p), url="http://localhost:1", timeout=5)
+    # a port THIS process holds bound and never listens on refuses every connect, and no other process
+    # can take it meanwhile (it replaces localhost:1, which qc/conftest.py's host-AND-port allowlist
+    # refuses: S4.5 builder-A round 3, Codex finding X3)
+    with socket.socket() as held:
+        held.bind(("127.0.0.1", 0))
+        with pytest.raises(grobid.GrobidError):
+            grobid.process_pdf(str(p), url=f"http://127.0.0.1:{held.getsockname()[1]}", timeout=5)
 
 
 # ── live service ─────────────────────────────────────────────────────────────────────────

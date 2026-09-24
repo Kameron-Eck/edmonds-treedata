@@ -366,6 +366,114 @@ def backfill(conn, *, root, apply=False, recorder=None):
             "by_reason": dict(sorted(by_reason.items())), "rows": items, "errors": errors}
 
 
+# ── the sidecar: every payload says WHY (LITKB_WORKPLAN.md "### S4.5" item 8) ─────────────────
+
+def without_reason(root):
+    """The S4.5 counter `quarantines_without_reason` (all time): payloads under `<root>/_quarantine/` — the
+    same payload rule as `backfill` — with no `.reason.json` sidecar beside them. -> (count, [rel paths]).
+
+    Since S4.5 `Store.to_quarantine` writes the sidecar itself, so a new payload cannot lack one; the ones
+    that do predate that (data survey §4: 25 of 69 on 2026-09-23) and `backfill_sidecars` writes theirs."""
+    missing = [rel_of(root, p) for p in payloads(root) if not Path(p).with_suffix(SIDECAR_SUFFIX).is_file()]
+    return len(missing), missing
+
+
+def _row_by_path(conn, rels):
+    if not rels or not table_present(conn):
+        return {}
+    out = {}
+    for rel, reason, origin, detail, aid, wid, sha, nbytes, at in conn.execute(
+            "SELECT rel_path, reason, origin, detail, attempt_id::text, work_id::text, sha256, bytes, "
+            "       recorded_at FROM litkb.quarantine_payloads WHERE rel_path = ANY(%s)", (list(rels),)).fetchall():
+        out[rel] = {"reason": reason, "origin": origin, "detail": detail or {}, "attempt_id": aid, "work_id": wid,
+                    "sha256": sha, "bytes": nbytes, "recorded_at": at}
+    return out
+
+
+def _attempts_by_id(conn, ids):
+    if not ids:
+        return {}
+    out = {}
+    for aid, route, status, detail, at in conn.execute(
+            "SELECT id::text, route, status, detail, at FROM litkb.acquisition_attempts WHERE id::text = ANY(%s)",
+            (list(ids),)).fetchall():
+        out[aid] = {"route": route, "status": status, "detail": detail or {}, "at": at}
+    return out
+
+
+def sidecar_backfill_plan(conn, *, root):
+    """One planned sidecar per payload that has none: from its `quarantine_payloads` row, and the attempt that
+    row names, else from its NAME alone. Reads the database and the disk; writes nothing.
+
+    Every planned body says `"backfilled": true` and where it came from (`reason_source`), so a sidecar
+    written after the fact can never be read as one the refusing code wrote at the time."""
+    root = Path(root)
+    _n, rels = without_reason(root)
+    rows = _row_by_path(conn, rels)
+    atts = _attempts_by_id(conn, {r["attempt_id"] for r in rows.values() if r["attempt_id"]})
+    planned, claimed = [], {}
+    for rel in rels:
+        p = root / rel
+        side = Path(rel).with_suffix(SIDECAR_SUFFIX).as_posix()
+        row = rows.get(rel)
+        reason, source, label = reason_of(p)
+        body = {"backfilled": True, "label": label or reason, "reason_source": f"name ({source})",
+                "reason": "no sidecar was written when these bytes were quarantined; this one was written "
+                          "afterwards from what the store and the database still say about them"}
+        if row:
+            body.update(label=row["reason"], origin=row["origin"], sha256=row["sha256"], bytes=row["bytes"],
+                        work_id=row["work_id"], attempt_id=row["attempt_id"],
+                        recorded_at=row["recorded_at"].isoformat() if row["recorded_at"] else None,
+                        reason_source="quarantine_payloads")
+            note = row["detail"].get("note")
+            if note:
+                body["note"] = str(note)[:300]
+            att = atts.get(row["attempt_id"]) if row["attempt_id"] else None
+            if att:
+                body.update(status=att["status"], route=att["route"], attempt_at=att["at"].isoformat(),
+                            reason_source="quarantine_payloads+attempt")
+                for k in ("note", "source_url", "probe_error"):
+                    if att["detail"].get(k):
+                        body[f"attempt_{k}"] = str(att["detail"][k])[:300]
+        action = "write"
+        if side in claimed:
+            action = "shared-sidecar-path"         # two payloads whose names differ only by suffix
+        claimed.setdefault(side, rel)
+        planned.append({"rel_path": rel, "sidecar": side, "action": action, "body": body})
+    return planned
+
+
+def backfill_sidecars(conn, *, root, apply=False, store=None):
+    """Write the planned sidecars (`apply=True`), create-only through `Store.write_reason`; the default is a
+    dry run that writes nothing. -> {"applied", "root", "counters", "rows", "errors"}.
+
+    The orchestrator runs it on the live store; a test runs it on a COPY in a temporary directory."""
+    import datetime
+
+    from litkb.acquire.store import Store
+
+    root = Path(root)
+    plan = sidecar_backfill_plan(conn, root=root)
+    store = store or Store(root)
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    written, errors = [], []
+    for it in plan:
+        if not apply or it["action"] != "write":
+            continue
+        try:
+            store.write_reason(root / it["rel_path"], dict(it["body"], backfilled_at=now))
+            written.append(it["rel_path"])
+        except (OSError, RuntimeError) as e:
+            errors.append({"rel_path": it["rel_path"], "error": f"{type(e).__name__}: {e}"})
+    counters = {"without_reason": len(plan), "to_write": sum(1 for i in plan if i["action"] == "write"),
+                "shared_sidecar_path": sum(1 for i in plan if i["action"] == "shared-sidecar-path"),
+                "from_row": sum(1 for i in plan if i["body"]["reason_source"].startswith("quarantine_payloads")),
+                "from_attempt": sum(1 for i in plan if i["body"]["reason_source"].endswith("+attempt")),
+                "from_name": sum(1 for i in plan if i["body"]["reason_source"].startswith("name")),
+                "written": len(written), "errors": len(errors)}
+    return {"applied": bool(apply), "root": str(root), "counters": counters, "rows": plan, "errors": errors}
+
+
 # ── the known-bad ─────────────────────────────────────────────────────────────────────────────
 
 def fire_quarantine(conn, *, root):

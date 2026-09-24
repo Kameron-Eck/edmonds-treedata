@@ -7,7 +7,8 @@ Route order is the convention's: open access, then Anna's Archive by DOI, then S
 last and is not automated: when nothing else lands a file, a `browser` attempt with status `manual-step` says
 how to hand the file in (`py -3.12 -m litkb acquire --key K --from-file PATH`).
 
-For every downloaded byte string, in this order:
+For every downloaded byte string, in this order (a rung's bytes meet the ACCEPTANCE TEST first, `_land` ->
+litkb.acquire.accept.offer_to_bind, which refuses into _quarantine with its sub-status and hands on what it accepts):
   0. shape: %PDF- header, %%EOF near the end   -> neither: straight to _quarantine with a .reason.json (`bad-file`)
   1. sha256 against the database's files      -> `duplicate-held`, nothing written
   2. sha256 against every PDF on disk         -> `duplicate-held`, nothing written
@@ -24,24 +25,61 @@ back in the route's `rejected` (or `pdf`, for hash-mismatch) and are written int
 instead of being removed to free the name; qc/test_litkb_p2.py scans these modules for one.
 
 Dead routes are not retried blindly: a route whose earlier attempt for this work ended in a terminal miss
-(DEAD_STATUSES) is skipped unless retry_dead. Anna's Archive's rolling quota (Budget): the account-wide counter on
+(DEAD_STATUSES) is skipped unless retry_dead — unless that attempt's own `retriable` fact says asking again
+could change the answer (guard 15; fix round 2). Anna's Archive's rolling quota (Budget): the account-wide counter on
 the account page is read before every download request and is the authority; the route records `quota-stop` and
 requests no download URL when the counter is at limit - margin or cannot be read. This run's cap on issued download
 URLs, and the API's downloads_left against the same margin, stay as second, local guards.
+
+THE RUNG REGISTRY (S4.5 items 1-2, builder C1a). The routes are RUNGS in an ordered, staged registry (`RUNGS`;
+stages in `litkb.acquire.policy.STAGES` order: A, B, C, E, the shadow tier LAST), so a new rung is a module that
+registers itself and never an edit of the loop. The rung interface is one line:
+
+    rung.fn(work, ctx) -> route dict   (the keys are listed on `Rung`; a rung never touches the database)
+
+and the loop does everything around it, for every rung alike:
+  * a skip is an attempt with a reason, never silence (guard 14): `skipped` with `no_identifier`,
+    `dead_route` (DEAD_STATUSES), `dead_in_run` (`blocked` is dead for a route within a run — the
+    workstream — plan item 2), `backoff_window` (the persisted per-(route, work) refusal ladder,
+    litkb.acquire.backoff) or `policy_refused` (the pre-fetch PolicyDecision, guard 21);
+  * the declarative ladder budget (guard 12) is checked between every stage and rung, and runs out as a
+    `budget-stop` row on route `ladder`;
+  * Stage B's rungs run concurrently (wall-clock = the slowest), bounded by the budget's concurrency; every
+    database write stays on this thread, in registry order;
+  * a transient answer gets ONE scheduled in-run retry (rungs that opt in), recorded with `retry_of`;
+  * the served bytes' sha256 is checked against the refused-bytes record BEFORE anything is written
+    (the rejected-hash lookup): a match is never landed or quarantined again (`known-bad`);
+  * every rung's bytes go through THE ACCEPTANCE TEST (litkb.acquire.accept, S4.5 item 5: "the bytes
+    through the same acceptance test as every route") before they bind — `accept.offer_to_bind` is the
+    landing — and a `bad-file` row's sub-status is that test's own word (seam integrator-w1);
+  * every attempt row carries its sub-status, served sha256, terminal facts, retriable and kind (0033);
+  * MEASURE mode (S4.5 decision D9; `measure`, the run driver's hook): every rung is asked — a work's
+    earlier terminal misses do not skip one — every answer recorded and judged by the acceptance test,
+    and nothing is landed or quarantined; the run driver uses it for works that already hold a file.
 """
 import datetime
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from litkb import config as _config
-from litkb.acquire.store import QUARANTINE, STAGING, Store, file_facts, pdf_shape
+from litkb.acquire import accept as _accept
+from litkb.acquire import backoff as _backoff
+from litkb.acquire import ledger as _ledger
+from litkb.acquire import policy as _policy
+from litkb.acquire import recovery as _recovery
+from litkb.acquire.store import QUARANTINE, STAGING, Store, file_facts, pdf_shape, reason_path
 from litkb.admit import binding as _binding
 from litkb.netutil import Pacer, add_secret, redact
 
 ROUTES = ("open_access", "annas", "scihub")
 DEAD_STATUSES = {"open_access": {"no-oa-copy"}, "annas": {"not-in-archive", "record-mismatch", "unresolved"},
                  "scihub": {"not-in-archive"}}
+#: plan item 2: `blocked` is DEAD for a route within a run (the 2026-09-22 Sci-Hub diagnosis: every blocked
+#: DOI was retried until sci-hub.ru's rate gate). A run is the workstream; across runs the back-off governs.
+DEAD_IN_RUN_STATUSES = {"blocked"}
+MODES = ("acquire", "measure")
 
 
 @dataclass
@@ -82,12 +120,14 @@ def work_record(conn, *, key=None, doi=None, work_id=None):
         work_id = row[0] if row else None
     if work_id is None:
         return None
-    w = conn.execute("SELECT work_id, key, title, year, authors, subtitle FROM litkb.main_works WHERE work_id = %s",
-                     (work_id,)).fetchone()
+    # seam builder-C2b: venue / volume / issue / pages and the `pii` identifier are what Stage C's per-publisher URL
+    # rules read (litkb.acquire.landing: MDPI's CDN path, Elsevier's PII -> pdfft; the pii from builder B1's harvest)
+    w = conn.execute("SELECT work_id, key, title, year, authors, subtitle, venue, volume, issue, pages "
+                     "FROM litkb.main_works WHERE work_id = %s", (work_id,)).fetchone()
     if not w:
         return None
     rows = conn.execute("SELECT scheme, value FROM litkb.main_identifiers WHERE work_id = %s AND active "
-                        "AND scheme IN ('doi', 'arxiv') ORDER BY scheme, value", (work_id,)).fetchall()
+                        "AND scheme IN ('doi', 'arxiv', 'pii') ORDER BY scheme, value", (work_id,)).fetchall()
     ids, dois = {}, [v for s, v in rows if s == "doi"]
     for scheme, value in rows:
         ids.setdefault(scheme, value)
@@ -104,7 +144,8 @@ def work_record(conn, *, key=None, doi=None, work_id=None):
     first = (authors[0].get("family") or authors[0].get("name") or "") if authors and isinstance(authors[0], dict) else ""
     return {"work_id": w[0], "key": w[1], "title": w[2], "year": w[3], "first_author": first,
             "subtitle": w[5], "title_forms": _title_forms(w[2], w[5]),
-            "doi": ids.get("doi"), "dois": dois, "arxiv": ids.get("arxiv"), "held_files": held}
+            "doi": ids.get("doi"), "dois": dois, "arxiv": ids.get("arxiv"), "held_files": held,
+            "pii": ids.get("pii"), "venue": w[6], "volume": w[7], "issue": w[8], "pages": w[9]}
 
 
 def _title_forms(title, subtitle):
@@ -134,15 +175,34 @@ def _forms(work):
 
 
 def prior_attempts(conn, work_id):
-    return conn.execute("SELECT route, status, identifier_used, at FROM litkb.acquisition_attempts "
-                        "WHERE work_id = %s ORDER BY at", (work_id,)).fetchall()
+    """-> [(route, status, identifier_used, at, workstream_id, retriable), ...] for the work, all time, oldest
+    first. `retriable` (0033; NULL on every row written before it) is what the dead checks read (guard 15)."""
+    return conn.execute("SELECT route, status, identifier_used, at, workstream_id, retriable "
+                        "FROM litkb.acquisition_attempts WHERE work_id = %s ORDER BY at", (work_id,)).fetchall()
 
 
-def record_attempt(conn, ws, token, work_id, route, identifier, status, detail, codes=None):
+def _ts(v):
+    """An ISO timestamp string (a route's `terminal.at`) -> datetime; a datetime passes; else None."""
+    if v is None or isinstance(v, datetime.datetime):
+        return v
+    try:
+        return datetime.datetime.fromisoformat(str(v))
+    except ValueError:
+        return None
+
+
+def record_attempt(conn, ws, token, work_id, route, identifier, status, detail, codes=None, *, sub_status=None,
+                   served_sha256=None, terminal=None, retriable=None, kind=None, retry_of=None):
+    """ONE writer of `acquisition_attempts` (0033's record_acquisition_attempt). `terminal` is a route's
+    {"url", "status_code", "at"}: its URL is redacted here like the detail (the one redaction point of a row)."""
+    t = terminal or {}
     return conn.execute(
-        "SELECT litkb.record_acquisition_attempt(%s, %s, %s, NULL, %s, %s, %s, %s, %s)",
+        "SELECT litkb.record_acquisition_attempt(%s, %s, %s, NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+        "%s, %s)",
         (ws, token, work_id, route, identifier, status, _jsonb(_redacted(detail)),
-         [int(c) for c in (codes or [])] or None)).fetchone()[0]
+         [int(c) for c in (codes or [])] or None, sub_status, served_sha256,
+         _redacted(t.get("url")) or None, t.get("status_code"), _ts(t.get("at")), retriable, kind,
+         retry_of)).fetchone()[0]
 
 
 def _redacted(obj):
@@ -182,8 +242,13 @@ def quarantine_bytes(store, work, data, *, label, status, shape, reason, route, 
             "quarantine_reason": store.rel(qwhy)}
 
 
-def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, index, agent, session):
-    """Steps 0-5 of the module docstring. -> (status, detail)."""
+def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, index, agent, session, copy_kind=None,
+                    acceptance=None):
+    """Steps 0-5 of the module docstring. -> (status, detail). `copy_kind` is the article version the route
+    knew (guard 23; `policy.COPY_KIND_OF_VERSION`), written on the file version; the text extract's word
+    count is written beside the page count (0033 `file_versions.word_count`). `acceptance` is the acceptance
+    test's verdict summary for an operator's file (`--from-file`, S4.5 decision D17): written on the file
+    version's `binding` so the PROPOSAL carries it to the second-session approver (integrator-w2)."""
     # BEGIN guard: a download that is not a whole PDF is quarantined, never discarded
     # Before the dedupe, deliberately: a re-download truncated the same way twice would otherwise read as
     # `duplicate-held` against a byte-identical copy filed earlier, and duplicate-held STOPS the route loop - so a
@@ -223,11 +288,13 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
     try:
         pages = _probe.probe_pages(pdf)
     except _probe.ProbeError as e:
-        qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], "probe-error", sha)
+        why = "the page count could not be read; never bound (fail closed)"
+        qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], "probe-error", sha, reason=_reason(
+            work, status="bad-file", label="probe-error", shape="pdf", reason=why, route=route,
+            source_url=source_url, sha=sha, nbytes=facts["bytes"], probe_error=str(e)[:300]))
         return "bad-file", {"sha256": sha, "md5": facts["md5"], "bytes": facts["bytes"],
-                            "source_url": source_url, "probe_error": str(e)[:300],
-                            "note": "the page count could not be read; never bound (fail closed)",
-                            "quarantined": store.rel(qpdf)}
+                            "source_url": source_url, "probe_error": str(e)[:300], "note": why,
+                            "quarantined": store.rel(qpdf), "quarantine_reason": store.rel(reason_path(qpdf))}
     # END guard: a landed file whose page count cannot be read is never bound
     info = _binding.pdf_info(pdf)
     # every title form, not only the work's stored one (_title_forms): the page prints the publisher's choice
@@ -236,8 +303,12 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
     detail = {"sha256": sha, "md5": facts["md5"], "bytes": facts["bytes"], "binding": b, "source_url": source_url}
     # BEGIN guard: a file that does not bind is quarantined
     if b["verdict"] != "bound":
-        qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], b["verdict"], sha)
+        qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], b["verdict"], sha, reason=_reason(
+            work, status=b["verdict"], label=b["verdict"], shape="pdf", route=route, source_url=source_url,
+            sha=sha, nbytes=facts["bytes"], binding=b,
+            reason="the file's first page does not bind to the work's title and first author"))
         detail["quarantined"] = store.rel(qpdf)
+        detail["quarantine_reason"] = store.rel(reason_path(qpdf))
         return b["verdict"], detail
     # END guard: a file that does not bind is quarantined
     final = store.free_name(store.filed, work["key"])
@@ -250,6 +321,13 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
         fjson["pages"] = pages
     if txt:
         fjson["txt_extract_path"] = store.rel(final.with_suffix(".txt"))
+        words = _ledger.word_count_of_file(txt)
+        if words is not None:
+            fjson["word_count"] = words
+    if copy_kind:
+        fjson["copy_kind"] = copy_kind
+    if acceptance is not None:
+        fjson["binding"] = {**b, "acceptance": acceptance}
     with conn.transaction():
         res = conn.execute("SELECT litkb.attach_file(%s, %s, %s, %s, %s, %s)",
                            (ws, token, work["work_id"], _jsonb(fjson), agent, session)).fetchone()[0]
@@ -261,8 +339,12 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
             detail["filed"] = store.rel(moved)
             return "ok", detail
     status = "duplicate-held" if res["outcome"] == "duplicate-file" else "binding-failed"
-    qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], status, sha)
+    qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], status, sha, reason=_reason(
+        work, status=status, label=status, shape="pdf", route=route, source_url=source_url, sha=sha,
+        nbytes=facts["bytes"], attach=detail["attach"],
+        reason=f"the database refused the file: attach_file answered {res['outcome']}"))
     detail["quarantined"] = store.rel(qpdf)
+    detail["quarantine_reason"] = store.rel(reason_path(qpdf))
     return status, detail
 
 
@@ -317,19 +399,20 @@ def from_file_not_a_pdf(store, work, from_file, data, shape, why):
         return detail
     was = store.rel(from_file)                      # the name it came in under, before the move takes it away
     txt = Path(from_file).with_suffix(".txt")
-    qpdf, _qtxt = store.to_quarantine(from_file, txt if txt.exists() else None, work["key"], shape, sha)
-    qwhy = store.write_reason(qpdf, _reason(work, status="bad-file", label=shape, shape=shape, reason=why,
-                                            route="browser", source_url=f"manual file {Path(from_file).name}",
-                                            sha=sha, nbytes=len(data), moved_from=was))
+    why_json = _reason(work, status="bad-file", label=shape, shape=shape, reason=why, route="browser",
+                       source_url=f"manual file {Path(from_file).name}", sha=sha, nbytes=len(data), moved_from=was)
+    qpdf, _qtxt = store.to_quarantine(from_file, txt if txt.exists() else None, work["key"], shape, sha, reason=why_json)
+    qwhy = reason_path(qpdf)                        # to_quarantine wrote it (S4.5 item 8)
     detail["moved_from"] = was
     detail["quarantined"], detail["quarantine_reason"] = store.rel(qpdf), store.rel(qwhy)
     return detail
 
 
-def attach_in_place(conn, ws, token, work, path, *, store, agent, session):
+def attach_in_place(conn, ws, token, work, path, *, store, agent, session, acceptance=None):
     """A file already held in a topic folder (Validation/, ...) and held by no work: hashed and bound where it lies,
     then litkb.attach_file() with rel_path = its own path. Never copied, moved or written (front.file_evidence only
-    reads it); a file that does not bind is left where it lies. -> (status, detail)."""
+    reads it); a file that does not bind is left where it lies. -> (status, detail). `acceptance`: as
+    `land_and_attach`'s (S4.5 decision D17, integrator-w2)."""
     from litkb.admit import front
 
     rel = store.rel(path)
@@ -350,6 +433,8 @@ def attach_in_place(conn, ws, token, work, path, *, store, agent, session):
         detail["note"] = "not bound; left where it lies (acquisition never moves a file it did not create)"
         return b["verdict"], detail
     fjson["obtained_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    if acceptance is not None:
+        fjson["binding"] = {**b, "acceptance": acceptance}
     with conn.transaction():
         res = conn.execute("SELECT litkb.attach_file(%s, %s, %s, %s, %s, %s)",
                            (ws, token, work["work_id"], _jsonb(fjson), agent, session)).fetchone()[0]
@@ -388,13 +473,475 @@ def quarantine_state(conn, ws, token, work, status, route, detail, attempt_id):
                                 "note": detail.get("probe_error") or detail.get("note") or ""})
 
 
-def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session, budget=None, retry_dead=False,
-            clients=None, pacer=None, annas_session=None, annas_pacer=None, printer=print, from_file=None):
-    """-> {"outcome": ..., "attempts": [(route, status), ...]}"""
-    from litkb.acquire import annas as _annas
-    from litkb.acquire import open_access as _oa
-    from litkb.acquire import scihub as _sh
+# ── the rung registry ────────────────────────────────────────────────────────────────────────
+@dataclass(frozen=True)
+class Rung:
+    """One rung of the acquisition ladder. THE RUNG INTERFACE:
 
+        fn(work, ctx) -> dict           (a rung never touches the database: the loop records)
+
+    `work` is `work_record`'s dict; `ctx` is the `RungContext`. The dict a rung returns:
+        status       `downloaded`, or an attempt status (no-oa-copy, bad-file, blocked, not-in-archive,
+                     quota-stop, api-error, ...: 0013 + 0033)
+        pdf          the PDF bytes when downloaded (or a real PDF that is not the record's: hash-mismatch)
+        rejected     bytes the rung was SERVED and refused, with `rejected_url` — kept, never dropped
+        source_url, tried (the rung's own tokens), http_codes (every status it saw, in order), detail (a note)
+        terminal     {"url", "status_code", "at", "headers"} of the response that decided the attempt
+        optional     sub_status (the rung's own typing; else litkb.acquire.ledger types it), kind,
+                     version (submittedVersion / acceptedVersion / publishedVersion), retriable,
+                     policy (the per-host PolicyDecisions it made), reason, and the archive's keys
+                     (via, md5, record_doi, title_best, downloads_left, rec_size, quota)
+    `needs`: the identifiers of which the work must hold at least ONE (else a `skipped/no_identifier`
+    row); `concurrent`: runs beside the other concurrent rungs of its stage; `retry_transient`: a
+    transient answer gets one scheduled in-run retry (a rung with its own retries says False)."""
+    route: str
+    fn: object = field(repr=False, compare=False)
+    needs: tuple = ("doi",)
+    concurrent: bool = False
+    retry_transient: bool = False
+
+    @property
+    def stage(self):
+        return _policy.STAGE_OF[self.route]
+
+
+@dataclass
+class RungContext:
+    """What a rung is handed. Nothing here is a database connection."""
+    clients: dict
+    pacer: object
+    budget: Budget
+    index: dict
+    printer: object
+    mode: str = "acquire"
+    #: seam builder-C2c: the dead URLs Stage E is asked about (litkb.acquire.recovery) — the ledger's, read by the
+    #: loop before the first rung, then this run's, added as each answer is recorded: {url, route, status, origin}
+    recovery_urls: list = field(default_factory=list)
+    annas_session: object = None
+    annas_pacer: object = None
+    legit_hit: bool = False           # a legitimate rung has answered a hit in this ladder run
+    landed: bool = False              # a rung has landed the file (acquire mode)
+    decisions: dict = field(default_factory=dict)   # route -> the PolicyDecision taken BEFORE it was asked
+    #: seam builder-C2b: every non-PDF page a rung of THIS ladder run was served ({route, url, status, headers,
+    #: body}), in the order met — Stage C's leads (litkb.acquire.landing follows the pointers they carry)
+    leads: list = field(default_factory=list)
+
+    def decide(self, route, host="*"):
+        return _policy.decide(route, host, legit_hit=self.legit_hit)
+
+
+def _rung_open_access(work, ctx):
+    from litkb.acquire import open_access as _oa
+    return _oa.fetch_open_access(work.get("doi"), work.get("arxiv"), ctx.pacer, client=ctx.clients.get("open_access"))
+
+
+def _rung_scihub(work, ctx):
+    from litkb.acquire import scihub as _sh
+    decisions = [ctx.decide("scihub", _host(m)) for m in _config.SCIHUB_MIRRORS]
+    mirrors = tuple(m for m, d in zip(_config.SCIHUB_MIRRORS, decisions) if d.allowed)
+    if not mirrors:
+        return {"status": "skipped", "sub_status": "policy_refused",
+                "policy": [d.as_detail() for d in decisions]}
+    r = _sh.fetch_scihub(work["doi"], ctx.pacer, client=ctx.clients.get("scihub"), mirrors=mirrors)
+    r["policy"] = [d.as_detail() for d in decisions]
+    codes = r.get("http_codes") or []
+    r.setdefault("terminal", {"url": r.get("rejected_url") or r.get("source_url") or "",
+                              "status_code": codes[-1] if codes else None,
+                              "at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
+    return r
+
+
+def _rung_annas(work, ctx):
+    from litkb.acquire import annas as _annas
+    budget = ctx.budget
+    # BEGIN guard: the archive route stops at the quota margin or the run cap
+    if budget.stopped or budget.used >= budget.max_archive_downloads:
+        reason = budget.stopped or f"this run's cap of {budget.max_archive_downloads} archive downloads is used"
+        return {"status": "quota-stop", "reason": reason}
+    # END guard: the archive route stops at the quota margin or the run cap
+    if ctx.annas_session is None:
+        ctx.annas_session = _annas.open_session()
+    aclient, key = ctx.annas_session
+    add_secret(key)             # an injected session's key is redacted like open_session()'s
+    if aclient is None:
+        return {"status": "api-error", "reason": "login failed"}
+    r = _annas.fetch_for_litkb(aclient, key, work["doi"], ctx.annas_pacer or Pacer(), known_md5=ctx.index["md5"].keys(),
+                               quota_margin=budget.quota_margin)
+    if r.get("quota"):
+        budget.counter.append(r["quota"])
+    if r["status"] == "quota-stop":
+        budget.stopped = r["detail"]
+    if r["downloads_left"] not in ("", None):
+        budget.downloads_left.append(r["downloads_left"])
+        if str(r["downloads_left"]).isdigit() and int(r["downloads_left"]) <= budget.quota_margin:
+            budget.stopped = (f"downloads_left {r['downloads_left']} is at or below the safety margin "
+                              f"{budget.quota_margin}")
+    # BEGIN guard: an issued download URL spends the run cap
+    # the archive counts a download when it issues the URL, so a partner 404 or a bad file spends one too
+    if r.get("url_issued"):
+        budget.used += 1
+    # END guard: an issued download URL spends the run cap
+    codes = r.get("http_codes") or []
+    r.setdefault("terminal", {"url": "", "status_code": codes[-1] if codes else None,
+                              "at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
+    return r
+
+
+def _host(url):
+    import urllib.parse
+    return urllib.parse.urlparse(url).netloc or url
+
+
+#: The registry: today's three routes, in the order the convention gives them, now as rungs. A new rung
+#: (Stage A/B/C/E, bban) is appended by its own module (`register`), never by editing the loop.
+RUNGS = [
+    Rung("open_access", _rung_open_access, needs=("doi", "arxiv"), concurrent=True, retry_transient=True),
+    # the archive route retries inside itself (annas.download_pdf's domain ladder, resolve's 429 retry)
+    Rung("annas", _rung_annas, needs=("doi",)),
+    # Sci-Hub's mirrors are its own retries; one sweep per run (decisions.yaml litkb-scihub-parked)
+    Rung("scihub", _rung_scihub, needs=("doi",)),
+]
+
+
+def register(rung, rungs=None, *, policy_lines=()):
+    """Append a rung to the registry (RUNGS by default). Its route must be in the 0033 route vocabulary and
+    staged, and a route is registered once. `policy_lines` are the rung's OWN pre-fetch lines
+    (`policy.PolicyLine`, one per host it asks — guard 21), declared in the rung's module beside the rung and
+    added to the one `policy.POLICY` here (`policy.add_lines` checks each: its route is this rung's, its tier
+    is its stage's, no (route, host) twice). A rung that ends up with no line is REFUSED here, at import:
+    `decide` refuses a route no line names, so such a rung would be `skipped/policy_refused` on every work —
+    recorded, but a zero-yield rung nobody asked for (auditor-C1a F4)."""
+    rungs = RUNGS if rungs is None else rungs
+    if rung.route not in _policy.ROUTES_ALL or rung.route not in _policy.STAGE_OF:
+        raise ValueError(f"{rung.route!r} is not a staged route of litkb.acquire.policy.ROUTES_ALL")
+    if any(r.route == rung.route for r in rungs):
+        raise ValueError(f"a rung for {rung.route!r} is already registered")
+    _policy.add_lines(policy_lines, route=rung.route)
+    # BEGIN guard: a registered rung has its pre-fetch policy line
+    if _policy.line_for(rung.route)[1] is None:
+        raise ValueError(f"no litkb.acquire.policy.POLICY line names {rung.route!r}: pass the rung's own "
+                         f"policy_lines to register(), or every work would skip it as policy_refused")
+    # END guard: a registered rung has its pre-fetch policy line
+    rungs.append(rung)
+    return rung
+
+
+def ladder_rungs(routes, rungs=None):
+    """The rungs to run for `routes`, in stage order and then registry order. An unknown route raises."""
+    rungs = RUNGS if rungs is None else rungs
+    by_route = {r.route: r for r in rungs}
+    for route in routes:
+        if route not in by_route:
+            raise ValueError(f"unknown route {route!r}")
+    order = {s: i for i, s in enumerate(_policy.STAGES)}
+    chosen = [r for r in rungs if r.route in set(routes)]
+    return sorted(chosen, key=lambda r: (order[r.stage], rungs.index(r)))
+
+
+def ladder_routes(rungs=None):
+    """EVERY route the registry holds, in stage order and then registry order: the whole ladder, as `hunt` and the
+    run driver's MEASURE hook ask it (seam integrator-w2; S4.5 decision D19: a rung that registers is reached by
+    `hunt`, not only by a caller that names it). `ROUTES` stays today's three for the callers that read it as
+    that set (`litkb acquire`'s default `--routes`, the S4 readability grade)."""
+    rungs = RUNGS if rungs is None else rungs
+    return tuple(r.route for r in ladder_rungs([r.route for r in rungs], rungs))
+
+
+#: In-run AIMD pacing per route (litkb.acquire.backoff.Aimd), shared by every acquire() in this process —
+#: a run's pacing state. Not persisted (guard 3's "not persisted" and the module docstring of backoff).
+PACING = {}
+
+
+def _identifier(rung, work):
+    """The identifier the rung is asked with, or None when the work holds none of the ones it needs."""
+    for scheme in rung.needs:
+        if work.get(scheme):
+            return work[scheme]
+    return None
+
+
+def _skip_reason(conn, rung, work, prior, ws, retry_dead, ctx, bo):
+    """-> (sub_status, detail) when this rung must NOT be asked now, else None. Checked in order: the work
+    holds no identifier the rung needs; a dead route; `blocked` earlier in this run; the refusal ladder's
+    window; the pre-fetch policy."""
+    route = rung.route
+    if _identifier(rung, work) is None:
+        return "no_identifier", {"needs": list(rung.needs)}
+    # BEGIN guard: dead-ness is a per-attempt retriable fact, never the status word alone
+    # (plan item 1, guard 15.) An attempt whose own `retriable` is true said that asking again soon could change
+    # the answer, so it is never evidence that the route is dead for this work — whatever its status word
+    # (auditor-C1a F1: a transient Unpaywall failure booked a dead `no-oa-copy` and retired open access for
+    # ever). Rows written before 0033 carry NULL and keep the status rule; a `blocked` row is never retriable
+    # (backoff.classify: a challenge is never transient), so `dead_in_run` is unchanged.
+    prior = [p for p in prior if p[5] is not True]
+    # END guard: dead-ness is a per-attempt retriable fact, never the status word alone
+    # BEGIN guard: dead routes are not retried blindly
+    # (MEASURE mode asks a route whose earlier answer was a terminal MISS: the measurement IS the question —
+    # S4.5 decision D9, "every rung is asked"; the run driver's hook contract. A refusal is not a miss:
+    # `blocked` in the run and the back-off window below still hold in MEASURE mode. Seam integrator-w1.)
+    dead = [p for p in prior if p[0] == route and p[1] in DEAD_STATUSES.get(route, ())]
+    if dead and not retry_dead and ctx.mode != "measure":
+        return "dead_route", {"prior_status": dead[-1][1], "prior_at": str(dead[-1][3])}
+    # END guard: dead routes are not retried blindly
+    # BEGIN guard: blocked is dead for a route within a run
+    in_run = [p for p in prior if p[0] == route and p[1] in DEAD_IN_RUN_STATUSES and str(p[4]) == str(ws)]
+    if in_run and not retry_dead:
+        return "dead_in_run", {"prior_status": in_run[-1][1], "prior_at": str(in_run[-1][3])}
+    # END guard: blocked is dead for a route within a run
+    # BEGIN guard: a route inside its back-off window is skipped
+    state = _backoff.load(conn, route, work["work_id"])
+    until = _backoff.in_window(state, _backoff.db_now(conn))
+    if until is not None and not retry_dead:
+        return "backoff_window", {"next_allowed_at": str(until), "refusals": state["refusals"]}
+    # END guard: a route inside its back-off window is skipped
+    d = ctx.decide(route)
+    if ctx.mode == "measure":
+        # S4.5 decision D18 (seam integrator-w2): MEASURE mode asks the legitimate tiers only — a work that holds a
+        # file never spends an archive download or asks the shadow stage (litkb.acquire.policy.measure_decision)
+        d = _policy.measure_decision(d)
+    ctx.decisions[route] = d.as_detail()        # recorded on the attempt row that follows it
+    # BEGIN guard: a rung the policy refuses is recorded and never asked
+    if not d.allowed:
+        return "policy_refused", {"policy": d.as_detail()}
+    # END guard: a rung the policy refuses is recorded and never asked
+    return None
+
+
+def _call_rung(rung, work, ctx):
+    """-> (route dict, exception or None). THE ROUTE BOUNDARY: a rung that raises is an api-error attempt."""
+    # BEGIN guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
+    # Until S3 an exception out of any route call — a socket reset the client did not model, a parser that
+    # met a shape it did not expect, an archive page that changed — propagated out of acquire(), out of
+    # hunt._spend_on_held, and into hunt()'s generic boundary, which answered `refused: "error"`. TWO things
+    # were lost there: the attempt row (so `acquisition_attempts` held no trace that the route was ever
+    # tried), and the ladder — one route raising ended the others. The row is the point: it is what
+    # DEAD_STATUSES, the held queue and every later "what has this work been through" question read.
+    try:
+        return rung.fn(work, ctx), None
+    except Exception as e:                  # noqa: BLE001 — the route boundary is the point
+        return {"status": "api-error"}, e
+    # END guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
+
+
+def _known_bad(conn, sha):
+    """The rejected-hash lookup (item 1): -> the refused-bytes record the served sha matches, or None."""
+    match = None
+    # BEGIN guard: bytes already refused are never landed or quarantined again
+    match = _ledger.rejected_match(conn, sha)
+    # END guard: bytes already refused are never landed or quarantined again
+    return match
+
+
+def _type_attempt(status, route, codes, served, headers, tried, rung_sub=None):
+    """-> (sub_status, cause) for the row about to be written. A rung that typed its own answer wins; a
+    `bad-file` that kept no byte is typed from its terminal response (S4.5 decision D15)."""
+    sub, cause = None, ""
+    # BEGIN guard: every attempt is typed
+    if rung_sub and rung_sub in _policy.SUB_STATUSES.get(status, ()):
+        sub = rung_sub
+    else:
+        sub, cause = _ledger.sub_status_for(status, route, codes, served, headers, tried)
+    # END guard: every attempt is typed
+    # BEGIN guard: a bad-file with no bytes kept is typed from its terminal response
+    # (S4.5 decision D15: "A `bad-file` row is ALWAYS typed at write time. With no bytes kept, the route types
+    # from the terminal response". The byte classifier answers None for an empty answer — no byte-level word
+    # describes nothing — so without this rule such a row climbs the gated all-time `bad_file_untyped`: open
+    # access when every location answered an empty body, the archive when no partner host served one, any rung
+    # registered later. One rule for every rung, here, where every row is typed. fix round 3, auditor-C1a r2 F1.)
+    if status == "bad-file" and sub is None and not served:
+        sub, cause = _ledger.no_byte_bad_file_sub(headers)
+    # END guard: a bad-file with no bytes kept is typed from its terminal response
+    return sub, cause
+
+
+def _land(conn, ws, token, work, data, *, route, source_url, store, index, agent, session, terminal, copy_kind):
+    """The ladder's landing of the bytes a rung DOWNLOADED. -> (status, detail).
+
+    THE ACCEPTANCE TEST comes first (`accept.offer_to_bind`: unwrap, repair, magic, floor, trailer, qpdf,
+    the stub / volume / cited rules against the work's record), then the bind (`land_and_attach`) on the
+    bytes it accepted; refused bytes are kept in _quarantine/ with the verdict in the sidecar. The plan's
+    item 5b: "the bytes through the same acceptance test as every route". Until the merge the ladder landed
+    through `land_and_attach` alone, whose own first step is only the header-and-trailer shape (seam
+    integrator-w1, C1a x C1b). The served headers and terminal URL are what the stub rule reads."""
+    judge = None                      # the unguarded default: the bind alone, as the ladder had it before
+    # BEGIN guard: a rung's bytes bind only through the acceptance test
+    judge = _accept.offer_to_bind
+    # END guard: a rung's bytes bind only through the acceptance test
+    if judge is None:
+        return land_and_attach(conn, ws, token, work, data, route=route, source_url=source_url, store=store,
+                               index=index, agent=agent, session=session, copy_kind=copy_kind)
+    return judge(conn, ws, token, work, data, route=route, source_url=source_url, store=store, index=index,
+                 agent=agent, session=session, headers=terminal.get("headers"),
+                 terminal_url=terminal.get("url"), copy_kind=copy_kind)
+
+
+#: the route-dict keys copied into an attempt's detail (the pre-0033 set, plus `reason`, `policy`, `version`)
+DETAIL_KEYS = ("detail", "tried", "via", "md5", "record_doi", "title_best", "downloads_left", "rec_size", "quota",
+               "reason", "policy", "version",
+               # seam builder-C2b: Stage C's evidence (landing page, rules and their freshness, every candidate)
+               "landing")
+
+
+def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, agent, session, retry_of=None,
+                   ladder=None):
+    """Land (or quarantine, or measure) what one rung answered, and write its attempt row. `ladder` is the
+    ladder's state when the rung was LAUNCHED ({elapsed_s, spent_before, budget}), recorded so a launch past
+    the budget is visible in the ledger. -> the row's facts: {"id", "status", "sub_status", "codes",
+    "detail", "quarantine", "exception", "retriable"}."""
+    route, wid = rung.route, work["work_id"]
+    ident = _identifier(rung, work)
+    codes = [int(c) for c in (r.get("http_codes") or []) if str(c).lstrip("-").isdigit()]
+    if exc is not None:
+        # 200 characters of the message: the class name is what says WHAT went wrong, and a stack-shaped
+        # repr in a jsonb column is the traceback the route boundary removed
+        detail = {"exception": type(exc).__name__, "message": str(exc)[:200]}
+    else:
+        detail = {k: r.get(k) for k in DETAIL_KEYS if r.get(k) not in (None, "", [])}
+    if "policy" not in detail and route in ctx.decisions:
+        detail["policy"] = [ctx.decisions[route]]
+    if ladder:
+        detail["ladder"] = ladder
+    src = redact(r.get("source_url") or r.get("rejected_url") or
+                 (f"annas md5:{r['md5']}" if route == "annas" and r.get("md5") else ""))
+    served = r.get("pdf") or r.get("rejected")
+    sha = hashlib.sha256(served).hexdigest() if served else None
+    terminal = r.get("terminal") or {}
+    status = r.get("status") or "api-error"
+    # seam integrator-w2 (S4.5 decision D22): the stub-relevant response headers go on EVERY attempt that was served
+    # bytes, written by the ladder itself and independent of the acceptance test — so `stubs_bound` can re-read a
+    # landing the test did not judge (a header-only stub bound with the test switched off left no evidence at all)
+    # BEGIN guard: every attempt that was served bytes records the stub-relevant headers itself
+    if served:
+        detail["served_headers"] = _accept.served_headers(terminal.get("headers"))
+    # END guard: every attempt that was served bytes records the stub-relevant headers itself
+    #: the acceptance test's own sub-status when it judged these bytes here (a refusal's word, stored as is)
+    judged = None
+    # seam builder-C2b: a page this rung was served is a lead for Stage C (litkb.acquire.landing) — read BEFORE the
+    # rejected-hash lookup, so a page served again (a stable landing page quarantined in an earlier run) still is one
+    # BEGIN guard: a page a rung was served is a lead for Stage C
+    if r.get("rejected") and not _accept.quick_magic(r["rejected"]):
+        ctx.leads.append({"route": route, "url": r.get("rejected_url") or r.get("source_url") or "",
+                          "status": terminal.get("status_code"), "headers": terminal.get("headers") or {},
+                          "body": r["rejected"]})
+    # END guard: a page a rung was served is a lead for Stage C
+    known = _known_bad(conn, sha) if sha else None
+    # BEGIN guard: bytes the corpus holds are a hit, never known-bad
+    # (auditor-C1a F3.) A payload refused once and bound later is never cleared (0030: a moved payload stays
+    # refused — five such rows on live, each the ACTIVE file of its work), so the lookup matches it for ever. A
+    # rung that DOWNLOADS those bytes has found the file the corpus holds: in acquire mode the dedupe answers
+    # `duplicate-held` and stops the ladder; in MEASURE mode it is `measured`, a legitimate hit, and the shadow
+    # tier stays refused (litkb-shadow-hosts: "only after every legitimate rung has missed"). Bytes a route
+    # REFUSED stay named by the lookup whatever the corpus holds: they are never re-quarantined. Held FOR THIS
+    # WORK's purposes (ledger.held_file): bytes refused for this very work stay known-bad although another work
+    # holds them (fix round 3, auditor-C1a r2 F3).
+    if known and status == "downloaded" and _ledger.held_file(conn, sha, wid):
+        known = None
+    # END guard: bytes the corpus holds are a hit, never known-bad
+    if known:
+        # the same bytes were refused before: named, never written again (not landed, not re-quarantined)
+        detail["known_bad"] = known
+        detail["sha256"] = sha
+        if status == "downloaded":
+            status = "known-bad"
+    elif status == "downloaded":
+        if ctx.mode == "measure" or ctx.landed:
+            # a hit that is not landed is still JUDGED: MEASURE mode records what the acceptance test would say
+            v = _accept.accept(served, headers=terminal.get("headers"), url=src, terminal_url=terminal.get("url"),
+                               doi=work.get("doi"), record_pages=_accept.record_pages_of(conn, wid))
+            status, judged = ("measured", None) if v.verdict == "accept" else ("bad-file", v.sub_status)
+            detail.update({"sha256": sha, "bytes": len(served), "source_url": src, "acceptance": v.summary(),
+                           "not_landed": "measure mode" if ctx.mode == "measure" else "another rung landed first"})
+            if v.reason:
+                detail["note"] = v.reason
+        else:
+            status, landed = _land(conn, ws, token, work, served, route=route, source_url=src, store=store,
+                                   index=dedupe, agent=agent, session=session, terminal=terminal,
+                                   copy_kind=_policy.COPY_KIND_OF_VERSION.get(r.get("version")))
+            detail.update(landed)
+            judged = landed.get("sub_status")
+    # BEGIN guard: bytes a route refused are quarantined, never discarded
+    # `pdf` on a non-downloaded status is a real PDF that is not the record's (hash-mismatch); `rejected` is
+    # what a download URL served instead of a file. Either way the bytes stay, under the route's own status
+    # as their name - the status vocabulary is the database's (0013_admission.sql) and does not change here.
+    elif r.get("pdf") or r.get("rejected"):
+        refused = r.get("pdf") or r["rejected"]
+        shape, why = pdf_shape(refused)
+        status = r["status"]
+        if status == "bad-file":
+            # typed by THE acceptance test (the ledger's one byte classifier), and what it read is kept
+            v = _ledger.bad_file_verdict(refused, headers=terminal.get("headers"), url=src,
+                                         terminal_url=terminal.get("url"))
+            if v is not None:
+                detail["acceptance"] = v.summary()
+                judged = v.sub_status
+        if ctx.mode == "measure":
+            detail.update({"sha256": sha, "bytes": len(refused), "not_quarantined": "measure mode"})
+        else:
+            detail.update(quarantine_bytes(store, work, refused, label=status, status=status, shape=shape,
+                                           reason=why or r.get("detail") or f"the {route} route refused it",
+                                           route=route, source_url=src))
+    # END guard: bytes a route refused are quarantined, never discarded
+    else:
+        status = r.get("status") or "api-error"
+        # BEGIN guard: an attempt whose every request was a transport failure is api-error, never a bad file
+        # (S4.5 decision D15: "An attempt where EVERY request was a transport failure (status 0) is NOT `bad-file`:
+        # book it `api-error`, `retriable` true"; auditor-C1a F2, integrator-w1 Q1.) A rung that books `bad-file`
+        # with no bytes handed back and every HTTP code 0 (the client's own transport failure) met the network,
+        # not a file. Only status 0: a server that ANSWERED — 404, 403, even an empty 503 — gave a response the
+        # typing rule reads (`_type_attempt`, D15), and its own codes decide `retriable`. For every rung.
+        if status == "bad-file" and codes and all(c == 0 for c in codes):
+            status = "api-error"
+            detail["no_byte_served"] = f"booked bad-file by the rung; every request a transport failure: {codes}"
+        # END guard: an attempt whose every request was a transport failure is api-error, never a bad file
+    sub, cause = _type_attempt(status, route, codes, served, terminal.get("headers"), r.get("tried"),
+                               judged or r.get("sub_status"))
+    if cause:
+        detail["sub_status_cause"] = cause
+    forced = True if detail.get("no_byte_served") else None     # D15: "book it `api-error`, `retriable` true"
+    # BEGIN guard: a blocked row is never retriable, whatever the rung says
+    # (auditor-C1a r2 F5.) The dead-in-run check drops every prior row whose `retriable` is true (guard 15), so a
+    # rung that answered `blocked` with `retriable: True` escaped `dead_in_run` and was asked again in the same
+    # run. A challenge is a refusal before its code is read (guard 3; backoff.classify) — whoever says otherwise.
+    if status == "blocked":
+        forced = False
+    # END guard: a blocked row is never retriable, whatever the rung says
+    retriable = r.get("retriable") if forced is None else forced
+    if retriable is None:
+        retriable = _backoff.retriable(status, codes, exc)
+    kind = r.get("kind") or ("pdf" if served and _accept.quick_magic(served) else None)
+    # seam builder-C2c: a URL this answer asked and did not succeed on is a Stage E candidate
+    # BEGIN guard: a dead URL a rung met in this run reaches Stage E
+    ctx.recovery_urls.extend(_recovery.urls_of(route, r, status))
+    # END guard: a dead URL a rung met in this run reaches Stage E
+    aid = record_attempt(conn, ws, token, wid, route, ident, status, detail, codes, sub_status=sub,
+                         served_sha256=sha, terminal=terminal, retriable=retriable, kind=kind, retry_of=retry_of)
+    # BEGIN call site: a route's quarantine gets its database row
+    q = quarantine_state(conn, ws, token, work, status, route, detail, aid)
+    # END call site: a route's quarantine gets its database row
+    return {"id": aid, "status": status, "sub_status": sub, "codes": codes, "detail": detail, "quarantine": q,
+            "exception": type(exc).__name__ if exc is not None else "", "retriable": retriable}
+
+
+def _move_backoff(conn, ws, token, work, route, row, bo):
+    """The chain's FINAL row moves the persisted refusal ladder (litkb.acquire.backoff.BackoffPolicy.step)."""
+    at = conn.execute("SELECT at FROM litkb.acquisition_attempts WHERE id = %s", (row["id"],)).fetchone()[0]
+    before = _backoff.load(conn, route, work["work_id"])
+    after = bo.step(before, row["status"], row["codes"], at)
+    if (before or {}).get("refusals", 0) or after.get("refusals"):
+        _backoff.save(conn, ws, token, row["id"], after)
+
+
+def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session, budget=None, retry_dead=False,
+            clients=None, pacer=None, annas_session=None, annas_pacer=None, printer=print, from_file=None,
+            mode="acquire", ladder_budget=None, backoff=None, rungs=None, pacing=None):
+    """-> {"outcome": ..., "attempts": [(route, status), ...], "route_detail": [...], "quarantine_rows": [...]}
+
+    `mode` "measure" asks every rung and lands nothing (S4.5 decision D9); `ladder_budget` is the whole
+    ladder's `policy.LadderBudget` (default: the declared one, attempts and concurrency derived from the
+    registry); `backoff` the `backoff.BackoffPolicy` this run applies; `rungs` a registry other than RUNGS;
+    `pacing` the run's per-route AIMD state (default: this process's PACING)."""
+    if mode not in MODES:
+        raise ValueError(f"mode must be one of {MODES}, got {mode!r}")
     store = store or Store()
     budget = budget or Budget()
     clients = clients or {}
@@ -409,7 +956,7 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
     #: One entry per quarantine this call made: `quarantine.try_record`'s {"ok", "id"|"error", "rel_path"}.
     #: A caller that finds `ok: False` reports it (hunt: the `quarantine-state-failed` refusal).
     qrows = []
-    if work["held_files"] and from_file is None:
+    if work["held_files"] and from_file is None and mode == "acquire":
         return {"outcome": "already-held", "attempts": attempts, "route_detail": route_detail}
     index = store.disk_index()
     dedupe = index                  # (the whole index, if the line below is ever removed: see index_of_held)
@@ -420,7 +967,24 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
 
     if from_file is not None:
         data = Path(from_file).read_bytes()
-        shape, why = pdf_shape(data)
+        # S4.5 decision D17 (seam integrator-w2): the operator's file RUNS the acceptance test (plan 5b, "the same
+        # acceptance test as every route") and its verdict is recorded on the PROPOSAL the bind writes
+        # (`file_versions.binding.acceptance`, read by `front.pending_file_proposals`) and on the attempt row. Only a
+        # HARD byte failure refuses the file (`accept.hard_byte_failure`: not a PDF, corrupt, an archive holding
+        # none); a stub, volume or cited-document verdict is the second-session approver's to weigh, not the test's
+        # to enforce against the operator's judgement. Bytes the test accepted after unwrapping or a header repair
+        # land as the PDF it found.
+        verdict = None
+        # BEGIN guard: a hand-fetched file runs the acceptance test and its verdict rides on the proposal
+        verdict = _accept.accept(data, url=f"manual file {Path(from_file).name}", doi=work.get("doi"),
+                                 record_pages=_accept.record_pages_of(conn, wid))
+        # END guard: a hand-fetched file runs the acceptance test and its verdict rides on the proposal
+        verdict_summary = verdict.summary() if verdict is not None else None
+        payload = verdict.pdf if verdict is not None and verdict.verdict == "accept" and verdict.pdf else data
+        shape, why = pdf_shape(payload)
+        hard = verdict is not None and _accept.hard_byte_failure(verdict)
+        if hard:
+            shape, why = _accept.quarantine_label(verdict.sub_status), verdict.reason
         status = None
         # BEGIN guard: a hand-fetched file that is not a whole PDF is quarantined or refused, never deleted
         if shape != "pdf":
@@ -431,14 +995,19 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             # (landing a copy would only dedupe against the file itself on disk: the work could never get it)
             if _in_topic_folder(store, from_file):
                 status, detail = attach_in_place(conn, ws, token, work, from_file, store=store, agent=agent,
-                                                 session=session)
+                                                 session=session, acceptance=verdict_summary)
             # END guard: acquire from a file already in a topic folder binds it in place
             if status is None:
-                status, detail = land_and_attach(conn, ws, token, work, data, route="browser",
+                status, detail = land_and_attach(conn, ws, token, work, payload, route="browser",
                                                  source_url=f"manual file {Path(from_file).name}", store=store,
-                                                 index=dedupe, agent=agent, session=session)
+                                                 index=dedupe, agent=agent, session=session,
+                                                 acceptance=verdict_summary)
+        if verdict_summary is not None:
+            detail["acceptance"] = verdict_summary
+        sub, _cause = _type_attempt(status, "browser", [], data, None, None, verdict.sub_status if hard else None)
         aid = record_attempt(conn, ws, token, wid, "browser", work.get("doi") or work.get("arxiv"), status,
-                             detail)
+                             detail, sub_status=sub, served_sha256=hashlib.sha256(data).hexdigest(),
+                             kind="pdf" if shape == "pdf" else None)
         # BEGIN call site: a hand-fetched file's quarantine gets its database row
         q = quarantine_state(conn, ws, token, work, status, "browser", detail, aid)
         # END call site: a hand-fetched file's quarantine gets its database row
@@ -448,123 +1017,166 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         route_detail.append({"route": "browser", "status": status, "codes": [], "exception": ""})
         return {"outcome": status, "attempts": attempts, "route_detail": route_detail, "quarantine_rows": qrows}
 
+    chosen = ladder_rungs(routes, rungs)
+    lb = (ladder_budget or _policy.LadderBudget()).resolved(chosen)
+    bo = backoff or _backoff.BackoffPolicy()
+    pacing = PACING if pacing is None else pacing
+    ctx = RungContext(clients=clients, pacer=pacer, budget=budget, index=index, printer=printer, mode=mode,
+                      annas_session=annas_session, annas_pacer=annas_pacer)
     prior = prior_attempts(conn, wid)
-    for route in routes:
-        ident = work.get("doi") if route != "open_access" else (work.get("doi") or work.get("arxiv"))
-        # BEGIN guard: dead routes are not retried blindly
-        dead = [p for p in prior if p[0] == route and p[1] in DEAD_STATUSES.get(route, ())]
-        if dead and not retry_dead:
-            printer(f"  {route}: skipped, attempt of {dead[-1][3]:%Y-%m-%d} ended {dead[-1][1]} (--retry-dead to try again)")
+    # seam builder-C2c: the dead URLs earlier attempts recorded are Stage E's input (a rung never reads the database)
+    # BEGIN guard: a dead URL an earlier attempt recorded reaches Stage E
+    if any(g.route in _recovery.ROUTES for g in chosen):
+        ctx.recovery_urls.extend(_recovery.ledger_urls(conn, wid))
+    # END guard: a dead URL an earlier attempt recorded reaches Stage E
+    started, spent = lb.clock(), 0
+    outcome = None
+
+    def note(route, row):
+        attempts.append((route, row["status"]))
+        route_detail.append({"route": route, "status": row["status"], "sub_status": row.get("sub_status"),
+                             "codes": [int(c) for c in row.get("codes") or []], "exception": row.get("exception", "")})
+        if row.get("quarantine") is not None:
+            qrows.append(row["quarantine"])
+
+    def skip(route, sub, detail, ident=None):
+        # BEGIN guard: a skip is an attempt with a reason, never silence
+        aid = record_attempt(conn, ws, token, wid, route, ident, "skipped", detail, sub_status=sub)
+        note(route, {"id": aid, "status": "skipped", "sub_status": sub, "codes": []})
+        # END guard: a skip is an attempt with a reason, never silence
+        printer(f"  {route}: skipped ({sub})")
+
+    def stop_for_budget(why, not_asked):
+        aid = record_attempt(conn, ws, token, wid, "ladder", None, "budget-stop",
+                             {"budget": lb.spec(), "spent": spent, "elapsed_s": round(lb.clock() - started, 3),
+                              "not_asked": not_asked}, sub_status=why)
+        note("ladder", {"id": aid, "status": "budget-stop", "sub_status": why, "codes": []})
+        printer(f"  ladder: budget-stop ({why})")
+
+    def launch(offset=0):
+        """The ladder's state as a rung is launched (recorded on its attempt row)."""
+        return {"elapsed_s": round(lb.clock() - started, 3), "spent_before": spent + offset, "budget": lb.spec()}
+
+    def settle(rung, r, exc, at_launch, unsettled=()):
+        """Record one answer (and its one scheduled retry), move the back-off, update the ladder's state.
+        `unsettled`: the (answer, exception) pairs of the siblings launched beside this rung in a concurrent
+        stage and settled after it — their requests are already spent."""
+        nonlocal spent, outcome
+        if exc is None and r.get("status") == "skipped":
+            # a rung that refused itself on policy (every host line it would ask refused): a skip, not a spend
+            # (seam builder-C2c: and the rung's own note on why, e.g. a Stage E rung that was named no dead URL)
+            skip(rung.route, r.get("sub_status") or "policy_refused",
+                 {"policy": r.get("policy"), **({"detail": r["detail"]} if r.get("detail") else {})},
+                 _identifier(rung, work))
+            return
+        row = _record_result(conn, ws, token, work, rung, r, exc, ctx, store=store, dedupe=dedupe, agent=agent,
+                             session=session, ladder=at_launch)
+        spent += 0 if row["status"] in _backoff.NON_SPEND_STATUSES else 1
+        note(rung.route, row)
+        printer(f"  {rung.route}: {row['status']}")
+        aimd = pacing.setdefault(rung.route, _backoff.Aimd(policy=bo))
+        aimd.on_answer(row["status"], row["codes"])
+        pending = 0                     # the unguarded default: only the rows already settled count as spent
+        # BEGIN guard: a concurrent stage's retry counts the siblings launched beside it
+        # (auditor-C1a r2 F2.) A concurrent stage's rungs are all asked before any is settled, so when this rung's
+        # retry is weighed its siblings have ALREADY spent their requests but are not yet in `spent`: counted
+        # alone, a retry went out past an explicit attempts budget and recorded a `spent_before` under it, where
+        # budget_exceeded_silently could not see it. A sibling that spent nothing (a self-refusal on policy, a
+        # quota stop) is not counted; one that raised is (an api-error attempt).
+        pending = sum(1 for (r_, e_) in unsettled
+                      if e_ is not None or (r_ or {}).get("status") not in _backoff.NON_SPEND_STATUSES)
+        # END guard: a concurrent stage's retry counts the siblings launched beside it
+        # BEGIN guard: a transient answer gets one scheduled retry, named as one
+        if (rung.retry_transient and exc is None and _backoff.classify(row["status"], row["codes"]) == "transient"
+                and lb.exhausted(started, spent + pending) is None):
+            wait = max(aimd.delay_s, _backoff.retry_after_s((r.get("terminal") or {}).get("headers")) or 0.0)
+            pacer.sleep(min(wait, bo.aimd_ceiling_s))
+            retry_now = True                # the unguarded default: the retry follows its wait unconditionally
+            # BEGIN guard: the ladder budget is checked again after a scheduled retry's wait
+            # (the wait is Retry-After or the AIMD delay, up to its 300 s ceiling: a retry launched after the wait
+            # crossed `seconds` is a launch past the budget — the silent overrun `budget_exceeded_silently`
+            # counts. Not asked: the original row stays `retriable` and unretried, and the next stage or rung
+            # meets the spent budget and writes the `budget-stop` row. Fix round 2.)
+            retry_now = lb.exhausted(started, spent + pending) is None
+            # END guard: the ladder budget is checked again after a scheduled retry's wait
+            if retry_now:
+                again = launch(pending)
+                r2, exc2 = _call_rung(rung, work, ctx)
+                row = _record_result(conn, ws, token, work, rung, r2, exc2, ctx, store=store, dedupe=dedupe,
+                                     agent=agent, session=session, retry_of=row["id"], ladder=again)
+                spent += 1
+                note(rung.route, row)
+                printer(f"  {rung.route}: {row['status']} (scheduled retry)")
+                aimd.on_answer(row["status"], row["codes"])
+        # END guard: a transient answer gets one scheduled retry, named as one
+        _move_backoff(conn, ws, token, work, rung.route, row, bo)
+        if row["status"] in ("ok", "measured") and _policy.decide(rung.route).tier == _policy.LEGITIMATE:
+            ctx.legit_hit = True
+        if row["status"] == "ok" and outcome is None:
+            ctx.landed, outcome = True, ("ok", row["detail"])
+        elif row["status"] == "duplicate-held" and outcome is None and ctx.mode == "acquire":
+            outcome = ("duplicate-held", row["detail"])
+
+    for stage in _policy.STAGES:
+        stage_rungs = [g for g in chosen if g.stage == stage]
+        if not stage_rungs or outcome is not None:
             continue
-        # END guard: dead routes are not retried blindly
-        if route in ("annas", "scihub") and not work.get("doi"):
-            printer(f"  {route}: skipped, by DOI only and the work has no DOI")
-            continue
-        codes = []
-        if route not in ("open_access", "annas", "scihub"):
-            raise ValueError(f"unknown route {route!r}")
-        # BEGIN guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
-        # Until S3 an exception out of any of the three route calls below — a socket reset the
-        # client did not model, a parser that met a shape it did not expect, an archive page that
-        # changed — propagated out of acquire(), out of hunt._spend_on_held, and into hunt()'s
-        # generic boundary, which answered `refused: "error"`. TWO things were lost there: the
-        # attempt row (record_attempt is at the bottom of this loop and was never reached, so
-        # `acquisition_attempts` holds no trace that the route was ever tried), and the ladder —
-        # one route raising ended the other two. The row is the point: it is what DEAD_STATUSES,
-        # the held queue and every later "what has this work been through" question read.
-        try:
-            if route == "open_access":
-                r = _oa.fetch_open_access(work.get("doi"), work.get("arxiv"), pacer,
-                                          client=clients.get("open_access"))
-            elif route == "scihub":
-                r = _sh.fetch_scihub(work["doi"], pacer, client=clients.get("scihub"),
-                                     mirrors=_config.SCIHUB_MIRRORS)
+        # the budget, between stages (its guard is LadderBudget.exhausted's own block, policy.py)
+        why = lb.exhausted(started, spent)
+        if why:
+            here = _policy.STAGES.index(stage)
+            stop_for_budget(why, [g.route for g in chosen if _policy.STAGES.index(g.stage) >= here])
+            break
+        together = [g for g in stage_rungs if g.concurrent]
+        alone = [g for g in stage_rungs if not g.concurrent]
+        askable = []
+        for g in together:
+            s = _skip_reason(conn, g, work, prior, ws, retry_dead, ctx, bo)
+            if s:
+                skip(g.route, s[0], s[1], _identifier(g, work))
             else:
-                # BEGIN guard: the archive route stops at the quota margin or the run cap
-                if budget.stopped or budget.used >= budget.max_archive_downloads:
-                    reason = budget.stopped or f"this run's cap of {budget.max_archive_downloads} archive downloads is used"
-                    record_attempt(conn, ws, token, wid, "annas", ident, "quota-stop", {"reason": reason})
-                    attempts.append(("annas", "quota-stop"))
-                    route_detail.append({"route": "annas", "status": "quota-stop", "codes": [], "exception": ""})
-                    continue
-                # END guard: the archive route stops at the quota margin or the run cap
-                if annas_session is None:
-                    annas_session = _annas.open_session()
-                aclient, key = annas_session
-                add_secret(key)             # an injected session's key is redacted like open_session()'s
-                if aclient is None:
-                    record_attempt(conn, ws, token, wid, "annas", ident, "api-error", {"reason": "login failed"})
-                    attempts.append(("annas", "api-error"))
-                    route_detail.append({"route": "annas", "status": "api-error", "codes": [], "exception": ""})
-                    continue
-                r = _annas.fetch_for_litkb(aclient, key, work["doi"], annas_pacer or Pacer(), known_md5=index["md5"].keys(),
-                                           quota_margin=budget.quota_margin)
-                if r.get("quota"):
-                    budget.counter.append(r["quota"])
-                if r["status"] == "quota-stop":
-                    budget.stopped = r["detail"]
-                if r["downloads_left"] not in ("", None):
-                    budget.downloads_left.append(r["downloads_left"])
-                    if str(r["downloads_left"]).isdigit() and int(r["downloads_left"]) <= budget.quota_margin:
-                        budget.stopped = (f"downloads_left {r['downloads_left']} is at or below the safety margin "
-                                          f"{budget.quota_margin}")
-                # BEGIN guard: an issued download URL spends the run cap
-                # the archive counts a download when it issues the URL, so a partner 404 or a bad file spends one too
-                if r.get("url_issued"):
-                    budget.used += 1
-                # END guard: an issued download URL spends the run cap
-        except Exception as e:                  # noqa: BLE001 — the route boundary is the point
-            # `detail` through the SAME record_attempt every other status uses, so the row is
-            # redacted (run._redacted) like every other row and needs no second redaction site.
-            # 200 characters of the message: the class name is what says WHAT went wrong, and a
-            # stack-shaped repr in a jsonb column is the traceback this whole change removes.
-            record_attempt(conn, ws, token, wid, route, ident, "api-error",
-                           {"exception": type(e).__name__, "message": str(e)[:200]})
-            attempts.append((route, "api-error"))
-            route_detail.append({"route": route, "status": "api-error", "codes": [],
-                                 "exception": type(e).__name__})
-            printer(f"  {route}: api-error ({type(e).__name__})")
-            continue
-        # END guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
-        codes = r.get("http_codes") or []
-        detail = {k: r.get(k) for k in ("detail", "tried", "via", "md5", "record_doi", "title_best",
-                                        "downloads_left", "rec_size", "quota") if r.get(k) not in (None, "", [])}
-        src = redact(r.get("source_url") or r.get("rejected_url") or
-                     (f"annas md5:{r['md5']}" if route == "annas" else ""))
-        if r["status"] == "downloaded":
-            status, landed = land_and_attach(conn, ws, token, work, r["pdf"], route=route, source_url=src,
-                                             store=store, index=dedupe, agent=agent, session=session)
-            detail.update(landed)
-        # BEGIN guard: bytes a route refused are quarantined, never discarded
-        # `pdf` on a non-downloaded status is a real PDF that is not the record's (hash-mismatch); `rejected` is
-        # what a download URL served instead of a file. Either way the bytes stay, under the route's own status
-        # as their name - the status vocabulary is the database's (0013_admission.sql) and does not change here.
-        elif r.get("pdf") or r.get("rejected"):
-            refused = r.get("pdf") or r["rejected"]
-            shape, why = pdf_shape(refused)
-            status = r["status"]
-            detail.update(quarantine_bytes(store, work, refused, label=status, status=status, shape=shape,
-                                           reason=why or r.get("detail") or f"the {route} route refused it",
-                                           route=route, source_url=src))
-        # END guard: bytes a route refused are quarantined, never discarded
+                askable.append(g)
+        if askable:
+            room = max(0, (lb.attempts or len(askable)) - spent)
+            asked, left = askable[:room], askable[room:]
+            for g in asked:
+                _pace(pacing, g.route, pacer)
+            launches = [launch(i) for i in range(len(asked))]
+            if len(asked) > 1:
+                with ThreadPoolExecutor(max_workers=max(1, min(lb.concurrency or 1, len(asked)))) as ex:
+                    answers = list(ex.map(lambda g: _call_rung(g, work, ctx), asked))
+            else:
+                answers = [_call_rung(g, work, ctx) for g in asked]
+            for i, (g, (r, exc), at_launch) in enumerate(zip(asked, answers, launches)):
+                settle(g, r, exc, at_launch, answers[i + 1:])
+            if left and outcome is None:
+                stop_for_budget("budget_attempts", [g.route for g in left])
+                break
+        for g in alone:
+            if outcome is not None:
+                break
+            why = lb.exhausted(started, spent)
+            if why:
+                stop_for_budget(why, [x.route for x in alone[alone.index(g):]])
+                break
+            s = _skip_reason(conn, g, work, prior, ws, retry_dead, ctx, bo)
+            if s:
+                skip(g.route, s[0], s[1], _identifier(g, work))
+                continue
+            _pace(pacing, g.route, pacer)
+            at_launch = launch()
+            r, exc = _call_rung(g, work, ctx)
+            settle(g, r, exc, at_launch)
         else:
-            status = r["status"]
-        aid = record_attempt(conn, ws, token, wid, route, ident, status, detail, codes)
-        # BEGIN call site: a route's quarantine gets its database row
-        q = quarantine_state(conn, ws, token, work, status, route, detail, aid)
-        # END call site: a route's quarantine gets its database row
-        if q is not None:
-            qrows.append(q)
-        attempts.append((route, status))
-        route_detail.append({"route": route, "status": status, "codes": [int(c) for c in codes],
-                             "exception": ""})
-        printer(f"  {route}: {status}")
-        if status == "ok":
-            return {"outcome": "ok", "attempts": attempts, "detail": detail, "route_detail": route_detail,
-                    "quarantine_rows": qrows}
-        if status == "duplicate-held":
-            return {"outcome": "duplicate-held", "attempts": attempts, "detail": detail,
-                    "route_detail": route_detail, "quarantine_rows": qrows}
+            continue
+        break
+
+    if outcome is not None:
+        kind, detail = outcome
+        return {"outcome": kind, "attempts": attempts, "detail": detail, "route_detail": route_detail,
+                "quarantine_rows": qrows}
+    if mode == "measure":
+        return {"outcome": "measured", "attempts": attempts, "route_detail": route_detail, "quarantine_rows": qrows}
     if not any(p[0] == "browser" and p[1] == "manual-step" for p in prior) or retry_dead:
         record_attempt(conn, ws, token, wid, "browser", work.get("doi"), "manual-step",
                        {"instruction": "no automated route landed a file; fetch it in one browser session, then "
@@ -574,5 +1186,41 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             "quarantine_rows": qrows}
 
 
+def measure(conn, ws, token, work, *, store, agent, session, **kw):
+    """THE MEASURE HOOK the ladder-1 run driver calls for a work that already holds a file
+    (`qc/instruments/litkb_ladder_run.py` MEASURE_HOOK and MEASURE_CONTRACT; S4.5 decision D9): `acquire` in
+    MEASURE mode — every rung asked (a route's earlier terminal miss does not skip it; `blocked` in the run
+    and the back-off window still do), every answer recorded as an attempt row in `ws` and judged by the
+    acceptance test, nothing landed, bound or quarantined, whatever the work already holds.
+    -> acquire()'s dict, outcome `measured`. Seam integrator-w1 (A x C1a).
+
+    Its default `routes` is the WHOLE ladder (`ladder_routes`, seam integrator-w2): the run driver passes none,
+    and today's three routes would leave every Stage B, C and E rung unmeasured. The shadow tier among them is
+    refused in MEASURE mode by `policy.measure_decision` (S4.5 decision D18)."""
+    kw.setdefault("routes", ladder_routes())
+    return acquire(conn, ws, token, work, store=store, agent=agent, session=session, mode="measure", **kw)
+
+
+def _pace(pacing, route, pacer):
+    """Wait out the route's in-run AIMD delay before asking it (0 until the route answers transiently)."""
+    aimd = pacing.get(route)
+    if aimd is not None and aimd.delay_s > 0:
+        pacer.sleep(aimd.delay_s)
+
+
+# seam builder-C2c: Stage E's rung modules register themselves at import (E1 Wayback, E3 Internet Archive, E5 Common
+# Crawl, in that order); importing them HERE makes them visible wherever the ladder is (S4.5 decision D19). A route
+# still runs only when the caller's `routes` names it.
+from litkb.acquire import wayback as _wayback  # noqa: E402,F401
+from litkb.acquire import ia as _ia  # noqa: E402,F401
+from litkb.acquire import commoncrawl as _commoncrawl  # noqa: E402,F401
+
+
 def file_from_path_facts(path):
     return file_facts(path)
+
+
+# seam builder-C2b: the rung modules register themselves at import; importing them HERE is what makes every rung
+# visible wherever the ladder is (S4.5 decision D19: a rung that registers by import but is never imported is
+# invisible to `hunt`). A route still runs only when the caller's `routes` names it.
+from litkb.acquire import landing as _landing  # noqa: E402,F401

@@ -1,0 +1,127 @@
+{
+  "client": {
+    "class": "litkb.netutil.Client",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
+  },
+  "doi": "10.1007/bf00531768",
+  "final": {
+    "status": 200,
+    "url": "https://link.springer.com/article/10.1007/BF00531768",
+    "verdict": "challenge_or_bot_check",
+    "why": "f5"
+  },
+  "grant": "brief-C2b-stage-c.md item 2 (S4.5, 2026-09-23): one GET of one real landing page per publisher rule, a DOI of that publisher from the corpus; nothing else",
+  "hops": [
+    {
+      "n": 0,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.1007/bf00531768"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a3fb675cfeca17fe-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:32 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=EvxFLrMmnH8DJMYEZXbg1A99DjVasmwOPU1nsJ2hV%2BIGTugLhSkby3XJgtjPcyVJ2MtCbH%2BbGg9dn%2FDp%2Fo8MnA4ye15tnQ80Vpch6q4vMiDLutrHup%2FKcFc%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Wed, 23 Sep 2026 18:06:01 GMT",
+          "location": "http://link.springer.com/10.1007/BF00531768",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 171,
+        "scrubbed": false,
+        "sha256": "eb391386f03090996119c22022f07cffe2b6e9a4682139aa58e2ffa34a8c99e1",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "http://link.springer.com/10.1007/BF00531768"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Accept-Ranges": "bytes",
+          "Age": "0",
+          "Connection": "close",
+          "Content-Length": "166",
+          "Date": "Wed, 23 Sep 2026 17:52:33 GMT",
+          "Vary": "x-forwarded-host, upgrade-insecure-requests, x-forwarded-proto",
+          "X-Cache": "MISS, MISS",
+          "X-Cache-Hits": "0, 0",
+          "X-Served-By": "cache-bfi-krnt7300093-BFI, cache-bfi-krnt7300083-BFI",
+          "X-Timer": "S1790185953.958326,VS0,VE237",
+          "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+          "cache-control": "public,max-age=600",
+          "content-type": "text/html",
+          "location": "https://link.springer.com/article/10.1007/BF00531768",
+          "referrer-policy": "no-referrer-when-downgrade",
+          "server": "Oscar Platform 0.1787.0",
+          "via": "1.1 google, 1.1 varnish",
+          "x-vcap-request-id": "25a2b10c-fca0-4af4-7a9f-106ea3ad13ed"
+        },
+        "length": 166,
+        "scrubbed": false,
+        "sha256": "87a9323ac85ce28867d5d7ce590c8f29b8d1a999961fca71bb33adef48683691",
+        "status": 301
+      }
+    },
+    {
+      "n": 2,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://link.springer.com/article/10.1007/BF00531768"
+      },
+      "response": {
+        "body_file": "hop2.body",
+        "headers": {
+          "Accept-Ranges": "bytes",
+          "Connection": "close",
+          "Content-Length": "3038",
+          "Date": "Wed, 23 Sep 2026 17:52:33 GMT",
+          "Vary": "Accept-Encoding",
+          "Via": "1.1 varnish",
+          "X-Cache": "MISS",
+          "X-Cache-Hits": "0",
+          "X-Served-By": "cache-bfi-krnt7300036-BFI, cache-bfi-krnt7300102-BFI",
+          "X-Timer": "S1790185953.254694,VS0,VE51",
+          "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+          "cache-control": "private, no-store",
+          "content-type": "text/html; charset=utf-8"
+        },
+        "length": 3038,
+        "scrubbed": false,
+        "sha256": "32ed63159c77e21ee19ca1b9aa3213ccf0218eb59539560b132a8e68ef0e18ea",
+        "status": 200
+      }
+    }
+  ],
+  "kind": "litkb-landing-recording",
+  "recorded_at": "2026-09-23T17:52:33.301715+00:00",
+  "rule": "springer",
+  "scrub": "litkb.cassette.scrub_bytes / scrub_url (registered secrets), then the client-address mask of qc/instruments/litkb_landing_record.py (client_ips / scrub_ips); a scrubbed body's sha256 is of the bytes as written",
+  "version": 1,
+  "walk": {
+    "accept": "text/html",
+    "max_hops": 10,
+    "meta_refresh": true
+  },
+  "work_key": "Kingman_1962_imbedding-problem-finite-markov"
+}

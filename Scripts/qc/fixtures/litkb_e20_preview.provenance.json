@@ -1,0 +1,16 @@
+{
+  "fixture": "Scripts/qc/fixtures/litkb_e20_preview.pdf",
+  "real": "REAL bytes, recorded once; never regenerated. Register row E20, DOI 10.1201/9781315374321 (van den Hout, Multi-State Survival Models for Interval-Censored Data, CRC 2016).",
+  "why": "LITKB_WORKPLAN.md S4.5 Test set, NEGATIVE REAL: the publisher PREVIEW that E20's own citation_pdf_url serves must type stub_not_article and never bind. survey-data 0.9: it was not on disk; the head probe did HEAD only.",
+  "grant": "builder-C1b brief item 3: exactly ONE GET of the PREVIEW-PDF row's url in phase4/qc/litkb_acq_probe_head.csv",
+  "url_requested": "https://api.taylorfrancis.com/content/books/mono/download?identifierName=doi&amp;identifierValue=10.1201/9781315374321&amp;type=googlepdf",
+  "terminal_url": "https://s3-euw1-ap-pe-df-pch-content-store-p.s3.eu-west-1.amazonaws.com/9781315374321/f6c26949-359e-4f03-a279-1ab5eba1a3a7/relatedobjects/preview.pdf",
+  "terminal_url_note": "the signed query string (an AWS session token) is dropped; urllib followed the server's redirect from url_requested to this object, as the head probe of 2026-09-22 saw",
+  "retrieved_at": "2026-09-23T14:30:07.152580+00:00",
+  "status": 200,
+  "content_type": "application/pdf",
+  "content_length_header": "1144017",
+  "bytes": 1144017,
+  "sha256": "9b23b0e2303cb20c79a764664223cebcc6b08efba10f60b9243b874b948e97fc",
+  "measured": "pdfinfo: 47 pages, PDFBox, Title and Author set; pdftotext: 92,965 bytes of text, front matter, a contents list printing an index at p.235, chapter 1 and bibliography pp.222-234: a 47-page excerpt of the book, not the book"
+}

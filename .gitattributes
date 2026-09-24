@@ -67,3 +67,19 @@ Scripts/qc/fixtures/*.html  binary
 # file about eol= is about the global `*` rule, and `*.sh` below already sets the
 # precedent for a narrower one.
 Scripts/qc/testdata/litkb_binding_stamps/*.txt  text eol=lf
+
+# ── Recorded HTTP cassettes (litkb S4.5 item 7) ───────────────────────────
+# Added 2026-09-23 with qc/fixtures/litkb_cassettes/ (litkb/cassette.py). An index is JSONL whose
+# every line is a request key and the response a host sent — status, headers, and small bodies inline
+# as base64 — and the replay and the manifest identify it by the sha256 of its BYTES. `*.json text`
+# (and `* text=auto`) would newline-convert it on checkout, so one recording would hash two ways on
+# two operating systems: a fixture that is not a record. The existing `Scripts/qc/fixtures/*.html`
+# rule matches the top level only, so the cassette tree needs its own; `**` covers every recording
+# and every CONSTRUCTED one beneath it.
+Scripts/qc/fixtures/litkb_cassettes/**  binary
+
+# ── Recorded landing pages (litkb S4.5 builder-C2b, Stage C) ──────────────
+# Added 2026-09-23 with qc/fixtures/litkb_landing_pages/: one publisher landing page per rule of
+# pipeline/litkb/acquire/landing_rules.json, recorded hop by hop (recording.json + hopN.body), every
+# body pinned by the sha256 of its BYTES. Same reason as the cassettes: a checkout must not rewrite them.
+Scripts/qc/fixtures/litkb_landing_pages/**  binary

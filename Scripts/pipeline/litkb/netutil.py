@@ -143,9 +143,12 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class Client:
-    """One cookie jar, two openers. get() never raises and never leaks the key."""
+    """One cookie jar, two openers. get() never raises and never leaks the key — with ONE exception,
+    and it is deliberate: a REPLAYING client (litkb.cassette, S4.5 item 7) raises `CassetteMiss` for a
+    request its cassette cannot answer, because the alternative is a replay that quietly falls through
+    to the network or quietly answers "status 0" for a request the live run never made."""
 
-    def __init__(self, base=BASE, ua=UA, flaresolverr=None):
+    def __init__(self, base=BASE, ua=UA, flaresolverr=None, cassette=None):
         self.base = base
         self.ua = ua
         self.flaresolverr = (flaresolverr if flaresolverr is not None
@@ -154,13 +157,34 @@ class Client:
         cp = urllib.request.HTTPCookieProcessor(self.cj)
         self._follow = urllib.request.build_opener(cp)
         self._nofollow = urllib.request.build_opener(cp, _NoRedirect())
+        #: An explicitly injected cassette (tests). None means "whatever litkb.cassette.active()
+        #: says at request time" — the environment, so an MCP hunt's child process records and
+        #: replays like the parent (survey-code §1.4, bypass 4).
+        self.cassette = cassette
 
     # -- bot-challenge handling (optional; without FlareSolverr the login cookie stands) --
 
     @staticmethod
     def is_challenge(status, url, body):
-        return bool((status == 403 and "check=1" in (url or ""))
-                    or (status in (403, 503) and CHALLENGE_RE.search(body or b"")))
+        """A bot challenge at ANY status (S4.5 item 2; the 2026-09-22 Sci-Hub diagnosis D1 measured
+        `sci-hub.wf` answering its Cloudflare "Checking your browser" page at HTTP 200, which the old
+        403/503-only rule booked as a miss). At 403/503 the whole body is searched, as before. At any
+        other status only the page TITLE is: PDF-sources survey G0d (VERIFIED) — "never detect the
+        challenge by searching the body for 'ddos-guard': a solved record page mentions it in its own
+        scripts" — and a PDF is never a challenge. The title is read in the first 64 KiB (guard 3's
+        "first-64 KB markers")."""
+        body = body or b""
+        if status == 403 and "check=1" in (url or ""):
+            return True
+        if status in (403, 503):
+            return bool(CHALLENGE_RE.search(body))
+        # BEGIN guard: a challenge page is a challenge at ANY status
+        head = body[:64 * 1024]
+        if head.lstrip()[:5] == b"%PDF-":
+            return False
+        title = re.search(rb"<title[^>]*>(.*?)</title", head, re.I | re.S)
+        return bool(title and CHALLENGE_RE.search(title.group(1)))
+        # END guard: a challenge page is a challenge at ANY status
 
     def _flare_post(self, payload):
         """POST to FlareSolverr /v1. Split out so tests can stub it."""
@@ -207,19 +231,34 @@ class Client:
             # default, but the Semantic Scholar batch endpoint posts JSON and must keep its own
             # header. Assigning here clobbered the header the caller had just passed in `headers`,
             # and the server answered 415 with no hint that the client had overwritten it.
+        # THE CASSETTE HOOK (litkb.cassette; S4.5 item 7). This function is litkb's one socket path,
+        # so recording here records every Client request and replaying here stops every one of them
+        # before an opener is touched. `getattr`: a subclass that never ran Client.__init__ has no
+        # attribute, and must behave as a client with no cassette injected.
+        from litkb import cassette as _cassette
+
+        cas = getattr(self, "cassette", None) or _cassette.active()
+        # BEGIN guard: a replaying client answers from its cassette and never opens a socket
+        if cas is not None and cas.mode == "replay":
+            return cas.replay(self, url, h, follow, data)
+        # END guard: a replaying client answers from its cassette and never opens a socket
+        before = cas.cookie_names(self.cj) if cas is not None else None
         req = urllib.request.Request(url, data=data, headers=h)
         op = self._follow if follow else self._nofollow
         try:
             with op.open(req, timeout=timeout) as r:
-                return r.status, dict(r.headers), r.read()
+                res = r.status, dict(r.headers), r.read()
         except urllib.error.HTTPError as e:          # includes the suppressed 3xx
             try:
                 body = e.read()
             except Exception:
                 body = b""
-            return e.code, dict(e.headers or {}), body
+            res = e.code, dict(e.headers or {}), body
         except Exception as e:                        # URLError, timeout, ssl, ...
-            return 0, {}, redact(f"{type(e).__name__}: {e}").encode()
+            res = 0, {}, redact(f"{type(e).__name__}: {e}").encode()
+        if cas is not None and cas.mode == "record":
+            cas.record(self, url, h, follow, data, res, cookies_before=before)
+        return res
 
     def get(self, url, accept="text/html", timeout=120, follow=True, data=None, headers=None):
         if headers:
@@ -227,7 +266,16 @@ class Client:
         else:
             st, hd, body = self._raw_get(url, accept, timeout, follow, data)
         if self.flaresolverr and self.is_challenge(st, url, body) and self.solve_challenge(url):
-            st, hd, body = self._raw_get(url, accept, timeout, follow, data)
+            again = None
+            # BEGIN guard: the challenge retry keeps the caller's headers
+            # (S4.5 builder-C2b, survey-code §1.1: the retry used to drop them, so a Stage C request's Referer and
+            # Range - guard 24, the C13 probe - were lost on exactly the request a solved challenge let through)
+            again = headers
+            # END guard: the challenge retry keeps the caller's headers
+            if again:
+                st, hd, body = self._raw_get(url, accept, timeout, follow, data, again)
+            else:
+                st, hd, body = self._raw_get(url, accept, timeout, follow, data)
         return st, hd, body
 
     def login(self, key):

@@ -8,6 +8,12 @@ editable install is re-run from a tree that contains litkb:
     py -3.12 -m litkb admit --web --title T --authors A --year Y --url U --retrieved DATE
                             --snapshot PAGE.txt --source-note "..."
     py -3.12 -m litkb approve <admission-id>
+    py -3.12 -m litkb refuse <admission-id> --reason R [--dry-run]          (a SECOND session; migration 0034)
+    py -3.12 -m litkb withdraw <version-id> [--entity file] --reason R [--dry-run]   (the proposer's own)
+    py -3.12 -m litkb approve-files [<version-id> ...] [--pending] [--reason R] [--dry-run]
+    py -3.12 -m litkb refuse-files [<version-id> ...] [--pending] --reason R [--dry-run]
+                          (lone proposed file versions on works in main: an `acquire --from-file` bind
+                          is one; batched, all or nothing, a SECOND session)
     py -3.12 -m litkb use add (--key K | --doi D) --statement S --kind K [--feeds "tok;tok"]
                               [--quote Q --page N --stance supports] [--rationale R]
                               [--hunt-request ID]
@@ -218,6 +224,73 @@ def cmd_approve(args, conn):
     return 0
 
 
+# ── adjudication (migration 0034; LITKB_WORKPLAN.md S4.5 item 1) ──────────────────────────────
+# Second-session verbs, CLI-only like `approve` (the MCP server has none of them). --dry-run reads
+# and prints what the verb WOULD do, and the reasons the database would refuse it; it writes nothing.
+
+def cmd_refuse(args, conn):
+    """`litkb refuse <admission-id> --reason R [--dry-run]`: a SECOND session declines a proposed manual
+    admission (front.refuse). Exit 1 when the dry run finds a reason the database would refuse it."""
+    from litkb.admit import front
+
+    agent, session = _labels(args)
+    if args.dry_run:
+        plan = front.refuse_plan(conn, args.admission_id, session)
+        _print(plan | {"dry_run": True})
+        return 0 if plan["would"] == "declined" else 1
+    ws_id, token = _ws(args)
+    _print(front.refuse(conn, ws_id, token, args.admission_id, args.reason, agent, session))
+    return 0
+
+
+def cmd_withdraw(args, conn):
+    """`litkb withdraw <version-id> [--entity file] --reason R [--dry-run]`: the proposing workstream retracts
+    its own proposal (front.withdraw)."""
+    from litkb.admit import front
+
+    agent, session = _labels(args)
+    ws_id, token = _ws(args)
+    if args.dry_run:
+        plan = front.withdraw_plan(conn, ws_id, args.entity, args.version_id)
+        _print(plan | {"dry_run": True})
+        return 0 if plan["would"] == "withdrawn" else 1
+    _print(front.withdraw(conn, ws_id, token, args.entity, args.version_id, args.reason, agent, session))
+    return 0
+
+
+def cmd_decide_files(args, conn):
+    """`litkb approve-files` / `litkb refuse-files`: a SECOND session decides lone proposed file versions on
+    works already in main, batched and all-or-nothing (front.decide_files). `--pending` names every one not
+    proposed by this session; --dry-run lists them with the reasons any would be refused."""
+    from litkb.admit import front
+
+    agent, session = _labels(args)
+    verb = "approve" if args.cmd == "approve-files" else "refuse"
+    ids = list(args.version_ids or [])
+    if args.pending:
+        ids += [p["version_id"] for p in front.pending_file_proposals(conn)
+                if p["version_id"] not in ids]
+    if not ids:
+        _print({"verb": verb, "decided": [], "note": "no proposed file version named or pending"})
+        return 0
+    plan = front.decide_plan(conn, ids, session)
+    if args.dry_run:
+        _print({"dry_run": True, "verb": verb, "versions": plan})
+        return 0 if all(p["would"] == "decide" for p in plan) else 1
+    # (the batch is all or nothing: one version the plan refuses — this session's own proposal, a closed
+    # workstream's — would refuse every other one with it)
+    # BEGIN guard: approve-files --pending never sends a version the plan already refuses
+    if args.pending:
+        ids = [p["version_id"] for p in plan if p["would"] == "decide"]
+        if not ids:
+            _print({"verb": verb, "decided": [], "skipped": plan})
+            return 1
+    # END guard: approve-files --pending never sends a version the plan already refuses
+    ws_id, token = _ws(args)
+    _print(front.decide_files(conn, ws_id, token, verb, ids, args.reason, agent, session))
+    return 0
+
+
 def cmd_acquire(args, conn):
     from litkb.acquire import run
 
@@ -235,6 +308,17 @@ def cmd_acquire(args, conn):
     out["account_counter"] = budget.counter
     if budget.stopped:
         out["archive_stopped"] = budget.stopped
+    if args.from_file and out["outcome"] == "ok":
+        # the operator-bind gate (migration 0034, `litkb-from-file-version-state`): the file is bound as a
+        # PROPOSAL, so main cannot see it until a second session approves it — say so, and name the version
+        from litkb.admit import front
+        mine = [p for p in front.pending_file_proposals(conn)
+                if p["work_id"] == str(work["work_id"]) and p["workstream_id"] == str(ws_id)]
+        # (+ the acceptance test's verdict the proposal carries for the approver: S4.5 decision D17, integrator-w2)
+        out["proposed"] = [{k: p[k] for k in ("version_id", "file_id", "rel_path", "source_route",
+                                              "acceptance_verdict", "acceptance_sub_status")} for p in mine]
+        out["next"] = ("a SECOND session approves it: `litkb approve-files <version_id>` (or refuses it: "
+                       "`litkb refuse-files <version_id> --reason R`); until then main does not hold this file")
     _print({k: v for k, v in out.items() if k != "detail"} | {"key": work["key"]})
     return 0 if out["outcome"] in ("ok", "already-held") else 1
 
@@ -836,6 +920,24 @@ def build_parser():
     p = sub.add_parser("approve")
     p.add_argument("admission_id")
 
+    rf = sub.add_parser("refuse", help="a SECOND session declines a proposed manual admission (migration 0034)")
+    rf.add_argument("admission_id")
+    rf.add_argument("--reason", required=True, help="why: the decision log records it")
+    rf.add_argument("--dry-run", action="store_true", help="print what would happen; write nothing")
+    wd = sub.add_parser("withdraw", help="the proposing workstream retracts its own proposed version")
+    wd.add_argument("version_id")
+    wd.add_argument("--entity", default="file", choices=("work", "identifier", "file", "gap", "use"))
+    wd.add_argument("--reason", required=True, help="why: the decision log records it")
+    wd.add_argument("--dry-run", action="store_true", help="print what would happen; write nothing")
+    for name, what in (("approve-files", "approve"), ("refuse-files", "refuse")):
+        df = sub.add_parser(name, help=f"a SECOND session {what}s lone proposed file versions on works in main, "
+                                       "batched, all or nothing (migration 0034)")
+        df.add_argument("version_ids", nargs="*")
+        df.add_argument("--pending", action="store_true",
+                        help="every lone proposed file version not proposed by this session")
+        df.add_argument("--reason", required=(what == "refuse"), help="why: the decision log records it")
+        df.add_argument("--dry-run", action="store_true", help="list what would be decided; write nothing")
+
     q = sub.add_parser("acquire")
     q.add_argument("--key")
     q.add_argument("--doi")
@@ -1176,6 +1278,8 @@ def main(argv=None, connect=None):
     conn = _NoConn() if args.cmd in _OWN_LOGINS and connect is None else (connect or _default_connect)(args.db)
     try:
         return {"ws": cmd_ws, "admit": cmd_admit, "approve": cmd_approve,
+                "refuse": cmd_refuse, "withdraw": cmd_withdraw,
+                "approve-files": cmd_decide_files, "refuse-files": cmd_decide_files,
                 "acquire": cmd_acquire, "migrate": cmd_migrate, "export": cmd_export,
                 "use": cmd_use, "inventory": cmd_inventory, "hunt": cmd_hunt, "reap": cmd_reap,
                 "hunt-request": cmd_hunt_request, "brief": cmd_brief,

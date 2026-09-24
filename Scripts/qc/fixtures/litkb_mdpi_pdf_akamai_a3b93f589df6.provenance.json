@@ -1,0 +1,13 @@
+{
+  "what": "REAL recorded bytes: the 413-byte Akamai 'Access Denied' page www.mdpi.com served for Chen_2023's /pdf URL (10.3390/rs15030765) to litkb's open_access route; copied read-only from the live quarantine by builder-C2b (S4.5, 2026-09-23), never re-fetched",
+  "copied_from": "Literture/_quarantine/Chen_2023_urban-tree-canopy-mapping__blocked__a3b93f589df6.pdf (+ its .reason.json)",
+  "sha256": "a3b93f589df6011625c8ace35b862e12a9823aa451934ff3f86a8ad4d397c7bf",
+  "bytes": 413,
+  "url_requested": "https://www.mdpi.com/2072-4292/15/3/765/pdf?version=1675838087",
+  "served_at": "2026-09-22T03:17:37Z",
+  "route": "open_access",
+  "attempt_status": "blocked",
+  "http_codes": [403, 403],
+  "quarantine_payloads": "reason blocked, origin legacy-backfill (litkb_reader, 2026-09-23)",
+  "survey": "survey-data section 2.5 (MDPI rows: Akamai 'Access Denied' for www.mdpi.com /pdf, 409-413 B); PDF-sources survey 2.1 MDPI row / C7 (Akamai interstitial)"
+}

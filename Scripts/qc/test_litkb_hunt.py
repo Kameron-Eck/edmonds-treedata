@@ -38,8 +38,24 @@ def _jsonb(obj):
     return Jsonb(obj)
 
 
+@pytest.fixture(scope="module")
+def _reset_after_this_module(litkb_pg_base):
+    """This module's page hunts admit real-shaped titles ("How good is your matching in <tag>?") into the
+    session-shared worker database, and `litkb._title_duplicates` is GLOBAL (0.70): the edge register's E06, run
+    after this module, met them and answered `duplicate-review` (auditor-B1 round 2 N9, measured on main 2ca3896
+    too: `hunt -> edges` red, green only in the alphabetical order). brief-COMMON rule 5 — a test admitting real
+    titles resets the database afterwards — so the database is reset and migrated once this module's last
+    database test is done. Integrator-w2."""
+    yield
+    from litkb.db import migrate
+
+    _psycopg, conn, _ran = litkb_pg_base
+    migrate.reset(conn)
+    migrate.apply(conn)
+
+
 @pytest.fixture
-def env(tmp_path, monkeypatch, litkb_pg_base):
+def env(tmp_path, monkeypatch, litkb_pg_base, _reset_after_this_module):
     """A literature root, a worktree with a real workstream, and the throwaway database.
 
     The `litkb_test` login stands in for reader, writer and ingest — it is a member of all three
@@ -172,7 +188,8 @@ def test_a_url_that_serves_html_is_refused_and_the_bytes_are_quarantined(env):
     assert len(kept) == 2, kept                       # the bytes, and the reason beside them
     why = json.loads(next(q.glob("*.reason.json")).read_text(encoding="utf-8"))
     assert why["shape"] == "not-a-pdf" and why["route"] == "hunt", why
-    assert "they look like HTML" in why["reason"], why
+    # THE acceptance test judges the URL path since S4.5 decision D17 (integrator-w2): its word and its sentence
+    assert why["sub_status"] == "html_response" and "an HTML page" in why["reason"], why
     # nothing landed under a name a later pass would read as a paper
     assert not list((env["root"] / "_litkb_staging" / "filed").glob("*")), "an HTML body was filed"
     assert _runs(env["conn"]) == before
@@ -899,8 +916,10 @@ def test_every_refusal_code_this_module_raises_is_listed():
             else:
                 dynamic.append(ast.unparse(a))
     assert literals <= listed, sorted(literals - listed)
-    # the two dynamic sites: `code` (unresolved-title / ambiguous-title) and the pdf shape
-    assert sorted(dynamic) == sorted(["code", "'not-a-pdf' if shape == 'not-a-pdf' else shape"]), dynamic
+    # the two dynamic sites: `code` (unresolved-title / ambiguous-title) and the acceptance test's refusal of a URL
+    # download, by its quarantine label (S4.5 decision D17, integrator-w2: `hunt.ACCEPTANCE_REFUSALS`)
+    assert sorted(dynamic) == sorted(["code", "ACCEPTANCE_REFUSALS[label]"]), dynamic
+    assert set(H.ACCEPTANCE_REFUSALS.values()) <= listed
     assert {"unresolved-title", "ambiguous-title", "not-a-pdf", "truncated-pdf"} <= listed
 
 

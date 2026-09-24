@@ -831,8 +831,11 @@ def fire_probe(db, *, root, guard=True):
         # the database row `acquire()` writes after every attempt that quarantined bytes: the refused
         # file's CLASS is that row's reason (auditor-C N1 — "classed `probe-error`")
         qrow = run.quarantine_state(writer, ws, token, w, status, "browser", detail, None)
-        got = owner.execute("SELECT count(*), count(*) FILTER (WHERE pages IS NULL) FROM litkb.main_files "
-                            "WHERE work_id = %s", (res["work_id"],)).fetchone()
+        # BOUND = a live version row, proposed or promoted: route `browser` is an operator's route, and since
+        # migration 0034 (the operator-bind gate) its bind is a PROPOSAL that main does not see yet
+        got = owner.execute("SELECT count(*), count(*) FILTER (WHERE pages IS NULL) FROM litkb.file_versions "
+                            "WHERE work_id = %s AND state IN ('proposed', 'promoted')",
+                            (res["work_id"],)).fetchone()
         return {"probe_refused": int(status == "bad-file" and bool(detail.get("probe_error"))),
                 "bound": int(got[0]), "bound_pages_null": int(got[1]), "status": status,
                 "sha256": hashlib.sha256(data).hexdigest(), "quarantined": detail.get("quarantined"),

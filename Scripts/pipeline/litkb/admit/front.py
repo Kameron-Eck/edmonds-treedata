@@ -37,6 +37,13 @@ class AdmissionError(RuntimeError):
     pass
 
 
+class KeyUnderivable(AdmissionError):
+    """`make_key` could not BUILD a `works_key_check` key (S4.5 item 1's key-length rule refuses by name instead
+    of letting the database refuse a cut key). Its own class so a hunt that ends on it reads
+    `crashed / admit:KeyUnderivable` — a reason the gated `key_derivation_crashes` counts beside the old
+    `admit:CheckViolation` (auditor-B1 F3: under the bare AdmissionError the counter could not see it)."""
+
+
 class BindProbeError(AdmissionError):
     """A file offered for binding whose PAGE COUNT could not be read (`litkb.extract.probe.probe_pages`
     raised). Fail closed: the file is never attached (LITKB_WORKPLAN.md "### S4": "a PDF whose
@@ -73,23 +80,66 @@ def first_author_of(authors):
     return parts[-1] if parts else ""
 
 
+#: `works_key_check` (migration 0001): the shape every key must have. Checked HERE, before the database is
+#: asked, so a key this function cannot derive is a named AdmissionError and never a CheckViolation.
+KEY_RE = re.compile(r"[A-Za-z]+_[0-9]{4}[ab]?_[a-z0-9]+(-[a-z0-9]+){1,4}")
+#: The longest key `make_key` returns: 0001's `length(key) < 60` allows 59, minus the ONE character the
+#: database's key-collision retry adds (`litkb.admit`, 0014 D5: `<Surname>_<year>a_<slug>`) — a 59-character
+#: key whose collision took that suffix would itself violate `works_key_check`.
+KEY_MAX = 58
+#: The shortest slug `works_key_check` admits: two one-character words and the hyphen between them.
+SLUG_FLOOR = 3
+
+
+def compact_surname(parts):
+    """A creator too long to lead a key -> an initialism (the manual `LPVSubgroup_2025_...` key of row 187 did
+    the same by hand): the first letter of each part that starts upper-case ("Land Product Validation
+    Subgroup (Working Group on ..." -> "LPVSWG..."), or of every part when fewer than two do. One part alone
+    has no initialism and is returned whole; `make_key` then shortens it to its budget."""
+    caps = [p for p in parts if p[:1].isupper()]
+    use = caps if len(caps) >= 2 else parts
+    return "".join(p[0].upper() for p in use) if len(use) >= 2 else "".join(parts)
+
+
 def make_key(first_author, year, title):
     """Surname_Year_slug (Scripts/docs/LITERATURE_CONVENTION.md): ASCII surname parts joined and capitalised,
-    4-digit year, 2-5 lowercase title words with stopwords dropped, under 60 characters."""
+    4-digit year, 2-5 lowercase title words with stopwords dropped, at most KEY_MAX characters.
+
+    THE LENGTH RULE (S4.5 item 1; row 187, survey-code §4.2): the key is BUILT to fit, never cut to fit. Until
+    S4.5 the last line was `key[:59]`, and a 76-character corporate creator ("Land Product Validation Subgroup
+    (Working Group on Calibration and Validation") produced a 68-character surname, so the cut landed INSIDE
+    the surname: no `_YYYY_` segment survived, `works_key_check` refused the key and the hunt ended
+    `crashed / admit:CheckViolation`. The discriminator is LENGTH, not corporateness ("King County GIS
+    Center" derives a valid key). Now: a surname longer than its budget (KEY_MAX less the year segment and the
+    shortest slug) becomes an initialism; the slug loses words, then characters of its longest word; and a
+    key that still does not have the check's shape is refused by name."""
     parts = re.findall(r"[A-Za-z]+", _ascii_fold(first_author or ""))
     # a registry that prints the surname in capitals ('PAGE', 'HAWKES') gives the convention's 'Page'; mixed-case
     # parts ('DelaCruz', 'McRoberts') are kept as printed
     surname = "".join(p[0].upper() + (p[1:].lower() if p.isupper() else p[1:]) for p in parts) or "Anon"
+    year_part = f"_{int(year):04d}_"
+    budget = KEY_MAX - len(year_part) - SLUG_FLOOR
+    # BEGIN guard: a key never cuts inside the surname segment
+    if len(surname) > budget:
+        surname = compact_surname(parts)[:budget]
+    # END guard: a key never cuts inside the surname segment
     words = re.findall(r"[a-z0-9]+", _ascii_fold(title or "").lower())
     kept = [w for w in words if w not in _STOP] or words
     if len(kept) < 2:
         kept = (kept + [w for w in words if w not in kept] + ["work", "record"])[:2]
     slug_words = kept[:4]
-    key = f"{surname}_{int(year):04d}_{'-'.join(slug_words)}"
-    while len(key) >= 60 and len(slug_words) > 2:
+    key = f"{surname}{year_part}{'-'.join(slug_words)}"
+    while len(key) > KEY_MAX and len(slug_words) > 2:
         slug_words = slug_words[:-1]
-        key = f"{surname}_{int(year):04d}_{'-'.join(slug_words)}"
-    return key[:59]
+        key = f"{surname}{year_part}{'-'.join(slug_words)}"
+    while len(key) > KEY_MAX and max(len(w) for w in slug_words) > 1:
+        i = max(range(len(slug_words)), key=lambda k: len(slug_words[k]))
+        slug_words[i] = slug_words[i][:-1]
+        key = f"{surname}{year_part}{'-'.join(slug_words)}"
+    if len(key) > KEY_MAX or not KEY_RE.fullmatch(key):
+        raise KeyUnderivable(f"key-underivable: {key!r} is not a works_key_check key of at most {KEY_MAX} "
+                             "characters; pass --key")
+    return key
 
 
 def add_candidate(conn, ws, token, *, source="manual", source_detail=None, query=None, raw=None, title=None,
@@ -145,6 +195,10 @@ def file_evidence(file_path, registry_title, first_author, *, root=None, source_
         out["pages"] = pages
     if txt.exists():
         out["txt_extract_path"] = txt.relative_to(root).as_posix()
+        from litkb.acquire.ledger import word_count_of_file     # S4.5 C1a: every landing records it (0033)
+        words = word_count_of_file(txt)
+        if words is not None:
+            out["word_count"] = words
     if source_route:
         out["source_route"] = source_route
     if source_url:
@@ -286,6 +340,9 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
     checks["measured_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
     res = _call_admit(conn, ws, token, candidate_id, "registry", key, work, identifiers, file_json, checks,
                       agent, session)
+    # BEGIN call site: an admission's registry answer is harvested, with provenance, at no new request
+    res = harvest_admission(conn, ws, token, res, rec, agent=agent, session=session)
+    # END call site: an admission's registry answer is harvested, with provenance, at no new request
     # BEGIN guard: a claim that lacks the subtitle is a discrepancy, not a refusal
     d = _registry.subtitle_discrepancy(rec, claimed) if rec else None
     if d:
@@ -298,6 +355,36 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
         res = dict(res) | {"title_discrepancy": d}
     # END guard: a claim that lacks the subtitle is a discrepancy, not a refusal
     return res
+
+
+def harvest_admission(conn, ws, token, res, rec, *, agent, session):
+    """The HARVEST of an admission's registry answer (S4.5 item 1, decision D2): the Crossref / DataCite record
+    `confirm_doi` already fetched -> identifier rows and relation edges with provenance, written through
+    `litkb.record_identifiers` / `litkb.record_work_relations` (migration 0032). No request is made.
+
+    Runs for `admitted` AND for `duplicate`: a duplicate outcome names the work that already holds the DOI, and a
+    later source FILLING that work's missing identifiers is fatcat's merge (it never overwrites). Every other
+    outcome harvests nothing. The admission is already written when this runs, so a harvest that fails does not
+    unwrite it: `harvest.record` runs inside its own transaction block (a SAVEPOINT when the caller's connection
+    is already in a transaction — auditor-B1 F14: before, a transactional caller's admission rolled back with a
+    failed harvest), and the failure is returned in `res["harvest"]["error"]`. What is DURABLE of a harvest is
+    what `litkb.record_identifiers` commits: every claim it weighs is an `identifier_claims` row with its
+    outcome, and a claim the unique index refused is kept as `collided` (not raised), which
+    `conflicts_uncounted` counts. An error of any other kind aborts the harvest and is returned only."""
+    if not rec or res.get("outcome") not in ("admitted", "duplicate") or not res.get("work_id"):
+        return res
+    from litkb.admit import harvest as _harvest
+
+    rows, rels, rejected = _harvest.from_registry_record(rec)
+    if not rows and not rels:
+        return res
+    try:
+        got = _harvest.record(conn, ws, token, str(res["work_id"]), rows, rels, agent=agent, session=session)
+    except Exception as e:                  # noqa: BLE001 — see the docstring: returned, never swallowed
+        got = {"error": f"{type(e).__name__}: {str(e).splitlines()[0][:200] if str(e) else ''}"}
+    if rejected:
+        got["rejected"] = rejected
+    return dict(res) | {"harvest": got}
 
 
 def record_discrepancy(conn, ws, token, *, source, source_row, field, claimed, registry, agent, session,
@@ -470,3 +557,253 @@ def approve(conn, ws, token, admission_id, agent, session):
     # END guard: approve compares labels without invisible characters (Python)
     return conn.execute("SELECT litkb.approve_admission(%s, %s, %s, %s, %s)",
                         (ws, token, admission_id, agent, session)).fetchone()[0]
+
+
+# ── adjudication (migration 0034; LITKB_WORKPLAN.md "### S4.5" item 1) ──────────────────────────
+#
+# The verbs a proposal is decided by, beside `approve`. Every one is CLI-only (litkb.commands): the
+# MCP server deliberately has no approve and gets no refuse, because the second session is a
+# deliberate act of ANOTHER session, not a tool call inside the proposing one. Each call writes one
+# row per decision into the append-only `litkb.adjudications` log in the SAME transaction as the
+# state change, so a decision that is refused leaves nothing behind but its error.
+#
+# THE TWO GUARDS on every second-session verb (the plan's "both guards fired"): the labels are
+# compared here, after invisible characters are removed, BEFORE the call; and the database refuses
+# the row itself (`adjudications_second_session_decides`, migration 0034 — the same shape as
+# `admissions_second_session_signs_off`, 0014, which are approve's two guards).
+
+#: The source routes whose file `litkb.attach_file` writes as a PROPOSAL, never the version of record.
+#: A MIRROR: the one home is migration 0034's `litkb._proposal_source_routes()`, and
+#: qc/test_litkb_adjudicate.py holds this tuple equal to it.
+PROPOSAL_SOURCE_ROUTES = ("browser", "held-in-place", "web")
+
+#: The entities whose versions `withdraw` takes (the five version tables of migration 0001).
+VERSION_ENTITIES = ("work", "identifier", "file", "gap", "use")
+
+
+def _need_reason(reason, verb):
+    """A refusal and a withdrawal say why (the database's `adjudications_reason_given` says it again)."""
+    if not (reason or "").strip():
+        raise AdmissionError(f"{verb} needs a reason: the decision log records why a proposal was decided")
+    return reason
+
+
+def refuse(conn, ws, token, admission_id, reason, agent, session):
+    """The refuse verb: a SECOND session declines a proposed manual admission (litkb.refuse_admission,
+    migration 0034). The admission becomes `declined`, every proposed version of its work, identifiers and
+    files in the admitter's workstream becomes `rejected`, and nothing in main moves. -> the database's result.
+
+    `declined`, not `refused`: that word already means the MACHINE's check failure (`_refuse_admission`,
+    migration 0013), and the two must stay countable apart.
+
+    The result also names `left_proposed` (`_left_proposed`): the admitter's proposed USES of the declined
+    work, which the verb does not move — see there."""
+    agent, session = _labels(agent, session)
+    _need_reason(reason, "refuse")
+    row = conn.execute("SELECT admitter_session, workstream_id, work_id FROM litkb.admissions WHERE id = %s",
+                       (admission_id,)).fetchone()
+    # BEGIN guard: refuse compares labels without invisible characters (Python)
+    if row and norm_label(row[0]) == session:
+        raise AdmissionError("the admitter's own session cannot refuse its admission (invisible characters ignored)")
+    # END guard: refuse compares labels without invisible characters (Python)
+    res = conn.execute("SELECT litkb.refuse_admission(%s, %s, %s, %s, %s, %s)",
+                       (ws, token, admission_id, reason, agent, session)).fetchone()[0]
+    return res | _left_proposed(conn, row[1], row[2])
+
+
+def _left_proposed(conn, admitter_ws, work_id):
+    """{"left_proposed": [...], "next"?: ...} — the admitter's heads that DEPEND on a work a refusal declines
+    and that the refusal does not move: its proposed USES of that work (a use is the only version that names a
+    work; migration 0001). `refuse_admission` rejects the admission's own work / identifier / file chains and
+    nothing else, because a use is the proposer's own claim and withdrawing it is the proposer's act
+    (`withdraw_version`). Left alone, `promote_prepare` holds such a use for ever ("dependency: the work is not
+    admitted in main", which a declined work never will be), so the refusal and its dry run NAME them and the
+    verb that clears them (auditor-B2 round 2 F5). Read-only; SELECT on these tables is granted to every agent
+    role (migration 0006)."""
+    rows = conn.execute("SELECT wh.entity_id::text, wh.version_id::text FROM litkb.ws_heads wh "
+                        "JOIN litkb.uses u ON u.id = wh.entity_id "
+                        "WHERE wh.workstream_id = %s AND wh.entity = 'use' AND u.work_id = %s ORDER BY 1",
+                        (admitter_ws, work_id)).fetchall()
+    out = {"left_proposed": [{"entity": "use", "id": i, "version": v} for i, v in rows]}
+    if rows:
+        out["next"] = ("the admitter's workstream still proposes these uses of the declined work; prepare holds "
+                       "them for ever. The PROPOSER retracts each: `litkb withdraw <version> --entity use "
+                       "--reason R`")
+    return out
+
+
+def refuse_plan(conn, admission_id, session):
+    """What `refuse` WOULD do, read-only (the CLI's --dry-run): the admission, whether the database would
+    refuse the call and why, and every head the refusal would move to `rejected`."""
+    row = conn.execute("SELECT route, state, admitter_session, workstream_id, work_id, "
+                       "(SELECT w.state FROM litkb.workstreams w WHERE w.id = a.workstream_id) "
+                       "FROM litkb.admissions a WHERE a.id = %s", (admission_id,)).fetchone()
+    if row is None:
+        return {"admission_id": str(admission_id), "would": "refused", "why": ["no such admission"]}
+    route, state, admitter, ws, work, ws_state = row
+    why = []
+    # BEGIN guard: refuse --dry-run reports an admission that is not a proposed manual one
+    if route != "manual" or state != "proposed":
+        why.append(f"a {route} admission in state {state}; only a proposed manual admission is refused")
+    # END guard: refuse --dry-run reports an admission that is not a proposed manual one
+    if ws_state != "open":
+        why.append(f"its workstream {ws} is {ws_state}")
+    if norm_label(admitter) == norm_label(session or ""):
+        why.append("the admitter's own session cannot refuse it")
+    heads = conn.execute(
+        "SELECT wh.entity, wh.entity_id::text, wh.version_id::text FROM litkb.ws_heads wh "
+        "WHERE wh.workstream_id = %(ws)s AND ((wh.entity = 'work' AND wh.entity_id = %(w)s) "
+        "OR (wh.entity = 'identifier' AND EXISTS (SELECT 1 FROM litkb.identifier_versions iv "
+        "WHERE iv.version_id = wh.version_id AND iv.work_id = %(w)s)) "
+        "OR (wh.entity = 'file' AND EXISTS (SELECT 1 FROM litkb.file_versions fv "
+        "WHERE fv.version_id = wh.version_id AND fv.work_id = %(w)s))) ORDER BY 1, 2",
+        {"ws": ws, "w": work}).fetchall()
+    return {"admission_id": str(admission_id), "work_id": str(work), "admitter_session": admitter,
+            "would": "refused" if why else "declined", "why": why,
+            "heads": [{"entity": e, "id": i, "version": v} for e, i, v in heads]} | _left_proposed(conn, ws, work)
+
+
+def withdraw(conn, ws, token, entity, version_id, reason, agent, session):
+    """The proposer retracts its OWN proposal (litkb.withdraw_version, migration 0034): the version ->
+    `withdrawn`, the workstream's head falls back to the version it was based on or leaves the view. Only this
+    workstream's own `proposed` head, and never a version an open manual admission proposed (a second session
+    refuses that one instead). -> the database's result."""
+    agent, session = _labels(agent, session)
+    _need_reason(reason, "withdraw")
+    if entity not in VERSION_ENTITIES:
+        raise AdmissionError(f"withdraw takes one of {VERSION_ENTITIES}, got {entity!r}")
+    return conn.execute("SELECT litkb.withdraw_version(%s, %s, %s, %s, %s, %s, %s)",
+                        (ws, token, entity, version_id, reason, agent, session)).fetchone()[0]
+
+
+_VERSION_TABLE = {"work": ("work_versions", "work_id"), "identifier": ("identifier_versions", "identifier_id"),
+                  "file": ("file_versions", "file_id"), "gap": ("gap_versions", "gap_id"),
+                  "use": ("use_versions", "use_id")}
+
+
+def withdraw_plan(conn, ws, entity, version_id):
+    """What `withdraw` WOULD do, read-only (the CLI's --dry-run): the reasons the database would refuse it
+    (the same four litkb.withdraw_version checks), and where the workstream's head would fall back to."""
+    if entity not in VERSION_ENTITIES:
+        return {"version_id": str(version_id), "would": "refused", "why": [f"entity must be one of {VERSION_ENTITIES}"]}
+    table, fk = _VERSION_TABLE[entity]
+    row = conn.execute(f"SELECT {fk}::text, workstream_id::text, state, based_on_version_id::text"
+                       + (", work_id::text" if entity in ("work", "identifier", "file") else ", NULL")
+                       + f" FROM litkb.{table} WHERE version_id = %s", (version_id,)).fetchone()
+    if row is None:
+        return {"version_id": str(version_id), "would": "refused", "why": [f"no {entity} version {version_id}"]}
+    eid, vws, state, based_on, work = row
+    why = []
+    if vws != str(ws):
+        why.append(f"proposed in workstream {vws}, not this one: only the proposer withdraws")
+    if state != "proposed":
+        why.append(f"state {state}: only a proposal is withdrawn")
+    head = conn.execute("SELECT version_id::text FROM litkb.ws_heads WHERE workstream_id = %s AND entity = %s "
+                        "AND entity_id = %s", (vws, entity, eid)).fetchone()
+    if (head[0] if head else None) != str(version_id):
+        why.append("not its workstream's head: withdraw the head first")
+    if work and conn.execute("SELECT 1 FROM litkb.admissions WHERE work_id = %s AND route = 'manual' "
+                             "AND state = 'proposed' AND workstream_id = %s", (work, vws)).fetchone():
+        why.append("an open manual admission proposed it: a second session refuses it instead")
+    # the head falls back to the base only when the base is this workstream's own proposal — `proposed` or
+    # `prepared`, the set 0019's `_ws_chains` walks (the database's rule, litkb.withdraw_version; auditor-B2 round 3
+    # F1, integrator-w2); a base that is main's version (promoted, or another workstream's) is not held — the head
+    # is removed and the view follows main (None here)
+    fallback = None
+    if based_on:
+        base = conn.execute(f"SELECT workstream_id::text, state FROM litkb.{table} WHERE version_id = %s",
+                            (based_on,)).fetchone()
+        if base and base[0] == vws and base[1] in ("proposed", "prepared"):
+            fallback = based_on
+    return {"version_id": str(version_id), "entity": entity, "entity_id": eid, "state": state,
+            "would": "refused" if why else "withdrawn", "why": why, "head_falls_back_to": fallback}
+
+
+#: Every lone proposed FILE version on a work already in main — what `decide_files` takes — with what a
+#: second session needs to decide it: who proposed it, from which route and path, whether it is still its
+#: workstream's head and whether that workstream is open. Read-only; SELECT on these tables is granted to
+#: every agent role (migration 0006). The acceptance test's verdict on an operator's file (`--from-file`, S4.5
+#: decision D17: recorded on the proposal "for the second-session approver"; integrator-w2) rides in `binding`.
+PENDING_FILES_SQL = """
+SELECT fv.version_id::text, fv.file_id::text, fv.work_id::text, w.key, f.sha256, fv.rel_path, fv.source_route,
+       fv.source_url, fv.workstream_id::text, ws.slug, ws.state, fv.agent, fv.session_id, fv.created_at,
+       (wh.version_id IS NOT DISTINCT FROM fv.version_id) AS is_head, fv.binding->>'verdict', fv.binding->>'ratio',
+       fv.binding->'acceptance'->>'verdict', fv.binding->'acceptance'->>'sub_status',
+       fv.binding->'acceptance'->>'reason'
+  FROM litkb.file_versions fv
+  JOIN litkb.files f ON f.id = fv.file_id
+  JOIN litkb.works w ON w.id = fv.work_id AND w.current_version_id IS NOT NULL
+  JOIN litkb.workstreams ws ON ws.id = fv.workstream_id
+  LEFT JOIN litkb.ws_heads wh ON wh.workstream_id = fv.workstream_id AND wh.entity = 'file' AND wh.entity_id = fv.file_id
+ WHERE fv.state = 'proposed' AND (%(ids)s::uuid[] IS NULL OR fv.version_id = ANY (%(ids)s::uuid[]))
+ ORDER BY fv.created_at, fv.version_id
+"""
+_PENDING_COLS = ("version_id", "file_id", "work_id", "key", "sha256", "rel_path", "source_route", "source_url",
+                 "workstream_id", "workstream_slug", "workstream_state", "agent", "session_id", "created_at",
+                 "is_head", "binding_verdict", "binding_ratio", "acceptance_verdict", "acceptance_sub_status",
+                 "acceptance_reason")
+
+
+def pending_file_proposals(conn, version_ids=None):
+    """[{version_id, file_id, work_id, key, sha256, rel_path, source_route, ...}] (PENDING_FILES_SQL)."""
+    ids = [str(v) for v in version_ids] if version_ids else None
+    return [dict(zip(_PENDING_COLS, r)) for r in conn.execute(PENDING_FILES_SQL, {"ids": ids}).fetchall()]
+
+
+def decide_plan(conn, version_ids, session):
+    """What `decide_files` WOULD do, read-only (the CLI's --dry-run): one entry per named version, `would`
+    `decide` or `refused` with the reasons the database would give. A named version that is not a lone
+    proposed file version on a work in main is reported `refused` with its reason, never dropped."""
+    session = norm_label(session or "")
+    found = {p["version_id"]: p for p in pending_file_proposals(conn, version_ids)}
+    out = []
+    for v in [str(x) for x in version_ids]:
+        p = found.get(v)
+        if p is None:
+            out.append({"version_id": v, "would": "refused",
+                        "why": ["not a proposed file version on a work already in main"]})
+            continue
+        why = []
+        if not p["is_head"]:
+            why.append("not its workstream's head")
+        if p["workstream_state"] != "open":
+            why.append(f"its workstream is {p['workstream_state']}")
+        if norm_label(p["session_id"]) == session:
+            why.append("the proposing session cannot decide its own proposal")
+        out.append(p | {"would": "refused" if why else "decide", "why": why})
+    return out
+
+
+def decide_files(conn, ws, token, verb, version_ids, reason, agent, session):
+    """A SECOND session approves or refuses lone proposed file versions, BATCHED and all-or-nothing
+    (litkb.decide_file_versions, migration 0034; `litkb-from-file-version-state`: "approvals BATCHED so one
+    headless session clears many"). approve moves main's file pointer; refuse moves nothing in main. -> the
+    database's result."""
+    agent, session = _labels(agent, session)
+    if verb not in ("approve", "refuse"):
+        raise AdmissionError(f"the verb is approve or refuse, got {verb!r}")
+    if verb == "refuse":
+        _need_reason(reason, "refuse")
+    ids = [str(v) for v in version_ids]
+    if not ids:
+        raise AdmissionError("no file versions named")
+    rows = conn.execute("SELECT version_id::text, session_id FROM litkb.file_versions "
+                        "WHERE version_id = ANY (%s::uuid[])", (ids,)).fetchall()
+    # BEGIN guard: decide_files compares labels without invisible characters (Python)
+    own = sorted(v for v, s in rows if norm_label(s) == session)
+    if own:
+        raise AdmissionError(f"the proposing session cannot {verb} its own file version(s) {own} "
+                             "(invisible characters ignored)")
+    # END guard: decide_files compares labels without invisible characters (Python)
+    return conn.execute("SELECT litkb.decide_file_versions(%s, %s, %s, %s::uuid[], %s, %s, %s)",
+                        (ws, token, verb, ids, reason, agent, session)).fetchone()[0]
+
+
+def offer_file(conn, ws, token, work_id, file_json, agent, session):
+    """Offer a landed file to an EXISTING work through check 3 (litkb.attach_file): the refused-duplicate
+    landing of the hunt's URL path (hunt._offer_refused_landing). The file JSON carries `source_route='web'`,
+    so a file that binds is written as a PROPOSAL a second session decides (migration 0034), never the
+    version of record. -> the database's result ({"outcome": "attached"|"duplicate-file"|"refused", ...})."""
+    agent, session = _labels(agent, session)
+    return conn.execute("SELECT litkb.attach_file(%s, %s, %s, %s, %s, %s)",
+                        (ws, token, work_id, _jsonb(file_json), agent, session)).fetchone()[0]

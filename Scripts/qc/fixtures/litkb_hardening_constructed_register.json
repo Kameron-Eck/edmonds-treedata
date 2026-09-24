@@ -1,0 +1,79 @@
+{
+ "kind": "litkb-hunt-edge-cases",
+ "_what": "CONSTRUCTED register for builder-A's S4.5 item-7 rows (qc/instruments/litkb_hardening_a.py FIRES; `hardening --replay` replays these rows beside the edge register; qc/test_litkb_hardening.py). NOT the edge register and NOT a corpus row: every DOI uses Crossref's test prefix 10.5555 and the mirror is a `.invalid` host (RFC 2606, can never resolve). Every row is replayed through the REAL acquisition ladder (routes kind `ladder`) against its own CONSTRUCTED cassette under qc/fixtures/litkb_cassettes/: C403 a 403 challenge page; CTRUNC a PDF cut inside its content stream; CHTML an HTML page with no Content-Type where the PDF was expected (the plan's item 7: 'CONSTRUCTED, in those words: a cassette's 403 edited to 200, a truncated body, an HTML body'). The fires mutate ONE thing in-process on C403 (the cassette's 403 edited to 200; a socket opened mid-replay; the row put back on the synthetic acquirer) and show their counter move; CTRUNC and CHTML are graded rows of every replay.",
+ "rows": [
+  {
+   "id": "C403",
+   "class": "constructed-403-challenge",
+   "ref": "10.5555/constructed-s45a-403",
+   "ref_scheme": "doi",
+   "source": "CONSTRUCTED by builder-A, S4.5 item 7 (brief-A-hardening.md item 3: 'prove the mechanism on (i) a CONSTRUCTED cassette (named so)')",
+   "expected": {"state": "blocked", "reason": "403"},
+   "live": {"mode": "replay-only", "why": "CONSTRUCTED: no host exists to hunt it live", "spend": false},
+   "replay": {
+    "inputs": {"spend": true, "extract": false},
+    "seed": null,
+    "registry": {"kind": "record", "title": "A constructed challenge row for the replay ladder", "author": "Constructed", "year": 2026},
+    "fetch": {"kind": "explode"},
+    "routes": {
+     "kind": "ladder",
+     "cassette": "litkb_cassettes/constructed_scihub_403/index.jsonl",
+     "routes": ["scihub"],
+     "mirrors": ["https://scihub-a.constructed.invalid"]
+    },
+    "extract": {"kind": "off"},
+    "_why": "the one mirror answers 403 with a challenge page, so litkb.acquire.scihub.fetch_scihub books `blocked` with code 403 and litkb.hunt._acquisition_stop answers blocked/403 - through the real ladder, nothing fabricated"
+   },
+   "asserts": {"attempt_status": "blocked"}
+  },
+  {
+   "id": "CTRUNC",
+   "class": "constructed-truncated-body",
+   "ref": "10.5555/constructed-s45a-truncated",
+   "ref_scheme": "doi",
+   "source": "CONSTRUCTED by builder-A, S4.5 item 7 fix round 2 (auditor-A round 1 F2; survey-design Item 7 'C2 truncated body')",
+   "expected": {"state": "held", "reason": "not-acquired"},
+   "live": {"mode": "replay-only", "why": "CONSTRUCTED: no host exists to hunt it live", "spend": false},
+   "replay": {
+    "inputs": {"spend": true, "extract": false},
+    "seed": null,
+    "registry": {"kind": "record", "title": "A constructed truncated-body row for the replay ladder", "author": "Constructed", "year": 2026},
+    "fetch": {"kind": "explode"},
+    "routes": {
+     "kind": "ladder",
+     "cassette": "litkb_cassettes/constructed_scihub_truncated/index.jsonl",
+     "bodies": "litkb_cassettes/constructed_scihub_truncated/bodies",
+     "routes": ["scihub"],
+     "mirrors": ["https://scihub-a.constructed.invalid"]
+    },
+    "extract": {"kind": "off"},
+    "_why": "the landing page names a PDF link that answers 200 application/pdf with 6,000 bytes of a PDF cut inside its content stream (no xref, no trailer, no %%EOF): the route downloads it, the landing refuses the bytes as a truncated download and books the route `bad-file`, and with no blocked and no api-error attempt litkb.hunt._acquisition_stop answers held/not-acquired. EXPECTATION SOURCE: the ladder's documented rules (litkb.acquire.store.pdf_shape `truncated-pdf`; on the S4.5 candidate the acceptance test's missing-%%EOF step, `early_eof_with_trailing_payload` - 6,000 bytes is above its 5,000-byte floor on purpose) and the hunt's terminal-state precedence (docs/SCHEMAS.md, the hunt's terminal states). Set by builder-A, NOT scored by builder-A: the replay referee grades it."
+   },
+   "asserts": {"attempt_status": "bad-file"}
+  },
+  {
+   "id": "CHTML",
+   "class": "constructed-html-body-no-content-type",
+   "ref": "10.5555/constructed-s45a-html",
+   "ref_scheme": "doi",
+   "source": "CONSTRUCTED by builder-A, S4.5 item 7 fix round 2 (auditor-A round 1 F2; survey-design Item 7 'C3 HTML body with no Content-Type')",
+   "expected": {"state": "held", "reason": "not-acquired"},
+   "live": {"mode": "replay-only", "why": "CONSTRUCTED: no host exists to hunt it live", "spend": false},
+   "replay": {
+    "inputs": {"spend": true, "extract": false},
+    "seed": null,
+    "registry": {"kind": "record", "title": "A constructed HTML-body row for the replay ladder", "author": "Constructed", "year": 2026},
+    "fetch": {"kind": "explode"},
+    "routes": {
+     "kind": "ladder",
+     "cassette": "litkb_cassettes/constructed_scihub_html/index.jsonl",
+     "routes": ["scihub"],
+     "mirrors": ["https://scihub-a.constructed.invalid"]
+    },
+    "extract": {"kind": "off"},
+    "_why": "the landing page names a PDF link that answers 200 with an HTML article page and NO Content-Type header: the bytes do not start with %PDF-, the page title is no challenge, so litkb.acquire.scihub.fetch_scihub books the route `bad-file` (the rejected bytes quarantined with their reason), and litkb.hunt._acquisition_stop answers held/not-acquired. EXPECTATION SOURCE: the Sci-Hub route's documented rule ('The response must start with %PDF-'; on the S4.5 candidate the acceptance test's `html_response`) and the hunt's terminal-state precedence. Set by builder-A, NOT scored by builder-A: the replay referee grades it."
+   },
+   "asserts": {"attempt_status": "bad-file"}
+  }
+ ]
+}

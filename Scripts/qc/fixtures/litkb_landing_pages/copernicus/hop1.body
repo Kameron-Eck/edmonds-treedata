@@ -1,0 +1,2019 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!--[if lt IE 7]>      <html xmlns="https://www.w3.org/1999/xhtml" xml:lang="en" lang="en" class="no-js lt-ie9 lt-ie8 lt-ie7 co-ui"> <![endif]-->
+											<!--[if IE 7]>         <html  xmlns="https://www.w3.org/1999/xhtml" xml:lang="en" lang="en" class="no-js lt-ie9 lt-ie8 co-ui"> <![endif]-->
+											<!--[if IE 8]>         <html xmlns="https://www.w3.org/1999/xhtml" xml:lang="en" lang="en" class="no-js lt-ie9 co-ui"> <![endif]-->
+											<!--[if gt IE 8]><!--> <html xmlns="https://www.w3.org/1999/xhtml" xml:lang="en" lang="en" class="no-js co-ui"> <!--<![endif]--> 
+											<!-- remove class no-js if js is available --><head>
+                                                <!-- BEGIN_HEAD -->
+                                                <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                                                <meta charset="utf-8" />
+                                                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                                                
+                                                <meta name="theme-color" content="#000000" />
+                                                <meta name="application-name" content="1" />
+                                                <meta name="msapplication-TileColor" content="#FFFFFF" />
+                                            <link rel="preconnect" crossorigin="" href="https://contentmanager.copernicus.org/" /><link rel="icon" size="16x16" href="https://isprs-annals.copernicus.org/favicon_copernicus_16x16_.ico" type="image/x-icon" /><link rel="icon" size="24x24" href="https://isprs-annals.copernicus.org/favicon_copernicus_24x24_.ico" type="image/x-icon" /><link rel="icon" size="32x32" href="https://isprs-annals.copernicus.org/favicon_copernicus_32x32_.ico" type="image/x-icon" /><link rel="icon" size="48x48" href="https://isprs-annals.copernicus.org/favicon_copernicus_48x48_.ico" type="image/x-icon" /><link rel="icon" size="64x64" href="https://isprs-annals.copernicus.org/favicon_copernicus_64x64_.ico" type="image/x-icon" /><link rel="icon" size="228x228" href="https://isprs-annals.copernicus.org/favicon_copernicus_228x228_.png" type="image/png-icon" /><link rel="icon" size="195x195" href="https://isprs-annals.copernicus.org/favicon_copernicus_195x195_.png" type="image/png-icon" /><link rel="icon" size="196x196" href="https://isprs-annals.copernicus.org/favicon_copernicus_196x196_.png" type="image/png-icon" /><link rel="icon" size="128x128" href="https://isprs-annals.copernicus.org/favicon_copernicus_128x128_.png" type="image/png-icon" /><link rel="icon" size="96x96" href="https://isprs-annals.copernicus.org/favicon_copernicus_96x96_.png" type="image/png-icon" /><link rel="apple-touch-icon-precomposed" size="180x180" href="https://isprs-annals.copernicus.org/favicon_copernicus_180x180_.png" type="image/png-icon" /><link rel="apple-touch-icon-precomposed" size="120x120" href="https://isprs-annals.copernicus.org/favicon_copernicus_120x120_.png" type="image/png-icon" /><link rel="apple-touch-icon-precomposed" size="152x152" href="https://isprs-annals.copernicus.org/favicon_copernicus_152x152_.png" type="image/png-icon" /><link rel="apple-touch-icon-precomposed" size="76x76" href="https://isprs-annals.copernicus.org/favicon_copernicus_76x76_.png" type="image/png-icon" /><link rel="apple-touch-icon-precomposed" size="57x57" href="https://isprs-annals.copernicus.org/favicon_copernicus_57x57_.ico" type="image/png-icon" /><link rel="apple-touch-icon-precomposed" size="144x144" href="https://isprs-annals.copernicus.org/favicon_copernicus_144x144_.png" type="image/png-icon" /><script type="text/javascript" src="https://cdn.copernicus.org/libraries/mustache/2.3.0/mustache.min.js"></script><script type="text/javascript" src="https://cdn.copernicus.org/libraries/jquery/1.11.1/jquery.min.js"></script><script type="text/javascript" src="https://cdn.copernicus.org/js/copernicus.min.js"></script><script type="text/javascript" src="https://cdn.copernicus.org/apps/htmlgenerator/js/htmlgenerator-v2.js"></script><script type="text/javascript" src="https://cdn.copernicus.org/libraries/photoswipe/4.1/photoswipe.min.js"></script><script type="text/javascript" src="https://cdn.copernicus.org/libraries/photoswipe/4.1/photoswipe-ui-default.min.js"></script><link rel="stylesheet" type="text/css" media="all" id="hasBootstrap" href="https://cdn.copernicus.org/libraries/bootstrap/current/css/bootstrap.min.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/libraries/bootstrap/current/css/bootstrap-media.min.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/libraries/bootstrap/current/css/bootstrap-grid.min.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/libraries/bootstrap/current/css/bootstrap-reboot.min.css" /><script type="text/javascript" src="https://cdn.copernicus.org/libraries/bootstrap/current/js/popper.js"></script><script type="text/javascript" src="https://cdn.copernicus.org/libraries/bootstrap/current/js/bootstrap.min.js"></script><link rel="preconnect" crossorigin="" href="https://cdn.copernicus.org/" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/libraries/unsemantic/unsemantic.min.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/libraries/photoswipe/4.1/photoswipe.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/libraries/photoswipe/4.1/dark-icon-skin/dark-icon-skin.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/css/copernicus-min.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/css/fontawesome.css" /><link rel="stylesheet" type="text/css" media="all" href="https://cdn.copernicus.org/fonts/FontAwesome/5.11.2_and_4.7.0/css/all.font.css" /><link rel="stylesheet" type="text/css" media="projection, handheld, screen, tty, tv, print" href="https://isprs-annals.copernicus.org/co_cms_font_awesome4.7.0.min.css" /><link rel="stylesheet" type="text/css" media="projection, handheld, screen, tty, tv, print" href="https://isprs-annals.copernicus.org/template_ISPRS_2020.css" /><link rel="stylesheet" type="text/css" media="projection, handheld, screen, tty, tv, print" href="https://isprs-annals.copernicus.org/template_ISPRS_Copernicus_2020.css" /><script src="https://isprs-annals.copernicus.org/template_ISPRS_2020.js" type="text/javascript">
+</script><script src="https://isprs-annals.copernicus.org/co_common.js" type="text/javascript">
+</script><script src="https://isprs-annals.copernicus.org/template-responsive.js" type="text/javascript">
+</script><!-- END_HEAD --><meta name="global_projectID" content="508" /><meta name="global_pageID" content="10825" /><meta name="global_moBaseURL" content="https://meetingorganizer.copernicus.org/" /><meta name="global_projectShortcut" content="ISPRS-Annals" /><meta name="global_projectDomain" content="https://isprs-annals.copernicus.org/" />
+<title>ISPRS-Annals - RELATIVE RADIOMETRIC NORMALIZATION USING SEVERAL AUTOMATICALLY CHOSEN REFERENCE IMAGES FOR MULTI-SENSOR, MULTI-TEMPORAL SERIES</title>
+<meta name="data-non-mobile-optimized-message" content="" /><script id="networker">
+    window.isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+    /**
+     *
+     */
+    function createToastsFunctionality() {
+        const toastsWrapper = $('<div>')
+                .attr('aria-live', 'polite')
+                .attr('aria-atomic', 'true')
+                .addClass('toasts-notifications-wrapper');
+        $('body').append(toastsWrapper);
+    }
+
+    function isOS() {
+        return [
+                    'iPad Simulator',
+                    'iPhone Simulator',
+                    'iPod Simulator',
+                    'iPad',
+                    'iPhone',
+                    'iPod'
+                ].includes(navigator.platform)
+                || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+    }
+
+    /**
+     *
+     * @param notificationContent
+     */
+    function addToast(notificationContent) {
+        const toast = $('<div>').addClass('toast').attr('role', 'alert').attr('aria-live', 'assertive')
+                .attr('aria-atomic', 'true').attr('data-autohide', 'false');
+        const toastHeader = $('<div>').addClass('toast-header');
+        const toastHeaderTitle = $('<strong>').addClass('mr-auto').html(notificationContent.title);
+        const toastHeaderCloseButton = $('<button>').addClass('ml-2').addClass('mb-1').addClass('close').attr('type', 'button')
+                .attr('data-dismiss', 'toast');
+        const toastHeaderCloseIcon = $('<span>').attr('aria-hidden', 'true').html('&times;');
+
+        let url = '';
+        if (notificationContent.hasOwnProperty('url')) {
+            url = notificationContent.url;
+        } else {
+            url = 'https://networker.copernicus.org/my-network';
+        }
+        const toastBody = $('<div>').addClass('toast-body').html('<a target="_blank" href="' + url + '">' + notificationContent.text + '</a>');
+        $(toastHeaderCloseButton).append(toastHeaderCloseIcon);
+        $(toastHeader).append(toastHeaderTitle);
+        $(toastHeader).append(toastHeaderCloseButton);
+        $(toast).append(toastHeader);
+        $(toast).append(toastBody);
+
+        $('.toasts-notifications-wrapper').append(toast);
+
+        $('.toast').toast('show');
+    }
+
+    function coNetworker_sendUsersLocation(location, userHash, publicLabel, projectID, application) {
+
+        if (templateHasBootstrap()) {
+            createToastsFunctionality();
+        }
+
+        userHash = userHash || 'null';
+        location = location || 'c_content_manager::getProjectTemplate';
+        publicLabel = publicLabel || '';
+
+        if (publicLabel === ''){
+            publicLabel = location;
+        }
+
+        if (userHash !== null && userHash.length > 5) {
+            try {
+                if(typeof window.ws === 'undefined' || window.ws === null || !window.ws) {
+                    window.ws = new WebSocket('wss://websockets.copernicus.org:8080');
+                } else {
+                    window.ws.close(1000);
+                    window.ws = new WebSocket('wss://websockets.copernicus.org:8080');
+                }
+                const data = {
+                    'type': 'status',
+                    'action': 'start',
+                    'data': {
+                        'userIdentifier': userHash,
+                        'projectID': projectID,
+                        'coApp': application,
+                        'location': location,
+                        'publicLabel': publicLabel
+                    }
+                };
+                if (window.ws === 1) {
+                    window.ws.send(JSON.stringify(data));
+                } else {
+                    window.ws.onopen = function (msg) {
+                        window.ws.send(JSON.stringify(data));
+                        dispatchEvent(new CustomEvent('loadCommonNetworker'));
+                    };
+
+                    window.ws.onmessage = function (event) {
+                        try {
+                            const data = JSON.parse(event.data);
+
+                            switch (data.type) {
+                                case 'notification':
+                                    const pushNotificationData = data.data;
+                                    if (pushNotificationData.hasOwnProperty('user') && pushNotificationData.user.length > 5 && pushNotificationData.user === userHash) {
+                                        window.showPushNotification(pushNotificationData);
+                                    }
+                                    break;
+                            }
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
+        }
+    }
+
+    window.showPushNotification = function (notificationContent) {
+        showMessage(notificationContent);
+
+        function showMessage(notificationContent){
+            if (templateHasBootstrap()) {
+                showBootstrapModal(notificationContent);
+            }
+        }
+
+        function showBootstrapModal(notificationContent) {
+            const randomId = getRandomInt(100,999);
+            let modal = $('<div>').addClass('modal').attr('id', 'modal-notification' + randomId);
+            let modalDialog = $('<div>').addClass('modal-dialog');
+            let modalContent = $('<div>').addClass('modal-content');
+            let modalBody = $('<div>').addClass('modal-body');
+            let message = $('<div>').addClass('modal-push-message').html('<h3 class="mb-3">' + notificationContent.title + '</h3><p>' + notificationContent.text + '</p>');
+            let buttonsWrapper = $('<div>').addClass('row');
+            let buttonsWrapperCol = $('<div>').addClass('col-12').addClass('text-right');
+            let buttonCancel = $('<button>').addClass('btn').addClass('btn-danger').addClass('mr-2').html('Cancel')
+            let buttonSuccess = $('<button>').addClass('btn').addClass('btn-success').html('OK')
+
+            $(buttonsWrapper).append(buttonsWrapperCol);
+            $(buttonsWrapperCol).append(buttonCancel);
+            $(buttonsWrapperCol).append(buttonSuccess);
+            $(modalBody).append(message).append(buttonsWrapper);
+            $(modalContent).append(modalBody);
+            $(modalDialog).append(modalContent);
+            $(modal).append(modalDialog);
+
+            $(buttonCancel).on('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                $(modal).modal('hide');
+            });
+
+            $(buttonSuccess).on('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                $(modal).modal('hide');
+                handleOnclickNotification(notificationContent);
+            });
+            $(modal).modal('show');
+
+            setTimeout(() => {
+                dispatchEvent(new CustomEvent('modalLoaded', {'detail': 'modal-notification' + randomId}));
+            }, 1000);
+        }
+
+        window.addEventListener('modalLoaded', function (event) {
+            setTimeout(() => {
+                $('#' + event.detail).modal('hide');
+            }, 9000);
+        });
+
+        function handleOnclickNotification(notificationContent) {
+            if (notificationContent.hasOwnProperty('withConnect') && notificationContent.withConnect.length > 0) {
+                acceptContactRequest(notificationContent);
+            }
+
+            if (notificationContent.hasOwnProperty('url')) {
+                if (window.isSafari && isOS()) {
+                    window.location.href = notificationContent.url;
+                } else {
+                    window.open(notificationContent.url, '_blank').focus();
+                }
+            } else {
+                if (window.isSafari && isOS()) {
+                    window.open('https://networker.copernicus.org/my-network', '_blank');
+                } else {
+                    window.open('https://networker.copernicus.org/my-network', '_blank').focus();
+                }
+            }
+        }
+
+        /**
+         *
+         * @param notificationContent
+         */
+        function acceptContactRequest(notificationContent) {
+            const formData = new FormData();
+            formData.append('r', notificationContent.userFrom);
+            formData.append('a', 'a');
+
+            $.ajax({
+                url: 'https://networker.copernicus.org/handle-request-job',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhrFields: {
+                    withCredentials: true
+                },
+                beforeSend: function () {
+                    $('.splash').fadeIn();
+                    $('.lightbox').fadeIn();
+                }
+            })
+                    .done(function (dataResponse) {
+                        const data = JSON.parse(dataResponse);
+                        let text = 'Please consider joining the text chat now.';
+                        window.sendPushNotification({
+                            title: window.userDataCommonNetworker.name + ' aims to chat with you.',
+                            text: text,
+                            user: data.message.userIdentifier,
+                            url: notificationContent.url
+                        });
+                        $('.splash').fadeOut();
+                        $('.lightbox').fadeOut();
+                    })
+                    .fail(function (error) {
+                        $('.splash').fadeOut();
+                        $('.lightbox').fadeOut();
+                    });
+        }
+    }
+
+
+    function templateHasBootstrap() {
+        const bootstrap = document.getElementById('hasBootstrap');
+        return bootstrap !== null && typeof bootstrap !== 'undefined';
+    }
+
+        coNetworker_sendUsersLocation();
+    dispatchEvent(new CustomEvent('loadCommonNetworker'));
+
+    function getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+</script>
+
+		<link rel="stylesheet" type="text/css" media="all" href="https://contentmanager.copernicus.org/2011/508/ssl" />
+		<link rel="stylesheet" type="text/css" href="https://cdn.copernicus.org/libraries/photoswipe/4.1/dark-icon-skin/dark-icon-skin.css">
+    <base href="/">
+
+<link rel="stylesheet" type="text/css" href="https://cdn.copernicus.org/libraries/unsemantic/unsemantic.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.copernicus.org/libraries/jquery/1.11.1/ui/jquery-ui.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.copernicus.org/libraries/jquery/1.11.1/ui/jquery-ui-slider-pips.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.copernicus.org/libraries/photoswipe/4.1/photoswipe.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.copernicus.org/apps/htmlgenerator/css/htmlgenerator.css?v=1">
+<meta name="citation_fulltext_world_readable" content="">
+<meta name="citation_publisher" content="Copernicus GmbH"/>
+<meta name="citation_title" content="RELATIVE RADIOMETRIC NORMALIZATION USING SEVERAL AUTOMATICALLY CHOSEN REFERENCE IMAGES FOR MULTI-SENSOR, MULTI-TEMPORAL SERIES"/>
+<meta name="citation_abstract" content="&lt;p&gt;&lt;strong class=&quot;journal-contentHeaderColor&quot;&gt;Abstract.&lt;/strong&gt; We propose a method for the relative radiometric normalization of long, multi-sensor image time series. This allows to increase the revisit time under comparable conditions. Although the relative radiometric normalization is a well-studied problem in the remote sensing community, the availability of an increasing number of images gives rise to new problems. For example, given long series spanning several years, finding features that are maintained through the whole period of time becomes arduous. Instead, we propose in this paper to use automatically detected reference images chosen by maximization of a quality metric. For each image, two affine correction models are robustly estimated using random sample consensus, using the two closest reference images; the final correction is obtained by linear interpolation. For each pair of source and reference images, pseudo-invariant features are obtained using a similarity measure invariant to radiometric changes. A final tone-mapping step outputs the images in the standard 8-bits range. This method is illustrated by the fusion of time series of Sentinel-2 at correction levels 1C, 2A, and Landsat-8 images. By using only the atmospherically corrected Sentinel-2 L2A images as anchors, the full output series inherits this atmospheric correction.&lt;/p&gt;"/>
+    <meta name="citation_publication_date" content="2020/08/03"/>
+    <meta name="citation_online_date" content="2020/08/03"/>
+<meta name="citation_journal_title" content="ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences"/>
+    <meta name="citation_volume" content="V-2-2020"/>
+    <meta name="citation_issn" content="2194-9042"/>
+<meta name="citation_doi" content="https://doi.org/10.5194/isprs-annals-V-2-2020-845-2020"/>
+<meta name="citation_firstpage" content="845"/>
+<meta name="citation_lastpage" content="852"/>
+    <meta name="citation_author" content="Hessel, C."/>
+        <meta name="citation_author_institution" content="Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France"/>
+    <meta name="citation_author" content="Grompone von Gioi, R."/>
+        <meta name="citation_author_institution" content="Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France"/>
+    <meta name="citation_author" content="Morel, J. M."/>
+        <meta name="citation_author_institution" content="Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France"/>
+    <meta name="citation_author" content="Facciolo, G."/>
+        <meta name="citation_author_institution" content="Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France"/>
+    <meta name="citation_author" content="Arias, P."/>
+        <meta name="citation_author_institution" content="Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France"/>
+    <meta name="citation_author" content="de Franchis, C."/>
+        <meta name="citation_author_institution" content="Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France"/>
+        <meta name="citation_author_institution" content="Kayrros SAS"/>
+
+    <meta name="citation_keywords" content="Relative radiometric normalization; Pseudo-invariant features; Historical satellite time series; Multi-sensor">
+    <meta name="citation_conference_title" content="XXIV ISPRS Congress, Commission II (Volume V-2-2020) - 2020 edition">
+    <meta name="citation_pdf_url" content="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.pdf"/>
+<meta name="citation_xml_url" content="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.xml"/>
+    <meta name="fulltext_pdf" content="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.pdf"/>
+<meta name="citation_language" content="English"/>
+<meta name="libraryUrl" content="https://isprs-annals.copernicus.org/articles/"/>
+
+
+
+
+
+
+<link rel="icon" href="https://isprs-annals.copernicus.org/favicon.ico" type="image/x-icon"/>
+
+
+
+
+
+
+    <script type="text/javascript" src="https://cdn.copernicus.org/libraries/jquery/1.11.1/ui/jquery-ui.min.js"></script>
+<script type="text/javascript" src="https://cdn.copernicus.org/libraries/jquery/1.11.1/ui/jquery-ui-slider-pips.js"></script>
+<script type="text/javascript" src="https://cdn.copernicus.org/libraries/jquery/1.11.1/ui/template_jquery-ui-touch.min.js"></script>
+<script type="text/javascript" src="https://cdn.copernicus.org/js/respond.js"></script>
+<script type="text/javascript" src="https://cdn.copernicus.org/libraries/highstock/2.0.4/highstock.js"></script>
+<script type="text/javascript" src="https://cdn.copernicus.org/apps/htmlgenerator/js/CoPublisher.js"></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+"HTML-CSS": { fonts: ["TeX"] ,linebreaks: { automatic: true, width: "90% container" } }
+});
+</script>
+<script type="text/javascript" async  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=MML_HTMLorMML-full"></script>
+
+<script type="text/javascript" src="https://cdn.copernicus.org/libraries/photoswipe/4.1/photoswipe-ui-default.min.js"></script>
+<script type="text/javascript" src="https://cdn.copernicus.org/libraries/photoswipe/4.1/photoswipe.min.js"></script>
+
+
+		<script type="text/javascript">
+			/* <![CDATA[ */
+			 
+			/* ]]> */
+		</script>
+
+		<style type="text/css">
+			.top_menu { margin-right: 0!important; }
+			
+		</style>
+	</head><body><div id="w-wrapper" class="px-0 isprs-2020-wrapper">
+
+    <div class="header-wrapper CMSCONTAINER" id="header-wrapper">
+
+
+
+    <div id="cmsbox_117535" class="cmsbox "><header id="js-header" class="u-header u-header--sticky-top--lg u-header--toggle-section--lg u-header--change-appearance--lg" data-header-fix-moment="300" data-header-fix-effect="slide">
+
+ 
+      <!-- Top Bar -->
+      <!-- <div class="u-header__section u-header__section--hidden u-header__section--dark g-bg-black g-py-13"> -->
+      <div class="u-header__section u-header__section--hidden u-header__section--dark header-bg-tif g-hidden-md-down g-py-13">
+        <div class="container  g-hidden-md-down">
+            <!--<div class="row flex-column flex-md-row align-items-center justify-content-between text-uppercase g-color-white g-font-size-11 g-mx-minus-15">-->
+              <div class="row flex-column flex-md-row align-items-center justify-content-between text-uppercase header-color-tif g-font-size-11 g-mx-minus-15">
+            <!-- Responsive Toggle Button -->
+            <button class="g-hidden-md-up d-block btn btn-xs u-btn-primary g-brd-none g-line-height-1 mx-auto" type="button" aria-controls="dropdown-megamenu" aria-expanded="false" aria-label="Toggle navigation" data-toggle="collapse" data-target="#dropdown-megamenu">
+              <span class="hamburger hamburger--slider">
+            <span class="hamburger-box">
+              <!--<span class="hamburger-inner g-bg-white"></span>-->
+                <span class="hamburger-inner g-bg-black"></span>
+              </span>
+              </span>
+            </button>
+            <!-- End Responsive Toggle Button -->
+
+            <div class="col-auto g-px-15 w-100 g-width-auto--md">
+              <ul id="dropdown-megamenu" class="d-md-block collapse list-inline g-line-height-1 g-mx-minus-4 mb-0">
+                <li class="d-block d-md-inline-block g-mx-4">
+                  <span id="ctl00_header_actDate">September 23, 2026</span>
+                </li>
+                <li class="d-block g-hidden-md-down d-md-inline-block g-mx-4">|</li>
+                <li class="d-block d-md-inline-block g-mx-4">
+                  <a href="https://www.isprs.org/default.aspx" class="header-color-tif g-color-primary--hover g-text-underline--none--hover">Home</a>
+                </li>
+                <li class="d-block g-hidden-md-down d-md-inline-block g-mx-4">|</li>
+                <li class="d-block d-md-inline-block g-mx-4">
+                  <a href="https://www.isprs.org/sitemap.aspx" class="header-color-tif g-color-primary--hover g-text-underline--none--hover">Sitemap</a>
+                </li>
+                <li class="d-block g-hidden-md-down d-md-inline-block g-mx-4">|</li>
+                <li class="d-block d-md-inline-block g-mx-4">
+                  <a href="https://www.isprs.org/foundation" class="header-color-tif g-color-primary--hover g-text-underline--none--hover">The ISPRS Foundation</a></li>
+				  
+				<li class="d-block g-hidden-md-down d-md-inline-block g-mx-4">|</li>
+				<li class="d-block d-md-inline-block g-mx-4" data-toggle="tooltip" data-placement="top" title="Facebook">
+				<a href="https://www.facebook.com/isprs.org" class="header-color-tif g-color-primary--hover g-text-underline--none--hover" target="_blank">
+				<i class="fa fa-facebook"></i>
+				</a>
+				</li>
+				<li class="d-block d-md-inline-block g-mx-4" data-toggle="tooltip" data-placement="top" title="Linkedin">
+				 	<a href="https://www.linkedin.com/company/isprs_" class="header-color-tif g-color-primary--hover g-text-underline--none--hover" target="_blank">
+				<i class="fa fa-linkedin"></i>
+				</a>
+				</li>
+				<li class="d-block d-md-inline-block g-mx-4" data-toggle="tooltip" data-placement="top" title="Instagram">
+					<a href="https://www.instagram.com/isprs_/" class="header-color-tif g-color-primary--hover g-text-underline--none--hover" target="_blank">
+					<i class="fa fa-instagram"></i>
+					</a>
+				</li> 
+				<li class="d-block d-md-inline-block g-mx-4" data-toggle="tooltip" data-placement="top" title="X former Twitter">
+					<a href="https://x.com/ISPRS_" class="header-color-tif g-color-primary--hover g-text-underline--none--hover" target="_blank">
+						<i class="fa fa-X"></i>𝕏
+				</a>
+				</li>
+				<li class="d-block d-md-inline-block g-mx-4" data-toggle="tooltip" data-placement="top" title="Youtube">
+					<a href="https://www.youtube.com/@ISPRS_Official" class="header-color-tif g-color-primary--hover g-text-underline--none--hover" target="_blank">
+						<i class="fa fa-youtube"></i>
+				</a>
+				</li> 
+              </ul>
+            </div>
+
+            <div class="col-auto g-px-15">
+              <ul class="list-inline g-line-height-1 g-mt-minus-10 g-mx-minus-4 mb-0">
+                  
+                      
+                  
+                <li class="list-inline-item g-mx-4 g-mt-10">
+                  <a id="ctl00_header_LoginStatus2" class="header-color-tif g-color-primary--hover g-text-underline--none--hover" href="https://www.isprs.org/administration/login.aspx?ReturnUrl=%2f">Login</a>
+                </li>
+                <!-- <li class="list-inline-item g-mx-4 g-mt-10">|</li>
+                <li class="list-inline-item g-mx-4 g-mt-10">
+                  <a href="#!" class="g-color-white g-color-primary--hover g-text-underline--none--hover">Register</a>
+                </li> -->
+                <li class="list-inline-item g-mx-4 g-mt-10">
+                  <!-- Search -->
+                  <div class="g-pos-rel">
+                    <a href="https://www.isprs.org/search.aspx" class="g-font-size-14 header-color-tif g-color-primary--hover g-ml-5" aria-haspopup="true" aria-expanded="false" aria-controls="searchform-6" data-dropdown-target="#searchform-6" data-dropdown-type="css-animation" data-dropdown-duration="300" data-dropdown-animation-in="fadeInUp" data-dropdown-animation-out="fadeOutDown">
+                      <i class="fa fa-search"></i>
+                    </a>
+
+                    <!-- Search Form -->
+                    <!-- <form id="searchform-6" class="u-searchform-v1 g-bg-black g-box-shadow-none g-pa-10 g-mt-10">
+                      <div class="input-group g-brd-primary--focus">
+                        <input class="form-control rounded-0 u-form-control g-brd-white" type="search" placeholder="Enter Your Search Here...">
+                        <div class="input-group-addon p-0">
+                          <button class="btn rounded-0 btn-primary btn-md g-font-size-14 g-px-18" type="submit">Go</button>
+                        </div>
+                      </div>
+                    </form> -->
+                    <!-- End Search Form -->
+                  </div>
+                  <!-- End Search -->
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- End Top Bar -->
+
+     <!-- <div class="u-header__section u-header__section--light g-bg-tif tif-bottom-line g-transition-0_3 g-py-10 g-py-0--lg" data-header-fix-moment-classes="u-shadow-v18"> -->
+     <div class="u-header__section u-header__section--light g-bg-tif tif-bottom-line g-transition-0_3 g-py-10 g-py-0--lg">
+       <!--<nav class="js-mega-menu navbar navbar-expand-lg py-0">-->
+       <nav class="js-mega-menu navbar navbar-expand-lg hs-menu-initialized hs-menu-horizontal">
+          <div class="container">
+            <!-- Responsive Toggle Button -->
+            <button class="navbar-toggler navbar-toggler-right btn g-line-height-1 g-brd-none g-pa-0 g-pos-abs g-top-3 g-right-0" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navBar" data-toggle="collapse" data-target="#navBar">
+              <span class="hamburger hamburger--slider">
+            <span class="hamburger-box">
+              <span class="hamburger-inner"></span>
+              </span>
+              </span>
+            </button>
+            <!-- End Responsive Toggle Button -->
+            <!-- Logo -->
+            <a href="https://www.isprs.org/default.aspx" class="navbar-brand">
+              <!-- <img src="/assets/img/logo/logo-1.png" alt="Image Description"> -->
+              <img src="https://isprs-annals.copernicus.org/template_ISPRS_logo_2020.gif" alt="" style="width: 184px; height: 156px;" />
+
+            </a>
+            <!-- End Logo -->
+
+           
+              
+              <!-- <div class="collapse navbar-collapse align-items-center flex-sm-row g-pt-10 g-pt-5--lg" id="navBar"> -->
+              <div class="collapse navbar-collapse align-items-center flex-sm-row g-pt-10 g-pt-5--lg g-mr-40--lg" id="navBar">
+              <!-- <ul class="navbar-nav ml-auto text-uppercase g-font-weight-600 u-main-nav-v3 u-sub-menu-v3"> -->
+              <ul class="navbar-nav text-uppercase g-pos-rel g-font-weight-600 ml-auto">
+                <!-- <li class="nav-item g-mx-2--md g-mx-5--xl g-mb-5 g-mb-0--lg"> -->
+                <li class="nav-item g-mx-10--lg g-mx-15--xl"><a href="https://www.isprs.org/default.aspx" class="nav-link nav-color-tif g-py-7 g-px-0">Home</a></li>
+
+
+
+
+
+                <li id="navSociety" class="hs-has-sub-menu nav-item g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut">
+                <!-- <li id="navSociety" class="nav-item hs-has-sub-menu g-mx-10--lg g-mx-15--xl"> -->
+
+                  <a id="nav-link--society" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/society/default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu-society">Society</a>
+                  <!-- Submenu u-dropdown-col-2  -->
+                  <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu-society" aria-labelledby="nav-link--society">                  
+                      <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/society/default.aspx">Society</a></li>
+					  
+					  
+					   <!-- Society - Congresses -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--society--overview" class="nav-link g-color-white" href="#!" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--society--overview">Overview &amp; Organization</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--society--overview" aria-labelledby="nav-link--society--overview">
+
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/overview.aspx" title="The Society - Overview">Overview</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/organization.aspx" title="The Society - Organization">Organization</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/history.aspx" title="Historical Background">Historical Background</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/centenary.aspx" title="Centenary Celebrations, 2010 in Vienna">Centenary</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/video/default.aspx" title="ISPRS Video">Video</a></li>
+                          <!--<li class="dropdown-item"><a  class="nav-link g-color-white" href="#">&nbsp;</a></li> -->
+
+                      </ul>
+                      </li>					  
+					  
+                      <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/interorganization.aspx" title="Interorganisational Activities">Interorganis. Activities</a></li>
+                      <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/objectives.aspx" title="Objectives and Activities">Objectives and Activities</a></li>
+
+                      
+
+                     <!-- Society - Officers -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--society--officers" class="nav-link g-color-white" href="#!" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--society--officers">Officers</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--society--officers" aria-labelledby="nav-link--society--officers">
+
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/council.aspx" title="ISPRS Council 2012-2016">Council</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/presidents.aspx" title="ISPRS Technical Commission Presidents">Commission Presidents</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/fin_com.aspx" title="Financial Commission">Financial Commission</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/reg_representatives.aspx" title="ISPRS Regional Representatives">Reg. Representatives</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/editors.aspx" title="ISPRS Editors">Editors</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/wg-officers.aspx" title="ISPRS WG Officers">WG Officers</a></li>
+                      </ul>
+                      </li>
+
+
+
+
+                      <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/finances.aspx" title="Finances">Finances</a></li>
+                   
+                      
+                      <!-- Society - Committees -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--society--committees" class="nav-link g-color-white" href="#!" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--society--committees">Committees &amp; SC</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--society--committees" aria-labelledby="nav-link--society--committees">
+                     
+                            <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/structure/committees.aspx" title="ISPRS Committees and Student Consortium">Committees &amp; SC</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/isac.aspx" title="ISAC - International Scientific Advisory Committe">ISAC</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/ipac.aspx" title="IPAC - International Policy Advisory Committe">IPAC</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/iiac/default.aspx" title="I²AC - International Industrial Advisory Committee">I²AC</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.cipaheritagedocumentation.org/" title="CIPA - International Committee for Architectural Photogrammetry" target="_blank">CIPA</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/icorse.aspx" title="ICORSE - The International Committee On Remote Sensing of Environment">ICORSE</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/structure/knowledge_transfer.aspx" title="The White Elephant Club - ISPRS Ad-hoc Committee 'Knowledge Transfer'">White Elephant Club</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="http://www.studentconsortium.isprs.org" title="Student Consortium">Student Consortium</a></li>
+                     </ul>
+                     </li>
+
+                     <!-- Society - Awards -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--society--awards" class="nav-link g-color-white" href="#!" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--society--awards">Awards</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--society--awards" aria-labelledby="nav-link--society--awards">
+
+                            <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/society/awards.aspx" title="ISPRS Awards">Awards</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/awards_policy.aspx" title="ISPRS Awards Policy">Awards Policy</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/nominations/default.aspx" title="Nomination for an Award 2020">Nominations</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/honorary_member.html" title="ISPRS Honorary Member">Honorary Member</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/fellows.html" title="ISPRS Fellow">ISPRS Fellow</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/brock.aspx" title="The Brock Gold Medal Award">Brock Gold Medal</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/gruber.aspx" title="The Otto von Gruber Award">Gruber Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/schwidefsky.aspx" title="The Schwidefsky Medal">Schwidefsky Medal</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/schermerhorn.aspx" title="The Schermerhorn Award">Schermerhorn Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/gamble.aspx" title="The Samuel Gamble Award">Gamble Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/dolezal.aspx" title="The Eduard Doležal Award">Doležal Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/helava.aspx" title="The U.V. Helava Award">Helava Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/ackermann.aspx" title="The Fritz Ackermann Award">Ackermann Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/dangermond.aspx" title="The Jack Dangermond Award">Dangermond Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/inghilleri.aspx" title="The Giuseppe Inghilleri Award">Inghilleri Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/zhizhuo.aspx" title="The Wang Zhizhuo Award">Wang Zhizhuo Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/honorary.aspx" title="The President's Honorary Citation">Honorary Citation</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/young.aspx" title="ISPRS Best Young Author Award">Young Author Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/poster.aspx" title="ISPRS Best Poster Award">Best Poster Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/catcon/default.aspx" title="ISPRS - CATCON Awards">CATCON</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/kraus.aspx" title="The Karl Kraus Medal">Karl Kraus Medal</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/doyle.aspx" title="The Frederick J. Doyle Award ">Doyle Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/konecny.aspx" title="The Gottfried Konecny Award ">Konecny Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/li_deren.aspx" title="The Li Deren Award ">Li Deren Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/student_consortium.aspx" title="ISPRS Student Consortium Service Award">Student Consortium Service Award</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/torlegard.aspx" title="ISPRS WEC Kennert Torlegård Travel Grant">WEC Kennert Torlegård Travel Grant</a></li>
+                      </ul>
+                      </li>
+
+                       <!-- Society - Congresses -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--society--congresses" class="nav-link g-color-white" href="#!" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--society--congresses">Congresses</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--society--congresses" aria-labelledby="nav-link--society--awards">
+
+                            <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/society/congress.aspx" title="ISPRS Congresses">Congresses</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/toronto2026/default.aspx" title="XXVth ISPRS Congress Toronto 2026">Toronto 2026</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/nice2020-2022/default.aspx" title="XXIVth ISPRS Congress Nice 2020/2021/2022">Nice 2020/2021/2022</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/prague2016/default.aspx" title="XXIIIrd ISPRS Congress Prague 2016"> Prague 2016</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/melbourne2012/default.aspx" title="XXIInd ISPRS Congress Melbourne 2012">Melbourne 2012</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/beijing2008/default.aspx" title="XXIst ISPRS Congress Beijing 2008">Beijing 2008</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/istanbul2004/default.aspx" title="XXst ISPRS Congress Istanbul 2004">Istanbul 2004</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/amsterdam2000/default.aspx" title="XIXth ISPRS Congress Amsterdam 2000">Amsterdam 2000</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/vienna1996/default.aspx" title="XVIIIth ISPRS Congress Vienna 1996">Vienna 1996</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/washington1992/default.aspx" title="XVIIth ISPRS Congress Washington 1992">Washington 1992</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/kyoto1988/default.aspx" title="XVIth ISPRS Congress Kyoto 1988">Kyoto 1988</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/rio1984/default.aspx" title="XVth ISPRS Congress Rio de Janeiro 1984">Rio 1984</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/congresses/hamburg1980/default.aspx" title="XIVth ISPRS Congress Hamburg 1980">Hamburg 1980</a></li>
+                          <!--<li class="dropdown-item"><a  class="nav-link g-color-white" href="#">&nbsp;</a></li> -->
+
+                      </ul>
+                      </li>
+
+                      <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/midterm.aspx" title="ISPRS Midterm Symposia 2024">Midterm Symposia</a></li>
+                      <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/gsw.aspx" title="The ISPRS Geospatial Week - Organisation, Scientific Programme and Bidding Process">Geospatial Week</a></li>
+					  
+					  
+					  
+
+                      
+
+                     <!-- Society - Initiatives -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--society--initiatives" class="nav-link g-color-white" href="#!" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--society--initiatives">Initiatives &amp; Programmes</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--society--initiatives" aria-labelledby="nav-link--society--initiatives">
+
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/si/default.aspx" title="Scientific Initiatives">Scientific Initiatives</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/ecbi/default.aspx" title="Education and Capacity Building Initiatives">Education Initiatives</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/ksp/default.aspx" title="ISPRS Keynote Speaker Programme">Keynote Speaker Programme</a></li>
+                            <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/vkss/default.aspx" title="ISPRS Virtual Keynote Speaker Series">Virtual Keynote Speaker Series</a></li>
+                      </ul>
+                      </li>
+					  
+                      <!-- <li class="dropdown-item"><a  class="nav-link g-color-white" href="#">&nbsp;</a></li>
+                      <li class="dropdown-item"><a  class="nav-link g-color-white" href="#">&nbsp;</a></li>
+                      <li class="dropdown-item"><a  class="nav-link g-color-white" href="#">&nbsp;</a></li> -->
+                </ul>
+                </li>
+				  
+				  		  
+                           
+               <!-- <li id="navMembers" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut"> -->
+               <li id="navMembers" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl">
+                   <a id="nav-link--pages--donations" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/members/default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--pages--donations">Members</a>
+                      <!-- Submenu -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu-donations" aria-labelledby="nav-link-donations">       
+                        <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/members/default.aspx">Members</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/ordinary.aspx">Ordinary Members</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/associate.aspx">Associate Members</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/regional.aspx">Regional Members</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/sustaining.aspx">Sustaining Members</a></li>
+
+                        <!-- <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/members/adv_of_sust.aspx" title="Advantages of ISPRS Sustaining Membership">Advantages</a></li>
+                        <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/members/tor_sust_mem.aspx" title="Terms of Reference for Sustaining Members">Terms of Reference</a></li> -->
+
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/honorary.aspx">Honorary Members</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/fellows.aspx">Fellows</a></li>
+						<li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/individual-membership-policy.aspx" title="ISPRS Individual Membership Policy">ISPRS Individual Members</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/benefits.aspx" title="Benefits of ISPRS Membership">Benefits</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/members/application_forms.aspx" title="Application Forms for Members">Application Forms</a></li>
+                      </ul>
+                      <!-- End Submenu -->
+                    </li> 
+                    
+                    
+
+
+               <!-- <li id="navCommissions" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut"> -->
+               <li id="navCommissions" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl">
+                    <a id="nav-link--commissions" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://commissions.isprs.org/" title="ISPRS - Technical Commissions and Working Groups" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--commissions">Commissions</a>
+                     <!-- Submenu -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu-commissions" aria-labelledby="nav-link-commissions">  
+                        <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://commissions.isprs.org/" title="ISPRS - Technical Commissions">Commissions</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://commissions.isprs.org/comm1/" title="ISPRS - Technical Commission I - Sensor Systems">Commission I</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://commissions.isprs.org/comm2/" title="ISPRS - Technical Commission II - Photogrammetry">Commission II</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://commissions.isprs.org/comm3/" title="ISPRS - Technical Commission III - Remote Sensing">Commission III</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://commissions.isprs.org/comm4/" title="ISPRS - Technical Commission IV - Spatial Information Science">Commission IV</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://commissions.isprs.org/comm5/" title="ISPRS - Technical Commission V - Education and Outreach">Commission V</a></li>
+                      </ul>
+
+                      <!-- End Submenu -->
+                     </li>
+
+                    
+                    <!-- <li id="navDocuments" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut"> -->
+                    <li id="navDocuments" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl">
+                         <a id="nav-link--documents" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/documents/default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--documents">Documents</a>
+                      <!-- Submenu -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu-grants" aria-labelledby="nav-link-documents"> 
+                        <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/documents/default.aspx">Documents</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/statutes.aspx" title="ISPRS Statutes">Statutes</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/bylaws.aspx" title="ISPRS Bylaws">Bylaws</a></li>
+
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/resolutions.aspx" title="Resolutions of the recent Congresses of ISPRS ">Resolutions</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/minutes.aspx" title="Minutes of Council &amp; Joint Meetings">Minutes</a></li>
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/reports.aspx" title="Reports">Reports</a></li>
+
+                      <!-- <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/documents/geoweek.aspx" title="The ISPRS Geospatial Week ‐ Organisation, Scientific Programme and Bidding Process">Geospatial Week</a></li> -->
+                        <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/pdf/240120-Green_Book.pdf" title="Responsibilities and Duties of ISPRS Council Members">Green Book</a></li>
+
+
+                       <!-- Documents - Orangebook -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--documents--orangebook" class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--documents--orangebook">Orange Book</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--documents--orangebook" aria-labelledby="nav-link--documents--orangebook">
+                          <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/documents/orangebook.aspx" title="Manual of operation of ISPRS Technical Commissions and Working Groups (Orange Book)">Orange Book</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/introduction.aspx" title="ISPRS Orange Book: Introduction">Introduction</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/tcprespons.aspx" title="ISPRS Orange Book: Technical Commissions">Tech. Commissions</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/wgrespons.aspx" title="ISPRS Orange Book: Working Groups">Working Groups</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app1.aspx" title="ISPRS Orange Book - APPENDIX 1: Guidelines for Planning ISPRS Symposia">Appendix 1</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app2.aspx" title="ISPRS Orange Book - APPENDIX 2: Guidelines for Organising ISPRS Events and ISPRS Co-sponsored Events">Appendix 2</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app3.docx" title="ISPRS Orange Book - APPENDIX 3: Application Form for Organising an ISPRS Event or an ISPRS Co-sponsored Event">Appendix 3</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app4.aspx" title="ISPRS Orange Book - APPENDIX 4: ISPRS Publication Policy">Appendix 4</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app5.aspx" title="ISPRS Orange Book - APPENDIX 5: Guidelines for Authors Preparing Manuscripts for ISPRS Events">Appendix 5</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app6.aspx" title="ISPRS Orange Book - APPENDIX 6: Outline for Preparation of the ISPRS Biennial Report 21">Appendix 6</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app7.aspx" title="ISPRS Orange Book - APPENDIX 7: Guidelines for Preparation and Maintenance of ISPRS Web Pages">Appendix 7</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app8.aspx" title="ISPRS Orange Book - APPENDIX 8: Guidelines for Proposing ISPRS Resolutions">Appendix 8</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app9a.aspx" title="ISPRS Orange Book - APPENDIX 9a: Guidelines for the ISPRS Scientific Initiative">Appendix 9a</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app9b.aspx" title="ISPRS Orange Book - APPENDIX 9b: Guidelines for the ISPRS Educational and Capacity Building Initiative">Appendix 9b</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app10.aspx" title="ISPRS Orange Book - APPENDIX 10: Guidelines for the ISPRS Geospatial Week">Appendix 10</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/orangebook/app11.aspx" title="ISPRS Orange Book - APPENDIX 11: ISPRS Abbreviations">Appendix 11</a></li>
+                      </ul>
+                      </li>
+                      
+                      
+                       <!-- Documents - Guidelines -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--documents--guidelines" class="nav-link g-color-white" href="https://www.isprs.org/documents/guidelines.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--documents--guidelines">Guidelines</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--documents--guidelines" aria-labelledby="nav-link--documents--guidelines">
+                          <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/documents/guidelines.aspx" title="Guidelines">Guidelines</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/guidelines/c-gide.aspx" title="Guidelines for Candidates for Members of the Council">Candidates for Council</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/guidelines/conggide.aspx" title="Guidelines for members planning to host an ISPRS Congress">ISPRS Congress</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/guidelines/financial-policy.aspx" title="ISPRS Financial Policy">Financial Policy</a></li>
+						  <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/society/awards/awards_policy.aspx" title="ISPRS Awards Policy">Awards Policy</a></li>
+                          <!-- <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/documents/guidelines/FinCom.aspx" title="Guidelines for ISPRS Financial Commission">Financial Commission</a></li> -->
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/guidelines/c-spend.aspx" title="ISPRS Spending Policy"> Spending Policy</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/strategic_plan.aspx" title="Strategic Plan for ISPRS Publications">Strategic Plan</a></li>
+						  <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/guidelines/pre-publication.aspx" title="ISPRS policy with respect to the pre‐publication of papers submitted to ISPRS Publications"> Pre-Publication</a></li>
+                      </ul>
+                      </li>
+                      
+                      <!-- Documents - Historic -->
+                      <li class="dropdown-item hs-has-sub-menu ">
+                      <a id="nav-link--documents--historic" class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--documents--historic">Historical Archive</a>
+
+                      <!-- Submenu (level 2) -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-minus-2  menu-bg-color" id="nav-submenu--documents--historic" aria-labelledby="nav-link--documents--historic">
+                          <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/documents/archive/default.aspx" title=" Archive with historical documents">Historical Archive</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/Volume-A/default.aspx" title="Parts A of the International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences">Parts A of IAPRS</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/Silver_Book/default.aspx" title="Silver Books">Silver Books</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/Historical_Material/default.aspx" title="Historical Material">Historical Material</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/autobiographies/default.aspx" title="Autobiographies">Autobiographies</a></li>
+                          <!-- <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/Celebrations/" title="Celebrations">Celebrations</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/History/" title="History">History</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/documents/archive/Pictures/" title="Photos">Photos</a></li> -->
+                      </ul>
+                      </li>
+
+                      <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/documents/samples/logos.aspx" title="ISPRS - Logos">Logos</a></li>
+                      <!--<li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/documents/web-visitors/default.aspx" title="Web visitors">Web Visitors</a></li>-->
+                        
+                      </ul>
+                     
+                      <!-- End Submenu -->
+                       </li>               
+
+                    
+                    <!-- <li id="navPublications" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut"> -->
+                    <li id="navPublications" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl">
+                         <a id="nav-link--publications" class="nav-link g-color-white nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/publications/Default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--publications">Publications</a>
+                      <!-- Submenu -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu-publications" aria-labelledby="nav-link-publications"> 
+                          <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/publications/Default.aspx">ISPRS Publications</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/archives.aspx" title="The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences">Archives</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/annals.aspx" title="ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences">Annals</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.journals.elsevier.com/isprs-journal-of-photogrammetry-and-remote-sensing" title="ISPRS Journal of Photogrammetry &amp; Remote Sensing" target="_blank">ISPRS Journal Ph &amp; RS</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.journals.elsevier.com/isprs-open-journal-of-photogrammetry-and-remote-sensing" title="ISPRS Open Journal of Photogrammetry &amp; Remote Sensing" target="_blank">ISPRS Open Journal Ph &amp; RS</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="http://www.mdpi.com/journal/ijgi" title="ISPRS International Journal of Geo-Information" target="_blank">ISPRS International Journal Geo-Info</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/news/newsletter/ebulletin.html" title="ISPRS eBulletin">ISPRS eBulletin</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/highlights.aspx" title="ISPRS Highlights (until 2010 official Bulletin of ISPRS)">ISPRS Highlights</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/bookseries.aspx" title="ISPRS Book Series">Book Series</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/media_library.aspx" title="Streamed Sessions of ISPRS Events">ISPRS Media Library </a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/brochure.aspx" title="The ISPRS Brochure">Brochure</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/profile.aspx" title="The ISPRS Profile">ISPRS Profile</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/annual_reports.aspx" title="ISPRS Annual &amp; Biennial Reports">Annual &amp; Biennial Reports</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/related_pub.aspx" title="ISPRS Related Publications">Related Publications</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/booklets.aspx">Booklets</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/publications/strategic_plan.aspx" title="Strategic Plan for ISPRS Publications">Strategic Plan</a></li>
+
+                      </ul>
+                      <!-- End Submenu -->
+                    </li>
+				  
+				  
+				  
+
+                  <!-- Mega Menu Item -->
+                  <li id="navResources" class="nav-item hs-has-mega-menu g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut" data-position="right">
+                    <a id="mega-menu-label-4" class="nav-link g-color-white nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/resources/Default.aspx" aria-haspopup="true" aria-expanded="false">
+                      Open Resources 
+                      <!--<i class="hs-icon hs-icon-arrow-bottom g-font-size-11 g-ml-7"></i>-->
+                    </a>
+
+                    <!-- Mega Menu -->
+                    <div class="w-100 hs-mega-menu u-shadow-v11 g-text-transform-none g-brd-top g-brd-primary g-brd-top-2 g-bg-white g-pa-30 g-mt-17 menu-bg-color" aria-labelledby="mega-menu-label-4">
+                      <div class="row">
+                        <div class="col-sm-6 col-md-3 g-mb-30 g-mb-0--sm">
+                          <!-- Links -->
+                          <div class="mb-5"><a href="https://www.isprs.org/resources/datasets/">
+                            <span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Datasets</span></a>
+
+                            <ul class="list-unstyled mb-0">
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/datasets/images/">Images</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/datasets/sample-datasets/">Sample Datasets</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/datasets/vector-data/">Vector Data</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/datasets/raster-data/">Raster Data</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/datasets/benchmarks/" title="ISPRS Benchmarks">Benchmarks
+                                </a>
+                              </li>
+                            </ul>
+                          </div>
+                          <!-- End Links -->
+
+                          <!-- Links -->
+                          <a href="https://www.isprs.org/resources/papers/">
+							  <span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Papers</span></a>
+
+                          <ul class="list-unstyled">
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/publications/archives.aspx" title="The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences">ISPRS Archives</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/publications/annals.aspx" title="ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences">ISPRS Annals</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.journals.elsevier.com/isprs-journal-of-photogrammetry-and-remote-sensing" title="ISPRS Journal of Photogrammetry &amp; Remote Sensing" target="_blank">ISPRS Journal of Ph&amp;RS</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.journals.elsevier.com/isprs-open-journal-of-photogrammetry-and-remote-sensing" title="ISPRS Open Journal of Photogrammetry &amp; Remote Sensing" target="_blank">ISPRS Open J Ph&amp;RS</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="http://www.mdpi.com/journal/ijgi" title="ISPRS Open Journal of Photogrammetry &amp; Remote Sensing" target="_blank">ISPRS IJ Geo-Info</a>
+                            </li>
+                          </ul>
+                          <!-- End Links -->
+                        </div>
+
+                        <div class="col-sm-6 col-md-3 g-mb-30 g-mb-0--sm">
+                          <!-- Links -->
+                          <div class="mb-5">
+                            <a href="https://www.isprs.org/resources/reports/"><span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Reports</span></a>
+
+                            <ul class="list-unstyled mb-0">
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/documents/archive/Volume-A/default.aspx">ISPRS Archives A</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/society/si/default.aspx">ISPRS Scientific Initiatives</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/society/ecbi/default.aspx">ISPRS Education Initiatives</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/news/newsletter/default.aspx">ISPRS e-Bulletin</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" title="ISPRS Annual/Biennial Report" href="https://www.isprs.org/publications/annual_reports.aspx">ISPRS Annual/Biennial Rep.</a>
+                              </li>
+                            </ul>
+                          </div>
+                          <!-- End Links -->
+
+                          <!-- Links -->
+                          <div class="mb-5">
+                            <a href="https://www.isprs.org/resources/presentations/"><span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Presentations</span></a>
+
+                            <ul class="list-unstyled mb-0">
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/presentations/technical-presentations/#">Technical Presentations</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/presentations/keynote-presentations/">Keynote Presentations</a>
+                              </li>
+                            </ul>
+                          </div>
+                          <!-- End Links -->
+
+                          
+                        </div>
+
+                        <div class="col-sm-6 col-md-3 g-mb-30 g-mb-0--sm">
+							
+							<!-- Links -->
+						<div class="mb-5">
+                          <a href="https://www.isprs.org/resources/education/"><span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Education</span></a>
+
+                          <ul class="list-unstyled mb-0">
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/publications/bookseries.aspx">ISPRS Book Series</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/education/webinar-records/">Webinar Records</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/education/textbook/">Textbook</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/education/tutorial-slides/">Tutorial Slides</a>
+                            </li>
+                          </ul>
+							</div>
+                          <!-- End Links -->
+							
+							
+							
+                          <!-- Links -->
+							<div class="mb-5">
+                          <a href="https://www.isprs.org/resources/software-hardware/"><span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Software/Hardware</span></a>
+
+                          <ul class="list-unstyled mb-0">
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/software-hardware/free-download-software/">Free download Software</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/software-hardware/source-code/">Source Code</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/software-hardware/open-access-platform/">Open Access Platform</a>
+                            </li>
+                          </ul>
+							</div>
+                          <!-- End Links -->
+                        </div>
+
+                        <div class="col-sm-6 col-md-3 g-mb-30 g-mb-0--sm">
+                          <!-- Links -->
+                          <div class="mb-5">
+                            <a href="https://www.isprs.org/resources/templates/"><span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Templates</span></a>
+
+                            <ul class="list-unstyled mb-0">
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/documents/orangebook/app3.docx">Event Application Form</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" title="Summer School Application Form" href="https://www.isprs.org/resources/templates/summer-school-application-form/">Summer School Appl. Form</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/members/application_forms.aspx">Member Application Forms</a>
+                              </li>
+                            </ul>
+                          </div>
+                          <!-- End Links -->
+
+                          <!-- Links -->
+                          <div class="mb-5">
+                            <a href="https://www.isprs.org/resources/promotion-material/"><span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Promotion Material</span></a>
+
+                            <ul class="list-unstyled mb-0">
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/promotion-material/logo/">ISPRS Logo</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/promotion-material/introduction-slides/">ISPRS Introduction Slides</a>
+                              </li>
+                              <li>
+                                <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/promotion-material/introduction-video/">ISPRS Introduction Video</a>
+                              </li>
+                            </ul>
+                          </div>
+                          <!-- End Links -->
+
+                          <!-- Links -->
+							<div class="mb-5">
+                          <a href="https://www.isprs.org/resources/related-links/"><span class="d-block g-font-weight-500 my-green-color text-uppercase mb-2">Related Links</span></a>
+
+                          <ul class="list-unstyled mb-0">
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/related-links/related-journals/">Related Journals</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/related-links/standards/">Standards</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/related-links/acronyms/">Acronyms</a>
+                            </li>
+                            <li>
+                              <a class="d-block my-white-color my-blue-color--hover g-text-underline--none--hover g-py-5" href="https://www.isprs.org/resources/related-links/organizations/">Organizations</a>
+                            </li>
+                          </ul>
+                          </div>
+                          <!-- End Links -->
+                        </div>
+                      </div>
+                    </div>
+                    <!-- End Mega Menu -->
+                  </li>
+                  <!-- End Mega Menu Item -->
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+				  
+
+                    
+                    <!-- <li id="navEducation" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut">
+                        <a id="nav-link--education" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/education/Default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--pages--education">Education</a>
+                     <ul class="hs-sub-menu list-unstyled u-shadow-v11 u-dropdown-col-2 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu--education" aria-labelledby="nav-link-education">
+                          <li class="dropdown-item"><a  class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/education/Default.aspx" title="Education Overview">Education</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/education.aspx" title="Education Sites, International Master Courses">Educational Sites</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/tutorials.aspx" >Tutorials</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/resources.aspx" >Resources</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/software.aspx" title="Software &amp; Hardware">Software &amp; Hardware</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/journals.aspx" title="Journals and Magazines of Photogrammetry, Geodesy, RS, GIS and Computer Vision">Journals &amp; Magazines</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/standardization.aspx" title="Standardization Sites">Standardization Sites</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/news.aspx">News</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/acronyms.aspx" title="Acronyms &amp; Glossary">Acronyms</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/education/benchmarks.aspx" title="ISPRS Benchmarks">Benchmarks</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/data/default.aspx" title="The ISPRS data sets collection">Data Sets</a></li>
+                          <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/job_opportunities/default.aspx" title="ISPRS Employment Opportunities Archive">Job Opportunities</a></li>
+
+                      </ul>
+                      
+                      </li> -->
+
+                    
+                    <!--<li class="nav-item hs-has-sub-menu g-mx-2--md g-mx-5--xl g-mb-5 g-mb-0--lg">-->
+                    <!-- <li id="navCalendar" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut"> -->
+                    <li id="navCalendar" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl">
+                        <!--<a id="nav-link--pages--trustees" class="nav-link" href="https://www.isprs.org/trustees.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--pages--trustees">Trustees</a>-->
+                        <a id="nav-link--calendar" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/calendar/default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--pages--calendar">Calendar</a>
+                     <!-- Submenu -->
+                      <!--<ul class="hs-sub-menu list-unstyled" id="nav-submenu-trustees" aria-labelledby="nav-link-trustees"> -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu--calendar" aria-labelledby="nav-link-calendar">
+                          <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/calendar/Default.aspx">ISPRS Calendar</a></li>
+                          <!-- <li class="dropdown-item"><a  class="nav-link g-color-white" href="https://www.isprs.org/calendar/2025.aspx" title="ISPRS Calendar 2025">2025</a></li> -->
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/calendar/2026.aspx" title="ISPRS Calendar 2026">2026</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/calendar/2027.aspx" title="ISPRS Calendar 2027">2027</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/calendar/2016-today-all.aspx" title="ISPRS Calendar - all events between Prague Congress and today">past events</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/calendar/locations.aspx" title="Locations of the Events in the ISPRS Calendar">Locations</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/calendar/other_calendar.aspx" title="Events Calendar of Some Organizations Related to ISPRS">Other Calendar</a></li>
+                      </ul>
+                      <!-- End Submenu -->
+                      </li>                   
+
+                    
+                    <!--<li class="nav-item hs-has-sub-menu g-mx-2--md g-mx-5--xl g-mb-5 g-mb-0--lg">-->
+                    <!-- <li id="navLinks" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut"> -->
+                    <li id="navLinks" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl">
+                        <!--<a id="nav-link--pages--trustees" class="nav-link" href="https://www.isprs.org/trustees.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--pages--trustees">Trustees</a>-->
+                        <a id="nav-link--links" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/links/default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--links">Links</a>
+                     <!-- Submenu -->
+                      <!--<ul class="hs-sub-menu list-unstyled" id="nav-submenu-trustees" aria-labelledby="nav-link-trustees"> -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu--links" aria-labelledby="nav-link-links">
+                          <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/links/Default.aspx">ISPRS Links</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/links/activities.aspx" title="TCs and WGs Homepages ">TCs and WGs</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/links/members.aspx" title="ISPRS Members Homepages">Members Homepages</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/links/org.aspx" title="Links to Organisations Related to ISPRS">Related Orgs</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="http://www.isprs.org/foundation/" title="The ISPRS Foundation">The ISPRS Foundation</a></li>
+                      </ul>
+                      <!-- End Submenu -->
+                      </li>                   
+
+                    
+                    <!--<li class="nav-item hs-has-sub-menu g-mx-2--md g-mx-5--xl g-mb-5 g-mb-0--lg">-->
+                    <!-- <li id="navNews" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl" data-animation-in="fadeIn" data-animation-out="fadeOut"> -->
+                    <li id="navNews" class="nav-item hs-has-sub-menu  g-mx-10--lg g-mx-15--xl">
+                        <!--<a id="nav-link--pages--trustees" class="nav-link" href="https://www.isprs.org/trustees.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--pages--trustees">Trustees</a>-->
+                        <a id="nav-link--news" class="nav-link nav-color-tif g-py-7 g-px-0" href="https://www.isprs.org/news/default.aspx" aria-haspopup="true" aria-expanded="false" aria-controls="nav-submenu--news">News</a>
+                     <!-- Submenu -->
+                      <!--<ul class="hs-sub-menu list-unstyled" id="nav-submenu-trustees" aria-labelledby="nav-link-trustees"> -->
+                      <ul class="hs-sub-menu list-unstyled u-shadow-v11 g-brd-top g-brd-primary g-brd-top-2 g-min-width-220 g-mt-18 g-mt-8--lg--scrolling menu-bg-color" id="nav-submenu--news" aria-labelledby="nav-link-news">
+                          <li class="dropdown-item"><a class="nav-link g-color-white font-weight-bold" href="https://www.isprs.org/news/default.aspx">ISPRS News</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/news/announcements/default.aspx">ISPRS Announcements</a></li>
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/news/newsletter/default.aspx">ISPRS e-Bulletin</a></li>
+                          <!-- <li class="dropdown-item"><a  class="nav-link" href="http://www2.isprs.org/news/blog.html">ISPRS Blog</a></li> -->
+                          <li class="dropdown-item"><a class="nav-link g-color-white" href="https://www.isprs.org/mailinglist/default.aspx">ISPRS Mailing List</a></li>
+
+                      </ul>
+                      <!-- End Submenu -->
+                      </li>
+
+              </ul>
+            </div>
+            <!-- End Navigation -->
+          </div>
+        </nav>
+      </div>
+    </header>
+</div><div id="cmsbox_117536" class="cmsbox "><div id="mypromo" class="container-fluid g-hidden-md-down">
+   <!--<div id="mypromo" class="container-fluid" >-->
+    <section id="header_img" class="g-flex-centered g-bg-cover g-bg-pos-top-center g-bg-img-hero" data-calc-target="#js-header">
+      <div class="container text-center g-z-index-1">
+         <!--<h3 class="h1 g-color-white g-mb-25">
+            &nbsp;<br />
+          <span class="align-middle g-font-weight-700 g-font-size-36 font-effect-outline header_title " >International Society for<br />Photogrammetry and Remote Sensing</span><br />
+          <span class="align-middle g-font-weight-500 g-font-size-18 font-effect-outline header_title " >
+              Internationale Gesellschaft für Photogrammetrie und Fernerkundung<br />
+              Société Internationale de Photogrammétrie et de Télédétection </span>
+        </h3> -->
+
+          <div class="headline-title">ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences</div>
+        
+      </div>
+    </section>
+   </div>
+</div></div>
+
+    <div id="w-body" class="container title_padding">
+
+        <div class="row mr-0 pr-0">
+
+
+            
+
+               <div id="leftColumnExtras" class="CMSCONTAINER w-sidebar col-auto d-none d-lg-block pt-2">
+
+    
+    <div class="widget dark-border">
+        <div class="legend journal-contentLinkColor">Download</div>
+        <div class="content">
+            <ul class="additional_info no-bullets no-styling">
+                        <li><a class="triangle" title="PDF Version (23646 KB)"
+                               href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.pdf">Article</a>
+                            <nobr>(23646 KB)</nobr>
+                        </li>
+                    <li>
+                        <a class="triangle" title="XML Version" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.xml">Metadata XML</a>
+                    </li>
+            </ul>
+        </div>
+        <div class="content">
+            <ul class="additional_info no-bullets no-styling">
+                    <li><a class="triangle" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.bib">BibTeX</a></li>
+                    <li><a class="triangle" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.ris">EndNote</a></li>
+            </ul>
+        </div>
+    </div>
+
+<div class="widget dark-border hide-on-mobile hide-on-tablet p-0" id="share">
+    <div class="legend journal-contentLinkColor">Share</div>
+
+    <div class="row p-0">
+        <div class="col-auto pl-0">
+            <a class="share-one-line" href="https://www.mendeley.com/import/?url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Mendeley" target="_blank">
+            <img src="https://isprs-annals.copernicus.org/mendeley.png" alt="Mendeley"/>
+            </a>
+        </div>
+        <div class="col-auto">
+            <a class="share-one-line" href="https://www.reddit.com/submit?url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Reddit" target="_blank">
+            <img src="https://isprs-annals.copernicus.org/reddit.png" alt="Reddit">
+            </a>
+        </div>
+        <div class="col-auto">
+            <a class="share-one-line last" href="https://twitter.com/intent/tweet?text=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Twitter" target="_blank">
+            <img src="https://isprs-annals.copernicus.org/twitter.png" alt="Twitter"/>
+            </a>
+        </div>
+        <div class="col-auto">
+            <a class="share-one-line" href="https://www.facebook.com/share.php?u=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F&t=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES" title="Facebook" target="_blank">
+            <img src="https://isprs-annals.copernicus.org/facebook.png" alt="Facebook"/>
+            </a>
+        </div>
+        <div class="col-auto pr-0">
+            <a class="share-one-line last" href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F&title=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES" title="LinkedIn" target="_blank">
+            <img src="https://isprs-annals.copernicus.org/linkedin.png" alt="LinkedIn">
+            </a>
+        </div>
+        <div class="col pr-0 mobile-native-share">
+            <a href="#" data-title="ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences" data-text="*RELATIVE RADIOMETRIC NORMALIZATION USING SEVERAL AUTOMATICALLY CHOSEN REFERENCE IMAGES FOR MULTI-SENSOR, MULTI-TEMPORAL SERIES*
+C. Hessel et al." data-url="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/" class="mobile-native-share share-one-line last"><i class="co-mobile-share display-none"></i></a>
+        </div>    </div>
+</div>
+<div class="ajax-content" data-src="https://editor.copernicus.org/similarArticles.php?article=87678&journal=508&isSecondStage=1&ajax=true">
+</div>   </div>
+
+
+            <div class="col-auto d-none d-lg-block right-column-wrapper w-sidebar">
+
+                <div class="row">
+
+                    <div class="CMSCONTAINER w-sidevar__fixed-section col-12" id="page_colum_right_container-global">
+
+
+
+                    <div id="cmsbox_117537" class="cmsbox j-widget__standard"><a href="https://publications.copernicus.org" target="_blank"><img src="https://isprs-annals.copernicus.org/template_logo_copernicus_publications_177x22.png" cofileid="19999" alt="Publications Copernicus" /></a></div><div id="library_search" class="cmsbox "><div class="search co-widget container-fluid p-0 mt-3">
+    <div class="row m-0">
+        <div class="col-12 co-widget-legend p-2">
+            Search conference papers
+        </div>
+        <div class="col-12 co-widget-body px-2 pb-2">
+            <div class="row align-items-center">
+                <div class="col-12 pb-2">
+                    <input id="search-query" placeholder="Search" name="q" type="text" class="co-widget-search form-control">
+                </div>
+                <div class="col-12">
+                    <div class="row">
+                        <div class="col pr-1">
+                            <select id="search-type" name="type" class="co-widget-select-search form-control">
+                                <option value="https://isprs-annals.copernicus.org/search.html?author=">Author</option>
+                                <option value="https://isprs-annals.copernicus.org/search.html?title=">Title</option>
+                                <option value="https://isprs-annals.copernicus.org/search.html?abstract=">Abstract</option>
+                                <option value="https://www.google.com/search?&q=site:https://isprs-annals.copernicus.org/+">Full text</option>
+                            </select>
+                        </div>
+                        <div class="col-auto pl-0">
+                            <button id="start-search" title="Start search" class="btn co-btn-search"><span class="j-icon icon-search"></span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            $('#start-search').unbind('click').bind('click', function(){
+                var type  = $('#search-type').val();
+                var query = $('#search-query').val();
+                if(type.indexOf('google') !== -1){
+                    window.open(type + encodeURI(query), '_blank');
+                } else {
+                    document.location.href = type + encodeURI(query);
+                }
+            });
+            $('#search-query').unbind('keypress').bind('keypress', function(event){
+                if (event.which == 13 && $(this).val() != '') {
+                    var type  = $('#search-type').val();
+                    var query = $('#search-query').val();
+                    if(type.indexOf('google') !== -1){
+                        window.open(type + encodeURI(query), '_blank');
+                    } else {
+                        document.location.href = type + encodeURI(query);
+                    }
+
+                }
+            });
+        </script>
+    </div>
+</div></div></div>
+
+                    <div class="col-12 CMSCONTAINER w-sidevar__variable-section" id="page_colum_right_container-removable">
+
+
+    
+
+    <div class="widget dark-border">
+        <div class="legend journal-contentLinkColor">Download</div>
+        <div class="content text-center">
+            <a class="pdf-icon " data-toggle=".box-notice" data-duration="300" title="PDF Version (23646 KB)" 
+                           href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.pdf" >
+                <img alt="PDF" src="https://isprs-annals.copernicus.org/pdf_icon.png"></a>
+            <a title="XML Version" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.xml"><img alt="XML" src="https://isprs-annals.copernicus.org/xml_icon.png"></a>
+        </div>
+    </div>
+
+
+
+<div class="widget dark-border">
+    <div class="legend journal-contentLinkColor">Citation</div>
+    <div class="content">
+    <ul class="additional_info no-bullets no-styling">
+        <li><a class="triangle" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.bib">BibTeX</a></li>
+        <li><a class="triangle" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.ris">EndNote</a></li>
+    </ul>
+    </div>
+</div>
+    <div class="auto-fixed-top no-shadow">
+        
+        <div class="widget dark-border hide-on-mobile hide-on-tablet p-0" id="share">
+            <div class="legend journal-contentLinkColor">Share</div>
+            <div class="row p-0">
+                <div class="col-auto pl-0">
+                    <a class="share-one-line" href="https://www.mendeley.com/import/?url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Mendeley" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/mendeley.png" alt="Mendeley"/>
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a class="share-one-line" href="https://www.reddit.com/submit?url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Reddit" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/reddit.png" alt="Reddit">
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a class="share-one-line last" href="https://twitter.com/intent/tweet?text=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Twitter" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/twitter.png" alt="Twitter"/>
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a class="share-one-line" href="https://www.facebook.com/share.php?u=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F&t=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES" title="Facebook" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/facebook.png" alt="Facebook"/>
+                    </a>
+                </div>
+                <div class="col-auto pr-0">
+                    <a class="share-one-line last" href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F&title=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES" title="LinkedIn" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/linkedin.png" alt="LinkedIn">
+                    </a>
+                </div>
+                <div class="col pr-0 mobile-native-share">
+                    <a href="#" data-title="ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences" data-text="*RELATIVE RADIOMETRIC NORMALIZATION USING SEVERAL AUTOMATICALLY CHOSEN REFERENCE IMAGES FOR MULTI-SENSOR, MULTI-TEMPORAL SERIES*
+C. Hessel et al." data-url="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/" class="mobile-native-share share-one-line last"><i class="co-mobile-share display-none"></i></a>
+                </div>            </div>
+        </div>
+        <div class="ajax-content" data-src="https://editor.copernicus.org/similarArticles.php?article=87678&journal=508&isSecondStage=1&ajax=true">
+        </div>    </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div id="c-wrapper" class="col-12 col-lg">
+
+                <div class="CMSCONTAINER j-content edt-flag" id="page_content_container">
+
+                <div class="col">
+
+<div class="article abstract">
+    <div class="grid-container grid-table header-block">
+        <div class="grid-60 tablet-grid-100 grid-parent"  >
+            <div class="grid-container hide-on-desktop">
+                <div class="grid-100 " >
+                    <div class="hide-on-mobile hide-on-tablet articleBackLink">
+                            <a href="https://isprs-annals.copernicus.org/">Articles</a> | <a href="https://isprs-annals.copernicus.org/articles/V-2-2020/index.html">Volume V-2-2020</a>
+                    </div>
+                            <div class="tab co-angel-left hide-on-desktop"></div>
+                            <div class="tab co-angel-right hide-on-desktop"></div>
+                            <div class="mobile-citation">
+                                <ul class="tab-navigation no-styling">
+                                    <li class="tab1.articlf active"><nobr><a  href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.html">Article</a></nobr></li><li class="tab450.metrict"><nobr><a  href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020-metrics.html">Metrics</a></nobr></li><li class="tab500.relationt"><nobr><a  href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020-relations.html">Related articles</a></nobr></li>
+                                </ul>
+                            </div>
+                </div>
+            </div>
+            <div class="d-lg-none">
+                    <span class="articleBackLink"><a href="https://isprs-annals.copernicus.org/">Articles</a> | <a href="https://isprs-annals.copernicus.org/articles/V-2-2020/index.html">Volume V-2-2020</a> </span>
+            
+                <div class="citation-header" id="citation-content">
+                    <div class="citation-doi">https://doi.org/10.5194/isprs-annals-V-2-2020-845-2020</div>
+                    <div class="citation-copyright">&copy; Author(s) 2020. This work is distributed under <br class="hide-on-mobile hide-on-tablet" />the Creative Commons Attribution 4.0 License.</div>
+                </div>
+            </div>
+            
+            <div class="hide-on-mobile hide-on-tablet">
+                <div class="citation-header">
+                    <div class="citation-doi">https://doi.org/10.5194/isprs-annals-V-2-2020-845-2020</div>
+                    <div class="citation-copyright">&copy; Author(s) 2020. This work is distributed under <br class="hide-on-mobile hide-on-tablet" />the Creative Commons Attribution 4.0 License.</div>
+                </div>
+            </div>
+        </div>
+        <div class="grid-40 hide-on-tablet hide-on-mobile grid-parent">
+                <div class="text-right articleBackLink">
+                    <a href="https://isprs-annals.copernicus.org/">Articles</a> | <a href="https://isprs-annals.copernicus.org/articles/V-2-2020/index.html">Volume V-2-2020</a>
+                </div>
+                    <div class="tab co-angel-left hide-on-desktop"></div>
+                    <div class="tab co-angel-right hide-on-desktop"></div>
+                    <div class="mobile-citation">
+                        <ul class="tab-navigation no-styling">
+                            <li class="tab1.articlf active"><nobr><a  href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.html">Article</a></nobr></li><li class="tab450.metrict"><nobr><a  href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020-metrics.html">Metrics</a></nobr></li><li class="tab500.relationt"><nobr><a  href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020-relations.html">Related articles</a></nobr></li>
+                        </ul>
+                    </div>
+        </div>
+    </div>    
+        
+        <div class="ms-type row no-gutters d-none d-lg-flex mb-1 mt-0 align-items-center">
+            <div class="col">
+                <div class="row no-gutters align-items-center">
+                    <div class="col-auto">
+                    </div>
+                        <div class="col">
+                            <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/" rel="license" class="licence-icon-svg"><img src="https://isprs-annals.copernicus.org/licenceSVG_16.svg"></a>
+                        </div>
+                </div>
+            </div>
+            <div class="col-auto text-right">03 Aug 2020</div>
+        </div>
+        <div class="ms-type row no-gutters d-lg-none mb-1 align-items-center">
+            <div class="col-12">
+                
+                    <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/" rel="license" class="licence-icon-svg "><img src="https://isprs-annals.copernicus.org/licenceSVG_16.svg"></a>&nbsp;|&nbsp;<span>03 Aug 2020</span>
+            </div>
+        </div>
+    
+    <h1>RELATIVE RADIOMETRIC NORMALIZATION USING SEVERAL AUTOMATICALLY CHOSEN REFERENCE IMAGES FOR MULTI-SENSOR, MULTI-TEMPORAL SERIES </h1>
+        <div class="mb-3 authors-with-affiliations">
+            <nobr><span class="hover-cursor-pointer journal-contentLinkColor hover-underline" data-toggle="modal" 
+                    data-target="#author608692">C. Hessel</span>,</nobr> <nobr><span class="hover-cursor-pointer journal-contentLinkColor hover-underline" data-toggle="modal" 
+                    data-target="#author608693">R. Grompone von Gioi</span>,</nobr> <nobr><span class="hover-cursor-pointer journal-contentLinkColor hover-underline" data-toggle="modal" 
+                    data-target="#author608694">J. M. Morel</span>,</nobr> <nobr><span class="hover-cursor-pointer journal-contentLinkColor hover-underline" data-toggle="modal" 
+                    data-target="#author608695">G. Facciolo</span>,</nobr> <nobr><span class="hover-cursor-pointer journal-contentLinkColor hover-underline" data-toggle="modal" 
+                    data-target="#author608696">P. Arias</span>,</nobr> <nobr>and <span class="hover-cursor-pointer journal-contentLinkColor hover-underline" data-toggle="modal" 
+                    data-target="#author608697">C. de Franchis</span></nobr>
+        </div>
+            <div class="modal fade" id="author608692" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="container-fluid p-0">
+                                <h3 class="modal-title">C. Hessel</h3>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container-fluid p-0">
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="author608693" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="container-fluid p-0">
+                                <h3 class="modal-title">R. Grompone von Gioi</h3>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container-fluid p-0">
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="author608694" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="container-fluid p-0">
+                                <h3 class="modal-title">J. M. Morel</h3>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container-fluid p-0">
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="author608695" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="container-fluid p-0">
+                                <h3 class="modal-title">G. Facciolo</h3>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container-fluid p-0">
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="author608696" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="container-fluid p-0">
+                                <h3 class="modal-title">P. Arias</h3>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container-fluid p-0">
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="author608697" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="container-fluid p-0">
+                                <h3 class="modal-title">C. de Franchis</h3>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container-fluid p-0">
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            Université Paris-Saclay, CNRS, ENS Paris-Saclay, Centre Borelli, 94235, Cachan, France
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            Kayrros SAS
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <p class="keywords">
+            <strong>Keywords: </strong>Relative radiometric normalization, Pseudo-invariant features, Historical satellite time series, Multi-sensor
+        </p>
+    <div class="abstract">
+       <p><strong class="journal-contentHeaderColor">Abstract.</strong> We propose a method for the relative radiometric normalization of long, multi-sensor image time series. This allows to increase the revisit time under comparable conditions. Although the relative radiometric normalization is a well-studied problem in the remote sensing community, the availability of an increasing number of images gives rise to new problems. For example, given long series spanning several years, finding features that are maintained through the whole period of time becomes arduous. Instead, we propose in this paper to use automatically detected reference images chosen by maximization of a quality metric. For each image, two affine correction models are robustly estimated using random sample consensus, using the two closest reference images; the final correction is obtained by linear interpolation. For each pair of source and reference images, pseudo-invariant features are obtained using a similarity measure invariant to radiometric changes. A final tone-mapping step outputs the images in the standard 8-bits range. This method is illustrated by the fusion of time series of Sentinel-2 at correction levels 1C, 2A, and Landsat-8 images. By using only the atmospherically corrected Sentinel-2 L2A images as anchors, the full output series inherits this atmospheric correction.</p>
+    </div>
+    
+        
+            <div id="oldMobileDownloadBox" class="widget dark-border hide-on-desktop download-and-links">
+                <div class="legend journal-contentLinkColor">Download & links</div>
+                <div class="content">
+    
+                        <ul class="additional_info no-bullets no-styling">
+                            <li>
+                                <a class="triangle" data-toggle=".box-notice" data-duration="300" title="PDF Version (23646 KB)" 
+                                   href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.pdf" >
+                                        Article (PDF, 23646 KB)
+                                </a>
+                            </li>
+                        </ul>
+                </div>
+            </div>
+    
+        
+            
+            <div  id="downloadBoxOneColumn" class="widget dark-border hide-on-desktop download-and-links">
+                <div class="legend journal-contentLinkColor">Download & links</div>
+        
+                    <div class="content">
+                    <ul class="additional_info no-bullets no-styling">
+                                <li><a class="triangle" title="PDF Version (23646 KB)" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.pdf">Article</a> <nobr>(23646 KB)</nobr></li>
+                        <li><a class="triangle" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.bib">BibTeX</a></li>
+                        <li><a class="triangle" href="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/isprs-annals-V-2-2020-845-2020.ris">EndNote</a></li>
+                    </ul>
+        
+                    </div>
+        
+            </div>
+        
+        
+        
+        <div id="share" class="oneColumnShareMobileBox widget dark-border hide-on-desktop">
+            <div class="legend journal-contentLinkColor">Share</div>
+            <div class="content row m-0 py-1">
+                <div class="col-auto pl-0">
+                    <a class="share-one-line" href="https://www.mendeley.com/import/?url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Mendeley" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/mendeley.png" alt="Mendeley"/>
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a class="share-one-line" href="https://www.reddit.com/submit?url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Reddit" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/reddit.png" alt="Reddit">
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a class="share-one-line last" href="https://twitter.com/intent/tweet?text=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F" title="Twitter" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/twitter.png" alt="Twitter"/>
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <a class="share-one-line" href="https://www.facebook.com/share.php?u=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F&t=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES" title="Facebook" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/facebook.png" alt="Facebook"/>
+                    </a>
+                </div>
+                <div class="col-auto pr-0">
+                    <a class="share-one-line last" href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fisprs-annals.copernicus.org%2Farticles%2FV-2-2020%2F845%2F2020%2F&title=RELATIVE+RADIOMETRIC+NORMALIZATION+USING+SEVERAL+AUTOMATICALLY+CHOSEN+REFERENCE+IMAGES+FOR+MULTI-SENSOR%2C+MULTI-TEMPORAL+SERIES" title="LinkedIn" target="_blank">
+                    <img src="https://isprs-annals.copernicus.org/linkedin.png" alt="LinkedIn">
+                    </a>
+                </div>
+                <div class="col pr-0 mobile-native-share">
+                    <a href="#" data-title="ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences" data-text="*RELATIVE RADIOMETRIC NORMALIZATION USING SEVERAL AUTOMATICALLY CHOSEN REFERENCE IMAGES FOR MULTI-SENSOR, MULTI-TEMPORAL SERIES*
+C. Hessel et al." data-url="https://isprs-annals.copernicus.org/articles/V-2-2020/845/2020/" class="mobile-native-share share-one-line last"><i class="co-mobile-share display-none"></i></a>
+                </div>            </div>
+        </div>
+    
+    <div class="citation-footer">
+                <strong class="journal-contentHeaderColor">How to cite. </strong> Hessel, C., Grompone von Gioi, R., Morel, J. M., Facciolo, G., Arias, P., and de Franchis, C.: RELATIVE RADIOMETRIC NORMALIZATION USING SEVERAL AUTOMATICALLY CHOSEN REFERENCE IMAGES FOR MULTI-SENSOR, MULTI-TEMPORAL SERIES, ISPRS Ann. Photogramm. Remote Sens. Spatial Inf. Sci., V-2-2020, 845&ndash;852, https://doi.org/10.5194/isprs-annals-V-2-2020-845-2020, 2020.
+    </div>
+</div>
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true" >
+
+    <!-- Background of PhotoSwipe.
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides.
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption ">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div></div>
+<!-- CO c_contentmanager_services::callProjectTemplate::867 30.04.2023 01:45:49, no memcache cache, 0.0052559375762939secs --></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="footer CMSCONTAINER" id="footer-wrapper">
+
+
+
+    <div id="cmsbox_117539" class="cmsbox g-bg-black-opacity-0_9 g-color-white-opacity-0_8 g-color-white-opacity-0_8--child g-py-60"><div class="g-bg-black-opacity-0_9 g-color-white-opacity-0_8 g-color-white-opacity-0_8--child g-py-60">
+  <div class="container">
+    <div class="row">
+      <!-- Footer Content -->
+      <div class="col-lg-3 col-md-6 g-mb-40 g-mb-0--lg">
+        <a class="d-block g-mb-20" href="https://www.isprs.org/default.aspx">
+          <img src="https://isprs-annals.copernicus.org/template_ISPRS_logo_2020.gif" alt="" style="width: 184px; height: 156px;" />
+        </a>
+        <p>The International Society for Photogrammetry and Remote Sensing is a non-governmental organization 
+            devoted to the development of international cooperation for the advancement of photogrammetry and 
+            remote sensing and their applications. The Society operates without any discrimination on grounds 
+            of race, religion, nationality, or political philosophy.</p>
+      </div>
+      <!-- End Footer Content -->
+
+      <!-- Footer Content -->
+      <!-- <div class="col-lg-3 col-md-6 g-mb-40 g-mb-0--lg">
+        <div class="u-heading-v3-1 g-brd-white-opacity-0_3 g-mb-25">
+          <h2 class="u-heading-v3__title h6 text-uppercase g-brd-primary">Latest Posts</h2>
+        </div>
+
+        <article>
+          <h3 class="h6 g-mb-2">
+            <a class="g-color-white-opacity-0_8 g-color-white--hover" href="#!">Incredible template</a>
+          </h3>
+          <div class="small g-color-white-opacity-0_6">May 8, 2017</div>
+        </article>
+
+        <hr class="g-brd-white-opacity-0_1 g-my-10">
+
+        <article>
+          <h3 class="h6 g-mb-2">
+            <a class="g-color-white-opacity-0_8 g-color-white--hover" href="#!">New features</a>
+          </h3>
+          <div class="small g-color-white-opacity-0_6">June 23, 2017</div>
+        </article>
+
+        <hr class="g-brd-white-opacity-0_1 g-my-10">
+
+        <article>
+          <h3 class="h6 g-mb-2">
+            <a class="g-color-white-opacity-0_8 g-color-white--hover" href="#!">New terms and conditions</a>
+          </h3>
+          <div class="small g-color-white-opacity-0_6">September 15, 2017</div>
+        </article>
+      </div>-->
+      <div class="col-lg-3 col-md-6 g-mb-40 g-mb-0--lg">
+        <div class="u-heading-v3-1 g-brd-white-opacity-0_3 g-mb-25">
+          <h2 class="u-heading-v3__title h6 text-uppercase g-brd-primary2">Useful Links</h2>
+        </div>
+
+        <nav class="text-uppercase1">
+          <ul class="list-unstyled g-mt-minus-10 mb-0">
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" title="The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences" href="https://www.isprs.org/publications/archives.aspx">ISPRS Archives</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" title="ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences" href="https://www.isprs.org/publications/annals.aspx">ISPRS Annals</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.isprs.org/news/newsletter/default.aspx">ISPRS eBulletin</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <!-- <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.isprs.org/calendar/2023.aspx">Calendar 2023</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li> -->
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.isprs.org/calendar/2026.aspx">Calendar 2026</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.isprs.org/calendar/2027.aspx">Calendar 2027</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" title="ISPRS Employment Opportunities Archive" href="https://www.isprs.org/job_opportunities/default.aspx">Job Opportunities</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.isprs.org/sitemap.aspx">Sitemap</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <!-- <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.isprs.org/society/midterm.aspx">Midterm Symposia 2018</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li> -->
+          </ul>
+        </nav>
+      </div>
+      <!-- End Footer Content -->
+
+      <!-- Footer Content -->
+      <div class="col-lg-3 col-md-6 g-mb-40 g-mb-0--lg">
+        <div class="u-heading-v3-1 g-brd-white-opacity-0_3 g-mb-25">
+          <h2 class="u-heading-v3__title h6 text-uppercase g-brd-primary2">Useful External Links</h2>
+        </div>
+
+        <nav class="text-uppercase1">
+          <ul class="list-unstyled g-mt-minus-10 mb-0">
+            
+            <!-- <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" 
+                href="http://www.isprs2020-nice.com" target="_blank">Nice Congress 2022</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li> -->
+            <!-- <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.gsw2019.org/" target="_blank">Geospatial Week 2023</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li> -->
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.journals.elsevier.com/isprs-journal-of-photogrammetry-and-remote-sensing" target="_blank">ISPRS Journal of Photogrammetry and Remote Sensing</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.journals.elsevier.com/isprs-open-journal-of-photogrammetry-and-remote-sensing" target="_blank">ISPRS Open Journal of Photogrammetry and Remote Sensing</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="http://www.mdpi.com/journal/ijgi" target="_blank">ISPRS International Journal of Geo-Information</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://www.isprs.org/foundation" target="_blank">The ISPRS Foundation</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-brd-bottom g-brd-white-opacity-0_1 g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://sc.isprs.org" target="_blank" title="ISPRS STudent and Early Professionals">ISPRS STEP</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+            <li class="g-pos-rel g-py-10">
+              <h4 class="h6 g-pr-20 mb-0">
+                <a class="g-color-white-opacity-0_8 g-color-white--hover" href="https://sc.isprs.org/newsletters/" target="_blank">ISPRS STEP Newsletter</a>
+                <i class="fa fa-angle-right g-absolute-centered--y g-right-0"></i>
+              </h4>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <!-- End Footer Content -->
+
+      <!-- Footer Content -->
+      <div class="col-lg-3 col-md-6">
+        <div class="u-heading-v3-1 g-brd-white-opacity-0_3 g-mb-25">
+          <h2 class="u-heading-v3__title h6 text-uppercase g-brd-primary2">Our Contact</h2>
+        </div>
+
+        <address class="g-bg-no-repeat g-line-height-2 g-mt-minus-4" style="background-image: url(/assets/img/maps/map2.png);">
+            ISPRS<br />
+            c/o<br />
+            Leibniz University Hannover<br />
+            Institute of Photogrammetry and GeoInformation<br />
+            Nienburger Str. 1<br />
+            D-30167 Hannover<br />
+            GERMANY<br />
+          Email: <a class="light" href="mailto:isprs-sg@isprs.org">isprs-sg@isprs.org</a>
+        </address>
+      </div>
+      <!-- End Footer Content -->
+    </div>
+  </div>
+</div>
+</div><div id="cmsbox_117540" class="cmsbox "><footer class="g-bg-gray-dark-v1 g-color-white-opacity-0_8 g-py-20">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 text-center text-md-left g-mb-15 g-mb-0--md">
+        <div class="d-lg-flex">
+          <small class="d-block g-font-size-default g-mr-10 g-mb-10 g-mb-0--md">2026 © ISPRS. All Rights Reserved.</small>
+          <ul class="u-list-inline">
+            <li class="list-inline-item">
+              <a class="light" href="https://www.isprs.org/privacy_notice.aspx">Privacy Notice</a>
+            </li>
+            <li class="list-inline-item">
+              <span>|</span>
+            </li>
+            <li class="list-inline-item">
+              <a class="light" href="https://www.isprs.org/imprint.aspx">Imprint</a>
+            </li>
+            <li class="list-inline-item">
+              <span>|</span>
+            </li>
+            <li class="list-inline-item">
+              Last Change <span id="ctl00_footer_lblLastModified">13-Jul-2026</span> 
+            </li> 
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-md-4 align-self-center">
+        <ul class="list-inline text-center text-md-right mb-0">
+          <li class="list-inline-item g-mx-10" data-toggle="tooltip" data-placement="top" title="Facebook">
+            <a href="https://www.facebook.com/isprs.org" class="g-color-white-opacity-0_5 g-color-white--hover" target="_blank">
+              <i class="fa fa-facebook"></i>
+            </a>
+          </li>
+          <!-- <li class="list-inline-item g-mx-10" data-toggle="tooltip" data-placement="top" title="Skype">
+            <a href="#!" class="g-color-white-opacity-0_5 g-color-white--hover">
+              <i class="fa fa-skype"></i>
+            </a>
+          </li>-->
+          <li class="list-inline-item g-mx-10" data-toggle="tooltip" data-placement="top" title="Linkedin">
+            <a href="https://www.linkedin.com/company/isprs_" class="g-color-white-opacity-0_5 g-color-white--hover" target="_blank">
+              <i class="fa fa-linkedin"></i>
+            </a>
+          </li>
+          <li class="list-inline-item g-mx-10" data-toggle="tooltip" data-placement="top" title="Instagram">
+            <a href="https://www.instagram.com/isprs_/" class="g-color-white-opacity-0_5 g-color-white--hover" target="_blank">
+              <i class="fa fa-instagram"></i>
+            </a>
+          </li>
+          <li class="list-inline-item g-mx-10" data-toggle="tooltip" data-placement="top" title="X (Twitter)">
+            <a href="https://x.com/ISPRS_" class="g-color-white-opacity-0_5 g-color-white--hover" target="_blank">
+              <i class="fa fa-X"></i>𝕏
+            </a>
+          </li>
+          <li class="list-inline-item g-mx-10" data-toggle="tooltip" data-placement="top" title="Youtube">
+            <a href="https://www.youtube.com/@ISPRS_Official" class="g-color-white-opacity-0_5 g-color-white--hover" target="_blank">
+              <i class="fa fa-youtube"></i>
+            </a>
+          </li>
+          <!-- <li class="list-inline-item g-mx-10" data-toggle="tooltip" data-placement="top" title="Dribbble">
+            <a href="#!" class="g-color-white-opacity-0_5 g-color-white--hover">
+              <i class="fa fa-dribbble"></i>
+            </a>
+          </li>-->
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+</div></div>
+
+    <a class="js-go-to" href="#!">
+
+        <i class="hs-icon hs-icon-arrow-top"></i>
+
+    </a>
+
+</div>
+
+</body>
+<!--CMS get_project_template.php::127 30.04.2023 01:45:49, from FS cache: 0.0030908584594727sec --></html>

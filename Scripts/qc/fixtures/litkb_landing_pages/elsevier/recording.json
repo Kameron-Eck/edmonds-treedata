@@ -1,0 +1,148 @@
+{
+  "client": {
+    "class": "litkb.netutil.Client",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
+  },
+  "doi": "10.1016/j.rse.2021.112806",
+  "final": {
+    "status": 403,
+    "url": "https://www.sciencedirect.com/science/article/pii/S0034425721005265?via%3Dihub",
+    "verdict": "identity_required",
+    "why": "HTTP 403 with no challenge signature (litkb.acquire.ledger.type_blocked rule 4)"
+  },
+  "grant": "brief-C2b-stage-c.md item 2 (S4.5, 2026-09-23): one GET of one real landing page per publisher rule, a DOI of that publisher from the corpus; nothing else",
+  "hops": [
+    {
+      "n": 0,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.1016/j.rse.2021.112806"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a3fb67436c531d77-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:28 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=o5WDNVF0DfmvE1EdfhI7N5bC0YA2PqdGHimzrGbnkrAsvCfteXwA8mEzF2C64fLM%2BjU2AuJ1NAKTpn%2Foa72EoxQV36KvnXQAKL0ndjvy5HyT353QgHBU0zY%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Wed, 23 Sep 2026 18:06:01 GMT",
+          "link": "<https://dul.usage.elsevier.com/doi/>; rel=dul",
+          "location": "https://linkinghub.elsevier.com/retrieve/pii/S0034425721005265",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 209,
+        "scrubbed": false,
+        "sha256": "eb12f53c4cb96e06ae5679883c001233eb14e0013f9dd01ec68b093c1bc9c978",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://linkinghub.elsevier.com/retrieve/pii/S0034425721005265"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Connection": "close",
+          "Content-Language": "en",
+          "Content-Length": "2749",
+          "Content-Type": "text/html;charset=UTF-8",
+          "Date": "Wed, 23 Sep 2026 17:52:29 GMT",
+          "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
+          "P3P": "CP=\"NON DSP COR CUR ADM DEV TAI PSA PSD OUR IND UNI NAV STA PRE COM INT CNT\",policyref=\"https://linkinghub.elsevier.com/retrieve/static/P3P/IHUB-p3p.xml\"",
+          "Pragma": "no-cache",
+          "tdm-policy": "https://www.elsevier.com/tdm/tdmrep-policy.json",
+          "tdm-reservation": "1"
+        },
+        "length": 2746,
+        "scrubbed": true,
+        "sha256": "2d7f99bfc48c801ebb3e461714ba49410de5beb1aa55f0d9935eeb3431e9b7ff",
+        "status": 200
+      }
+    },
+    {
+      "n": 2,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://linkinghub.elsevier.com/retrieve/articleSelectSinglePerm?Redirect=https%3A%2F%2Fwww.sciencedirect.com%2Fscience%2Farticle%2Fpii%2FS0034425721005265%3Fvia%253Dihub&key=<KEY>"
+      },
+      "response": {
+        "body_file": "hop2.body",
+        "headers": {
+          "Connection": "close",
+          "Content-Language": "en",
+          "Content-Length": "0",
+          "Date": "Wed, 23 Sep 2026 17:52:29 GMT",
+          "P3P": "CP=\"NON DSP COR CUR ADM DEV TAI PSA PSD OUR IND UNI NAV STA PRE COM INT CNT\",policyref=\"https://linkinghub.elsevier.com/retrieve/static/P3P/IHUB-p3p.xml\"",
+          "location": "https://www.sciencedirect.com/science/article/pii/S0034425721005265?via%3Dihub",
+          "tdm-policy": "https://www.elsevier.com/tdm/tdmrep-policy.json",
+          "tdm-reservation": "1"
+        },
+        "length": 0,
+        "scrubbed": false,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "status": 301
+      }
+    },
+    {
+      "n": 3,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.sciencedirect.com/science/article/pii/S0034425721005265?via%3Dihub"
+      },
+      "response": {
+        "body_file": "hop3.body",
+        "headers": {
+          "CF-RAY": "a3fb67484968dc9f-SEA",
+          "Cache-Control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=UTF-8",
+          "Date": "Wed, 23 Sep 2026 17:52:29 GMT",
+          "Expires": "Thu, 01 Jan 1970 00:00:01 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=2678400; preload",
+          "Transfer-Encoding": "chunked",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "SAMEORIGIN",
+          "tdm-policy": "https://www.elsevier.com/tdm/tdmrep-policy.json",
+          "tdm-reservation": "1"
+        },
+        "length": 734636,
+        "scrubbed": true,
+        "sha256": "d6a933492f74918149c1997f3b378bfdc82f630f64e8898132c0e3c397ade1ea",
+        "status": 403
+      }
+    }
+  ],
+  "kind": "litkb-landing-recording",
+  "recorded_at": "2026-09-23T17:52:29.625004+00:00",
+  "rule": "elsevier",
+  "scrub": "litkb.cassette.scrub_bytes / scrub_url (registered secrets), then the client-address mask of qc/instruments/litkb_landing_record.py (client_ips / scrub_ips); a scrubbed body's sha256 is of the bytes as written",
+  "version": 1,
+  "walk": {
+    "accept": "text/html",
+    "max_hops": 10,
+    "meta_refresh": true
+  },
+  "work_key": "Stehman_2022_incorporating-interpreter-variability"
+}

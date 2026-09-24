@@ -1,0 +1,122 @@
+{
+  "client": {
+    "class": "litkb.netutil.Client",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
+  },
+  "doi": "10.3389/fonc.2021.704850",
+  "final": {
+    "status": 200,
+    "url": "https://www.frontiersin.org/journals/oncology/articles/10.3389/fonc.2021.704850/full",
+    "verdict": "landing",
+    "why": "a page with citation metadata"
+  },
+  "grant": "brief-C2b-stage-c.md item 2 (S4.5, 2026-09-23): one GET of one real landing page per publisher rule, a DOI of that publisher from the corpus; nothing else",
+  "hops": [
+    {
+      "n": 0,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.3389/fonc.2021.704850"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a3fb68066af3fa42-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:52:59 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=HOfVtech%2BvD06DrwPcWZ6Y1UKkozfiRklWk9mzLiI8wmEPfBUFxLXvTNN%2BT8gyJ0Bv9dF5r4LnMJbDCnUh%2BxtJYlKmjRe2xgNCc7Rl6f6Iq%2FgNEqxn%2FV9yc%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Wed, 23 Sep 2026 18:06:01 GMT",
+          "location": "https://www.frontiersin.org/articles/10.3389/fonc.2021.704850/full",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 217,
+        "scrubbed": false,
+        "sha256": "3fc292ec98e155e61728715c01b50129ce1ba35eaf7382f73a0bc0d0a43a7494",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.frontiersin.org/articles/10.3389/fonc.2021.704850/full"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Connection": "close",
+          "Content-Length": "143",
+          "Content-Type": "text/html",
+          "Date": "Wed, 23 Sep 2026 17:53:00 GMT",
+          "X-Cache": "CONFIG_NOCACHE",
+          "X-Gateway-Server": "gate01",
+          "X-Request-Counters": "86768/0/0/638/0",
+          "X-Request-Timestamp": "1790185893",
+          "location": "/journals/oncology/articles/10.3389/fonc.2021.704850/full",
+          "x-azure-ref": "20260923T175300Z-17b564ff6fcsgnglhC1YVRpyfs0000001b70000000000gw1"
+        },
+        "length": 143,
+        "scrubbed": false,
+        "sha256": "e18e245dcba0cfbde4e8851c83450b14b4f039af8cf7999125063f07d2e9c947",
+        "status": 301
+      }
+    },
+    {
+      "n": 2,
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.frontiersin.org/journals/oncology/articles/10.3389/fonc.2021.704850/full"
+      },
+      "response": {
+        "body_file": "hop2.body",
+        "headers": {
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "max-age=3600, s-maxage=900, public, stale-while-revalidate=1800",
+          "Connection": "close",
+          "Content-Length": "1014394",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Wed, 23 Sep 2026 17:53:02 GMT",
+          "Vary": "Accept-Encoding",
+          "X-Cache": "TCP_MISS",
+          "X-Gateway-Server": "gate01",
+          "X-Request-Counters": "14034/0/0/497/0",
+          "X-Request-Timestamp": "1790185967",
+          "X-Route-Cache-Singleflight": "leader",
+          "etag": "\"3\"",
+          "x-azure-ref": "20260923T175300Z-17b564ff6fcdfpzxhC1YVRk5zw0000001a9000000000fbg9",
+          "x-fd-int-roxy-purgeid": "0",
+          "x-powered-by": "Nuxt"
+        },
+        "length": 1014394,
+        "scrubbed": false,
+        "sha256": "92b71b624a96510c56bfeb73060bfa750b053de422c8be730adb4d193f5a0fae",
+        "status": 200
+      }
+    }
+  ],
+  "kind": "litkb-landing-recording",
+  "recorded_at": "2026-09-23T17:53:02.529832+00:00",
+  "rule": "frontiers",
+  "scrub": "litkb.cassette.scrub_bytes / scrub_url (registered secrets), then the client-address mask of qc/instruments/litkb_landing_record.py (client_ips / scrub_ips); a scrubbed body's sha256 is of the bytes as written",
+  "version": 1,
+  "walk": {
+    "accept": "text/html",
+    "max_hops": 10,
+    "meta_refresh": true
+  },
+  "work_key": "Ma_2021_multi-task-deep-supervision"
+}

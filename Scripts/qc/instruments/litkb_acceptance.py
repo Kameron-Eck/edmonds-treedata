@@ -18,6 +18,13 @@ r"""The acceptance instrument for the litkb work plan: a session's "done" is a C
     PYTHONUTF8=1 py -3.12 qc/instruments/litkb_acceptance.py readability --manifest <manifest.json>
     PYTHONUTF8=1 LITKB_TEST_DB=litkb_test_wN py -3.12 qc/instruments/litkb_acceptance.py readability \
         --fire <kill|lease|cap|probe|scan|book|quarantine> [--manifest <manifest.json>]
+    PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_acceptance.py hardening --freeze \
+        --workstream ladder-1 --out <manifest.json> [--date YYYY-MM-DD]
+    PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_acceptance.py hardening --manifest <m>
+    PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_wN py -3.12 qc/instruments/litkb_acceptance.py \
+        hardening --fire <name|all> --db litkb_test_wN
+    PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_wN py -3.12 qc/instruments/litkb_acceptance.py \
+        hardening --replay --manifest <m> --db litkb_test_wN
 
 WHY THIS EXISTS. A multi-session plan whose sessions are graded by their own author's prose is
 not graded at all. Every subcommand here reads a document or a manifest FROZEN BEFORE the work,
@@ -35,7 +42,10 @@ discovery run actually discover), landing with S1; `codex` (did the adversarial 
 read every citation), landing between S1 and S2 with the Codex stage it grades; `first-work` (did
 ONE genuinely unknown work cross the whole loop unaided), landing with S2; `edges` (did every edge
 class end in the state the register adjudicated), landing with S3; `readability` (is everything
-acquired readable or classified, and do the (c) known-bads still fire), landing with S4. `run`,
+acquired readable or classified, and do the (c) known-bads still fire), landing with S4; `hardening`
+(the acquisition ladder's gated counters, each owned by a `litkb_hardening_<builder>.py` module and
+only loaded here; its freeze, grade, fire and replay are documented where the section begins), landing
+with S4.5. `run`,
 `synthesis` and `soak` land with their own sessions and are deliberately absent until then
 — an acceptance command that cannot fail is worse than no command. `guard-checkout` is not a
 session gate: it is the safety interlock the owner runs BEFORE removing any checkout. `preflight`
@@ -215,8 +225,9 @@ imported INSIDE the first-work functions. `codex` imports the `litkb` package to
 `review_check.citations`, because a second citation regex here would be a second grammar -- and
 imports it lazily for the same reason; it touches no database at all. `codex --mutate N` with no
 `--report` WRITES the mutated review beside the original and is the one subcommand that writes a
-file into a worktree. Nothing here writes to a database except `readability --fire`, and that only to
-a WORKER database (`litkb_test*`; `litkb` is refused before a connection opens). It is not run on Colab, so it does not
+file into a worktree. Nothing here writes to a database except `readability --fire`, `hardening --fire`
+and `hardening --replay`, and those only to a WORKER database (`litkb_test*`; `litkb` is refused before
+a connection opens, and `hardening` also refuses the RESERVED workers and never defaults to a shared one). It is not run on Colab, so it does not
 filter an injected `-f` argument (CLAUDE.md 3.10 applies to the Colab entry points).
 """
 import argparse
@@ -2397,6 +2408,785 @@ def cmd_readability(args):
     return 0 if readability_ok(gated, reported) else 1
 
 
+# ── hardening: the acquisition ladder, part 1 (S4.5) ──────────────────────────────────────
+#
+# The plan's "### S4.5" (b) is a COMMAND over counters six builders own. `edges`' and `readability`'s
+# shape, with one difference that is the whole of it: NOTHING HERE COMPUTES A COUNTER. Every counter
+# is a function in a `qc/instruments/litkb_hardening_<builder>.py` module (brief-CONTRACTS.md,
+# "Counters and fires"), loaded BY PATH, and this command only freezes, loads, runs, compares and
+# prints. A gated counter no module defines prints `unread` and FAILS — a gate whose module has not
+# landed is not a passing gate.
+#
+#   --freeze   the manifest BEFORE the run: the database's clock and identity, the repo head, the
+#              workstream, every probe file the counters read (path + content hash), the promised
+#              report and referee paths, the cassette index's identity, the gated and reported lists
+#              with bounds, and THE RUN ROWS (S4.5 decision D9) chosen by NAMED selectors.
+#   --manifest grade: one line, exit 0 iff every gated counter meets its bound.
+#   --fire     one (or every) module FIRE on a worker database: reset, control, reset, known-bad.
+#   --replay   the register replayed through the recorded cassette inside a socket guard that allows
+#              nothing; writes the replay summary the replay counters read.
+
+HARDENING_MANIFEST_KIND = "litkb-hardening"
+
+#: The GATED counters with their bounds, in the plan's (b) order ("### S4.5" Done-state (b)), then
+#: builder A's one addition: `replay_rows_disagreeing` is the gate the plan's (c) row "a cassette's
+#: 403 edited to 200 -> the replay disagrees with the register -> RED" needs and (b) does not name
+#: (builder-A report, open question). The vocabulary is THIS constant; the manifest records it for the
+#: reader and a manifest frozen under a different list is refused (the scout's rule).
+HARDENING_GATED = (
+    ("rehunt_route_spends", "=0"), ("relation_probe_rows", ">=1"), ("key_derivation_crashes", "=0"),
+    ("known_bad_relands", "=0"), ("proposals_unadjudicated", "=0"), ("bad_file_untyped", "=0"),
+    ("blocked_untyped", "=0"), ("quarantines_without_reason", "=0"), ("operator_binds_unproposed", "=0"),
+    ("preprints_sent_to_shadow", "=0"), ("post_freeze_sent", "=0"), ("shadow_miss_booked_blocked", "=0"),
+    ("bban_probe_hits_not_landed", "=0"), ("challenge_at_200_unbooked", "=0"),
+    ("landing_pages_booked_bad_file", "=0"), ("stubs_bound", "=0"), ("volumes_bound_as_article", "=0"),
+    ("free_ceiling_measured_unconverted", "=0"), ("budget_exceeded_silently", "=0"),
+    ("stage_b_rungs_unmeasured", "=0"), ("crosswalk_rows_without_identifier", "=0"),
+    ("identifiers_without_provenance", "=0"), ("conflicts_uncounted", "=0"),
+    ("nondistinct_schemes_in_unique_index", "=0"), ("unvalidated_items", "=0"),
+    ("replay_rows_graded_against_stubs", "=0"), ("replay_network_calls", "=0"), ("cassettes_stale", "=0"),
+    ("promotions_prepared", ">=1"),
+    ("replay_rows_disagreeing", "=0"),
+)
+
+#: The REPORTED counters the plan's (b) names (unbounded), plus decision D8's historical operator binds.
+HARDENING_REPORTED = ("promotions_committed", "page_ranges_unparsed", "transient_rows_unretried",
+                      "relation_edges_missing", "identifier_first_refusals", "books_without_isbn",
+                      "attempts_without_sha", "unowned_landings", "attempts_without_terminal",
+                      "files_without_word_count", "hits_without_version", "bronze_landing_unconverted",
+                      "manual_step_rows", "operator_binds_historical")
+
+#: Where the counter modules live, and their name pattern (brief-CONTRACTS.md).
+HARDENING_MODULE_DIR = SCRIPTS / "qc" / "instruments"
+HARDENING_MODULE_GLOB = "litkb_hardening_*.py"
+
+#: The probe files the counters read: every `phase4/qc/litkb_acq_probe_*` on disk at freeze.
+PROBE_GLOB = "litkb_acq_probe_*"
+
+#: The ruled run's ledger (the plan's rows 187 and 194, and the `registry-transient` rows item 1 names).
+RULED_HUNTS = "Reports/LITKB_RULED_HUNTS_2026-09-21.csv"
+
+#: The register rows the brief names for the run (plan items 1, 5, 7), and the ruled-run rows.
+RUN_REGISTER_ROWS = ("E13", "E21", "E06", "E20")
+RUN_RULED_ROWS = ("187", "194")
+
+#: The post-freeze row the plan names by value (item 5b NEGATIVE, REAL).
+POST_FREEZE_PROBE_DOI = "10.1016/j.rse.2024.114101"
+
+#: The CONSTRUCTED register `hardening --replay` replays beside the edge register (its rows are
+#: `C`-prefixed; each replays through the real ladder against its own CONSTRUCTED cassette).
+HARDENING_CONSTRUCTED_REGISTER = SCRIPTS / "qc" / "fixtures" / "litkb_hardening_constructed_register.json"
+
+
+def _bound_ok(value, bound):
+    """`=N` or `>=N`; an unread value (None) never meets a bound."""
+    if value is None:
+        return False
+    if bound.startswith(">="):
+        return value >= int(bound[2:])
+    return value == int(bound.lstrip("="))
+
+
+def _hardening_modules(directory=None):
+    """-> {"loaded": [(stem, path)], "failed": [(stem, error)], "counters": {name: (fn, stem)},
+    "reported": {name: (fn, stem)}, "fires": {name: (spec, stem)}}. A module that fails to import is
+    NAMED (its counters then print `unread`); two modules defining one name is refused outright —
+    a counter with two homes has no definition."""
+    directory = Path(directory or HARDENING_MODULE_DIR)
+    out = {"loaded": [], "failed": [], "counters": {}, "reported": {}, "fires": {}}
+    for path in sorted(directory.glob(HARDENING_MODULE_GLOB)):
+        stem = path.stem
+        try:
+            spec = importlib.util.spec_from_file_location(stem, path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except Exception as e:              # noqa: BLE001 — the module is named, its counters unread
+            out["failed"].append((stem, f"{type(e).__name__}: {str(e).splitlines()[0][:200] if str(e) else ''}"))
+            continue
+        out["loaded"].append((stem, str(path)))
+        for attr, key in (("COUNTERS", "counters"), ("REPORTED", "reported"), ("FIRES", "fires")):
+            # counters and reported counters share one namespace; fires have their own
+            spaces = ("fires",) if key == "fires" else ("counters", "reported")
+            for name, value in (getattr(mod, attr, None) or {}).items():
+                for other in spaces:
+                    if name in out[other]:
+                        raise SystemExit(f"litkb_acceptance hardening: {name!r} is defined by both "
+                                         f"{out[other][name][1]} and {stem}; a counter has ONE home")
+                out[key][name] = (value, stem)
+        for name, fn in (getattr(mod, "DETAILS", None) or {}).items():
+            out.setdefault("details", {})[name] = fn
+    return out
+
+
+# -- --freeze: the run rows (S4.5 decision D9), chosen by NAMED selectors --------------------
+
+class _LedgerReader:
+    """The reads the selectors need, on a READER connection. One object so the tests can hand the
+    selectors a fake with the same four methods and no database."""
+
+    def __init__(self, conn):
+        self.conn = conn
+
+    def work_of(self, scheme, ref):
+        """(work_id, key) of the main work holding this identifier, or None."""
+        if scheme not in ("doi", "arxiv") or not ref:
+            return None
+        row = self.conn.execute(
+            "SELECT i.work_id::text, w.key FROM litkb.main_identifiers i "
+            "JOIN litkb.main_works w ON w.work_id = i.work_id "
+            "WHERE i.scheme = %s AND i.active AND i.value_norm = litkb.norm_identifier(%s, %s) "
+            "ORDER BY w.key LIMIT 1", (scheme, scheme, ref)).fetchone()
+        return (row[0], row[1]) if row else None
+
+    def ref_of(self, work_id):
+        """(ref, scheme, key) a hunt can follow for this work: its DOI, else its arXiv id."""
+        rows = self.conn.execute(
+            "SELECT i.scheme, i.value, w.key FROM litkb.main_identifiers i "
+            "JOIN litkb.main_works w ON w.work_id = i.work_id WHERE i.work_id = %s AND i.active "
+            "AND i.scheme IN ('doi', 'arxiv') ORDER BY i.scheme DESC, i.value", (work_id,)).fetchall()
+        rows = sorted(rows, key=lambda r: (r[0] != "doi", r[1]))
+        if rows:
+            return rows[0][1], rows[0][0], rows[0][2]
+        key = self.conn.execute("SELECT key FROM litkb.main_works WHERE work_id = %s",
+                                (work_id,)).fetchone()
+        return None, None, (key[0] if key else None)
+
+    def has_file(self, work_id):
+        return bool(self.conn.execute("SELECT count(*) FROM litkb.main_files WHERE work_id = %s "
+                                      "AND status = 'active'", (work_id,)).fetchone()[0])
+
+    def attempt_works(self, status, route=None, work_type=None):
+        """{work_id: {route: n}} of works with an attempt in this status (optionally on one route,
+        optionally of one main_works.type)."""
+        sql = ("SELECT a.work_id::text, a.route, count(*) FROM litkb.acquisition_attempts a "
+               "JOIN litkb.main_works w ON w.work_id = a.work_id WHERE a.status = %(s)s")
+        if route:
+            sql += " AND a.route = %(r)s"
+        if work_type:
+            sql += " AND w.type = %(t)s"
+        out = {}
+        for wid, rt, n in self.conn.execute(sql + " GROUP BY 1, 2 ORDER BY 1, 2",
+                                            {"s": status, "r": route, "t": work_type}).fetchall():
+            out.setdefault(wid, {})[rt] = n
+        return out
+
+    def works_with_file_keys(self):
+        return {r[0] for r in self.conn.execute(
+            "SELECT DISTINCT w.key FROM litkb.main_files f JOIN litkb.main_works w ON w.work_id = f.work_id "
+            "WHERE f.status = 'active'").fetchall()}
+
+
+def _csv_rows(path):
+    p = Path(path)
+    if not p.is_file():
+        return []
+    with open(p, encoding="utf-8-sig", newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def _sel_register(ctx):
+    rows = {r["id"]: r for r in (ctx["register"].get("rows") or [])}
+    return [{"ref": rows[i]["ref"], "ref_scheme": rows[i].get("ref_scheme") or "doi",
+             "why": f"register row {i} ({rows[i].get('class')})"} for i in RUN_REGISTER_ROWS if i in rows]
+
+
+def _sel_pending_recording(ctx):
+    """Every register row still on the synthetic acquirer (`replay.routes.pending_recording`) whose
+    live mode is `execute`: the live pass must RECORD each of them, or it can never come off the stub
+    (auditor-A round 1, F8 — E03 and E07 were in the run only because a probe selector happened to
+    pick their DOIs). A `replay-only` row (E16) has no live hunt to record and is left out."""
+    return [{"ref": r["ref"], "ref_scheme": r.get("ref_scheme") or "doi",
+             "why": f"register row {r['id']} is pending a recording ({r.get('class')})"}
+            for r in ctx["register"].get("rows") or []
+            if ((r.get("replay") or {}).get("routes") or {}).get("pending_recording")
+            and (r.get("live") or {}).get("mode") == "execute" and r.get("ref")]
+
+
+def _sel_ruled(ctx):
+    return [{"ref": r["ref"], "ref_scheme": r.get("ref_scheme") or "doi",
+             "why": f"ruled run tracker {r['tracker_id']} ({r.get('group')}): ended "
+                    f"{r.get('hunt_state')}/{r.get('hunt_reason')}"}
+            for r in ctx["ruled"] if r.get("tracker_id") in RUN_RULED_ROWS]
+
+
+def _sel_ruled_transient(ctx):
+    return [{"ref": r["ref"], "ref_scheme": r.get("ref_scheme") or "doi",
+             "why": f"ruled run tracker {r['tracker_id']}: api-error/registry-transient (the back-off rows, item 1)"}
+            for r in ctx["ruled"] if r.get("hunt_reason") == "registry-transient"]
+
+
+def _sel_post_freeze(ctx):
+    return [{"ref": POST_FREEZE_PROBE_DOI, "ref_scheme": "doi",
+             "why": "plan item 5b NEGATIVE, REAL: post-freeze, refused before any shadow request"}]
+
+
+def _sel_no_oa_copy(ctx):
+    return [{"ref": r["doi"], "ref_scheme": "doi", "why": "an open_access/no-oa-copy DOI (Stage B asks every rung)"}
+            for r in ctx["probe"]("litkb_acq_probe_no_oa_copy.csv") if r.get("doi")]
+
+
+def _sel_free_pdf(ctx):
+    return [{"ref": r["doi"], "ref_scheme": "doi", "why": f"head probe FREE-PDF via {r.get('resolver')} (must convert)"}
+            for r in ctx["probe"]("litkb_acq_probe_head.csv") if r.get("verdict") == "FREE-PDF"]
+
+
+def _sel_wayback(ctx):
+    return [{"ref": r["doi"], "ref_scheme": "doi",
+             "why": f"head probe: the {r.get('resolver')} URL answered 404 (Stage E1's input)"}
+            for r in ctx["probe"]("litkb_acq_probe_head.csv") if str(r.get("status")) == "404"]
+
+
+def _sel_bronze(ctx):
+    return [{"ref": r["doi"], "ref_scheme": "doi", "why": "Unpaywall answer is a doi.org landing page (Stage C, reported)"}
+            for r in ctx["probe"]("litkb_acq_probe_no_oa_copy.csv")
+            if (r.get("unpaywall_url") or "").startswith("https://doi.org/")]
+
+
+def _sel_status(status):
+    def sel(ctx):
+        return [{"work_id": wid, "why": f"{status} attempts: " + ", ".join(f"{rt}={n}" for rt, n in sorted(by.items()))}
+                for wid, by in sorted(ctx["ledger"].attempt_works(status).items())]
+    return sel
+
+
+def _sel_bban(ctx):
+    return [{"ref": r["doi"], "ref_scheme": "doi",
+             "why": f"bban probe {r.get('verdict')} (tried {r.get('tried')}, {r.get('http_status')})"}
+            for r in ctx["probe"]("litkb_acq_probe_bban.csv") if r.get("doi")]
+
+
+def _sel_preprint_misses(ctx):
+    ledger = ctx["ledger"]
+    out = {wid: "a preprint (main_works.type) the archive missed"
+           for wid in ledger.attempt_works("not-in-archive", route="annas", work_type="preprint")}
+    posted = {r["key"] for r in ctx["probe"]("litkb_acq_probe_crosswalk.csv") if r.get("cr_type") == "posted-content"}
+    for wid in ledger.attempt_works("not-in-archive", route="annas"):
+        _ref, _scheme, key = ledger.ref_of(wid)
+        if key in posted:
+            out.setdefault(wid, "Crossref type posted-content (crosswalk probe), missed by the archive")
+    return [{"work_id": wid, "why": why} for wid, why in sorted(out.items())]
+
+
+def _sel_crosswalk(ctx):
+    have = ctx["ledger"].works_with_file_keys()
+    out = []
+    for r in ctx["probe"]("litkb_acq_probe_crosswalk.csv"):
+        if r.get("key") in have or not r.get("doi"):
+            continue
+        gains = [f"{c}={r[c]}" for c in ("s2_arxiv", "cr_isbn", "cr_relation_types") if r.get(c)]
+        if gains:
+            out.append({"ref": r["doi"], "ref_scheme": "doi", "why": "crosswalk, no file: " + "; ".join(gains)})
+    return out
+
+
+#: The NAMED selectors, in the order a row's id is assigned. Each is a small function over the probe
+#: CSVs, the ledger (reader role) or the register; the manifest records every selector that chose a row.
+RUN_SELECTORS = (
+    ("register", _sel_register), ("pending-recording", _sel_pending_recording),
+    ("ruled", _sel_ruled), ("ruled-registry-transient", _sel_ruled_transient),
+    ("post-freeze-probe", _sel_post_freeze), ("free-pdf", _sel_free_pdf), ("wayback", _sel_wayback),
+    ("bronze-landing", _sel_bronze), ("no-oa-copy", _sel_no_oa_copy), ("bad-file", _sel_status("bad-file")),
+    ("blocked", _sel_status("blocked")), ("bban", _sel_bban), ("preprint-archive-miss", _sel_preprint_misses),
+    ("crosswalk", _sel_crosswalk),
+)
+
+
+def select_run_rows(ctx, selectors=RUN_SELECTORS):
+    """-> (rows, unhuntable, counts). Deduplicated BY WORK (a reference no main work holds is its own
+    key); every selector that chose a row is kept in `source`. `mode` is `measure` when the work
+    already holds an active file (every rung is asked, nothing lands twice), else `hunt`."""
+    ledger = ctx["ledger"]
+    merged, order, counts = {}, [], {}
+    for idx, (name, fn) in enumerate(selectors):
+        picked = fn(ctx)
+        counts[name] = len(picked)
+        for c in picked:
+            wid, key = c.get("work_id"), None
+            ref, scheme = c.get("ref"), c.get("ref_scheme")
+            if not wid:
+                hit = ledger.work_of(scheme, ref)
+                if hit:
+                    wid = hit[0]
+            if wid:
+                # a resolved work is hunted by its OWN stored identifier (DOI, else arXiv), whatever
+                # spelling the probe CSV carried; a work with neither keeps the candidate's reference
+                own_ref, own_scheme, key = ledger.ref_of(wid)
+                if own_ref or not ref:
+                    ref, scheme = own_ref, own_scheme
+            dk = wid or f"{scheme}:{str(ref or '').strip().lower()}"
+            if dk not in merged:
+                merged[dk] = {"ref": ref, "ref_scheme": scheme, "work_id": wid, "key": key,
+                              "source": [], "why": [], "_order": (idx, str(ref or ""))}
+                order.append(dk)
+            m = merged[dk]
+            if name not in m["source"]:
+                m["source"].append(name)
+                m["why"].append(f"{name}: {c.get('why')}")
+    rows, unhuntable = [], []
+    for dk in sorted(order, key=lambda k: merged[k]["_order"]):
+        m = merged.pop(dk)
+        m.pop("_order")
+        m["why"] = "; ".join(m["why"])
+        if not m["ref"]:
+            unhuntable.append({**m, "reason": "the work holds no DOI and no arXiv id a hunt can follow"})
+            continue
+        m["mode"] = "measure" if (m["work_id"] and ledger.has_file(m["work_id"])) else "hunt"
+        rows.append(m)
+    for n, r in enumerate(rows, 1):
+        r["id"] = f"L{n:03d}"
+    return [{k: r[k] for k in ("id", "ref", "ref_scheme", "mode", "source", "why", "work_id", "key")}
+            for r in rows], unhuntable, counts
+
+
+def _rel(repo, p):
+    try:
+        return Path(p).resolve().relative_to(Path(repo).resolve()).as_posix()
+    except ValueError:
+        return str(p)
+
+
+def _frozen_ladder_budget():
+    """{"seconds", "attempts"} of the ladder budget the run will declare (`litkb.acquire.policy.LadderBudget()`),
+    written into the manifest at freeze so `budget_exceeded_silently` reads a threshold held OUTSIDE the ladder
+    (builder C1a's `frozen_budget`; integrator-w2). `attempts` is null: the default is derived per ladder."""
+    from litkb.acquire import policy as P
+
+    b = P.LadderBudget()
+    return {"seconds": b.seconds, "attempts": b.attempts}
+
+
+def _hardening_freeze(args):
+    for required in ("workstream", "out"):
+        if not getattr(args, required):
+            print(f"hardening --freeze needs --{required}", file=sys.stderr)
+            return 2
+    from litkb import cassette as CAS
+    from litkb.acquire.store import LITERATURE_ROOT
+
+    HA = _load_instrument("litkb_hardening_a")
+    repo = Path(args.repo or _repo_root())
+    db = args.db or "litkb"
+    ws_id = resolve_workstream(db, args.role, args.workstream)
+    if ws_id is None:
+        print(f"hardening --freeze: no open workstream {args.workstream!r} on {db}", file=sys.stderr)
+        return 2
+    probe_dir = repo / "phase4" / "qc"
+    probes = sorted(probe_dir.glob(PROBE_GLOB))
+    register_path = Path(args.fixture) if args.fixture else SCRIPTS / "qc" / "fixtures" / "litkb_hunt_edge_cases.json"
+    constructed_path = Path(args.constructed) if args.constructed else HARDENING_CONSTRUCTED_REGISTER
+    ruled_path = repo / RULED_HUNTS
+    conn = _connect(db, args.role, autocommit=False)
+    try:
+        from psycopg import IsolationLevel
+
+        conn.isolation_level = IsolationLevel.REPEATABLE_READ
+        with conn.transaction():
+            # THE FREEZE INSTANT IS THE DATABASE'S, and the run rows are read in the same snapshot
+            frozen_at = conn.execute("SELECT now()").fetchone()[0]
+            name, oid = _db_identity(conn)
+            ctx = {"ledger": _LedgerReader(conn),
+                   "register": json.loads(read_text(register_path)),
+                   "ruled": _csv_rows(ruled_path),
+                   "probe": lambda base: _csv_rows(probe_dir / base)}
+            rows, unhuntable, counts = select_run_rows(ctx)
+    finally:
+        conn.close()
+    # THE ONE ADMIN READ. `litkb_meta` is readable by `litkb_owner` alone (db_migration_tip), so the
+    # tip needs the owner login — readability's freeze does the same. `--no-admin-read` records the tip
+    # as null with the reason, so a freeze that must stay on the reader login (a builder's trial on
+    # live) can (auditor-A round 1, F7: a trial freeze read live as litkb_owner through this call).
+    if args.no_admin_read:
+        db_tip, db_tip_note = None, "not read: --no-admin-read (litkb_meta needs the owner login)"
+    else:
+        db_tip, db_tip_note = db_migration_tip(db, args.passfile)
+    date = args.date or frozen_at.astimezone().strftime("%Y-%m-%d")
+    stem = f"LITKB_LADDER1_{date}"
+    index = Path(args.cassette) if args.cassette else SCRIPTS / "qc" / "fixtures" / "litkb_cassettes" / args.workstream / "index.jsonl"
+    derived = repo / "_derived" / "hardening"
+    manifest = {
+        "kind": HARDENING_MANIFEST_KIND,
+        "frozen_at": frozen_at.astimezone(dt.timezone.utc).isoformat(),
+        "frozen_at_source": "db",
+        "repo": str(repo),
+        "repo_head": _repo_head(repo),
+        "code_committed": _code_committed(repo),
+        "db": db, "db_name": name, "db_oid": oid, "reader_role": args.role,
+        "repo_migration_tip": repo_migration_tip(),
+        "db_migration_tip": db_tip, "db_migration_tip_note": db_tip_note,
+        "workstream_slug": args.workstream, "workstream_id": ws_id, "run_workstream_ids": [ws_id],
+        "worktree": str(args.worktree or repo),
+        # the literature root the counters read the store under (builder C1b's quarantine and bound-file
+        # counters name this key; seam integrator-w1) — frozen, so a grade reads the store the run wrote
+        "literature_root": str(LITERATURE_ROOT),
+        # the run's ladder budget, FROZEN outside the ladder: builder C1a's `budget_exceeded_silently` grades
+        # against it (Codex X2: removing the budget object must not remove the threshold the checker reads;
+        # auditor-C1a r2 F6 / r3 F4, routed to this file; integrator-w2). `attempts` null = derived per ladder.
+        "ladder_budget": _frozen_ladder_budget(),
+        # CONTRACTS' shape: {basename: path}; the content hash of each beside it (brief-A asked for
+        # {path, sha256} under one key — the other builders' counters read the CONTRACTS shape)
+        "probe_csvs": {p.name: _rel(repo, p) for p in probes},
+        "probe_csvs_sha256": {p.name: _register_sha256(p) for p in probes},
+        "register": {"path": _rel(repo, register_path), "sha256": _register_sha256(register_path)},
+        # the CONSTRUCTED rows `hardening --replay` replays beside the register (plan item 7: "a
+        # cassette's 403 edited to 200, a truncated body, an HTML body"; auditor-A round 1, F2)
+        "constructed_register": {"path": _rel(repo, constructed_path),
+                                 "sha256": _register_sha256(constructed_path)},
+        "ruled_hunts": {"path": _rel(repo, ruled_path),
+                        "sha256": _register_sha256(ruled_path) if ruled_path.is_file() else None},
+        "report_path": f"Reports/{stem}.md",
+        "referee_reports": {cls: f"Reports/LITKB_REFEREE_S45_{cls.upper()}_{date}.md"
+                            for cls in HA.REFEREE_CLASSES},
+        "cassette_index": {"path": _rel(repo, index), "sha256": CAS.index_sha256(index),
+                           "bodies": str(args.bodies or CAS.default_bodies()),
+                           "inline_max_bytes": CAS.INLINE_MAX_BYTES},
+        "run_csv": _rel(repo, derived / f"{stem}_run.csv"),
+        # the run driver's last word on the recording: the index's sha256 when the live pass finished
+        # (litkb_ladder_run.write_recording_report); the replay counters refuse an index that is not it
+        "recording_report": _rel(repo, derived / f"{stem}_recording.json"),
+        "replay_csv": _rel(repo, derived / f"{stem}_replay.csv"),
+        "replay_report": _rel(repo, derived / f"{stem}_replay.json"),
+        "gated": [{"name": n, "bound": b} for n, b in HARDENING_GATED],
+        "reported": list(HARDENING_REPORTED),
+        "selectors": counts,
+        "rows": rows,
+        "unhuntable": unhuntable,
+    }
+    manifest["manifest_sha256"] = _canonical_sha(manifest)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(manifest, indent=1, default=str), encoding="utf-8")
+    modes = {}
+    for r in rows:
+        modes[r["mode"]] = modes.get(r["mode"], 0) + 1
+    print(f"frozen {out} db={name} workstream={args.workstream} rows={len(rows)} "
+          + " ".join(f"{k}={v}" for k, v in sorted(modes.items()))
+          + f" unhuntable={len(unhuntable)} head={manifest['repo_head'][:12]} db_tip={db_tip} "
+          f"cassette_sha={str(manifest['cassette_index']['sha256'])[:12]}")
+    return 0
+
+
+def _load_instrument(stem):
+    spec = importlib.util.spec_from_file_location(stem, SCRIPTS / "qc" / "instruments" / f"{stem}.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def load_hardening_manifest(path):
+    """The manifest, REFUSED (SystemExit, nothing graded) when its kind is wrong, a field was edited
+    after the freeze, or its gated list is not this code's."""
+    manifest = json.loads(read_text(path))
+    # BEGIN guard: a hardening manifest edited after its freeze is refused
+    if manifest.get("kind") != HARDENING_MANIFEST_KIND:
+        raise SystemExit(f"litkb_acceptance hardening: {path} is not a {HARDENING_MANIFEST_KIND!r} manifest "
+                         f"(kind {manifest.get('kind')!r}). Nothing was graded.")
+    if manifest.get("manifest_sha256") != _canonical_sha(manifest):
+        raise SystemExit(f"litkb_acceptance hardening: {path} was edited after its freeze (manifest_sha256 "
+                         "does not match its content). Re-freeze it. Nothing was graded.")
+    # END guard: a hardening manifest edited after its freeze is refused
+    frozen = [(g.get("name"), g.get("bound")) for g in manifest.get("gated") or []]
+    if frozen != list(HARDENING_GATED):
+        raise SystemExit("litkb_acceptance hardening: the manifest's gated list is not this code's "
+                         "HARDENING_GATED; a manifest frozen under other bounds grades a different "
+                         "question. Re-freeze it. Nothing was graded.")
+    return manifest
+
+
+def _read_only_reader(manifest, db=None):
+    """A litkb_reader connection to the manifest's database, in READ ONLY session mode, refused when
+    the database is not the one frozen (name + oid: readability's rule)."""
+    conn = _connect(db or manifest["db"], manifest.get("reader_role") or "litkb_reader")
+    conn.execute("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY")
+    name, oid = _db_identity(conn)
+    if (name, oid) != (manifest.get("db_name"), manifest.get("db_oid")):
+        conn.close()
+        raise SystemExit(f"litkb_acceptance hardening: the manifest was frozen on {manifest.get('db_name')!r} "
+                         f"(oid {manifest.get('db_oid')}); this is {name!r} (oid {oid}). Nothing was graded.")
+    return conn
+
+
+def check_hardening(manifest, *, conn=None, db=None, module_dir=None):
+    """-> (gated {name: int | None}, reported {name: int | None}, offences, modules). None = UNREAD."""
+    mods = _hardening_modules(module_dir)
+    own = conn is None
+    conn = conn or _read_only_reader(manifest, db)
+    offences = [f"module failed to load: {stem} ({err})" for stem, err in mods["failed"]]
+    gated, reported = {}, {}
+
+    def run(fn, name):
+        try:
+            return int(fn(conn, manifest))
+        except Exception as e:              # noqa: BLE001 — an unreadable counter is UNREAD, named
+            offences.append(f"{name}: unread — {type(e).__name__}: {str(e).splitlines()[0][:240] if str(e) else ''}")
+            return None
+    try:
+        for name, _bound in HARDENING_GATED:
+            hit = mods["counters"].get(name)
+            # BEGIN guard: a gated counter no module defines is unread and fails the exit
+            if hit is None:
+                offences.append(f"{name}: unread — no loaded litkb_hardening_*.py module defines it")
+                gated[name] = None
+                continue
+            # END guard: a gated counter no module defines is unread and fails the exit
+            gated[name] = run(hit[0], name)
+        for name, (fn, stem) in mods["counters"].items():
+            if name not in gated:
+                offences.append(f"{name}: defined by {stem} as a gated counter but not in HARDENING_GATED; "
+                                "printed as REPORTED")
+                reported[name] = run(fn, name)
+        for name in HARDENING_REPORTED:
+            hit = mods["reported"].get(name)
+            reported[name] = run(hit[0], name) if hit else None
+        for name, (fn, _stem) in mods["reported"].items():
+            if name not in reported:
+                reported[name] = run(fn, name)
+        for name, fn in (mods.get("details") or {}).items():
+            value = gated.get(name, reported.get(name))
+            if value:
+                try:
+                    offences += [f"{name}: {line}" for line in fn(conn, manifest)][:40]
+                except Exception:          # noqa: BLE001 — a detail is a courtesy, never a verdict
+                    pass
+    finally:
+        if own:
+            conn.close()
+    return gated, reported, offences, mods
+
+
+def hardening_ok(gated):
+    """Every gated counter read and inside its bound."""
+    bounds = dict(HARDENING_GATED)
+    return all(_bound_ok(gated.get(n), bounds[n]) for n in bounds)
+
+
+def hardening_line(gated, reported):
+    return " ".join(f"{k}={_fmt(v)}" for k, v in (*gated.items(), *reported.items()))
+
+
+# -- --fire ---------------------------------------------------------------------------------
+
+def _hardening_fire_db(db):
+    """The worker database a fire or a replay may reset: named EXPLICITLY, a `litkb_test_w<N>`, not
+    RESERVED, and the database litkb's own reset will agree to (LITKB_TEST_DB). `--db` is required:
+    LITKB_TEST_DB alone is not a choice made for THIS command."""
+    db = (db or "").strip()
+    # BEGIN guard: hardening resets only an explicitly named, unreserved worker database
+    if db.lower() == FORBIDDEN_FIRE_DB or not _FIRE_WORKER_DB.fullmatch(db):
+        raise SystemExit(f"litkb_acceptance hardening resets its database, so it runs only on a worker "
+                         f"database named explicitly (--db litkb_test_w<N>); got {db!r}. It never "
+                         "defaults to a shared database.")
+    if db in reserved_worker_dbs():
+        raise SystemExit(f"litkb_acceptance hardening refuses {db!r}: it is RESERVED "
+                         f"({', '.join(reserved_worker_dbs())})")
+    # END guard: hardening resets only an explicitly named, unreserved worker database
+    env = os.environ.get("LITKB_TEST_DB")
+    if env and env.strip() != db:
+        raise SystemExit(f"litkb_acceptance hardening: --db {db} but LITKB_TEST_DB={env}; litkb's reset "
+                         "refuses every database but LITKB_TEST_DB, so set it to the same worker")
+    os.environ["LITKB_TEST_DB"] = db
+    from litkb.db import connect as c          # DB_TEST is read at import: check what it READ
+
+    if c.DB_TEST != db:
+        raise SystemExit(f"litkb_acceptance hardening: litkb.db.connect was imported with DB_TEST="
+                         f"{c.DB_TEST}; run with LITKB_TEST_DB={db} set before the command starts")
+    return db
+
+
+def _reset(conn):
+    from litkb.db import migrate
+
+    migrate.reset(conn)
+    migrate.apply(conn)
+
+
+def hardening_fire(name, *, db, conn=None, module_dir=None, workroot=None, reset=None):
+    """Run one module fire: reset, control arm, reset, known-bad arm, reset. -> {"name", "lines",
+    "fired", "verdict"}. `conn` (tests) is the worker database's owner login, used without the lock;
+    `reset` (tests of the verdict alone) replaces the reset + migrate."""
+    import tempfile
+
+    _reset_db = reset or _reset
+    mods = _hardening_modules(module_dir)
+    hit = mods["fires"].get(name)
+    if hit is None:
+        raise SystemExit(f"hardening --fire: no module defines a fire {name!r} "
+                         f"(defined: {', '.join(sorted(mods['fires'])) or 'none'})")
+    spec, stem = hit
+    counter = spec.get("counter")
+    bound = spec.get("bound") or dict(HARDENING_GATED).get(counter)
+    lines = []
+    if bound is None:
+        return {"name": name, "lines": [f"fire={name} ({stem}) counter={counter} has no bound: "
+                                        "DID-NOT-FIRE (error)"], "fired": False,
+                "verdict": "DID-NOT-FIRE (error)"}
+    from litkb.db import connect as c
+
+    own = conn is None
+    lock = _edge_run()._SUITE_LOCK
+    if own:
+        conn = c.connect(db, "litkb_test", autocommit=True)
+        conn.execute("SELECT pg_advisory_lock(%s)", (lock,))
+    values, error = {}, None
+    try:
+        for arm in ("control", "known_bad"):
+            _reset_db(conn)
+            with tempfile.TemporaryDirectory(prefix=f"litkb-hardening-{name}-{arm}-",
+                                             ignore_cleanup_errors=True, dir=workroot) as wd:
+                try:
+                    values[arm] = int(spec["run"](conn, arm, wd))
+                except Exception as e:      # noqa: BLE001 — an arm that raised proves nothing
+                    error = f"{arm}: {type(e).__name__}: {str(e).splitlines()[0][:240] if str(e) else ''}"
+                    break
+    finally:
+        try:
+            _reset_db(conn)
+        finally:
+            if own:
+                try:
+                    conn.execute("SELECT pg_advisory_unlock(%s)", (lock,))
+                except Exception:          # noqa: BLE001 — a closed connection unlocks itself
+                    pass
+                conn.close()
+    for arm in ("control", "known_bad"):
+        if arm in values:
+            lines.append(f"fire={name} ({stem}) arm={arm} {counter}={values[arm]} (bound {bound})")
+    # BEGIN guard: a fire is FIRED only when the control holds its bound and the known-bad breaks it
+    if error:
+        verdict = "DID-NOT-FIRE (error)"
+        lines.append(f"fire={name} error {error}")
+    elif _bound_ok(values["control"], bound) and not _bound_ok(values["known_bad"], bound):
+        verdict = "FIRED"
+    else:
+        verdict = "DID-NOT-FIRE"
+    # END guard: a fire is FIRED only when the control holds its bound and the known-bad breaks it
+    lines.append(f"fire={name} {verdict}")
+    return {"name": name, "lines": lines, "fired": verdict == "FIRED", "verdict": verdict}
+
+
+# -- --replay -------------------------------------------------------------------------------
+
+def replay_register(manifest, repo):
+    """(register dict, register path, constructed path): the manifest's edge register, with the rows
+    of its CONSTRUCTED register (`constructed_register`, when the manifest names one) appended — the
+    plan's item-7 CONSTRUCTED rows are replayed and graded with the register's, in one summary."""
+    def at(p):
+        q = Path(p)
+        return q if q.is_absolute() else repo / q
+    register_path = at(manifest["register"]["path"])
+    register = json.loads(read_text(register_path))
+    con = (manifest.get("constructed_register") or {}).get("path")
+    constructed_path = at(con) if con else None
+    if constructed_path is not None:
+        extra = json.loads(read_text(constructed_path)).get("rows") or []
+        have = {r["id"] for r in register.get("rows") or []}
+        clash = sorted(have & {r["id"] for r in extra})
+        if clash:
+            raise SystemExit(f"hardening --replay: the CONSTRUCTED register reuses register row ids {clash}")
+        register = dict(register, rows=list(register.get("rows") or []) + extra)
+    return register, register_path, constructed_path
+
+
+def hardening_replay(manifest, *, db, conn=None, bodies=None):
+    """Replay the manifest's register (and its CONSTRUCTED register) through its recorded cassette on
+    a worker database, inside a socket guard that allows nothing; write the replay CSV and summary the
+    manifest promised. -> the summary dict."""
+    import tempfile
+
+    from litkb import cassette as CAS
+
+    HA = _load_instrument("litkb_hardening_a")
+    repo = Path(manifest["repo"])
+
+    def at(p):
+        q = Path(p)
+        return q if q.is_absolute() else repo / q
+    register, register_path, constructed_path = replay_register(manifest, repo)
+    index = at(manifest["cassette_index"]["path"])
+    cas = CAS.Cassette(index, "replay", bodies=bodies or manifest["cassette_index"].get("bodies")) \
+        if index.is_file() else None
+    guard = CAS.SocketGuard(allow_hosts=(), label="hardening --replay guard")
+    from litkb.db import connect as c
+
+    own = conn is None
+    lock = _edge_run()._SUITE_LOCK
+    if own:
+        conn = c.connect(db, "litkb_test", autocommit=True)
+        conn.execute("SELECT pg_advisory_lock(%s)", (lock,))
+    try:
+        _reset(conn)
+        with tempfile.TemporaryDirectory(prefix="litkb-hardening-replay-", ignore_cleanup_errors=True) as wd:
+            summary = HA.build_replay_summary(
+                conn, register=register, register_path=register_path, db=db, workdir=wd, cassette=cas,
+                guard=guard, index_path=index, out_csv=at(manifest["replay_csv"]),
+                constructed_path=constructed_path)
+        _reset(conn)
+    finally:
+        if own:
+            try:
+                conn.execute("SELECT pg_advisory_unlock(%s)", (lock,))
+            except Exception:              # noqa: BLE001
+                pass
+            conn.close()
+    out = at(manifest["replay_report"])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(summary, indent=1, default=str), encoding="utf-8")
+    return summary
+
+
+def cmd_hardening(args):
+    if args.freeze:
+        return _hardening_freeze(args)
+    if args.fire:
+        db = _hardening_fire_db(args.db)
+        names = sorted(_hardening_modules()["fires"]) if args.fire == "all" else [args.fire]
+        ok = True
+        for name in names:
+            res = hardening_fire(name, db=db)
+            for line in res["lines"]:
+                print(line)
+            ok = ok and res["fired"]
+        return 0 if ok and names else 1
+    if not args.manifest:
+        print("litkb_acceptance hardening needs --manifest (or --freeze, or --fire)", file=sys.stderr)
+        return 2
+    manifest = load_hardening_manifest(args.manifest)
+    if args.replay:
+        db = _hardening_fire_db(args.db)
+        s = hardening_replay(manifest, db=db)
+        HA = _load_instrument("litkb_hardening_a")
+        stale = s["stale"]
+        for u in stale["unplayed"][:50]:
+            print(f"unplayed: row={u['row']} seq={u['seq']} {u['url']}", file=sys.stderr)
+        for m in stale["misses"][:50]:
+            print(f"miss: row={m['row']} {m['url']} ({m['why']})", file=sys.stderr)
+        for o in s["edges_offences"][:50]:
+            print(f"replay: {o}", file=sys.stderr)
+        try:
+            stale_n = HA.count_stale(s)
+        except HA.Unread as e:
+            print(f"cassettes_stale: unread — {e}", file=sys.stderr)
+            stale_n = "unread"
+        for r in s.get("rows_not_replayed") or []:
+            print(f"recorded, not replayed: row={r['row']} entries={r['entries']}", file=sys.stderr)
+        try:
+            not_replayed_n = HA.count_rows_not_replayed(s)
+        except HA.Unread:
+            not_replayed_n = "unread"
+        print(f"replay_rows_graded_against_stubs={HA.count_stubs(s)} replay_network_calls={s['network_calls']} "
+              f"cassettes_stale={stale_n} replay_rows_disagreeing={HA.count_disagreeing(s)} "
+              f"cassette_rows_not_replayed={not_replayed_n} "
+              f"rows={len(s['rows'])} out={manifest['replay_report']}")
+        return 0
+    gated, reported, offences, mods = check_hardening(manifest, db=args.db)
+    print("modules: " + (", ".join(stem for stem, _p in mods["loaded"]) or "none")
+          + (f"; FAILED: {', '.join(s for s, _e in mods['failed'])}" if mods["failed"] else ""),
+          file=sys.stderr)
+    for line in offences:
+        print(line, file=sys.stderr)
+    print(hardening_line(gated, reported))
+    return 0 if hardening_ok(gated) else 1
+
+
 # ── cli ───────────────────────────────────────────────────────────────────────────────────
 
 def build_parser():
@@ -2497,6 +3287,37 @@ def build_parser():
     r.add_argument("--repo", help="repository root (default: this instrument's own)")
     r.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
     r.set_defaults(func=cmd_readability)
+
+    h = sub.add_parser("hardening",
+                       help="the acquisition ladder, part 1 (S4.5): freeze, grade, fire, replay")
+    h.add_argument("--freeze", action="store_true",
+                   help="write the manifest BEFORE the run (the run rows included) instead of grading one")
+    h.add_argument("--manifest", help="the manifest frozen before the run (grade; or --replay's input)")
+    h.add_argument("--fire", help="run one module fire by name, or `all`, on --db (a worker database)")
+    h.add_argument("--replay", action="store_true",
+                   help="with --manifest: replay the register through the recorded cassette on --db, "
+                        "inside a socket guard, and write the replay summary the manifest promised")
+    h.add_argument("--workstream", help="the workstream slug the run works in (freeze)")
+    h.add_argument("--out", help="where to write the frozen manifest (freeze)")
+    h.add_argument("--fixture", help="the edge register (freeze; default qc/fixtures/litkb_hunt_edge_cases.json)")
+    h.add_argument("--constructed", help="the CONSTRUCTED register replayed beside it (freeze; default "
+                                         "qc/fixtures/litkb_hardening_constructed_register.json)")
+    h.add_argument("--no-admin-read", dest="no_admin_read", action="store_true",
+                   help="freeze: do NOT open the owner login for the DB migration tip (recorded null, "
+                        "with the reason) — every other freeze read is on --role")
+    h.add_argument("--cassette", help="the cassette index the run records into (freeze; default "
+                                      "qc/fixtures/litkb_cassettes/<workstream>/index.jsonl)")
+    h.add_argument("--bodies", help="the cassette body store (freeze; default LITKB_CASSETTE_BODIES or "
+                                    "<derived root>/cassette_bodies)")
+    h.add_argument("--date", help="the date in the promised report and referee names (freeze; default "
+                                  "the freeze instant's local date)")
+    h.add_argument("--worktree", help="the worktree holding the workstream token (freeze; recorded)")
+    h.add_argument("--db", default=None, help="freeze/grade: the database (default litkb / the manifest's); "
+                                              "fire/replay: the WORKER database, named explicitly")
+    h.add_argument("--role", default="litkb_reader", help="read role (freeze; default: %(default)s)")
+    h.add_argument("--repo", help="repository root (default: this instrument's own)")
+    h.add_argument("--passfile", help="pgpass file for the admin read of the DB migration tip")
+    h.set_defaults(func=cmd_hardening)
 
     c = sub.add_parser("codex", help="did the adversarial read actually read every citation")
     c.add_argument("--review", required=True, help="the review the report claims to be about")

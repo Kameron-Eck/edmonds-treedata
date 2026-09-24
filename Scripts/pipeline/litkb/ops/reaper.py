@@ -214,10 +214,11 @@ def reap(conn, *, root=None, store=None, min_age_hours=MIN_AGE_HOURS, apply=Fals
         # END guard: a dry run moves nothing
         src = store.root / row["rel_path"]
         try:
+            # the sidecar is written by to_quarantine itself (S4.5 item 8), from the reason given here
+            from litkb.acquire.store import reason_path
             dst, _txt = store.to_quarantine(src, _sidecar(src), Path(row["rel_path"]).stem,
                                             QUARANTINE_LABEL, row["sha256"],
-                                            suffix=Path(row["rel_path"]).suffix)
-            reason = store.write_reason(dst, {
+                                            suffix=Path(row["rel_path"]).suffix, reason={
                 "why": "the staging reaper found no database row accounting for these bytes",
                 "census_run": run_id, "at": out["at"], "rule": row["rule"],
                 "sha256": row["sha256"], "bytes": row["bytes"], "mtime": row["mtime"],
@@ -226,7 +227,7 @@ def reap(conn, *, root=None, store=None, min_age_hours=MIN_AGE_HOURS, apply=Fals
                 "recover": "nothing was deleted: move it back, or bind it with "
                            "`py -3.12 -m litkb acquire --key <key> --from-file <this path>`"})
             row["quarantined"] = store.rel(dst)
-            row["reason_path"] = store.rel(reason)
+            row["reason_path"] = store.rel(reason_path(dst))
         except (OSError, RuntimeError) as e:
             out["errors"].append({"rel_path": row["rel_path"],
                                   "error": f"{type(e).__name__}: {e}"})

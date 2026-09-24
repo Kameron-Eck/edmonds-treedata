@@ -1,0 +1,53 @@
+{
+  "_note": "CONSTRUCTED registry answers for builder-B1's fires and tests (S4.5 item 1; qc/instruments/litkb_hardening_b1.py, qc/test_litkb_s45_identity.py). Every record here is CONSTRUCTED, in those words: its bibliographic FIELDS are the live works' as litkb stores them (read as litkb_reader on 2026-09-23 from litkb.main_works and litkb.main_identifiers), and its relation fields are the ones the crosswalk probe measured each DOI's Crossref record to carry (phase4/qc/litkb_acq_probe_crosswalk.csv, column cr_relation_types: has-preprint on the article, is-preprint-of on the preprint; survey-data section 2.12). They are NOT recorded HTTP bodies, and a test built on them says so.",
+  "crossref": {
+    "10.1111/2041-210x.13107": {
+      "_note": "CONSTRUCTED: E21's article (work Valavi_2018_block-cv-r-package)",
+      "DOI": "10.1111/2041-210x.13107",
+      "type": "journal-article",
+      "title": ["block CV : An r package for generating spatially or environmentally separated folds for k ‐fold cross‐validation of species distribution models"],
+      "author": [{"given": "Roozbeh", "family": "Valavi", "sequence": "first"},
+                 {"given": "Jane", "family": "Elith", "sequence": "additional"},
+                 {"given": "José J.", "family": "Lahoz‐Monfort", "sequence": "additional"},
+                 {"given": "Gurutzeta", "family": "Guillera‐Arroita", "sequence": "additional"}],
+      "issued": {"date-parts": [[2018]]},
+      "container-title": ["Methods in Ecology and Evolution"],
+      "publisher": "Wiley",
+      "page": "225-232",
+      "relation": {"has-preprint": [{"id-type": "doi", "id": "10.1101/357798", "asserted-by": "object"}]}
+    },
+    "10.1101/357798": {
+      "_note": "CONSTRUCTED: E21's bioRxiv preprint (work Valavi_2018_blockcv-r-package-generating)",
+      "DOI": "10.1101/357798",
+      "type": "posted-content",
+      "title": ["blockCV: an R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models"],
+      "author": [{"given": "Roozbeh", "family": "Valavi", "sequence": "first"},
+                 {"given": "Jane", "family": "Elith", "sequence": "additional"},
+                 {"given": "José J.", "family": "Lahoz-Monfort", "sequence": "additional"},
+                 {"given": "Gurutzeta", "family": "Guillera-Arroita", "sequence": "additional"}],
+      "issued": {"date-parts": [[2018]]},
+      "publisher": "openRxiv",
+      "relation": {"is-preprint-of": [{"id-type": "doi", "id": "10.1111/2041-210x.13107", "asserted-by": "subject"}]}
+    }
+  },
+  "e21": {"dois": ["10.1111/2041-210x.13107", "10.1101/357798"]},
+  "e06": {
+    "_note": "E06 (qc/fixtures/litkb_hunt_edge_cases.json): a URL page with no confirmed identifier, title-near its carrier Tkaczyk_2024 (litkb.main_works: title, year; main_identifiers: doi)",
+    "url": "https://www.crossref.org/blog/how-good-is-your-matching/",
+    "carrier_title": "How good is your matching?",
+    "carrier_doi": "10.13003/ief7aibi",
+    "carrier_year": 2024
+  },
+  "187": {
+    "_note": "CONSTRUCTED: row 187's DataCite record, its fields as stored on work LPVSubgroup_2025_land-cover-change-accuracy-protocol (Crossref answers 404 for this DOI; Reports/LITKB_RULED_HUNTS_2026-09-21.md section 6). The creator is the 76-character corporate name DataCite split at its comma.",
+    "doi": "10.5067/doc/ceoswgcv/lpv/lc.001",
+    "datacite_attributes": {
+      "titles": [{"title": "Land Cover and Change Map Accuracy Assessment and Area Estimation Good Practices Protocol"}],
+      "creators": [{"familyName": "Land Product Validation Subgroup (Working Group on Calibration and Validation",
+                    "givenName": " Committee on Earth Observation Satellites)"}],
+      "publicationYear": 2025,
+      "publisher": "Land Product Validation Subgroup (Working Group on Calibration and Validation, Committee on Earth Observation Satellites)",
+      "types": {"resourceTypeGeneral": "Text"}
+    }
+  }
+}

@@ -15,3 +15,9 @@ pypdfium2==5.13.0
 # P8 access layer: the MCP server (litkb.mcp.server) — the agents' only path into the knowledge
 # base. 2.x renamed FastMCP to MCPServer, so the major version is load-bearing, not cosmetic.
 mcp==2.1.1
+# S4.5 acquisition: THE acceptance test's structure check (litkb.acquire.accept, step 8) is libqpdf
+# through pikepdf — the qpdf CLI is not installed here (S4.5 decision D14, Kam 2026-09-23). Pinned to
+# what the orchestrator installed (pikepdf 10.13.0.post1 carries libqpdf 12.3.2). Without it the step
+# falls back to the qpdf CLI, else reports `qpdf-unavailable` (never a clean check). Here, not in
+# requirements-local.txt, for the reason this file's first line gives.
+pikepdf==10.13.0.post1

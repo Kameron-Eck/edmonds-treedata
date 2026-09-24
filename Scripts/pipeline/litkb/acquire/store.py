@@ -23,9 +23,15 @@ into _quarantine/ under the same name, with a <same name>.reason.json beside the
 they came from and when. That sidecar is what makes a delete unnecessary
 (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9: an HTML error page written as
 _litkb_staging/incoming/IFLA_2017_library-reference-model.pdf was removed with `rm -f` to free the name; now the
-bytes are kept under a name of their own and the fetch can simply be repeated). pdf_shape() is the one place that
-decides whether bytes are a PDF, and it is read by litkb.acquire.run on every byte string acquisition receives.
+bytes are kept under a name of their own and the fetch can simply be repeated). Since S4.5 EVERY quarantine
+writes that sidecar: to_quarantine() writes it itself (LITKB_WORKPLAN.md "### S4.5" item 8 — until then only
+quarantine_new() did, and every binding refusal left a payload nobody could explain).
+
+Whether bytes are a PDF is decided by litkb.acquire.accept, THE acceptance test (S4.5 item 5). pdf_shape() is
+its thin caller for the paths that read it on every byte string acquisition receives: the header and trailer
+rules only, in the old shape vocabulary (accept.shape says why only those).
 """
+import datetime
 import hashlib
 import json
 import os
@@ -36,40 +42,36 @@ LITERATURE_ROOT = Path(os.environ.get("LITKB_LITERATURE_ROOT", r"D:\edmonds-pipe
 STAGING = "_litkb_staging"
 QUARANTINE = "_quarantine"
 _INDEX_CACHE = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "litkb" / "disk_hash_index.json"
-PDF_HEADER = b"%PDF-"
-EOF_WINDOW = 4096          # how far back from the end %%EOF is looked for; poppler itself scans about 1 KB
+#: The sidecar beside a quarantined payload: `<same name>.reason.json`. `litkb.quarantine.SIDECAR_SUFFIX` is the
+#: reader's spelling of the same suffix; qc/test_litkb_accept.py holds the two equal.
+SIDECAR_SUFFIX = ".reason.json"
 
 
 def pdf_shape(data):
     """What a byte string acquisition received IS, decided before anything is written. -> (shape, reason)
 
-      "pdf"            a %PDF- header and a %%EOF near the end: a whole file, whatever it turns out to hold.
-      "not-a-pdf"      no %PDF- header at all - an HTML error page, a login page or a search page served under a
+      "pdf"            the PDF signature (at the start, or after leading bytes such as a byte-order mark inside
+                       the first 1,024) and a %%EOF near the end: a whole file, whatever it turns out to hold.
+      "not-a-pdf"      no PDF signature at all - an HTML error page, a login page or a search page served under a
                        .pdf name. This is the shape of the 2026-09-15 incident
                        (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9): 295,657 bytes of HTML written as
                        IFLA_2017_library-reference-model.pdf.
-      "truncated-pdf"  the header is there and there is no %%EOF in the last EOF_WINDOW bytes: the transfer
-                       stopped before the trailer, so the file has no xref and no reader can open it.
+      "truncated-pdf"  the signature is there and there is no %%EOF near the end: the transfer stopped before
+                       the trailer, so the file has no xref and no reader can open it.
 
     The two failures are told apart because their CAUSES differ - a wrong URL against a dropped connection - and
-    whoever reads _quarantine/ should learn which without opening the file. The reason never quotes the bytes
-    themselves: a served error page can echo a request URL, key and all, and this sentence is written to disk."""
-    from litkb.extract.text_snapshot import looks_like_html
+    whoever reads _quarantine/ should learn which without opening the file. The rules themselves are the
+    acceptance test's (`litkb.acquire.accept.shape`, its header and trailer steps); this is their thin caller,
+    kept so every path that read pdf_shape keeps its contract. Imported inside the function, like the HTML
+    check it reaches: `acquire` must not import `extract` at module scope."""
+    from litkb.acquire import accept as _accept
 
-    data = data or b""
-    if not data.startswith(PDF_HEADER):
-        # ONE HOME for "do these bytes open as HTML" (CLAUDE.md §3.3). The same question decides
-        # whether hunt's URL branch snapshots a page instead of quarantining it
-        # (`litkb.extract.text_snapshot.classify`), and two copies of the marker scan would let
-        # the quarantine reason and the routing decision disagree about the same bytes. Imported
-        # inside the function: `acquire` must not import `extract` at module scope.
-        html = looks_like_html(data)
-        return "not-a-pdf", (f"the {len(data)} bytes served do not begin with {PDF_HEADER.decode()}"
-                             + ("; they look like HTML" if html else ""))
-    if b"%%EOF" not in data[-EOF_WINDOW:]:
-        return "truncated-pdf", (f"a {PDF_HEADER.decode()} header and no %%EOF in the last {EOF_WINDOW} bytes of "
-                                 f"{len(data)}: the transfer stopped before the trailer")
-    return "pdf", ""
+    return _accept.shape(data)
+
+
+def reason_path(quarantined):
+    """Where the sidecar of a quarantined payload lives: `<same name>.reason.json`."""
+    return Path(quarantined).with_suffix(SIDECAR_SUFFIX)
 
 
 class StoreRefused(RuntimeError):
@@ -130,11 +132,13 @@ class Store:
         return d
 
     def free_name(self, directory, stem, suffix=".pdf"):
-        """<directory>/<stem><suffix>, or <stem>.2<suffix>, .3 ... — the first name that does not exist."""
+        """<directory>/<stem><suffix>, or <stem>.2<suffix>, .3 ... — the first name that does not exist, and
+        whose .txt companion and .reason.json sidecar do not exist either (a sidecar left beside no payload
+        would otherwise refuse the sidecar of the next file given that name)."""
         d = Path(directory)
         cand = d / f"{stem}{suffix}"
         n = 2
-        while cand.exists() or cand.with_suffix(".txt").exists():
+        while cand.exists() or cand.with_suffix(".txt").exists() or reason_path(cand).exists():
             cand = d / f"{stem}.{n}{suffix}"
             n += 1
         return cand
@@ -163,7 +167,7 @@ class Store:
         It goes through write_new() like every other byte this module writes - there is no second kind of write
         here, and `open(..., "w")` / Path.write_text are exactly what qc/test_litkb_p2.py's scan refuses."""
         body = json.dumps(reason, indent=2, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
-        return self.write_new(Path(quarantined).with_suffix(".reason.json"), body)
+        return self.write_new(reason_path(quarantined), body)
 
     def quarantine_new(self, data, stem, label, sha, reason):
         """Bytes that are NOT a usable paper - an HTML error page served as a .pdf, a truncated download, a bot
@@ -176,14 +180,33 @@ class Store:
         pdf = self.write_new(dst, data)
         return pdf, self.extract(pdf), self.write_reason(pdf, reason)
 
-    def to_quarantine(self, pdf, txt, stem, status, sha, suffix=None):
-        """`suffix` (default `.pdf`, which is every acquisition caller) keeps a quarantined file's
+    def to_quarantine(self, pdf, txt, stem, status, sha, suffix=None, reason=None):
+        """Move a file acquisition created into _quarantine/ AND write its .reason.json beside it.
+        -> (payload, txt|None); the sidecar is at reason_path(payload).
+
+        `suffix` (default `.pdf`, which is every acquisition caller) keeps a quarantined file's
         own extension: the staging reaper moves `.download`, `.html` and `.txt` bytes, and naming
         an HTML error page `.pdf` in _quarantine/ is the exact mislabelling this module's docstring
-        is about (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9)."""
+        is about (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9).
+
+        `reason` is the caller's sidecar (every caller that knows WHY passes it: `run._reason`'s shape, the
+        hunt's, the reaper's). A caller that passes none still gets one — the status, the sha256, where the
+        file came from and when — because the sidecar is written HERE, once, for every caller (S4.5 item 8:
+        `to_quarantine` used to write only the filename, and the four acquisition call sites that reach it
+        left 25 of the store's 69 payloads with no reason). The sidecar path is checked BEFORE the move, so a
+        move that could not take its sidecar with it is never made."""
         dst = self.free_name(self.quarantine, f"{stem}__{status}__{sha[:12]}", suffix or ".pdf")
+        self.guard_new(reason_path(dst))
+        was = self.rel(pdf) if self._inside(pdf, self.root) else str(pdf)
         out = self.move_new(pdf, dst)
         tout = self.move_new(txt, dst.with_suffix(".txt")) if txt else None
+        body = reason if reason is not None else {
+            "status": status, "label": status, "sha256": sha, "stem": stem, "moved_from": was,
+            "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "reason_source": "Store.to_quarantine (the caller passed no reason)"}
+        # BEGIN guard: every quarantine move writes its reason sidecar
+        self.write_reason(out, body)
+        # END guard: every quarantine move writes its reason sidecar
         return out, tout
 
     def to_filed(self, pdf, txt, stem):

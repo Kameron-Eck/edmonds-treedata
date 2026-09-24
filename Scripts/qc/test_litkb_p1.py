@@ -2176,12 +2176,37 @@ _EXPECTED_EXECUTE = {
 # ==== end S4.5 builder A role-matrix additions ====
 
 # ==== S4.5 builder B1 role-matrix additions (identifier model, migration 0032) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# record_identifiers, record_work_relations: the ONE write path of HARVESTED identifiers and relation edges
+# (migration 0032, qc/test_litkb_s45_identity.py). work_relations and identifier_conflicts carry
+# workstream_id and grant INSERT to nobody; identifier versions are written through _write_version inside
+# them, where the conflict rule (fatcat's, counted) and the provenance rule are applied. Token-checked.
+_EXPECTED_EXECUTE["litkb_writer"] |= {"record_identifiers", "record_work_relations"}
+# backfill_identifier_provenance: the reviewed backfill of asserted_by on rows written before 0032 (a system
+# op with no workstream: FILLS a NULL, overwrites nothing, dry run unless p_apply) — the ingest login's
+_EXPECTED_EXECUTE["litkb_ingest"] |= {"backfill_identifier_provenance"}
 # ==== end S4.5 builder B1 role-matrix additions ====
 
 # ==== S4.5 builder B2 role-matrix additions (adjudication: refuse verb, decision log, withdraw, operator-bind gate, migration 0034) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# refuse_admission, withdraw_version, decide_file_versions: the adjudication verbs (migration 0034,
+# qc/test_litkb_adjudicate.py). litkb.adjudications, the append-only decision log, grants INSERT to
+# NOBODY (and a trigger refuses UPDATE/DELETE/TRUNCATE even to the owner), so these three SECURITY
+# DEFINER functions are its only writers. Its two helpers (_adjudications_append_only, the trigger
+# function, and _proposal_source_routes, the operator-bind gate's route list) are granted to no role.
+_EXPECTED_EXECUTE["litkb_writer"] |= {"refuse_admission", "withdraw_version", "decide_file_versions"}
 # ==== end S4.5 builder B2 role-matrix additions ====
 
 # ==== S4.5 builder C1 role-matrix additions (ledger vocabulary + acquisition substrate, migration 0033) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# -- builder C1a (migration 0033) --
+# record_route_backoff: the ONE writer of litkb.route_backoff (the persisted per-(route, work) refusal ladder,
+# S4.5 item 1). SECURITY DEFINER, presents the workstream token and moves the state only on an attempt of the
+# caller's own workstream; route_backoff grants INSERT to nobody. record_acquisition_attempt keeps its name
+# (0033 drops the nine-argument signature and re-creates it with the new facts DEFAULTed: one signature).
+_EXPECTED_EXECUTE["litkb_writer"] |= {"record_route_backoff"}
+# backfill_attempt_sub_status, backfill_file_word_count: the reviewed backfills (0033) — system operations on
+# history, fill-null only, one litkb.acquisition_backfills row per applied run. No token: like
+# record_quarantine_system they belong to the ingest login alone.
+_EXPECTED_EXECUTE["litkb_ingest"] |= {"backfill_attempt_sub_status", "backfill_file_word_count"}
+# -- end builder C1a --
 # ==== end S4.5 builder C1 role-matrix additions ====
 
 # ==== S4.5 builder C2A role-matrix additions (Stage A + Stage B rungs) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====

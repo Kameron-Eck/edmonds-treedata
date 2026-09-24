@@ -47,6 +47,7 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from litkb.acquire import accept as _accept
 from litkb.admit.resolver import (  # noqa: F401  (re-exported: the ported tests address this module)
     ARXIV_BACKOFFS, ARXIV_DOI_PREFIX, ARXIV_ID_LIST, ARXIV_MIN_INTERVAL, ARXIV_SEARCH, ATOM_NS, CROSSREF_SEARCH,
     CROSSREF_WORK, REGISTRY_BACKOFF, REGISTRY_MIN_INTERVAL, REGISTRY_STAGES, RESOLVE_TITLE_RATIO, S2_SEARCH,
@@ -306,8 +307,10 @@ def download_pdf(client, key, md5, add, pacer, issued=None, rejected=None):
     -> (pdf_bytes|None, downloads_left, tried[list of str], last_status)."""
     tried, left, last = [], "", 0
 
-    def keep(url, body):
-        if body and rejected is not None and not rejected:
+    def keep(url, body, st):
+        # (seam integrator-w2, S4.5 decision D15: a status-0 body is the CLIENT's own transport-error text —
+        # `netutil.Client._raw_get` — never bytes a host served; open access's guard, the same rule, is C1A11's)
+        if st and body and rejected is not None and not rejected:
             rejected.append((url, body))
     for i, di in enumerate(DOWNLOAD_DOMAIN_INDEXES):
         if i:
@@ -329,9 +332,9 @@ def download_pdf(client, key, md5, add, pacer, issued=None, rejected=None):
         host = urllib.parse.urlparse(url).netloc
         st, _, pdf = client.get(url, accept="application/pdf", timeout=600)
         last = st
-        if (pdf or b"").startswith(b"%PDF-"):
+        if _accept.quick_magic(pdf):                # the acceptance test's header rule (ONE home, S4.5 item 5)
             return pdf, left, tried + [f"{host}:{st}=ok"], st
-        keep(url, pdf)
+        keep(url, pdf, st)
         tried.append(f"{host}:{st}")
     for name, u in download_options(add):
         u = urllib.parse.urljoin(client.base + "/", u)
@@ -339,9 +342,9 @@ def download_pdf(client, key, md5, add, pacer, issued=None, rejected=None):
         pacer.sleep(DOWNLOAD_RETRY_GAP)
         st, _, pdf = client.get(u, accept="application/pdf", timeout=600)
         last = st
-        if (pdf or b"").startswith(b"%PDF-"):
+        if _accept.quick_magic(pdf):
             return pdf, left, tried + [f"{name}@{host}:{st}=ok"], st
-        keep(u, pdf)
+        keep(u, pdf, st)
         tried.append(f"{name}@{host}:{st}")
     return None, left, tried, last
 
@@ -437,7 +440,10 @@ def read_quota(client):
 def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=None):
     """The archive route for litkb.acquire.run: gates 1, 1b, 2, the download ladder and gate 3's byte checks.
     Nothing is written. -> dict(status, pdf, rejected, rejected_url, md5, record_doi, title_best, downloads_left,
-    rec_size, via, tried, detail, http_codes, url_issued, quota). `rejected` holds the bytes a download URL served
+    rec_size, via, tried, detail, http_codes, url_issued, quota, identifiers_unified). `identifiers_unified` is
+    gate 2's record's whole `file_unified_data.identifiers_unified` dictionary once gate 2 has passed (S4.5 item 1,
+    decision D2 — it was fetched and all but its `doi` key dropped until S4.5; `litkb.admit.harvest.from_annas`
+    reads it), else {}. `rejected` holds the bytes a download URL served
     when they were not a PDF (with `rejected_url`, redacted): litkb.acquire.run quarantines them rather than
     dropping them (Reports/LITKB_LINKAGE_REVIEW_2026-09-15.md §8.9).
     status: downloaded | hash-mismatch (pdf kept for quarantine)
@@ -449,7 +455,7 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=N
     aa_fetch paths and their tests) does not consult the counter."""
     out = {"status": "", "pdf": None, "md5": "", "record_doi": "", "title_best": "", "downloads_left": "",
            "rec_size": "", "via": "scidb", "tried": [], "detail": "", "http_codes": [], "url_issued": False,
-           "rejected": None, "rejected_url": ""}
+           "rejected": None, "rejected_url": "", "identifiers_unified": {}}
 
     def done(status, **kw):
         out.update(kw, status=status)
@@ -474,7 +480,8 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=N
         if fud is None:
             return done(status, md5=md5, record_doi=rec_doi, detail=f"via={out['via']}; {detail}")
     out.update(md5=md5, record_doi=rec_doi, title_best=(fud.get("title_best") or "").strip(),
-               rec_size=str(fud.get("filesize_best") or ""))
+               rec_size=str(fud.get("filesize_best") or ""),
+               identifiers_unified=dict(fud.get("identifiers_unified") or {}))
     # BEGIN guard: annas known md5 spends no download
     if md5 in set(known_md5):
         return done("duplicate-held", detail=f"via={out['via']}; the archive md5 is already on disk; no download spent")
@@ -506,8 +513,16 @@ def fetch_for_litkb(client, key, doi_raw, pacer, *, known_md5=(), quota_margin=N
         if not reached:
             return done("api-error", detail=f"via={out['via']}; no download_url: {', '.join(tried) or 'none tried'}")
         status = "partner-404" if all(t.endswith(":404") for t in reached) else "bad-file"
+        # seam integrator-w2 (S4.5 decision D15; builder-C1a round 3 Q4): when EVERY partner host failed in
+        # TRANSPORT (status 0) the answer carries those codes, so the ladder books it `api-error`, retriable, and
+        # never a `bad-file`. Only then: this route never recorded `http_codes`, and the ladder's retriable,
+        # back-off and blocked rules read them — a partner host's 403 newly read as the archive refusing us would
+        # be a behaviour change D15 does not ask for.
+        codes = [int(t.rsplit(":", 1)[1]) for t in reached if t.rsplit(":", 1)[1].isdigit()]
+        transport_only = bool(codes) and len(codes) == len(reached) and all(c == 0 for c in codes)
         return done(status, rejected=refused[0][1] if refused else None,
                     rejected_url=refused[0][0] if refused else "",
+                    http_codes=codes if transport_only else [],
                     detail=f"via={out['via']}; no %PDF- from any host: {', '.join(tried)}")
     got_md5 = hashlib.md5(pdf).hexdigest()
     size_best = int(fud.get("filesize_best") or 0)
@@ -549,13 +564,23 @@ def _guard_dest(dest):
 
 
 def _quarantine(path, stem, status, md5, qdir):
+    """The legacy filing path's quarantine move, and — since S4.5 item 8 — its `.reason.json` sidecar beside
+    the payload, written create-only (`xb`). This path holds no database connection and no Store (see
+    litkb.quarantine's docstring), so the sidecar is the only record of WHY until `backfill` gives it a row."""
     os.makedirs(qdir, exist_ok=True)
     dst = os.path.join(qdir, f"{stem}__{status}__{md5 or 'nomd5'}.pdf")
     n = 2
-    while os.path.exists(dst):
+    while os.path.exists(dst) or os.path.exists(dst[:-4] + ".reason.json"):
         dst = os.path.join(qdir, f"{stem}__{status}__{md5 or 'nomd5'}.{n}.pdf")
         n += 1
     shutil.move(path, dst)   # store-scan: allow (exists-loop above picks a free name)
+    reason = {"status": status, "label": status, "md5": md5, "stem": stem, "moved_from": str(path),
+              "route": "annas.fetch_one", "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "reason": f"the legacy annas filing path refused the bytes: {status}"}
+    # BEGIN guard: the legacy annas quarantine writes its reason sidecar
+    with open(dst[:-4] + ".reason.json", "xb") as fh:
+        fh.write(json.dumps(reason, indent=2, sort_keys=True).encode("utf-8"))
+    # END guard: the legacy annas quarantine writes its reason sidecar
     return dst
 
 

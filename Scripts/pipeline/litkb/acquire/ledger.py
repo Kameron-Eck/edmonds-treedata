@@ -63,8 +63,10 @@ def type_blocked(codes, body=None, headers=None, tried=None, route=None):
       1b. the ROUTE's own rule: `open_access` books `blocked` ONLY when `Client.is_challenge` fired on one of
          its locations (acquire/open_access.py::fetch_open_access, unchanged since 5189749, 2026-09-14) —
          and the bytes it kept are the FIRST body served, which need not be the challenging one
-                                                                         -> challenge_or_bot_check (detail; with
-         no bytes kept, `inferred`: S4.5 decision D30)
+                                                                         -> challenge_or_bot_check (inferred:
+         S4.5 decision D30 with no bytes kept; and with kept bytes too, because reaching this rule means step 1's
+         one detector did NOT call them a challenge — they are no evidence for the route's rule, so the row rests
+         on the route's own word alone: the orchestrator's ruling on auditor-cand3 N1, attempt 01a0c71a Li_2022)
       2. the terminal code is 401                                          -> identity_required
          (guard 2: "a subscription answer about one article")
       3. the terminal code is 404 / 410                                    -> not_found
@@ -87,13 +89,20 @@ def type_blocked(codes, body=None, headers=None, tried=None, route=None):
         return "challenge_or_bot_check", "bytes", cause
     # S4.5 decision D30 (the orchestrator's ruling on auditor-cand2 N3): a row typed from the ROUTE's own word alone
     # (no body marker, no kept bytes) carries basis `inferred`, never `detail`; a row with kept bytes keeps the
-    # evidence's basis (rule 1b over the kept first body stays `detail`)
+    # evidence's basis (and rule 1b's kept first body, which step 1 found no challenge in, is no such evidence:
+    # auditor-cand3 N1, below)
     token_only = "detail"
     # BEGIN guard: a blocked row typed from the route's own word alone is inferred, never detail
     token_only = "inferred"
     # END guard: a blocked row typed from the route's own word alone is inferred, never detail
     if route == "open_access":
-        return ("challenge_or_bot_check", "detail" if body else token_only,
+        # auditor-cand3 N1 (the orchestrator's ruling, D30's intent): kept bytes the one detector does NOT call a
+        # challenge (step 1 above returned nothing) do not evidence the route's rule, so they never lift its basis
+        kept_basis = "detail" if body else token_only
+        # BEGIN guard: kept bytes the one detector does not call a challenge leave the route's rule inferred
+        kept_basis = token_only
+        # END guard: kept bytes the one detector does not call a challenge leave the route's rule inferred
+        return ("challenge_or_bot_check", kept_basis,
                 "open_access books blocked only when Client.is_challenge fired")
     last = codes[-1] if codes else None
     if last == 401:

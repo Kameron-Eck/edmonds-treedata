@@ -492,8 +492,9 @@ def test_bad_file_untyped_excuses_exactly_the_rows_the_item8_csv_names_misbooked
 
 def test_a_blocked_row_typed_from_the_routes_own_word_alone_is_inferred():
     """D30 (auditor-cand2 N3): Sci-Hub's `=blocked` token (written for a challenge, a captcha OR a bare 403 alike) and
-    open access's own rule with NO bytes kept are `inferred`; open access's rule over its kept first body keeps
-    `detail`. The TRACKED blocked CSV carries no row on basis `detail` without kept bytes."""
+    open access's own rule with NO bytes kept are `inferred`; so is open access's rule over a kept first body the one
+    detector finds no challenge in (auditor-cand3 N1, the orchestrator's ruling). The TRACKED blocked CSV carries no
+    row on basis `detail`."""
     import csv
 
     from litkb.acquire import ledger as L
@@ -501,10 +502,10 @@ def test_a_blocked_row_typed_from_the_routes_own_word_alone_is_inferred():
     assert L.type_blocked([200], None, None, ["sci-hub.ru:200=blocked"])[:2] == ("challenge_or_bot_check", "inferred")
     assert L.type_blocked([200, 403], None, route="open_access")[:2] == ("challenge_or_bot_check", "inferred")
     assert L.type_blocked([200, 403], b"<html><title>Landing</title></html>", route="open_access")[:2] == (
-        "challenge_or_bot_check", "detail")
+        "challenge_or_bot_check", "inferred")
     rows = list(csv.DictReader(BLOCKED_CSV.open(encoding="utf-8")))
-    assert rows and not [r for r in rows if r["basis"] == "detail" and not r["kept"]], rows
-    assert sum(1 for r in rows if r["basis"] == "inferred") == 27
+    assert rows and not [r for r in rows if r["basis"] == "detail"], rows
+    assert sum(1 for r in rows if r["basis"] == "inferred") == 28
 
 
 # ── D23: a free-ceiling row the BINDER refused is a named exception, never a silent pass ──────────

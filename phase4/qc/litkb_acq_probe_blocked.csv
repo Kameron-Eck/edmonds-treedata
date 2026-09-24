@@ -21,7 +21,7 @@ attempt_id,sub_status,basis,free_to_fix,cause,route,http_codes,kept,kept_bytes,a
 01a0c718-84f9-71b9-9312-9754720f6e98,challenge_or_bot_check,inferred,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:11:08.024764-07:00
 01a0c718-92dd-762f-a3bf-7ffab898c9ee,challenge_or_bot_check,bytes,,cloudflare,open_access,403,_quarantine/Storey_2018_normalizing-shadows-multi-temporal__blocked__895472cc13aa.pdf,5848,2026-09-21 20:11:11.580986-07:00
 01a0c719-ac9d-7794-951e-e8827c297a57,challenge_or_bot_check,inferred,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:12:23.709142-07:00
-01a0c71a-7cae-7907-87d6-4f48e00912c7,challenge_or_bot_check,detail,,open_access books blocked only when Client.is_challenge fired,open_access,403 403 200,_quarantine/Li_2022_identification-undocumented-buildings-cadastral__blocked__e00d18e93898.pdf,832805,2026-09-21 20:13:16.974150-07:00
+01a0c71a-7cae-7907-87d6-4f48e00912c7,challenge_or_bot_check,inferred,,open_access books blocked only when Client.is_challenge fired,open_access,403 403 200,_quarantine/Li_2022_identification-undocumented-buildings-cadastral__blocked__e00d18e93898.pdf,832805,2026-09-21 20:13:16.974150-07:00
 01a0c71b-4960-75f4-bc43-abb350c1ddec,challenge_or_bot_check,inferred,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:14:09.376118-07:00
 01a0c71b-57e0-7b79-8fdd-14063275b31f,challenge_or_bot_check,bytes,,cloudflare,open_access,403,_quarantine/Schindler_2024_efficient-tree-mapping-through__blocked__1b1168363042.pdf,5604,2026-09-21 20:14:13.088189-07:00
 01a0c71b-b482-7f43-9fec-7e27fade5c00,challenge_or_bot_check,inferred,,route token =blocked,scihub,200 200 403 200,,,2026-09-21 20:14:36.802697-07:00

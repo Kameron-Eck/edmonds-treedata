@@ -31,6 +31,16 @@ resumption tokens expire), and such a page parses with no record and no token, s
 (auditor-C2a round 2 F4): a page carrying any `<error>` stops the walk INCOMPLETE — except `noRecordsMatch` on the
 FIRST page, which the protocol defines as the empty list (a complete walk of nothing); an unparseable 200 page stops
 it too.
+
+ONE REPAIR, AND ONLY ONE CLASS (builder-fix4, S4.5; `repair_xml10`): the live walk stopped INCOMPLETE on page 7
+twice on 2026-09-23 because that page carries ONE literal U+FFFE — a Unicode noncharacter outside XML 1.0 §2.2's
+`Char` production — inside a record's dc:description (MEASURED on the real page, kept as
+qc/fixtures/litkb_eartharxiv_oai_page7_37129fe75ccb.xml; record oai:EA:id:1336), and expat refuses the whole page
+for it. Before a page is read, every character outside `Char` is replaced by U+FFFD, so the record is KEPT (never
+dropped) with the repair visible in its text; the walk counts the pages and the characters repaired and prints
+both on its output line. Nothing else is repaired: a page that is not UTF-8 (OAI-PMH 2.0 §3.2 requires UTF-8), a
+character REFERENCE to an illegal character, or any other malformation still leaves the page unparseable, and the
+walk stops INCOMPLETE as before.
 """
 import argparse
 import csv
@@ -85,6 +95,24 @@ def parse_page(xml_bytes):
     return rows, token
 
 
+#: Every character XML 1.0 §2.2's `Char` production excludes: C0 controls but TAB / LF / CR, the surrogates, and
+#: U+FFFE / U+FFFF (the class of the MEASURED page-7 defect, a literal U+FFFE — see the module docstring).
+XML10_ILLEGAL = re.compile("[^\u0009\u000a\u000d -퟿-�\U00010000-\U0010ffff]")
+#: What an illegal character becomes: U+FFFD REPLACEMENT CHARACTER, legal XML, so the repair stays visible.
+REPLACEMENT = "�"
+
+
+def repair_xml10(xml_bytes):
+    """-> (bytes, characters replaced). Every XML-1.0-illegal character of a UTF-8 page becomes U+FFFD; a page with
+    none, or one that is not UTF-8, comes back unchanged with 0 (never repaired: that is another defect)."""
+    try:
+        text = (xml_bytes or b"").decode("utf-8")
+    except UnicodeDecodeError:
+        return xml_bytes, 0
+    fixed, n = XML10_ILLEGAL.subn(REPLACEMENT, text)
+    return (fixed.encode("utf-8"), n) if n else (xml_bytes, 0)
+
+
 def oai_error(xml_bytes):
     """The OAI-PMH `<error code=...>` a page carries (OAI-PMH 2.0 §3.6), '' when none; an unparseable page answers
     `unparseable` (a 200 that is not the protocol's XML is not a page of the feed)."""
@@ -103,21 +131,29 @@ EMPTY_LIST = "noRecordsMatch"
 
 
 def harvest(client=None, pace_s=1.0, max_pages=None):
-    """Walk every page. -> (rows, pages asked, last status, complete). `complete` is True only when the last page
-    answered 200 AND carried no resumptionToken: every page of the feed was read. A page carrying an OAI-PMH
-    `<error>` (but `noRecordsMatch` on the first page) stops the walk with its URL unread, so it is not complete."""
+    """Walk every page. -> (rows, pages asked, last status, complete, repaired). `complete` is True only when the
+    last page answered 200 AND carried no resumptionToken: every page of the feed was read. A page carrying an
+    OAI-PMH `<error>` (but `noRecordsMatch` on the first page) stops the walk with its URL unread, so it is not
+    complete. `repaired` is {"pages": n, "chars": n}: the pages `repair_xml10` changed, and how many characters."""
     from litkb.netutil import Client, Pacer
 
     client = client or Client(base="")
     pacer = Pacer(interval=pace_s)
     url = OAI + "?" + urllib.parse.urlencode({"verb": "ListRecords", "metadataPrefix": "oai_dc"})
     rows, pages, st = [], 0, 0
+    repaired = {"pages": 0, "chars": 0}
     while url and (max_pages is None or pages < max_pages):
         pacer.wait()
         st, _hd, body = client.get(url, accept="application/xml", timeout=120)
         pages += 1
         if st != 200:
             break
+        # BEGIN guard: an XML-1.0-illegal character is repaired, counted and printed, never the page refused for it
+        body, fixed = repair_xml10(body)
+        if fixed:
+            repaired["pages"] += 1
+            repaired["chars"] += fixed
+        # END guard: an XML-1.0-illegal character is repaired, counted and printed, never the page refused for it
         # BEGIN guard: an OAI-PMH error served at 200 stops the walk incomplete
         err = oai_error(body)
         if err and not (err == EMPTY_LIST and pages == 1):
@@ -130,19 +166,21 @@ def harvest(client=None, pace_s=1.0, max_pages=None):
     # BEGIN guard: only a complete walk of the OAI feed is the map
     complete = st == 200 and not url
     # END guard: only a complete walk of the OAI feed is the map
-    return rows, pages, st, complete
+    return rows, pages, st, complete, repaired
 
 
 def run_live(out=OUT, client=None, pace_s=1.0, max_pages=None, printer=print):
-    """The live pass: walk the feed; write the map ONLY on a complete walk (else `<out>.partial.csv`). -> exit code."""
-    rows, pages, st, complete = harvest(client, pace_s=pace_s, max_pages=max_pages)
+    """The live pass: walk the feed; write the map ONLY on a complete walk (else `<out>.partial.csv`). -> exit code.
+    The output line always names the pages and characters `repair_xml10` repaired (0 and 0 when none)."""
+    rows, pages, st, complete, repaired = harvest(client, pace_s=pace_s, max_pages=max_pages)
+    fixed = f"repaired_pages={repaired['pages']} repaired_chars={repaired['chars']}"
     if not complete:
         partial = write(rows, Path(str(out)[:-4] + ".partial.csv" if str(out).endswith(".csv") else f"{out}.partial"))
-        printer(f"pages={pages} last_status={st} rows={len(rows)} INCOMPLETE: the map was NOT written; the rows read "
-                f"so far -> {partial} (no rung reads it)")
+        printer(f"pages={pages} last_status={st} rows={len(rows)} {fixed} INCOMPLETE: the map was NOT written; the "
+                f"rows read so far -> {partial} (no rung reads it)")
         return 1
     path = write(rows, out)
-    printer(f"pages={pages} last_status={st} rows={len(rows)} complete -> {path}")
+    printer(f"pages={pages} last_status={st} rows={len(rows)} {fixed} complete -> {path}")
     return 0
 
 

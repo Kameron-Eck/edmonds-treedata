@@ -297,15 +297,32 @@ def built_routes():
     return [t[0] for t in _stage_b().RUNG_TABLE]
 
 
+#: A row on which the rung made NO REQUEST (builder-fix4; auditor-cand3 F1): an `api-error` that recorded no answer
+#: at all — no HTTP code, not even the client's own transport failure (code 0, which IS a request that left), and no
+#: terminal status. The rung stopped before it asked its source: the EarthArXiv rung with no harvested map on disk
+#: ("nothing was asked", stage_a.rung_eartharxiv). A rung that RAISED lands here too (run._call_rung keeps only
+#: `{"status": "api-error"}`, so whether a request left is unknown): not counting it asked is the fail-closed side — a
+#: rung that only raises reads unmeasured, never measured. Counted asked, such rows made the report print `yield: eartharxiv=0/~187`,
+#: a measured zero for a rung that sent nothing. Every other status is an answer — and a miss read from a HARVESTED
+#: copy of the source (the EarthArXiv map's `no-oa-copy`) is that source's own answer, so it stays asked.
+NO_REQUEST = ("(status = 'api-error' AND coalesce(cardinality(http_codes), 0) = 0 "
+              "AND terminal_status_code IS NULL)")
+
+
 def rung_counts(conn, manifest, route):
     """(converted, asked) works for `route` in the run: asked = a work with an attempt that is not a skip or a
-    budget row; converted = a work with an `ok` or `measured` attempt."""
+    budget row, and on which the rung made a request (:data:`NO_REQUEST`); converted = a work with an `ok` or
+    `measured` attempt."""
     frozen, ws = _scope(manifest)
+    unasked = ""
+    # BEGIN guard: a row on which the rung made no request is never counted asked
+    unasked = f" AND NOT {NO_REQUEST}"
+    # END guard: a row on which the rung made no request is never counted asked
     asked, conv = conn.execute(
         "SELECT count(DISTINCT work_id) FILTER (WHERE status NOT IN ('skipped', 'budget-stop')), "
         "       count(DISTINCT work_id) FILTER (WHERE status IN ('ok', 'measured')) "
-        "  FROM litkb.acquisition_attempts WHERE at > %s AND workstream_id::text = ANY(%s) AND route = %s",
-        (frozen, ws, route)).fetchone()
+        "  FROM litkb.acquisition_attempts WHERE at > %s AND workstream_id::text = ANY(%s) AND route = %s"
+        + unasked, (frozen, ws, route)).fetchone()
     return int(conv or 0), int(asked or 0)
 
 
@@ -319,11 +336,14 @@ _CONDITION_SKIP = ("coalesce(status = 'skipped' AND ((coalesce(jsonb_typeof(deta
 
 
 def condition_skips(conn, manifest, route):
-    """(works the run's `route` rows skipped by the rung's own ask condition, works it skipped for any OTHER reason)."""
+    """(works the run's `route` rows skipped by the rung's own ask condition, works it reached for any OTHER reason:
+    a skip the condition did not write, or a row on which it made no request (:data:`NO_REQUEST`) — the condition
+    did not decide that row either, so a not-asked line may not claim it; builder-fix4)."""
     frozen, ws = _scope(manifest)
     by_cond, other = conn.execute(
         f"SELECT count(DISTINCT work_id) FILTER (WHERE {_CONDITION_SKIP}), "
-        f"       count(DISTINCT work_id) FILTER (WHERE status = 'skipped' AND NOT ({_CONDITION_SKIP})) "
+        f"       count(DISTINCT work_id) FILTER (WHERE (status = 'skipped' OR {NO_REQUEST}) "
+        f"AND NOT ({_CONDITION_SKIP})) "
         "  FROM litkb.acquisition_attempts WHERE at > %s AND workstream_id::text = ANY(%s) AND route = %s",
         (frozen, ws, route)).fetchone()
     return int(by_cond or 0), int(other or 0)
@@ -347,9 +367,14 @@ def stage_b_asked_works(conn, manifest):
     from litkb.acquire import policy as P
 
     b = sorted(r for r, s in P.STAGE_OF.items() if s == "B")
+    unasked = ""
+    # BEGIN guard: the kill criterion's asked works exclude rows on which the rung made no request
+    unasked = f" AND NOT {NO_REQUEST}"
+    # END guard: the kill criterion's asked works exclude rows on which the rung made no request
     return conn.execute(
         "SELECT count(DISTINCT work_id) FROM litkb.acquisition_attempts WHERE at > %s AND workstream_id::text = "
-        "ANY(%s) AND route = ANY(%s) AND status NOT IN ('skipped', 'budget-stop')", (frozen, ws, b)).fetchone()[0]
+        "ANY(%s) AND route = ANY(%s) AND status NOT IN ('skipped', 'budget-stop')" + unasked,
+        (frozen, ws, b)).fetchone()[0]
 
 
 def _conv(route):

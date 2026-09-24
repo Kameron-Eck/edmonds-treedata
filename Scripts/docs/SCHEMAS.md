@@ -3300,8 +3300,10 @@ behind it); a 200 among the codes → `html_or_reader` (inferred); a 403 →
 `phase4/qc/litkb_acq_probe_blocked.csv` (tracked, MEASURED read-only on live by builder C1a on 2026-09-23 with
 `py -3.12 -m litkb.acquire.ledger --role litkb_reader type-blocked --out ../phase4/qc/litkb_acq_probe_blocked.csv`
 from `Scripts/`): the historical `blocked` typing in this shape — 39 rows, all `challenge_or_bot_check` (scihub
-25 by `inferred` — the route's token alone, S4.5 decision D30; open_access 11 by `bytes`, 1 by `detail` — the
-route's own rule over its kept first body — and 2 by `inferred`, the same rule with no bytes kept). The file the orchestrator's live
+25 by `inferred` — the route's token alone, S4.5 decision D30; open_access 11 by `bytes` and 3 by `inferred` — the
+route's own rule: 2 with no bytes kept, and 1 over a kept first body the one detector finds no challenge in,
+attempt 01a0c71a Li_2022, which carried `detail` until the orchestrator's ruling on auditor-cand3 N1;
+regenerated read-only from live by builder-fix4 with the same command, that one row the only change). The file the orchestrator's live
 `backfill-sub-status --csv` applies for `blocked_untyped`; `write_csv` creates it and never overwrites one.
 
 ### The acquisition ladder (`pipeline/litkb/acquire/run.py`, S4.5 builder C1a)
@@ -3540,7 +3542,12 @@ OAI-PMH `<error>` on any page — the protocol serves its errors, e.g. an expire
 200; `noRecordsMatch` on the FIRST page is the empty list, a complete walk of nothing; an unparseable 200 page stops
 the walk: `litkb_eartharxiv_map.oai_error`, auditor-C2a round 2 F4) writes the map; a walk that stops early writes
 nothing at the map path — the rows read go to `litkb_eartharxiv_map.partial.csv` beside it, which no rung reads —
-and exits 1 (a map missing pages would book `no-oa-copy` for the works on them).
+and exits 1 (a map missing pages would book `no-oa-copy` for the works on them). ONE repair, of ONE class
+(builder-fix4, `litkb_eartharxiv_map.repair_xml10`): every character XML 1.0 §2.2's `Char` production excludes
+(the MEASURED defect: a literal U+FFFE in record oai:EA:id:1336's description made the real page 7 unparseable,
+twice) becomes U+FFFD before the page is read, so the record is kept; the output line always states
+`repaired_pages=<n> repaired_chars=<n>`. A page that is not UTF-8, or malformed in any other way, is not repaired
+and still stops the walk.
 
 | column | meaning |
 |---|---|
@@ -3570,11 +3577,14 @@ repository).
 
 The script form prints the LITKB_LADDER1 report's lines: `yield: <route>=<converted>/<asked>` for every built Stage
 B rung (and every Stage A rung of this builder) — `asked` counts works with a row that is neither `skipped` nor
-`budget-stop`, so a skip is never an ask; for a metadata-only rung ALSO `identifiers: <route>=<works
+`budget-stop`, so a skip is never an ask, and on which the rung made a request: an `api-error` with no HTTP code
+and no terminal status (`NO_REQUEST`: the EarthArXiv rung with no map on disk, a rung that raised before asking)
+is not an ask either, while a transport failure (code 0) and a miss read from the harvested EarthArXiv map are
+(builder-fix4; auditor-cand3 F1). The same rule bounds the `kill:` lines' `<asked>`. For a metadata-only rung ALSO `identifiers: <route>=<works
 gaining>/<asked>` (S4.5 decision D19); for a rung with an `ask_condition` that asked NO row, reached at least one,
 and was skipped on EVERY row it reached by that condition (a row the rung itself skipped with its condition in
 `detail.policy.closure`, or the ladder's `no_identifier` skip with `detail.needs` — never a policy refusal, a
-back-off window or a dead route: `condition_skips`), ALSO `not-asked: <route> <works reached> <condition>` in the
+back-off window or a dead route, and never a no-request row: `condition_skips`), ALSO `not-asked: <route> <works reached> <condition>` in the
 registry's own words (auditor-C2a round 2 F3: on live 0 works hold a zenodo or a figshare DOI or a PMCID, and a
 `=0/0` yield line asked nobody; builder A's `stage_b_rungs_unmeasured` accepts the not-asked line for such a rung
 under S4.5 decision D32's four conditions, "The not-asked line" below); `not-built: <route> <reason>` for each Stage B

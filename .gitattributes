@@ -83,3 +83,9 @@ Scripts/qc/fixtures/litkb_cassettes/**  binary
 # pipeline/litkb/acquire/landing_rules.json, recorded hop by hop (recording.json + hopN.body), every
 # body pinned by the sha256 of its BYTES. Same reason as the cassettes: a checkout must not rewrite them.
 Scripts/qc/fixtures/litkb_landing_pages/**  binary
+
+# ── A recorded OAI-PMH page (litkb S4.5 builder-fix4, the EarthArXiv harvester) ──
+# Added 2026-09-24 with qc/fixtures/litkb_eartharxiv_oai_page7_37129fe75ccb.xml: the BYTES eartharxiv.org served for
+# page 7 of its ListRecords feed, pinned by sha256 in qc/test_litkb_s45_prerun.py. Same reason as the .html rule above:
+# `* text=auto` would newline-convert it on checkout, and a fixture that hashes two ways is not a record.
+Scripts/qc/fixtures/litkb_eartharxiv_oai_*.xml  binary

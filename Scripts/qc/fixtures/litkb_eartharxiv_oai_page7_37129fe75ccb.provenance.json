@@ -1,0 +1,12 @@
+{
+  "what": "REAL recorded bytes: page 7 of EarthArXiv's OAI-PMH ListRecords (oai_dc) as eartharxiv.org served it at HTTP 200 to builder-fix4 (S4.5, 2026-09-24 UTC by the page's own responseDate), captured under the orchestrator's network grant (the instrument's own URL, 1 s pacing, 7 requests: pages 1-7, stopping at the first page the instrument's oai_error calls unparseable). Never edited.",
+  "sha256": "37129fe75ccb7ef5894bad0f9680c29782a77ebbaa49fce34fd49f092b82bbdd",
+  "bytes": 187074,
+  "url_requested": "https://eartharxiv.org/api/oai/?verb=ListRecords&resumptionToken=metadataPrefix%253Doai_dc%2526page%253D7",
+  "status": 200,
+  "content_type": "application/xml",
+  "records": 50,
+  "the_defect": "ONE XML-1.0-illegal character: U+FFFE (UTF-8 bytes EF BF BE, a Unicode noncharacter outside XML 1.0 section 2.2's Char production) at byte offset 165432, inside the dc:description of record oai:EA:id:1336 (datestamp 2019-08-20T04:47:33Z), between 'basin' and 'margin'. expat: 'not well-formed (invalid token): line 3489, column 410'. No C0 control character; the page is valid UTF-8.",
+  "pages_1_to_6": "parsed unrepaired, 0 illegal characters each (sha256 c6a10d14 / 2a81f87a / 317a178f / dc788723 / 8e763965 / 68cba86d); not kept as fixtures",
+  "orchestrator_measurement": "the live walk stopped INCOMPLETE on this page twice on 2026-09-23 (pages=7 rows=300; jobs/litkb-s4-5/live-eartharxiv*.out)"
+}

@@ -61,3 +61,24 @@ def test_the_real_registry_s_conditional_rungs_are_builder_c2a_s():
 
     assert HA.conditional_routes() == {r: c for r, c in B.ASK_CONDITIONS.items() if P.STAGE_OF.get(r) == "B"}
     assert {"zenodo", "figshare", "europepmc"} <= set(HA.conditional_routes())
+
+
+def test_d32_s_condition_is_byte_equal_never_case_folded(tmp_path):
+    """auditor-cand3 N4 (its OWN9 — the comparison case-folded — survived every test before this one): D32 condition 1
+    is BYTE-equality with the registry's words, so the words upper-cased, lower-cased or swap-cased are not the
+    registry's and the rung stays unmeasured; the exact words measure it. The CONSTRUCTED registry of the test above,
+    then the REAL registry's zenodo condition (builder C2a's stage_b.ASK_CONDITIONS) in a CONSTRUCTED report."""
+    from litkb.acquire import stage_b as B
+
+    rungs = [types.SimpleNamespace(route="zenodo", ask_condition="CONSTRUCTED condition Z")]
+
+    def unmeasured(lines, rungs=None):
+        p = tmp_path / "LITKB_LADDER1_CONSTRUCTED.md"
+        p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return HA.stage_b_unmeasured_detail({"repo": str(tmp_path), "report_path": str(p)}, rungs)
+
+    for cond, ours in (("CONSTRUCTED condition Z", rungs), (B.ASK_CONDITIONS["zenodo"], None)):
+        assert cond.upper() != cond and cond.lower() != cond
+        assert "zenodo" not in unmeasured(["yield: zenodo=0/0", f"not-asked: zenodo 3 {cond}"], ours)
+        for folded in (cond.upper(), cond.lower(), cond.swapcase()):
+            assert "zenodo" in unmeasured(["yield: zenodo=0/0", f"not-asked: zenodo 3 {folded}"], ours), folded

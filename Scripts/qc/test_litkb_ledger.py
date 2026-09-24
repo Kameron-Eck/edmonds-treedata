@@ -982,9 +982,10 @@ def test_the_blocked_classifier_on_recorded_and_shaped_pages():
     assert L.type_blocked([200], None, None, ["sci-hub.ru:200=blocked"])[:2] == ("challenge_or_bot_check", "inferred")
     assert L.type_blocked([]) == (None, None, "untypable")
     # the route's own rule: open_access books blocked only when a challenge answered (its kept bytes are the
-    # FIRST body served, e.g. a landing page, and need not be the challenging one)
+    # FIRST body served, e.g. a landing page, and need not be the challenging one); bytes the one detector finds
+    # no challenge in are no evidence for the rule, so the basis is `inferred` (auditor-cand3 N1)
     assert L.type_blocked([200, 403], b"<html><title>Landing</title></html>", route="open_access")[:2] == (
-        "challenge_or_bot_check", "detail")
+        "challenge_or_bot_check", "inferred")
     mdpi = (b"<HTML><HEAD>\n<TITLE>Access Denied</TITLE>\n</HEAD><BODY>Reference&#32;&#35;18&#46;c7\n"
             b"<P>https&#58;&#47;&#47;errors&#46;edgesuite&#46;net&#47;18&#46;c7</P></BODY></HTML>")
     assert L.type_blocked([403, 403], mdpi) == ("challenge_or_bot_check", "bytes", "akamai")

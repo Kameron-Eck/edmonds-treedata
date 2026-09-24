@@ -3218,6 +3218,18 @@ replace("I3W19", f"{PKG}/acquire/ledger.py",
         "            elif (r.get(\"cause\") or \"\").strip() == MISBOOKED_CAUSE:\n", "            elif False:\n",
         "D29 gone at the backfill reader: a misbooked row carrying a stale sub-status is offered and typed",
         tests=TESTS_W3 + ["qc/test_litkb_s45_seams.py"])
+# -- builder-fix4 (the orchestrator's ruling on auditor-cand3 N1): the open-access rule over kept bytes the one detector
+#    does not call a challenge is `inferred`. Its own set is qc/test_litkb_s45_prerun.py.
+block("PR4", f"{PKG}/acquire/ledger.py",
+      "guard: kept bytes the one detector does not call a challenge leave the route's rule inferred",
+      "N1 gone: an open-access blocked row whose kept first body is no challenge (Li_2022's ScienceDirect reader page) is "
+      "typed on basis `detail`, as if its bytes evidenced the route's rule", tests=["qc/test_litkb_s45_prerun.py"])
+# -- builder-fix4 (referee-badfile-read N2 / its M1, S4.5 decision D36): the item-8 instrument's 403 + transport-0 rule.
+replace("PR9", "qc/instruments/litkb_acq_probe_badfile.py", "    if codes and all(c in (403, 0) for c in codes):\n",
+        "    if False:\n",
+        "D36 / N2 gone: a no-bytes bad-file row whose hosts answered only 403 and a transport failure (the REAL "
+        "Olofsson_2020 row) is typed html_response/`other` inside the bad-file family instead of MISBOOKED "
+        "(`blocked_not_bad_file`) — and the backfill would write it", tests=["qc/test_litkb_s45_prerun.py"])
 # ==== end S4.5 builder C1 rows ====
 
 
@@ -3399,6 +3411,39 @@ replace("I3W20", "qc/instruments/litkb_hardening_a.py",
 block("I3W21", "qc/instruments/litkb_hardening_a.py", "guard: a rung both asked and not-asked in one report is unmeasured",
       "D32 condition 3 gone: a rung with a yield line that asked rows AND a not-asked line reads measured",
       tests=["qc/test_litkb_s45_not_asked.py"])
+# -- builder-fix4 (the live run's pre-run fixes; auditor-cand3 F1 + its N4, the EarthArXiv walk that stopped on page 7).
+#    Each answers WORSE when mutated (never an import or syntax error). Sets: qc/test_litkb_s45_prerun.py, and
+#    qc/test_litkb_s45_not_asked.py for D32's byte-equal condition.
+TESTS_PRERUN = ["qc/test_litkb_s45_prerun.py"]
+block("PR1", "qc/instruments/litkb_eartharxiv_map.py",
+      "guard: an XML-1.0-illegal character is repaired, counted and printed, never the page refused for it",
+      "the REAL page 7 (one literal U+FFFE in one record's description) stops the live walk INCOMPLETE again, and the "
+      "map is never written", tests=TESTS_PRERUN)
+replace("PR2", "qc/instruments/litkb_eartharxiv_map.py", '        text = (xml_bytes or b"").decode("utf-8")\n',
+        '        text = (xml_bytes or b"").decode("utf-8", "replace")\n',
+        "the repair widens past its class: a page that is not UTF-8 is re-encoded and read as the feed's page, its bad "
+        "bytes silently turned into U+FFFD", tests=TESTS_PRERUN)
+replace("PR3", "qc/instruments/litkb_eartharxiv_map.py",
+        "    fixed = f\"repaired_pages={repaired['pages']} repaired_chars={repaired['chars']}\"\n",
+        "    fixed = \"repaired_pages=0 repaired_chars=0\"\n",
+        "the repair is silent: the output line says no page was repaired while a record's text was changed",
+        tests=TESTS_PRERUN)
+block("PR5", C2A_H, "guard: a row on which the rung made no request is never counted asked",
+      "auditor-cand3 F1: the EarthArXiv rung's `api-error` with no map on disk (and a rung that raised before asking) "
+      "counts as ASKED — `yield: eartharxiv=0/~187`, a measured zero for a rung that sent nothing", tests=TESTS_PRERUN)
+block("PR6", C2A_H, "guard: the kill criterion's asked works exclude rows on which the rung made no request",
+      "the kill criterion's `<asked>` counts a Stage B row on which the rung made no request", tests=TESTS_PRERUN)
+replace("PR7", C2A_H,
+        "        f\"       count(DISTINCT work_id) FILTER (WHERE (status = 'skipped' OR {NO_REQUEST}) \"\n",
+        "        f\"       count(DISTINCT work_id) FILTER (WHERE (status = 'skipped') \"\n",
+        "a conditional rung whose condition skipped one row and which made no request on another prints a not-asked "
+        "line claiming the condition decided both — and builder A's counter reads the rung measured", tests=TESTS_PRERUN)
+replace("PR8", "qc/instruments/litkb_hardening_a.py",
+        "    got = {**{r: (0, 0) for r, (n, why) in not_asked(text).items() if n >= 1 and cond.get(r) == why}, **got}\n",
+        "    got = {**{r: (0, 0) for r, (n, why) in not_asked(text).items() if n >= 1 and "
+        "(cond.get(r) or '').casefold() == why.casefold()}, **got}\n",
+        "D32 condition 1 case-folded (auditor-cand3 N4 / OWN9): the registry's words upper-cased measure the rung",
+        tests=["qc/test_litkb_s45_not_asked.py"])
 # ==== end S4.5 builder C2A rows ====
 
 

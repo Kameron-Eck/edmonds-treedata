@@ -82,3 +82,29 @@ def test_d32_s_condition_is_byte_equal_never_case_folded(tmp_path):
         assert "zenodo" not in unmeasured(["yield: zenodo=0/0", f"not-asked: zenodo 3 {cond}"], ours)
         for folded in (cond.upper(), cond.lower(), cond.swapcase()):
             assert "zenodo" in unmeasured(["yield: zenodo=0/0", f"not-asked: zenodo 3 {folded}"], ours), folded
+
+
+def test_d32_s_condition_refuses_any_prefix_or_suffix_whitespace_included(tmp_path):
+    """auditor-fix4 N5 (its A14 — the comparison tolerating a trailing `.` — survived every test before this one): D32
+    condition 1's byte-equality is over the WHOLE rest of the line after `<works reached>` and one space, so the
+    registry's words with a trailing `.`, any other visible suffix or prefix, the words cut short at either end, or
+    PADDING whitespace (spaces, a TAB, a no-break space — the grammar stripped them until builder-fix5) are another text
+    and the rung stays unmeasured; the exact words, and only they, measure it. The CONSTRUCTED registry of the tests
+    above, then the REAL registry's zenodo condition (builder C2a's stage_b.ASK_CONDITIONS), in a CONSTRUCTED report."""
+    from litkb.acquire import stage_b as B
+
+    rungs = [types.SimpleNamespace(route="zenodo", ask_condition="CONSTRUCTED condition Z")]
+
+    def measured(cond, rungs=None):
+        p = tmp_path / "LITKB_LADDER1_CONSTRUCTED.md"
+        p.write_text(f"yield: zenodo=0/0\nnot-asked: zenodo 3 {cond}\n", encoding="utf-8")
+        return "zenodo" not in HA.stage_b_unmeasured_detail({"repo": str(tmp_path), "report_path": str(p)}, rungs)
+
+    for cond, ours in (("CONSTRUCTED condition Z", rungs), (B.ASK_CONDITIONS["zenodo"], None)):
+        assert measured(cond, ours)
+        others = {"trailing dot": cond + ".", "leading dot": "." + cond, "suffix": cond + " x", "prefix": "x " + cond,
+                  "cut at the end": cond[:-1], "cut at the start": cond[1:], "trailing space": cond + " ",
+                  "trailing TAB": cond + "\t", "leading space": " " + cond, "leading TAB": "\t" + cond,
+                  "trailing no-break space": cond + " "}
+        wrongly = [name for name, other in others.items() if measured(other, ours)]
+        assert wrongly == [], (cond, wrongly)

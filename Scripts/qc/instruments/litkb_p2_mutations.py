@@ -3444,6 +3444,40 @@ replace("PR8", "qc/instruments/litkb_hardening_a.py",
         "(cond.get(r) or '').casefold() == why.casefold()}, **got}\n",
         "D32 condition 1 case-folded (auditor-cand3 N4 / OWN9): the registry's words upper-cased measure the rung",
         tests=["qc/test_litkb_s45_not_asked.py"])
+# -- builder-fix5 (auditor-fix4's notes N6, N1, N2, N5). Each answers WORSE when mutated (never an import or syntax
+#    error). Sets: qc/test_litkb_s45_prerun.py; qc/test_litkb_s45_not_asked.py for D32's byte-equality.
+replace("PR10", f"{PKG}/acquire/stage_a.py", 'hit.get("preprint_doi")})], ctx, work)\n',
+        'hit.get("preprint_doi")})], ctx)\n',
+        "N6: the EarthArXiv rung asks its PDF URL outside the run's asked-URL map — a later rung listing the same "
+        "download asks it AGAIN, and in MEASURE mode one file counts toward two rungs' yields", tests=TESTS_PRERUN)
+replace("PR11", "qc/instruments/litkb_eartharxiv_map.py", 'XML10_ILLEGAL = re.compile("[^\\u0009',
+        'XML10_ILLEGAL = re.compile("[^',
+        "N1 / auditor-fix4 A2: TAB (legal XML 1.0) joins the repaired class — real abstract text rewritten",
+        tests=TESTS_PRERUN)
+replace("PR12", "qc/instruments/litkb_eartharxiv_map.py", '\\U00010000-\\U0010ffff]")', ']")',
+        "N1 / auditor-fix4 A3: every astral character (legal XML 1.0; math letters in an abstract) is repaired",
+        tests=TESTS_PRERUN)
+replace("PR13", "qc/instruments/litkb_eartharxiv_map.py", '\\u000d -', '\\u000d -~\\u00a0-',
+        "N1 / auditor-fix4 A4: DEL and the C1 controls U+007F-U+009F (legal XML 1.0) are repaired", tests=TESTS_PRERUN)
+replace("PR14", "qc/instruments/litkb_eartharxiv_map.py", "rows={len(rows)} {fixed} INCOMPLETE",
+        "rows={len(rows)} INCOMPLETE",
+        "N2 / auditor-fix4 A15: the INCOMPLETE line drops the repair counts — a page repaired and still refused says "
+        "nothing of the repair", tests=TESTS_PRERUN)
+TESTS_D32 = ["qc/test_litkb_s45_not_asked.py"]
+replace("PR15", "qc/instruments/litkb_hardening_a.py", "cond.get(r) == why}", "cond.get(r) == why.rstrip('.')}",
+        "N5 / auditor-fix4 A14: D32's condition compared with a trailing '.' tolerated — the registry's words plus a "
+        "full stop measure the rung", tests=TESTS_D32)
+replace("PR16", "qc/instruments/litkb_hardening_a.py", "cond.get(r) == why}", "(cond.get(r) or '~') in why}",
+        "N5: D32's condition compared by containment — the registry's words with any prefix or suffix measure the rung",
+        tests=TESTS_D32)
+replace("PR17", "qc/instruments/litkb_hardening_a.py",
+        '(?P<reached>\\d+) (?P<condition>[^\\n]*)$"',
+        '(?P<reached>\\d+)[ \\t]+(?P<condition>\\S[^\\n]*?)[ \\t]*$"',
+        "N5: the grammar before builder-fix5 restored (padding spaces and TABs around the condition absorbed) — the "
+        "registry's words with leading or trailing whitespace measure the rung", tests=TESTS_D32)
+replace("PR18", "qc/instruments/litkb_hardening_a.py", 'm["condition"])', 'm["condition"].strip())',
+        "N5: the parsed condition stripped — the registry's words padded with whitespace (a no-break space too) "
+        "measure the rung", tests=TESTS_D32)
 # ==== end S4.5 builder C2A rows ====
 
 

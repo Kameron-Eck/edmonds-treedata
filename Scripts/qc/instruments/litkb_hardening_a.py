@@ -99,9 +99,11 @@ IDENTIFIERS_LINE = re.compile(r"^identifiers: (?P<route>[a-z0-9_-]+)=(?P<convert
 #: (fail closed): (1) the registry gives the rung an `ask_condition` and the line's condition is BYTE-EQUAL to it, never
 #: a paraphrase; (2) the line reached at least one work; (3) the report holds NO `yield:` line with asked > 0 for the
 #: same route — a rung is asked or not-asked, never both; (4) the report states such a rung's yield on this corpus as
-#: UNDETERMINED, never zero (docs/SCHEMAS.md, the grammar's row).
-NOT_ASKED_LINE = re.compile(r"^not-asked: (?P<route>[a-z0-9_-]+) (?P<reached>\d+)[ \t]+(?P<condition>\S[^\n]*?)[ \t]*$",
-                            re.M)
+#: UNDETERMINED, never zero (docs/SCHEMAS.md, the grammar's row). BYTE-EQUAL means the WHOLE rest of the line after
+#: `<works reached>` and ONE space, as written — no padding stripped (builder-fix5; auditor-fix4 N5): a condition
+#: with anything before or after the registry's words, a trailing `.` or trailing / leading whitespace included, is
+#: not the registry's words, and the rung stays unmeasured.
+NOT_ASKED_LINE = re.compile(r"^not-asked: (?P<route>[a-z0-9_-]+) (?P<reached>\d+) (?P<condition>[^\n]*)$", re.M)
 
 #: A NAMED EXCEPTION of a gated counter (S4.5 decisions D11 and D23: a row whose bytes the BINDING gate refused is
 #: "a NAMED exception ... with its refusal reason, exactly like acceptance-test refusals; never silent"):
@@ -238,8 +240,9 @@ def metadata_only_routes(rungs=None):
 
 
 def not_asked(text):
-    """{route: (works reached, condition)} of every well-formed not-asked line."""
-    return {m["route"]: (int(m["reached"]), m["condition"].strip()) for m in NOT_ASKED_LINE.finditer(text or "")}
+    """{route: (works reached, condition)} of every well-formed not-asked line; the condition exactly as written
+    (never stripped: D32's byte-equality is over the line's own bytes)."""
+    return {m["route"]: (int(m["reached"]), m["condition"]) for m in NOT_ASKED_LINE.finditer(text or "")}
 
 
 def conditional_routes(rungs=None):

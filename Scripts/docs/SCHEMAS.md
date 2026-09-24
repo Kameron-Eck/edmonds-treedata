@@ -3978,7 +3978,9 @@ session has not confirmed (`litkb-from-file-version-state`).
 
 `not-asked: <route> <works reached> <condition>` measures a CONDITIONAL Stage B rung for `stage_b_rungs_unmeasured` only
 when ALL FOUR hold, else the rung is unmeasured (fail closed): (1) the registry gives the rung an `ask_condition`
-(`stage_b.ASK_CONDITIONS`) and `<condition>` is byte-equal to it — a paraphrase answers nothing; (2) `<works reached>`
+(`stage_b.ASK_CONDITIONS`) and `<condition>` is byte-equal to it — a paraphrase answers nothing, and `<condition>` is
+the WHOLE rest of the line after `<works reached>` and one space, never stripped, so a trailing `.`, any other prefix or
+suffix, and leading or trailing whitespace each make it another text (builder-fix5, auditor-fix4 N5); (2) `<works reached>`
 >= 1 — a rung the ladder never reached is unmeasured, not not-asked; (3) the report holds no `yield:` line with asked
 > 0 for that route — a rung is asked or not-asked, never both; (4) the LITKB_LADDER1 report states such a rung's yield
 on this corpus as UNDETERMINED (never eligible), not zero: its condition held for no work, so the run measured nothing

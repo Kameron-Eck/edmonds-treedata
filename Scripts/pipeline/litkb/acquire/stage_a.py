@@ -393,8 +393,11 @@ def rung_eartharxiv(work, ctx):
     if hit is None:
         return {"status": "no-oa-copy", "http_codes": [], "detail": "no EarthArXiv preprint in the harvested map",
                 "terminal": {"url": "", "status_code": None, "at": _now()}}
+    # the run's `work` goes WITH the candidate (builder-fix5; auditor-fix4 N6): the PDF URL is checked against and
+    # recorded in the run's asked-URL map, so a later rung listing the same EarthArXiv download never asks it again
+    # and in MEASURE mode one file never counts toward two rungs' yields (survey A10: never one URL twice in a run)
     r = B.fetch_candidates("eartharxiv", [(hit["pdf_url"], {"version": "submittedVersion",
-                                                          "preprint_doi": hit.get("preprint_doi")})], ctx)
+                                                          "preprint_doi": hit.get("preprint_doi")})], ctx, work)
     r["detail"] = f"EarthArXiv map hit: preprint {hit.get('preprint_doi')}; " + (r.get("detail") or "")
     return r
 

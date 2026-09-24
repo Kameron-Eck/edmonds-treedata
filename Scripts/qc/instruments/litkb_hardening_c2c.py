@@ -441,6 +441,31 @@ def _rows(conn, work_id, route="wayback"):
                         "AND route = %s ORDER BY at, id", (work_id, route)).fetchall()
 
 
+# ── S4.5 decision D39 (builder-fix6): a test that needs a switched-off rung ACTIVE ─────────────────
+def policy_with_route_on(route):
+    """-> a COPY of `litkb.acquire.policy.POLICY` in which `route`'s lines carry no `off_why` (CONSTRUCTED: E5's two
+    hosts are switched off by D39, and a test of the rung's own mechanics needs it asked). The table is never
+    edited. `litkb.acquire.run` is imported first: its rungs append their own lines to POLICY at import, and a copy
+    taken before them would lose those lines when the override is lifted."""
+    import dataclasses
+
+    from litkb.acquire import policy as P
+    from litkb.acquire import run  # noqa: F401 — the registry's own lines first (docstring)
+
+    return tuple(dataclasses.replace(p, off_why="") if p.route == route else p for p in P.POLICY)
+
+
+@contextlib.contextmanager
+def route_switched_on(route):
+    """`policy_with_route_on(route)` as the module POLICY for the with-block ONLY — every ladder decision reads the
+    module table — and the table as it was after it. An explicit override in the test that asks for it, never a
+    global clearing of `off_why`; it lives here, in the instrument, and in no pipeline module."""
+    from litkb.acquire import policy as P
+
+    with mock.patch.object(P, "POLICY", policy_with_route_on(route)):
+        yield
+
+
 # ── the fires ───────────────────────────────────────────────────────────────────────────────
 def fire_wayback_rung_disabled(conn, arm, workdir):
     """(brief item 6) "the E1 rung disabled -> the positive row's Wayback attempt disappears (the counter moves)".

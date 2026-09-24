@@ -13,8 +13,9 @@ until an independent referee scores it on the rows the plan names.
   KINDS             what kind of content an attempt obtained (survey §3.4)
   COPY_KIND_OF_VERSION  a route's article version -> file_versions.copy_kind (guard 23, no new column)
   POLICY / decide() the pre-fetch PolicyDecision (guard 21): one auditable line per rung/host, the
-                    shadow tier a one-line switch, returned BEFORE any request and recorded on the
-                    attempt row that follows it
+                    shadow tier a one-line switch, a single line switched off with its reason
+                    (`PolicyLine.off_why`, S4.5 decision D39), returned BEFORE any request and recorded
+                    on the attempt row that follows it
   LadderBudget      the declarative budget over the whole ladder (guard 12): total seconds, attempts,
                     concurrency, checked between every stage and rung; exhaustion writes a
                     `budget-stop` row, never silence
@@ -117,6 +118,10 @@ class PolicyLine:
     tier: str               # "legitimate" | "shadow"
     why: str
     corpus_frozen_at: str = ""   # a shadow front's corpus freeze date (data for its freeze gate)
+    #: S4.5 decision D39 (builder-fix6): a line kept IN the table but switched OFF, with its measured reason —
+    #: guard 21's "a tier is an auditable switch", for one host. `decide` refuses the line with this reason, so every
+    #: row the ladder records for it is a `skipped/policy_refused` carrying it: never silence, never a deleted line.
+    off_why: str = ""
 
 
 #: `litkb-shadow-hosts` (decided 2026-09-22): "Every host is one auditable line in the pre-fetch
@@ -127,6 +132,13 @@ SHADOW_CORPUS_FROZEN_AT = "2022-02-12"
 #: The ONE switch for the shadow tier (guard 21: "shadow tier authorised" as a one-line auditable
 #: switch rather than a code path). True under `litkb-shadow-hosts` (a)-(d), all granted.
 SHADOW_TIER_ENABLED = True
+
+#: S4.5 decision D39 (builder-fix6): Stage E5's two hosts are switched OFF with this reason, the orchestrator's
+#: measurement during the live run; every skip the ladder records for them carries it.
+COMMONCRAWL_OFF_WHY = ("switched off 2026-09-24 (S4.5 decision D39): in the live run hardening-1 every Common "
+                       "Crawl attempt that was not an ordinary 404 ended on the index answering 502/504 (13 of "
+                       "14 attempts; one transport failure), attempts took up to ~300 s, and a direct probe at "
+                       "02:03 PDT had its connection closed in 0.3 s, so the index was not serving")
 
 POLICY = (
     PolicyLine("open_access", "api.unpaywall.org", "legitimate",
@@ -140,9 +152,9 @@ POLICY = (
     PolicyLine("ia", "archive.org", "legitimate",
                "Stage E3: Internet Archive item search, item metadata and an item's file (plan item 6)"),
     PolicyLine("commoncrawl", "index.commoncrawl.org", "legitimate",
-               "Stage E5: the Common Crawl crawl list and index (plan item 6)"),
+               "Stage E5: the Common Crawl crawl list and index (plan item 6)", off_why=COMMONCRAWL_OFF_WHY),
     PolicyLine("commoncrawl", "data.commoncrawl.org", "legitimate",
-               "Stage E5: one WARC record by byte range (survey §1 E5-RG)"),
+               "Stage E5: one WARC record by byte range (survey §1 E5-RG)", off_why=COMMONCRAWL_OFF_WHY),
     PolicyLine("annas", "annas-archive.gl", "shadow", "litkb-shadow-hosts (a)", SHADOW_CORPUS_FROZEN_AT),
     PolicyLine("scihub", "sci-hub.ru", "shadow", "litkb-shadow-hosts (a)", SHADOW_CORPUS_FROZEN_AT),
     PolicyLine("scihub", "sci-hub.ren", "shadow", "litkb-shadow-hosts (a)", SHADOW_CORPUS_FROZEN_AT),
@@ -255,7 +267,8 @@ def line_for(route, host="*", policy=None):
 def decide(route, host="*", *, legit_hit=False, shadow_enabled=None, policy=None):
     """-> PolicyDecision for asking `host` on `route` now.
 
-    Refused when: no policy line names the route/host; the line is shadow and the shadow switch is
+    Refused when: no policy line names the route/host; the line is switched off (`off_why`, S4.5
+    decision D39: refused with that reason, whatever its tier); the line is shadow and the shadow switch is
     off; the line is shadow and a legitimate rung has already HIT in this ladder run (in MEASURE mode
     a hit does not stop the ladder, so this is what keeps the shadow tier after every legitimate rung
     has MISSED, as `litkb-shadow-hosts` rules)."""
@@ -263,6 +276,10 @@ def decide(route, host="*", *, legit_hit=False, shadow_enabled=None, policy=None
     i, line = line_for(route, host or "*", policy)
     if line is None:
         return PolicyDecision(route, host or "*", "", False, "no policy line names this route/host")
+    # BEGIN guard: a line switched off is refused with its measured reason
+    if line.off_why:
+        return PolicyDecision(route, host or "*", line.tier, False, line.off_why, i)
+    # END guard: a line switched off is refused with its measured reason
     # BEGIN guard: the shadow tier is one switch and runs only after every legitimate rung missed
     if line.tier == SHADOW and not shadow_enabled:
         return PolicyDecision(route, host or "*", line.tier, False, "the shadow tier is switched off", i)

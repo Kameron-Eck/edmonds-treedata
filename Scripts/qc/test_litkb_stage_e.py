@@ -86,12 +86,16 @@ def test_the_stage_e_rungs_are_registered_in_order_whatever_is_imported_first(fi
 
 
 def test_every_stage_e_host_has_a_policy_line_and_an_unnamed_host_is_refused():
+    """Every Stage E host has its legitimate line. E5's two are switched OFF by S4.5 decision D39 (`off_why`), so
+    they are read here under the test's explicit override (`C2C.route_switched_on`); the switch itself is
+    qc/test_litkb_s45_cc_off.py's."""
     from litkb.acquire import policy as P
 
-    for route, host in (("wayback", "archive.org"), ("wayback", "web.archive.org"), ("ia", "archive.org"),
-                        ("commoncrawl", "index.commoncrawl.org"), ("commoncrawl", "data.commoncrawl.org")):
-        d = P.decide(route, host)
-        assert d.allowed and d.tier == P.LEGITIMATE and P.POLICY[d.line].host == host, (route, host, d)
+    with C2C.route_switched_on("commoncrawl"):
+        for route, host in (("wayback", "archive.org"), ("wayback", "web.archive.org"), ("ia", "archive.org"),
+                            ("commoncrawl", "index.commoncrawl.org"), ("commoncrawl", "data.commoncrawl.org")):
+            d = P.decide(route, host)
+            assert d.allowed and d.tier == P.LEGITIMATE and P.POLICY[d.line].host == host, (route, host, d)
     for route in ("wayback", "ia", "commoncrawl"):
         assert not P.decide(route, "evil.example").allowed
         assert not P.decide(route, "sci.bban.top").allowed
@@ -615,9 +619,12 @@ def test_a_dead_link_met_in_this_run_reaches_stage_e(world, monkeypatch):
 
 @pg_only
 def test_a_stage_e_rung_with_no_dead_url_is_a_named_skip(world):
+    """The rung's own no-candidate skip, so E5 is ACTIVE here under the test's explicit override (S4.5 decision
+    D39 switched its hosts off: without it the ladder would record `policy_refused` before the rung is reached)."""
     ws = world.ws("no-url")
     work = world.work(ws)
-    world.ladder(ws, work, {}, routes=("wayback", "commoncrawl"), mode="acquire")
+    with C2C.route_switched_on("commoncrawl"):
+        world.ladder(ws, work, {}, routes=("wayback", "commoncrawl"), mode="acquire")
     rows = [(r[0], r[1]) for r in C2C._rows(world.owner, work["work_id"])] + \
         [(r[0], r[1]) for r in C2C._rows(world.owner, work["work_id"], "commoncrawl")]
     assert rows == [("skipped", "no_identifier")] * 2, rows

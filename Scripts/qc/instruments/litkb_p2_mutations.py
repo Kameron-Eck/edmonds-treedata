@@ -3763,6 +3763,17 @@ replace("C2C32", f"{PKG}/acquire/commoncrawl.py",
         'detail=f"the WARC range answered {st}")\n',
         "E5's WARC-range 503 becomes a NON-retriable api-error (auditor-C2c r3 A14)",
         tests=["qc/test_litkb_s45_w2.py"])
+# -- builder-fix6 (S4.5 decision D39): E5's two hosts switched OFF through the pre-fetch policy (`PolicyLine.off_why`)
+TESTS_CC_OFF = ["qc/test_litkb_s45_cc_off.py"]
+block("C2C33", f"{PKG}/acquire/policy.py", "guard: a line switched off is refused with its measured reason",
+      "a policy line switched off (`off_why`, S4.5 decision D39) is decided as if it were on: E5 asks the unavailable "
+      "Common Crawl hosts and no skip carries the measured reason", tests=TESTS_CC_OFF)
+replace("C2C34", f"{PKG}/acquire/policy.py",
+        '"Stage E5: the Common Crawl crawl list and index (plan item 6)", off_why=COMMONCRAWL_OFF_WHY),\n',
+        '"Stage E5: the Common Crawl crawl list and index (plan item 6)"),\n',
+        "the index host's line loses its `off_why` while the data host's keeps it: the ladder's host-less pre-check "
+        "reads the index line, lets E5 run, and the rung requests the crawl list (S4.5 decision D39)",
+        tests=TESTS_CC_OFF)
 # ==== end S4.5 builder C2C rows ====
 
 

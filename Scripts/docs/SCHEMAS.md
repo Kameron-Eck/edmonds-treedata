@@ -3729,7 +3729,8 @@ whatever module is imported first); `litkb.acquire.run` imports all three (S4.5 
 the stage (not concurrent), `needs` = (`doi`, `arxiv`) — the identifier the row is keyed by — and one scheduled
 in-run retry of a transient answer (`retry_transient`). A route still runs only when the caller's `routes` names it.
 Policy lines (`policy.POLICY`, all `legitimate`): `wayback` archive.org + web.archive.org; `ia` archive.org;
-`commoncrawl` index.commoncrawl.org + data.commoncrawl.org. No `*` line: any other host is refused.
+`commoncrawl` index.commoncrawl.org + data.commoncrawl.org (both SWITCHED OFF since 2026-09-24, S4.5 decision D39:
+`PolicyLine.off_why`, below). No `*` line: any other host is refused.
 
 **Their input: the dead URLs** (`RungContext.recovery_urls`, a list of {`url`, `route`, `status`, `origin`}, in
 memory only). Filled by the LADDER, never by a rung: `recovery.ledger_urls` before the first rung (only when a
@@ -3809,6 +3810,22 @@ Fires (`FIRES`, each also `qc/test_litkb_stage_e.py::test_every_c2c_fire_holds_i
 `stage_e_raw_modifier_removed_constructed` → `wayback_rows_unconverted` (a CONSTRUCTED wrapper page at the bare
 capture URL — the real one served the PDF); `stage_e_not_found_typing_removed_constructed` →
 `wayback_negatives_mistyped` (a CONSTRUCTED never-archived URL). Bound `=0` each, carried on the fire.
+
+### A policy line switched off — `PolicyLine.off_why` (S4.5 decision D39, builder-fix6)
+
+| field | type | meaning |
+|---|---|---|
+| `PolicyLine.off_why` | str, default `""` (on) | a line kept IN `policy.POLICY` but SWITCHED OFF, with its measured reason (guard 21: "a tier is an auditable switch", for one line). `policy.decide` refuses it with `reason` = `off_why`, `allowed` false, the line's own `tier` and index — checked before the shadow checks, whatever the tier. The ladder therefore records every rung it stops as `skipped` / `policy_refused`, with the reason on `detail.policy.reason` (the ladder's pre-check, `run._skip_reason`, which asks the route with no host) or on each `detail.policy[].reason` (the rung's own per-host check); no request is made. Never a deleted line, never silence |
+
+Set on exactly two lines: `commoncrawl` index.commoncrawl.org and data.commoncrawl.org, text `policy.COMMONCRAWL_OFF_WHY`
+— measured in the live run hardening-1 (2026-09-24; 14 attempts, 51 requests, re-read by auditor-fix6): the crawl list
+answered 200 thirteen times and the index 404 (no capture) 24 times, but every attempt that was not an ordinary 404
+ended on a 502/504 (13 of 14; one transport failure), attempts took 12-300 s, and a direct probe at 02:03 PDT had its
+connection closed in 0.3 s. E5's yield in that run is UNDETERMINED
+(host unavailable), never zero. A test or fire that needs E5 ACTIVE applies an explicit override for its own block —
+`route_switched_on` in `qc/instruments/litkb_hardening_c2c.py` (a copy of the table with that route's `off_why` cleared,
+lifted after the block; no pipeline module holds it). Tests: `qc/test_litkb_s45_cc_off.py`; mutation rows C2C33 (the
+guard in `decide`) and C2C34 (the index line's `off_why` dropped).
 
 <!-- end of S4.5 builder C2C section -->
 

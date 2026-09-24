@@ -3133,10 +3133,272 @@ replace("IW33", MIG34, "                AND coalesce(v_base_state IN ('proposed'
         "                AND true;\n",
         "auditor-B2 r3 F5: the fallback's STATE conjunct gone — an edit of this workstream's own PROMOTED (main's) "
         "version pins the head to it", tests=["qc/test_litkb_adjudicate.py"])
+
+# -- integrator-w3 (the orchestrator's rulings S4.5 D23-D28, on the w3 candidate). Tests: qc/test_litkb_s45_w3.py
+# unless a row names another file. Migration 0035 re-creates litkb.admit, so 0032's text of it is DEAD from here on:
+# every row on a guard inside that function moves to 0035 with its text unchanged (the B1 retarget's rule, one
+# statement here, so the merge touches one block).
+TESTS_W3 = ["qc/test_litkb_s45_w3.py"]
+MIG35 = f"{MIG}/0035_admit_operator_file_proposal.sql"
+W3_RETARGETED = {"A7", "A8", "A9", "A10", "A12", "A15", "R9", "C5", "C15", "B1G1", "B1G2", "B1R1"}
+for _row in M:
+    if _row["id"] in W3_RETARGETED:
+        for _e in (_row["edits"] if _row["kind"] == "multi" else [_row]):
+            assert _e["file"] == MIG32, (_row["id"], _e["file"])
+            _e["file"] = MIG35
+assert {r["id"] for r in M} >= W3_RETARGETED
+block("I3W1", f"{PKG}/netutil.py",
+      "guard: a refusal page is read for every challenge marker, not only CHALLENGE_RE's three",
+      "D24 gone: the one detector reads CHALLENGE_RE only at a 403 — MDPI's REAL Akamai 'Access Denied' page is no "
+      "challenge, and open access books it bad-file/html_response again",
+      tests=TESTS_W3 + ["qc/test_litkb_ledger.py"])
+block("I3W2", f"{PKG}/acquire/accept.py",
+      "guard: the acceptance test asks the one challenge detector about bytes that are not a PDF",
+      "D24 gone: the acceptance test keeps no challenge fact, so a rung's challenge page is booked a bad file",
+      tests=TESTS_W3)
+block("I3W3", f"{PKG}/acquire/run.py", "guard: a live host's bot challenge is booked blocked, never a bad file",
+      "D24 gone: a live host's challenge bytes the acceptance test named are booked bad-file/html_response",
+      tests=TESTS_W3)
+block("I3W4", f"{PKG}/acquire/run.py",
+      "guard: a live host's bot challenge served again is booked blocked, never a bad file",
+      "D24 gone: a challenge page met again (the rejected-hash lookup) is booked bad-file/html_response",
+      tests=TESTS_W3)
+replace("I3W5", f"{PKG}/acquire/run.py", '    if _policy.STAGE_OF.get(route) == "E":\n        return ""\n', "",
+        "D24's Stage E exception gone: an archive's captured challenge page is booked as the archive refusing "
+        "this client (blocked), not as the bad capture it is", tests=TESTS_W3)
+replace("I3W6", f"{PKG}/acquire/landing.py", "    cause = Client.challenge_cause(status, url, body, headers)\n",
+        '    cause = ""\n',
+        "D24 gone at the landing rung: it asks the one detector nothing — MDPI's Akamai 403 is identity_required",
+        tests=TESTS_W3 + ["qc/test_litkb_landing.py"])
+replace("I3W7", f"{PKG}/acquire/open_access.py", "        if Client.is_challenge(st, url, body, hd):\n",
+        "        if False:\n",
+        "D24 gone at open access: the route itself calls no location's answer a challenge — MDPI's Akamai 403 comes "
+        "back bad-file (the ladder's re-book is a second line; the route's own contract is tested alone)",
+        tests=TESTS_W3)
+block("I3W8", MIG35,
+      "guard: an operator-supplied file admitted with its work is a proposal, never the version of record",
+      "D25 gone in SQL: `admit --file`'s file becomes main's version of record with no second session "
+      "(operator_binds_unproposed reads 1)", tests=TESTS_W3)
+block("I3W9", f"{PKG}/admit/front.py",
+      "guard: an operator's file handed to a registry admission names its operator route",
+      "D25 gone in Python: the operator's file carries no operator route, so 0035 writes it as a fact", tests=TESTS_W3)
+replace("I3W10", f"{PKG}/commands.py", "                              operator_file=bool(args.file))\n",
+        "                              operator_file=False)\n",
+        "D25 gone at the CLI: `litkb admit --file` binds the operator's file as main's", tests=TESTS_W3)
+replace("I3W11", f"{PKG}/mcp/server.py", "                                   operator_file=bool(file))\n",
+        "                                   operator_file=False)\n",
+        "D25 gone at the MCP tool: `litkb_admit(file=)` binds the caller's file as main's", tests=TESTS_W3)
+block("I3W12", "qc/instruments/litkb_ladder_run.py", "guard: the live pass switches the shadow tier off",
+      "D27 gone: the live pass runs with the code default — the shadow tier ON — whatever the manifest records",
+      tests=TESTS_W3)
+block("I3W13", "qc/instruments/litkb_ladder_run.py",
+      "guard: a live pass whose manifest does not switch the shadow tier off is refused unless overridden",
+      "D27 gone: a manifest that records no switch (or the switch ON) runs with the shadow tier on, unasked",
+      tests=TESTS_W3)
+replace("I3W14", "qc/instruments/litkb_acceptance.py",
+        '    return {"enabled": False, "code_default": bool(P.SHADOW_TIER_ENABLED),\n',
+        '    return {"enabled": True, "code_default": bool(P.SHADOW_TIER_ENABLED),\n',
+        "D27 gone at the freeze: the manifest records the shadow tier ON", tests=TESTS_W3)
+replace("I3W15", "qc/instruments/litkb_hardening_a.py",
+        '    return {m["item"]: m["reason"].strip() for m in EXCEPTION_LINE.finditer(text) if m["counter"] == counter}\n',
+        '    return {m["item"]: m["reason"].strip() for m in EXCEPTION_LINE.finditer(text)}\n',
+        "D23 gone: an exception line of ANOTHER counter excuses an item of this one", tests=TESTS_W3)
+block("I3W16", f"{PKG}/acquire/ledger.py", "guard: a blocked row typed from the route's own word alone is inferred, never detail",
+      "D30 gone: Sci-Hub's `=blocked` token and open access's no-bytes rule type a row on basis `detail` again",
+      tests=TESTS_W3 + ["qc/test_litkb_ledger.py"])
+block("I3W17", "qc/instruments/litkb_acq_probe_badfile.py",
+      "guard: a misbooked bad-file row is never typed inside the bad-file family",
+      "D29 gone at the instrument: the client's own transport-error text is typed `too_small` on basis `bytes`",
+      tests=TESTS_W3 + ["qc/test_litkb_s45_seams.py"])
+block("I3W18", "qc/instruments/litkb_hardening_c1a.py",
+      "guard: bad_file_untyped excuses only the rows the item-8 CSV names misbooked",
+      "D29 gone at the gate: the named misbooked rows count as untyped, so the all-time gate can never reach 0 "
+      "without typing them in the wrong family", tests=TESTS_W3)
+replace("I3W19", f"{PKG}/acquire/ledger.py",
+        "            elif (r.get(\"cause\") or \"\").strip() == MISBOOKED_CAUSE:\n", "            elif False:\n",
+        "D29 gone at the backfill reader: a misbooked row carrying a stale sub-status is offered and typed",
+        tests=TESTS_W3 + ["qc/test_litkb_s45_seams.py"])
 # ==== end S4.5 builder C1 rows ====
 
 
 # ==== S4.5 builder C2A mutation rows (Stage A + Stage B rungs) — append ONLY between these two markers ====
+# -- builder C2a (Stage A: acquire/stage_a.py; Stage B: acquire/stage_b.py, acquire/stage_b_repos.py; the three
+#    seams it adds to acquire/run.py). Each row's own set is qc/test_litkb_stage_ab.py (its fires included). --
+TESTS_C2A = ["qc/test_litkb_stage_ab.py"]
+block("C2A1", f"{PKG}/acquire/stage_a.py",
+      "guard: the work-class router keeps a preprint or a book off every shadow route",
+      "the A2 router passes every decision: a preprint (or a book) is sent to the shadow tier (the routing error "
+      "the survey's §M measured on Anna's 33 misses)", tests=TESTS_C2A)
+block("C2A2", f"{PKG}/acquire/stage_b.py", "guard: an identifier that already carries the file is followed (B1)",
+      "B1 follows nothing: an arXiv id and S2's openAccessPdf are never asked, Kats_2019 stays without a file",
+      tests=TESTS_C2A)
+block("C2A3", f"{PKG}/acquire/run.py",
+      "guard: a rung's harvested identifiers are written, with provenance, on the attempt that read them",
+      "the ladder never writes a rung's harvest: the crosswalk's arXiv edge never reaches the identifier model",
+      tests=TESTS_C2A)
+block("C2A4", f"{PKG}/acquire/stage_b.py",
+      "guard: a legitimate rung never asks a shadow host, and never asks one URL twice in a run",
+      "a legitimate rung asks a Sci-Hub / Anna's URL an index listed, and one URL is asked by every rung that meets it",
+      tests=TESTS_C2A)
+block("C2A5", f"{PKG}/acquire/stage_b.py", "guard: DataCite's answer is for the DOI that was asked",
+      "DataCite's answer for ANOTHER DOI is harvested onto the work (survey B6 guard, Codex X5)", tests=TESTS_C2A)
+site("C2A6", "litkb/acquire/stage_b.py::contact_email::add_secret", "None", tests=TESTS_C2A,
+     what="the contact email is never registered for redaction: Crossref's `mailto` lands in the attempt's terminal URL")
+block("C2A7", f"{PKG}/acquire/run.py", "call site: Stage A prepares the work before its first rung",
+      "Stage A never runs: no class for the router (a preprint reaches the shadow tier), no Wave-0 row",
+      tests=TESTS_C2A)
+replace("C2A8", f"{PKG}/acquire/run.py",
+        "        return _stage_a.routed(_policy.decide(route, host, legit_hit=self.legit_hit), self.work_class)",
+        "        return _policy.decide(route, host, legit_hit=self.legit_hit)",
+        "the ladder's pre-fetch decision stops consulting the router (the seam, not the rule, removed)",
+        tests=TESTS_C2A)
+# -- builder C2a fix round 2 (auditor-C2a round 1): F1's record, the F2-F4 and F7 boundaries it proved untested, the
+#    F14 / F15 guards. Each answers WORSE when mutated (never an import or syntax error).
+C2A_H = "qc/instruments/litkb_hardening_c2a.py"
+block("C2A9", f"{PKG}/acquire/stage_a.py",
+      "guard: Stage A's record rides on the first attempt row the ladder writes for the work",
+      "Stage A's summary (A1's rejections, Wave 0, a Wave-0 write failure, the class) never reaches the ledger "
+      "(auditor-C2a F1)", tests=TESTS_C2A)
+replace("C2A10", f"{PKG}/acquire/stage_b.py", "        ctx.work_class = after\n", "        pass\n",
+        "a Crossref `posted-content` answer never tightens the router: an article-typed preprint reaches the shadow "
+        "tier (the plan's second preprint definition, live half; auditor-C2a F4 / OWN1)", tests=TESTS_C2A)
+replace("C2A11", C2A_H,
+        "\"   AND (w.type = 'preprint' OR w.key = ANY(%s) OR EXISTS (SELECT 1 FROM litkb.main_identifiers i \"",
+        "\"   AND (w.type = 'preprint' OR (false AND w.key = ANY(%s)) OR false AND EXISTS (SELECT 1 FROM "
+        "litkb.main_identifiers i \"",
+        "preprints_sent_to_shadow reads main_works.type alone: the crosswalk CSV's `posted-content` half is dropped "
+        "(auditor-C2a F4 / OWN2)", tests=TESTS_C2A)
+replace("C2A12", f"{PKG}/acquire/stage_b.py", '    if {"pmid", "pmcid"} <= held:\n',
+        '    if {"pmid", "pmcid"} & held:\n',
+        "the NCBI converter is skipped once EITHER pmid or pmcid is held (the closure rule asks while either is "
+        "absent; auditor-C2a F7 / OWN4)", tests=TESTS_C2A)
+replace("C2A13", f"{PKG}/acquire/stage_b.py",
+        '    if doi and (A.doi_prefix(doi) in A.DATACITE_PREFIXES or work.get("crossref_status") == 404):\n',
+        '    if doi and A.doi_prefix(doi) in A.DATACITE_PREFIXES:\n',
+        "DataCite is never asked for a DOI Crossref answered 404 for (LINKAGE §2.3 Wave 2; auditor-C2a F7 / OWN5)",
+        tests=TESTS_C2A)
+replace("C2A14", C2A_H, "FILTER (WHERE status IN ('ok', 'measured'))", "FILTER (WHERE status IN ('ok'))",
+        "rung_conversions_<route> drops MEASURE mode's hits (`measured` rows) — most of the run's yield "
+        "(auditor-C2a F7 / OWN7)", tests=TESTS_C2A)
+block("C2A15", "qc/instruments/litkb_eartharxiv_map.py", "guard: only a complete walk of the OAI feed is the map",
+      "a walk that stopped at a failed page is written as THE map: its missing pages book `no-oa-copy` "
+      "(auditor-C2a F14; survey A7's guard)", tests=TESTS_C2A)
+replace("C2A16", f"{PKG}/acquire/stage_b_repos.py",
+        "        if not fam or not any(surname_agrees(fam, a) for a in (authors or [])):\n",
+        "        if not fam or not any(fam.lower() in str(a).lower() for a in (authors or [])):\n",
+        "OpenReview's surname agreement is a substring test: \"Li\" matches \"Oliver\" (auditor-C2a F15; survey B13)",
+        tests=TESTS_C2A)
+replace("C2A17", f"{PKG}/acquire/stage_b.py",
+        '"openalex": "openalex", "wikidata": "wikidata"}\n',
+        '"openalex": "openalex", "wikidata": "wikidata",\n               "arxiv": "arxiv"}\n',
+        "OpenCitations' arXiv token is written as an ARTICLE's own identifier (the alias litkb-sibling-edition "
+        "forbids; auditor-C2a F2)", tests=TESTS_C2A)
+replace("C2A18", C2A_H, '    return mock.patch.object(policy_module, "SHADOW_TIER_ENABLED", True)\n',
+        "    return contextlib.nullcontext()\n",
+        "the router fire reaches the shadow line through the process's switch: with the tier OFF (the live run) it "
+        "grades the switch, not the router — DID-NOT-FIRE (auditor-C2a F3)", tests=TESTS_C2A)
+replace("C2A19", f"{PKG}/acquire/run.py",
+        "        detail = _stage_a.onto_first_row(work, dict(detail or {}))      # seam builder-C2a (auditor-C2a F1)\n",
+        "        detail = dict(detail or {})\n",
+        "a skip that is the ladder's first row does not carry Stage A's record (the skip call site)", tests=TESTS_C2A)
+replace("C2A20", f"{PKG}/acquire/run.py", "    _stage_a.onto_first_row(work, detail)\n", "",
+        "a rung's answer that is the ladder's first row does not carry Stage A's record (the _record_result site)",
+        tests=TESTS_C2A)
+replace("C2A21", f"{PKG}/acquire/run.py",
+        '"budget-stop", _stage_a.onto_first_row(\n', '"budget-stop", (lambda work, d: d)(\n',
+        "a budget-stop that is the ladder's first row does not carry Stage A's record (the budget call site)",
+        tests=TESTS_C2A)
+replace("C2A22", f"{PKG}/acquire/run.py",
+        '"manual-step", _stage_a.onto_first_row(\n', '"manual-step", (lambda work, d: d)(\n',
+        "a manual-step row that is the ladder's only row does not carry Stage A's record (the manual-step site)",
+        tests=TESTS_C2A)
+# -- builder C2a fix round 3 (auditor-C2a round 2): F1's released URL, F2 / F5 / F6's untested boundaries (the
+#    auditor's OWN1-OWN5, OWN7, OWN9, OWN10), F3's not-asked line, F4's OAI error, F10's open_access dedupe. Each
+#    answers WORSE when mutated (never an import or syntax error).
+block("C2A23", f"{PKG}/acquire/stage_b.py",
+      "guard: a transient answer is no answer, and the scheduled retry may ask its URL again",
+      "a PDF URL whose answer C1a's in-run retry rule calls transient (429, 5xx) stays reserved: the rung's scheduled "
+      "retry skips it and books `no-oa-copy` over the transient answer (auditor-C2a round 2 F1)", tests=TESTS_C2A)
+replace("C2A24", C2A_H, "\"   AND (w.type = 'preprint' OR w.key = ANY(%s)", "\"   AND (false OR w.key = ANY(%s)",
+        "preprints_sent_to_shadow reads the crosswalk CSV alone: the plan's FIRST preprint definition "
+        "(`main_works.type`) is dropped — 36 of live's 44 preprints are counted by it alone (auditor-C2a round 2 F2)",
+        tests=TESTS_C2A)
+replace("C2A25", C2A_H, "\" WHERE a.at > %s AND a.workstream_id::text = ANY(%s) AND a.route = ANY(%s)",
+        "\" WHERE (a.at > %s OR true) AND a.workstream_id::text = ANY(%s) AND a.route = ANY(%s)",
+        "preprints_sent_to_shadow counts shadow spends from BEFORE frozen_at (S4.5 decision D1's time half; "
+        "auditor-C2a round 2 F5)", tests=TESTS_C2A)
+replace("C2A26", C2A_H, "AND a.workstream_id::text = ANY(%s) AND a.route = ANY(%s)",
+        "AND (a.workstream_id::text = ANY(%s) OR true) AND a.route = ANY(%s)",
+        "preprints_sent_to_shadow counts another workstream's shadow spends (S4.5 decision D1's workstream half; "
+        "auditor-C2a round 2 F5)", tests=TESTS_C2A)
+replace("C2A27", C2A_H, '    return sorted(r for r, s in P.STAGE_OF.items() if s == "shadow")\n',
+        '    return ["annas"]\n',
+        "preprints_sent_to_shadow reads the archive route alone: a preprint sent to scihub or bban is never counted "
+        "(auditor-C2a round 2 F6 / OWN9)", tests=TESTS_C2A)
+replace("C2A28", C2A_H, "f.status = 'active' \"", "f.status IS NOT NULL \"",
+        "free_ceiling_measured_unconverted counts a QUARANTINED file as the conversion (auditor-C2a round 2 F6 / OWN7)",
+        tests=TESTS_C2A)
+replace("C2A29", C2A_H, "AND f.state NOT IN ('rejected', 'withdrawn')) \"", "AND true) \"",
+        "free_ceiling_measured_unconverted counts a WITHDRAWN (or refused) file version as the conversion "
+        "(auditor-C2a round 2 F6)", tests=TESTS_C2A)
+replace("C2A30", f"{PKG}/acquire/stage_a.py",
+        "    if observed in SHADOW_REFUSED_CLASSES and current not in SHADOW_REFUSED_CLASSES:\n",
+        "    if observed == \"preprint\" and current not in SHADOW_REFUSED_CLASSES:\n",
+        "A2 never tightens on a Crossref `book` / `monograph` answer: an article-typed book reaches the shadow tier "
+        "(the plan's router stops \"a preprint or a book\"; auditor-C2a round 2 F6 / OWN10)", tests=TESTS_C2A)
+# integrator-w3 (auditor-C2a round 3 F1): the condition AND the note line, so the host-keyed dedupe ANSWERS WORSE
+# (the second PDF on the host is never asked) instead of raising KeyError at `asked[url]` in the product: the
+# auditor's OWN19 shape. A mutant that crashes the product is DID-NOT-FIRE (COMMON rule 10).
+replace("C2A31", f"{PKG}/acquire/stage_b.py",
+        "            if url in asked:\n"
+        "                notes.append(f\"{h}: already asked in this ladder run by {asked[url]}\")\n",
+        "            if url in asked or any(host_of(u) == h for u in asked):\n"
+        "                notes.append(f\"{h}: already asked in this ladder run by {asked.get(url, h)}\")\n",
+        "the asked-URL dedupe is keyed by HOST: a second PDF on a host already asked is never asked (auditor-C2a round "
+        "2 F6 / OWN5)", tests=TESTS_C2A)
+replace("C2A32", C2A_H,
+        "\"SELECT count(DISTINCT work_id) FILTER (WHERE status NOT IN ('skipped', 'budget-stop')), \"",
+        "\"SELECT count(DISTINCT work_id) FILTER (WHERE status NOT IN ('budget-stop')), \"",
+        "a rung's yield line counts a SKIP as asked: a rung that asked nobody reads measured (auditor-C2a round 2 F3 / "
+        "OWN4)", tests=TESTS_C2A)
+replace("C2A33", C2A_H, "            if reached >= 1 and other == 0:\n", "            if True:\n",
+        "a not-asked line is printed for a conditional rung that reached no row, or that was skipped for another "
+        "reason (a back-off window) — the line claims a condition that did not decide (auditor-C2a round 2 F3)",
+        tests=TESTS_C2A)
+block("C2A34", f"{PKG}/acquire/stage_b.py",
+      "guard: the arXiv PDF the open_access rung asked in this run is not asked again",
+      "the `arxiv` rung re-asks the arxiv.org PDF the `open_access` rung already asked for the work's own arXiv id "
+      "(auditor-C2a round 2 F10)", tests=TESTS_C2A)
+block("C2A35", "qc/instruments/litkb_eartharxiv_map.py",
+      "guard: an OAI-PMH error served at 200 stops the walk incomplete",
+      "a `badResumptionToken` page served at HTTP 200 ends the walk as COMPLETE: the map is written without the "
+      "feed's later pages (OAI-PMH 2.0 §3.6; auditor-C2a round 2 F4)", tests=TESTS_C2A)
+block("C2A36", "qc/instruments/litkb_hardening_a.py",
+      "guard: a conditional Stage B rung its own condition skipped on every row is measured by its not-asked line",
+      "builder A's counter never reads a not-asked line: a conditional rung its condition skipped on every row (live's "
+      "zenodo, figshare) reads unmeasured whatever the rungs do (auditor-C2a round 2 F3; merge-time patch)",
+      tests=["qc/test_litkb_s45_not_asked.py"])
+block("I3W24", "qc/instruments/litkb_ladder_run.py", "guard: the run driver prints the report's Stage B lines after the pass",
+      "item 6 gone: the ladder-1 driver prints no yield / not-built / exception line; the report must be composed by "
+      "hand", tests=["qc/test_litkb_s45_w3.py"])
+# -- integrator-w3: S4.5 decision D23 on this block's free ceiling (qc/test_litkb_s45_w3.py)
+block("I3W22", "qc/instruments/litkb_hardening_c2a.py",
+      "guard: a free-ceiling row is excused only when the report names it AND the binder refused its bytes",
+      "D23 gone: a free-ceiling row the binder refused is never excused, even named in the report with its reason",
+      tests=["qc/test_litkb_s45_w3.py"])
+replace("I3W23", "qc/instruments/litkb_hardening_c2a.py", "        if doi in named and refusal is not None:\n",
+        "        if doi in named:\n",
+        "D23's D11 half gone: an `exception:` line alone excuses a free-ceiling row the binder never refused",
+        tests=["qc/test_litkb_s45_w3.py"])
+# -- integrator-w3: S4.5 decision D32's conditions on the not-asked line (qc/test_litkb_s45_not_asked.py)
+replace("I3W20", "qc/instruments/litkb_hardening_a.py",
+        "    got = {**{r: (0, 0) for r, (n, why) in not_asked(text).items() if n >= 1 and cond.get(r) == why}, **got}\n",
+        "    got = {**{r: (0, 0) for r, (n, why) in not_asked(text).items() if n >= 1 and bool(cond.get(r))}, **got}\n",
+        "D32 condition 1 gone: a not-asked line whose condition PARAPHRASES the registry's measures the rung",
+        tests=["qc/test_litkb_s45_not_asked.py"])
+block("I3W21", "qc/instruments/litkb_hardening_a.py", "guard: a rung both asked and not-asked in one report is unmeasured",
+      "D32 condition 3 gone: a rung with a yield line that asked rows AND a not-asked line reads measured",
+      tests=["qc/test_litkb_s45_not_asked.py"])
 # ==== end S4.5 builder C2A rows ====
 
 

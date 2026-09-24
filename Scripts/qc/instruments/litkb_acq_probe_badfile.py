@@ -66,8 +66,25 @@ CAUSES = {
     "mirror_miss_page": "misbooked: a shadow mirror's page with no PDF link -> not-in-archive/not_in_corpus",
     "mirror_sweep_no_pdf": "every archive host answered 404, 0 or a non-PDF page; no bytes kept",
     "other": "typed by the acceptance test; no finer cause read",
+    # S4.5 decision D29 (integrator-w3): what a MISBOOKED row's `cause` column reads in the CSV (`finalize`); the
+    # finer cause above leads its `reason`
+    "misbooked": "the row's ledger STATUS is wrong (one of the four misbooked causes above leads `reason`): NO bad-file "
+                 "sub-status and no basis — a named exception of bad_file_untyped (S4.5 decision D29)",
 }
 MISBOOKED = {"challenge_interstitial", "blocked_not_bad_file", "transport_error_string", "mirror_miss_page"}
+
+
+def finalize(rec):
+    """The row as the CSV carries it. S4.5 decision D29 (the orchestrator's ruling on auditor-cand2 N2): a MISBOOKED
+    row — its ledger status is wrong: a transport-error string the client wrote, a WAF interstitial, a refusal, a
+    mirror's no-PDF page — gets NO `bad-file` sub-status and no basis (never `too_small` on basis `bytes` for the
+    client's own error text): `cause` reads `misbooked`, and the finer cause leads `reason`. C1a's backfill refuses
+    it by name, and `bad_file_untyped` excuses exactly these attempt ids, REPORTING them as `bad_file_misbooked`."""
+    # BEGIN guard: a misbooked bad-file row is never typed inside the bad-file family
+    if rec.get("cause") in MISBOOKED:
+        rec.update(sub_status="", basis="", reason=f"{rec['cause']}: {rec.get('reason') or ''}", cause="misbooked")
+    # END guard: a misbooked bad-file row is never typed inside the bad-file family
+    return rec
 
 
 def require_reader(conn):
@@ -264,6 +281,8 @@ def main(argv=None):
                                 f"hosts): {q['reason']}", match_method=f"sibling:{q['attempt_id']}")
                 break
 
+    # S4.5 decision D29: after the sibling pass (a sibling can inherit a misbooked cause), every row as the CSV holds it
+    typed = [finalize(r) for r in typed]
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", newline="", encoding="utf-8") as f:
@@ -277,7 +296,7 @@ def main(argv=None):
     print("sub_status", dict(Counter(r["sub_status"] for r in typed)))
     print("basis", dict(Counter(r["basis"] for r in typed)))
     print("cause", dict(Counter(r["cause"] for r in typed)))
-    print("misbooked_rows", sum(1 for r in typed if r["cause"] in MISBOOKED))
+    print("misbooked_rows", sum(1 for r in typed if r["cause"] == "misbooked"))
     print(f"FREE_TO_FIX rows={len(free)} (measured {grades.get('measured', 0)}, estimated "
           f"{grades.get('estimated', 0)}, inferred {grades.get('inferred', 0)}) "
           f"works={len({r['work_key'] for r in free})} "

@@ -29,8 +29,18 @@ finished, its entries and row tags, and every recording that could not be writte
 counters refuse an index that is not that one, so an index edited after the live pass cannot be
 graded as the recording.
 
+THE REPORT'S LINES. After the pass the driver prints the LITKB_LADDER1 report's Stage A/B lines (builder C2a's
+`yield:` / `identifiers:` / `not-asked:` / `not-built:` / kill lines) and the free ceiling's `exception:` lines
+(:func:`report_lines`), read on the reader login — the report carries them as printed (integrator-w3).
+
 EXTRACTION is the hunt's own default (extract on, GPU); `--no-extract` passes `extract=False` to every
 hunt. Which one the live pass uses is the orchestrator's decision, not this driver's.
+
+THE SHADOW TIER IS OFF for the live pass (S4.5 decision D27; the Scope ruling: item 5b is not built). The
+driver sets `litkb.acquire.policy.SHADOW_TIER_ENABLED` False for the pass (and restores it after) when the manifest
+records `shadow_tier.enabled` false — `hardening --freeze` writes it — and REFUSES a manifest that does not, before
+it records or asks anything, unless `--allow-shadow-tier` overrides it. The recording report says which ran
+(:func:`shadow_switch`). The code default stays as merged.
 
 RESUMABLE, the scout and edge drivers' rule: the run CSV is the ledger; a row already in it is never
 run again unless `--redo` names it. The CSV is rewritten whole after every row. Its columns are
@@ -81,6 +91,54 @@ def _load(stem):
     return m
 
 
+#: S4.5 decision D27 (the orchestrator's Scope ruling, 2026-09-23 ~10:45: item 5b is not built, "the live run runs
+#: with the shadow tier switched OFF (C1a's single switch)"): the live pass runs with `policy.SHADOW_TIER_ENABLED`
+#: False, and only a manifest that RECORDS the switch off (`shadow_tier.enabled` false, written by `hardening
+#: --freeze`) is run as it is. Any other manifest is refused unless the operator overrides it explicitly
+#: (`--allow-shadow-tier`), and the override is written into the recording report. The code default in
+#: `litkb.acquire.policy` stays as merged (D27: "the code default stays as merged"). integrator-w3.
+SHADOW_REFUSAL = ("the manifest does not record the shadow tier switched OFF (`shadow_tier.enabled` false). S4.5 "
+                  "decision D27 / the Scope ruling: item 5b is not built and the live run runs with the shadow tier "
+                  "off. Re-freeze (`hardening --freeze` records it), or pass --allow-shadow-tier to run with the "
+                  "switch on, explicitly. Nothing was run.")
+
+
+class ShadowTierRefused(RuntimeError):
+    """A live pass whose manifest does not switch the shadow tier off, with no explicit override (D27)."""
+
+
+def shadow_switch(manifest, *, allow_shadow=False):
+    """-> the shadow tier switch this pass runs with: False when the manifest records it off; the code's own
+    default (on, as merged) only when the operator overrode the refusal. Raises ShadowTierRefused otherwise."""
+    from litkb.acquire import policy as P
+
+    recorded = (manifest.get("shadow_tier") or {}).get("enabled")
+    if recorded is False:
+        return False
+    # BEGIN guard: a live pass whose manifest does not switch the shadow tier off is refused unless overridden
+    if not allow_shadow:
+        raise ShadowTierRefused(f"{SHADOW_REFUSAL} (manifest shadow_tier: {manifest.get('shadow_tier')!r})")
+    # END guard: a live pass whose manifest does not switch the shadow tier off is refused unless overridden
+    return bool(P.SHADOW_TIER_ENABLED if recorded is None else recorded)
+
+
+def report_lines(manifest, conn=None):
+    """The LITKB_LADDER1 report's lines the ledger can state after the pass (integrator-w3, brief item 6): builder
+    C2a's Stage A/B lines (`litkb_hardening_c2a.report_lines`: `yield:` / `identifiers:` / `not-asked:` / `not-built:`
+    / the kill criterion — S4.5 decisions D19, D32) and the free ceiling's `exception:` lines for the rows the BINDER
+    refused (`free_ceiling_exception_lines`, D23). Read on a READ-ONLY reader connection to the manifest's own database
+    (`litkb_acceptance._read_only_reader`: a database that is not the frozen one is refused); `conn` is the tests'."""
+    C2A = _load("litkb_hardening_c2a")
+    own = conn is None
+    if own:
+        conn = _load("litkb_acceptance")._read_only_reader(manifest)
+    try:
+        return list(C2A.report_lines(conn, manifest)) + list(C2A.free_ceiling_exception_lines(conn, manifest))
+    finally:
+        if own:
+            conn.close()
+
+
 def measure_hook():
     """The ladder's measure entry point, or None while it is not built."""
     from litkb.acquire import run as R
@@ -123,7 +181,7 @@ def start_recording(index, bodies=None):
 RECORDING_REPORT_KIND = "litkb-hardening-recording"
 
 
-def write_recording_report(manifest, repo, cas, *, rows_run):
+def write_recording_report(manifest, repo, cas, *, rows_run, shadow=None):
     """The run driver's last word on the recording, written at the end of every pass (a resumed pass
     rewrites it): the recorded index's path and the sha256 of its BYTES now, its live entries and row
     tags, the recordings that could not be written, and a self-hash. `hardening --manifest` refuses a
@@ -145,6 +203,8 @@ def write_recording_report(manifest, repo, cas, *, rows_run):
               "entries": len(live.entries) if live is not None else 0,
               "rows": sorted({e.get("row", "") for e in live.entries}) if live is not None else [],
               "rows_run_this_pass": rows_run,
+              # the shadow tier switch the pass ran with, and whether the operator overrode D27's refusal
+              "shadow_tier": shadow,
               "record_errors": list(cas.record_errors) if cas is not None else [],
               "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     report["recording_sha256"] = HA.summary_sha(report, "recording_sha256")
@@ -201,12 +261,33 @@ def _default_measure(row, ctx):
 
 def run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt=None, measure=None,
              attempts_counter=None, only=(), redo=(), reader_role="litkb_reader",
-             writer_role="litkb_writer", hunt_kwargs=None, record=True, bodies=None):
+             writer_role="litkb_writer", hunt_kwargs=None, record=True, bodies=None, allow_shadow=False):
     """Every manifest row, one at a time. -> (ran, resumed, rows).
 
     `hunt`, `measure` (fn(row, ctx) -> (state, reason, message)) and `attempts_counter` are injected
     by the tests; the defaults are the real `litkb.hunt.hunt`, the ladder's measure hook and a reader
-    count. `hunt_kwargs` are passed through to every hunt (the tests' registry stub and acquirer)."""
+    count. `hunt_kwargs` are passed through to every hunt (the tests' registry stub and acquirer).
+    `allow_shadow`: the explicit override of D27's refusal (:func:`shadow_switch`), decided BEFORE anything
+    is recorded or run."""
+    from litkb.acquire import policy as P
+
+    shadow_on = shadow_switch(manifest, allow_shadow=allow_shadow)
+    saved = P.SHADOW_TIER_ENABLED
+    # BEGIN guard: the live pass switches the shadow tier off
+    P.SHADOW_TIER_ENABLED = shadow_on
+    # END guard: the live pass switches the shadow tier off
+    try:
+        return _run_rows(manifest, out_csv, db=db, worktree=worktree, agent=agent, session=session, hunt=hunt,
+                         measure=measure, attempts_counter=attempts_counter, only=only, redo=redo,
+                         reader_role=reader_role, writer_role=writer_role, hunt_kwargs=hunt_kwargs, record=record,
+                         bodies=bodies, shadow={"enabled": P.SHADOW_TIER_ENABLED, "overridden": bool(allow_shadow),
+                                                "manifest": manifest.get("shadow_tier")})
+    finally:
+        P.SHADOW_TIER_ENABLED = saved
+
+
+def _run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt, measure, attempts_counter, only, redo,
+              reader_role, writer_role, hunt_kwargs, record, bodies, shadow):
     E = _load("litkb_edge_run")
     if hunt is None:
         import litkb.hunt as H
@@ -268,7 +349,7 @@ def run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt=None, meas
         write_run_csv(out_csv, written)       # after EVERY row: the ledger is the resume
     write_run_csv(out_csv, written)
     if record:
-        write_recording_report(manifest, repo, cas, rows_run=ran)
+        write_recording_report(manifest, repo, cas, rows_run=ran, shadow=shadow)
     return ran, resumed, written
 
 
@@ -285,6 +366,9 @@ def main(argv=None):
     ap.add_argument("--no-extract", dest="extract", action="store_false",
                     help="hunt with extract=False: a landed PDF is bound and NOT run through GROBID/Docling "
                          "(the hunt's default extracts on the GPU; the orchestrator decides — auditor-A F12)")
+    ap.add_argument("--allow-shadow-tier", dest="allow_shadow", action="store_true",
+                    help="run although the manifest does not record the shadow tier switched OFF (S4.5 decision "
+                         "D27 refuses that by default); the override is written into the recording report")
     a = ap.parse_args(sys.argv[1:] if argv is None else argv)
 
     A = _load("litkb_acceptance")
@@ -292,17 +376,30 @@ def main(argv=None):
     repo = Path(manifest["repo"])
     out = Path(a.out or manifest["run_csv"])
     out = out if out.is_absolute() else repo / out
-    n, resumed, rows = run_rows(
-        manifest, out, db=manifest["db"], worktree=manifest.get("worktree") or str(repo),
-        agent=a.agent, session=a.session or f"ladder-run-{manifest['frozen_at']}", only=a.only,
-        redo=a.redo, reader_role=manifest.get("reader_role") or "litkb_reader", record=a.record,
-        hunt_kwargs=None if a.extract else {"extract": False})
+    try:
+        n, resumed, rows = run_rows(
+            manifest, out, db=manifest["db"], worktree=manifest.get("worktree") or str(repo),
+            agent=a.agent, session=a.session or f"ladder-run-{manifest['frozen_at']}", only=a.only,
+            redo=a.redo, reader_role=manifest.get("reader_role") or "litkb_reader", record=a.record,
+            hunt_kwargs=None if a.extract else {"extract": False}, allow_shadow=a.allow_shadow)
+    except ShadowTierRefused as e:
+        print(f"litkb_ladder_run: {e}", file=sys.stderr)
+        return 2
     pairs = {}
     for r in rows:
         k = "TRACEBACK" if r.get("traceback") == "1" else f"{r.get('state')}/{r.get('reason')}"
         pairs[k] = pairs.get(k, 0) + 1
     print(f"ran={n} resumed={resumed} rows={len(rows)} out={out}")
     print(" ".join(f"{k}={v}" for k, v in sorted(pairs.items())))
+    # the report's Stage B lines and D23's exception lines, stated by the driver after the pass (integrator-w3); a read
+    # that fails is said on stderr and never fails the pass — `stage_b_rungs_unmeasured` then reads the report unmeasured
+    # BEGIN guard: the run driver prints the report's Stage B lines after the pass
+    try:
+        for line in report_lines(manifest):
+            print(line)
+    except Exception as e:                  # noqa: BLE001 — the pass is written; the lines are re-readable later
+        print(f"litkb_ladder_run: report lines unread: {type(e).__name__}: {e}", file=sys.stderr)
+    # END guard: the run driver prints the report's Stage B lines after the pass
     return 0
 
 

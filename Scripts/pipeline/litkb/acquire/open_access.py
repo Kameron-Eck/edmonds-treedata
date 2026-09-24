@@ -175,7 +175,8 @@ def fetch_open_access(doi, arxiv_id, pacer, *, client=None, locations=None):
             # the first location that served SOMETHING: Unpaywall lists best_oa_location first, so these are the
             # bytes most likely to be what the fetch was for. They are handed back, never dropped.
             rejected, rejected_url, rejected_at = body, url, terminal
-        if Client.is_challenge(st, url, body):
+        # THE one challenge detector, headers included (S4.5 decision D24: MDPI's Akamai 403 is a challenge here)
+        if Client.is_challenge(st, url, body, hd):
             blocked = True
         tried.append(f"{host}:{st}")
     return {"status": "blocked" if blocked else "bad-file", "pdf": None, "source_url": "", "tried": tried,

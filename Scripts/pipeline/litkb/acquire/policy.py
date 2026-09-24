@@ -156,6 +156,37 @@ POLICY = (
 )
 LEGITIMATE, SHADOW = "legitimate", "shadow"
 
+# S4.5 builder-C2a: the Stage A and Stage B rungs (plan items 3 and 4; brief-CONTRACTS.md route names), one line per
+# host a rung asks — appended as a statement, not inside the tuple above, so parallel builders' hunks never meet
+# (S4.5 decision D5). A `*` line is a rung that follows the URLs an index itself lists (never a SHADOW host: the
+# rungs refuse one, litkb.acquire.stage_b.fetch_candidates).
+POLICY = POLICY + (
+    PolicyLine("eartharxiv", "eartharxiv.org", "legitimate",
+               "Stage A7: the preprint PDF the offline-harvested EarthArXiv OAI map names (survey A7, MEASURED)"),
+    PolicyLine("publisher-url", "*", "legitimate",
+               "Stage A4: the publisher's own PDF URL built from the DOI (survey A4; stage_a.PUBLISHER_TEMPLATES)"),
+    PolicyLine("opencitations", "api.opencitations.net", "legitimate", "Stage B Wave 1: OpenCitations META"),
+    PolicyLine("crossref-link", "api.crossref.org", "legitimate",
+               "Stage B4: Crossref's record, then the link[] PDF URLs it lists"),
+    PolicyLine("openalex", "api.openalex.org", "legitimate",
+               "Stage B3: OpenAlex's record, then the pdf_url of each location it lists"),
+    PolicyLine("doaj", "doaj.org", "legitimate", "Stage B8: DOAJ's article API, then its fulltext links"),
+    PolicyLine("openaire", "api.openaire.eu", "legitimate", "Stage B9: OpenAIRE, then the PDF URLs it lists"),
+    PolicyLine("hal", "api.archives-ouvertes.fr", "legitimate", "Stage B14: HAL, then its deposited file"),
+    PolicyLine("osf", "api.osf.io", "legitimate", "Stage B11: OSF APIv2, then the preprint's primary file"),
+    PolicyLine("datacite", "api.datacite.org", "legitimate", "Stage B6: DataCite, then its contentUrl"),
+    PolicyLine("zenodo", "zenodo.org", "legitimate", "Stage B14: Zenodo's record API and its files"),
+    PolicyLine("figshare", "api.figshare.com", "legitimate", "Stage B14: figshare's article API and its files"),
+    PolicyLine("ncbi-idconv", "pmc.ncbi.nlm.nih.gov", "legitimate", "Stage B Wave 2: the NCBI ID Converter"),
+    PolicyLine("s2", "api.semanticscholar.org", "legitimate",
+               "Stage B5/B1: Semantic Scholar's record, then its openAccessPdf"),
+    PolicyLine("europepmc", "www.ebi.ac.uk", "legitimate",
+               "Stage B12/B21: Europe PMC's core record, then its OA PDF and ?pdf=render"),
+    PolicyLine("arxiv", "arxiv.org", "legitimate", "Stage B1: an arXiv id's PDF (the open-access route's host)"),
+    PolicyLine("venue", "*", "legitimate",
+               "Stage B13: ACL Anthology by id, OpenReview by title (title, first author and year agreeing)"),
+)
+
 
 def add_lines(lines, *, route=None):
     """Append a rung module's OWN lines to POLICY (called by `run.register` with the rung's

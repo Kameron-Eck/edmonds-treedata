@@ -65,6 +65,8 @@ from pathlib import Path
 
 from litkb import config as _config
 from litkb.acquire import accept as _accept
+# seam builder-C2a: Stage A (zero network) prepares every work before its first rung (acquire, below)
+from litkb.acquire import stage_a as _stage_a
 from litkb.acquire import backoff as _backoff
 from litkb.acquire import ledger as _ledger
 from litkb.acquire import policy as _policy
@@ -499,6 +501,13 @@ class Rung:
     needs: tuple = ("doi",)
     concurrent: bool = False
     retry_transient: bool = False
+    #: seam builder-C2a: a rung that yields identifiers, never a file (OpenCitations META, the NCBI converter):
+    #: its measure is `identifiers: <route>=<works gaining>/<asked>`, not a yield line (S4.5 decision D19)
+    metadata_only: bool = False
+    #: seam builder-C2a: a rung asked only under a stated condition (the closure rule's Wave 2: a DataCite prefix, a
+    #: held PMCID ...; litkb.acquire.stage_b.ASK_CONDITIONS); skipped by it on every row it reached, its report line
+    #: is `not-asked: <route> <works> <condition>` (auditor-C2a round 2 F3). '' = asks every row that reaches it
+    ask_condition: str = ""
 
     @property
     def stage(self):
@@ -520,6 +529,8 @@ class RungContext:
     annas_session: object = None
     annas_pacer: object = None
     legit_hit: bool = False           # a legitimate rung has answered a hit in this ladder run
+    #: seam builder-C2a: the work's class by Stage A's router (A2; litkb.acquire.stage_a) — `decide` consults it
+    work_class: str = ""
     landed: bool = False              # a rung has landed the file (acquire mode)
     decisions: dict = field(default_factory=dict)   # route -> the PolicyDecision taken BEFORE it was asked
     #: seam builder-C2b: every non-PDF page a rung of THIS ladder run was served ({route, url, status, headers,
@@ -527,7 +538,8 @@ class RungContext:
     leads: list = field(default_factory=list)
 
     def decide(self, route, host="*"):
-        return _policy.decide(route, host, legit_hit=self.legit_hit)
+        # seam builder-C2a: the work-class router refuses a shadow line for a preprint / book / HTML-only work
+        return _stage_a.routed(_policy.decide(route, host, legit_hit=self.legit_hit), self.work_class)
 
 
 def _rung_open_access(work, ctx):
@@ -732,6 +744,22 @@ def _known_bad(conn, sha):
     return match
 
 
+def _challenge_of(route, served, terminal, verdict=None):
+    """-> the challenge family of bytes a rung was served and refused, or '' (S4.5 decision D24, integrator-w3).
+    THE one detector (`netutil.Client.challenge_cause`) — through the acceptance test's own verdict when it judged
+    the bytes (`verdict.challenge`), else asked directly with the terminal response's status, URL and headers.
+    Never for a Stage E route (`policy.STAGE_OF`): an archive replaying a challenge page it once captured did not
+    refuse this client — the capture is the bad file."""
+    if _policy.STAGE_OF.get(route) == "E":
+        return ""
+    if verdict is not None:
+        return verdict.challenge
+    from litkb.netutil import Client
+
+    terminal = terminal or {}
+    return Client.challenge_cause(terminal.get("status_code"), terminal.get("url"), served, terminal.get("headers"))
+
+
 def _type_attempt(status, route, codes, served, headers, tried, rung_sub=None):
     """-> (sub_status, cause) for the row about to be written. A rung that typed its own answer wins; a
     `bad-file` that kept no byte is typed from its terminal response (S4.5 decision D15)."""
@@ -843,6 +871,16 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
         detail["sha256"] = sha
         if status == "downloaded":
             status = "known-bad"
+        # S4.5 decision D24 (integrator-w3): a challenge page served AGAIN is still the host's refusal — the one
+        # detector is asked directly here, because refused bytes met again are never re-judged by the acceptance
+        # test (they are neither landed nor quarantined again). Stage E excepted, as below.
+        # BEGIN guard: a live host's bot challenge served again is booked blocked, never a bad file
+        elif status == "bad-file" and served:
+            cause = _challenge_of(route, served, terminal)
+            if cause:
+                status, judged = "blocked", "challenge_or_bot_check"
+                detail["challenge"] = cause
+        # END guard: a live host's bot challenge served again is booked blocked, never a bad file
     elif status == "downloaded":
         if ctx.mode == "measure" or ctx.landed:
             # a hit that is not landed is still JUDGED: MEASURE mode records what the acceptance test would say
@@ -870,10 +908,21 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
         if status == "bad-file":
             # typed by THE acceptance test (the ledger's one byte classifier), and what it read is kept
             v = _ledger.bad_file_verdict(refused, headers=terminal.get("headers"), url=src,
-                                         terminal_url=terminal.get("url"))
+                                         terminal_url=terminal.get("url"), status=terminal.get("status_code"))
             if v is not None:
                 detail["acceptance"] = v.summary()
                 judged = v.sub_status
+                # S4.5 decision D24 (integrator-w3): bytes THE one challenge detector calls a bot challenge are a
+                # refusal by the host, not a bad file — "an Akamai 'Access Denied' 403 (MDPI) is blocked /
+                # challenge_or_bot_check, never bad-file/html_response". Not for a Stage E answer: an archive
+                # replaying a challenge page it once captured did not refuse this client; the capture is the bad
+                # file (policy.STAGE_OF). The acceptance test's own word stays in detail.acceptance.
+                # BEGIN guard: a live host's bot challenge is booked blocked, never a bad file
+                cause = _challenge_of(route, refused, terminal, verdict=v)
+                if cause:
+                    status, judged = "blocked", "challenge_or_bot_check"
+                    detail["challenge"] = cause
+                # END guard: a live host's bot challenge is booked blocked, never a bad file
         if ctx.mode == "measure":
             detail.update({"sha256": sha, "bytes": len(refused), "not_quarantined": "measure mode"})
         else:
@@ -908,6 +957,18 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
     retriable = r.get("retriable") if forced is None else forced
     if retriable is None:
         retriable = _backoff.retriable(status, codes, exc)
+    # seam builder-C2a: the identifiers a rung read are written with their provenance through B1's one write path, on
+    # the attempt that read them (S4.5 decision D2; litkb.acquire.stage_b.write_harvest — never raises); Stage A's
+    # record rides on the ladder's first row for the work (litkb.acquire.stage_a.onto_first_row; auditor-C2a F1)
+    harvested = None
+    # BEGIN guard: a rung's harvested identifiers are written, with provenance, on the attempt that read them
+    harvested = _stage_b.write_harvest(conn, ws, token, work, route, r, agent=agent, session=session)
+    # END guard: a rung's harvested identifiers are written, with provenance, on the attempt that read them
+    if harvested:
+        detail["harvest"] = harvested
+    if r.get("stage_b"):
+        detail["stage_b"] = r["stage_b"]
+    _stage_a.onto_first_row(work, detail)
     kind = r.get("kind") or ("pdf" if served and _accept.quick_magic(served) else None)
     # seam builder-C2c: a URL this answer asked and did not succeed on is a Stage E candidate
     # BEGIN guard: a dead URL a rung met in this run reaches Stage E
@@ -1021,8 +1082,13 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
     lb = (ladder_budget or _policy.LadderBudget()).resolved(chosen)
     bo = backoff or _backoff.BackoffPolicy()
     pacing = PACING if pacing is None else pacing
+    # seam builder-C2a: Stage A, once, before any rung (litkb.acquire.stage_a.prepare): the A2 class the pre-fetch
+    # policy consults, the A1-canonical identifiers and edition-edge targets the rungs ask with, the Wave-0 rows
+    # BEGIN call site: Stage A prepares the work before its first rung
+    _stage_a.prepare(conn, ws, token, work, None, agent=agent, session=session)
+    # END call site: Stage A prepares the work before its first rung
     ctx = RungContext(clients=clients, pacer=pacer, budget=budget, index=index, printer=printer, mode=mode,
-                      annas_session=annas_session, annas_pacer=annas_pacer)
+                      annas_session=annas_session, annas_pacer=annas_pacer, work_class=work.get("class", ""))
     prior = prior_attempts(conn, wid)
     # seam builder-C2c: the dead URLs earlier attempts recorded are Stage E's input (a rung never reads the database)
     # BEGIN guard: a dead URL an earlier attempt recorded reaches Stage E
@@ -1040,6 +1106,7 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             qrows.append(row["quarantine"])
 
     def skip(route, sub, detail, ident=None):
+        detail = _stage_a.onto_first_row(work, dict(detail or {}))      # seam builder-C2a (auditor-C2a F1)
         # BEGIN guard: a skip is an attempt with a reason, never silence
         aid = record_attempt(conn, ws, token, wid, route, ident, "skipped", detail, sub_status=sub)
         note(route, {"id": aid, "status": "skipped", "sub_status": sub, "codes": []})
@@ -1047,9 +1114,9 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         printer(f"  {route}: skipped ({sub})")
 
     def stop_for_budget(why, not_asked):
-        aid = record_attempt(conn, ws, token, wid, "ladder", None, "budget-stop",
-                             {"budget": lb.spec(), "spent": spent, "elapsed_s": round(lb.clock() - started, 3),
-                              "not_asked": not_asked}, sub_status=why)
+        aid = record_attempt(conn, ws, token, wid, "ladder", None, "budget-stop", _stage_a.onto_first_row(
+                             work, {"budget": lb.spec(), "spent": spent, "elapsed_s": round(lb.clock() - started, 3),
+                                    "not_asked": not_asked}), sub_status=why)      # seam builder-C2a (F1)
         note("ladder", {"id": aid, "status": "budget-stop", "sub_status": why, "codes": []})
         printer(f"  ladder: budget-stop ({why})")
 
@@ -1174,16 +1241,18 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
     if outcome is not None:
         kind, detail = outcome
         return {"outcome": kind, "attempts": attempts, "detail": detail, "route_detail": route_detail,
-                "quarantine_rows": qrows}
+                "quarantine_rows": qrows, "stage_a": work.get("stage_a")}
     if mode == "measure":
-        return {"outcome": "measured", "attempts": attempts, "route_detail": route_detail, "quarantine_rows": qrows}
+        return {"outcome": "measured", "attempts": attempts, "route_detail": route_detail, "quarantine_rows": qrows,
+                "stage_a": work.get("stage_a")}
     if not any(p[0] == "browser" and p[1] == "manual-step" for p in prior) or retry_dead:
-        record_attempt(conn, ws, token, wid, "browser", work.get("doi"), "manual-step",
-                       {"instruction": "no automated route landed a file; fetch it in one browser session, then "
-                                       f"py -3.12 -m litkb acquire --key {work['key']} --from-file <path>"})
+        record_attempt(conn, ws, token, wid, "browser", work.get("doi"), "manual-step", _stage_a.onto_first_row(
+                       work, {"instruction": "no automated route landed a file; fetch it in one browser session, "
+                                             f"then py -3.12 -m litkb acquire --key {work['key']} --from-file <path>"}))
         attempts.append(("browser", "manual-step"))
+    # seam builder-C2a: acquire()'s answer carries Stage A's record (stage_a.prepare's summary; auditor-C2a F1)
     return {"outcome": "not-acquired", "attempts": attempts, "route_detail": route_detail,
-            "quarantine_rows": qrows}
+            "quarantine_rows": qrows, "stage_a": work.get("stage_a")}
 
 
 def measure(conn, ws, token, work, *, store, agent, session, **kw):
@@ -1199,6 +1268,13 @@ def measure(conn, ws, token, work, *, store, agent, session, **kw):
     refused in MEASURE mode by `policy.measure_decision` (S4.5 decision D18)."""
     kw.setdefault("routes", ladder_routes())
     return acquire(conn, ws, token, work, store=store, agent=agent, session=session, mode="measure", **kw)
+
+
+# seam builder-C2a: the Stage A and Stage B rungs register themselves when litkb.acquire.stage_b is imported
+# (its RUNG_TABLE, in the wave order); importing it HERE makes them visible wherever the ladder is (S4.5 decision
+# D19: a rung registered by import but never imported is invisible to `hunt` — fail closed). `_stage_b` is also
+# the harvest's writer, `_record_result` above. A route still runs only when the caller's `routes` names it.
+from litkb.acquire import stage_b as _stage_b  # noqa: E402
 
 
 def _pace(pacing, route, pacer):

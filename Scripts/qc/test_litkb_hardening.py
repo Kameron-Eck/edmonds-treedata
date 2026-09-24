@@ -562,7 +562,8 @@ def test_the_ledger_reader_sql_runs_on_a_migrated_database(A, litkb_pg_base):
 # ── the run driver ───────────────────────────────────────────────────────────────────────────
 
 def _run_manifest(tmp_path):
-    return {"repo": str(tmp_path), "workstream_id": None,
+    # the switch `hardening --freeze` records (S4.5 decision D27): the driver refuses a manifest without it
+    return {"repo": str(tmp_path), "workstream_id": None, "shadow_tier": {"enabled": False},
             "cassette_index": {"path": str(tmp_path / "cas" / "index.jsonl"), "bodies": str(tmp_path / "bodies")},
             "rows": [{"id": "L001", "ref": "10.5555/constructed-a", "ref_scheme": "doi", "mode": "hunt",
                       "source": ["no-oa-copy"]},
@@ -1137,7 +1138,8 @@ def test_freeze_grade_and_replay_on_a_worker_database(A, HA, tmp_path, litkb_pg_
         # the ladder budget frozen outside the ladder, what C1a's budget_exceeded_silently grades against
         # (auditor-C1a r2 F6 / r3 F4; integrator-w2)
         from litkb.acquire import policy as LP
-        assert m["ladder_budget"] == {"seconds": LP.LADDER_SECONDS_DEFAULT, "attempts": None}, m.get("ladder_budget")
+        assert m.get("ladder_budget") == {"seconds": LP.LADDER_SECONDS_DEFAULT, "attempts": None}, m.get("ladder_budget")
+        assert m["shadow_tier"]["enabled"] is False, m.get("shadow_tier")      # S4.5 decision D27
         assert m["referee_reports"]["replay"] == "Reports/LITKB_REFEREE_S45_REPLAY_2026-09-23.md"
         assert m["recording_report"].endswith("_recording.json") and m["constructed_register"]["sha256"]
         assert m["cassette_index"]["sha256"] is None

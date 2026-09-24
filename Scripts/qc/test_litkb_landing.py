@@ -677,9 +677,9 @@ def test_the_mdpi_cdn_rule_lands_the_recorded_row(owner, tmp_path):
             work, clients = H._mdpi_world(w, akamai=H.MDPI_AKAMAI_PDF.read_bytes())
             w.acquire(work, clients, ("open_access", "landing"))
         rows = w.rows(work)
-        # open_access books the Akamai page bad-file/html_response (netutil.Client.is_challenge does not read
-        # Akamai's page: its title is "Access Denied"), and the page is a lead either way
-        assert (rows[0][0], rows[0][1], rows[0][2]) == ("open_access", "bad-file", "html_response")
+        # open_access books the Akamai 403 blocked/challenge_or_bot_check (S4.5 decision D24, integrator-w3: THE one
+        # detector reads its `edgesuite` marker; it was bad-file/html_response before), and the page is a lead
+        assert (rows[0][0], rows[0][1], rows[0][2]) == ("open_access", "blocked", "challenge_or_bot_check")
         assert (rows[1][0], rows[1][1]) == ("landing", "ok") and rows[1][3]["landing"]["source"] == "mdpi.cdn"
         assert w.holds_file(work)
         cdn = [c for c in clients["landing"].calls if "mdpi-res.com" in c["url"] and "remotesensing" in c["url"]]
@@ -984,9 +984,18 @@ def test_a_refused_page_with_no_fact_anywhere_is_read_from_its_bytes_or_counted(
 def test_a_refused_page_without_a_pointer_served_again_is_not_counted(owner, tmp_path):
     """F1, the negative: the REAL kept MDPI Akamai page (no PDF pointer; salted ONCE) served twice with Stage C
     disabled. Run 2's refused row resolves to "no pointer" from run 1's row — the fail-closed rule never counts a
-    page whose fact CAN be read."""
+    page whose fact CAN be read.
+
+    S4.5 decision D24 (integrator-w3): the REAL page is now a bot challenge to THE one detector (its `edgesuite`
+    marker) and is booked `blocked`, which this negative cannot use — so it runs on a CONSTRUCTED copy of the real
+    page with that one marker renamed: still a refused HTML page with no pointer, no longer a challenge."""
+    from litkb.netutil import Client
+
     page_url = "https://www.mdpi.com/2072-4292/15/3/765/pdf?version=1675838087"
-    answers = {page_url: (403, {"Content-Type": "text/html"}, H.salted(H.MDPI_AKAMAI_PDF.read_bytes()))}
+    real = H.MDPI_AKAMAI_PDF.read_bytes()
+    constructed = real.replace(b"edgesuite", b"example-host")
+    assert Client.is_challenge(403, page_url, real) and not Client.is_challenge(403, page_url, constructed)
+    answers = {page_url: (403, {"Content-Type": "text/html"}, H.salted(constructed))}
     got = []
     for n in (1, 2):
         w = H.World(owner, tmp_path / f"run{n}")

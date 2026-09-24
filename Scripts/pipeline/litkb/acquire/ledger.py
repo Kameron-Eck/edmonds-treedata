@@ -33,47 +33,23 @@ import os
 import sys
 from pathlib import Path
 
+from litkb import netutil as _netutil
 from litkb.acquire import policy as P
 
 # ── the blocked classifier ──────────────────────────────────────────────────────────────────
-#: How far into a served body the markers are looked for: guard 3 (PDF-sources survey §1) reads
-#: "first-64 KB markers". The challenge TITLE is read in the same window.
-MARKER_WINDOW = 64 * 1024
-#: (cause, marker) pairs, lower-cased, searched in the first MARKER_WINDOW bytes. Sources: guard 3 and
-#: its C6-RG extension (`just a moment`, `attention required`, `recaptcha`, `_fs-ch-`, `client
-#: challenge`, `validate.perfdrive.com`, `_incapsula_resource`, `px-captcha`); netutil.CHALLENGE_RE's
-#: three; and the page shapes survey-data §2.5 MEASURED in litkb's own kept bytes (Cloudflare
-#: `challenge-platform` / `cf_chl_`, ScienceDirect's `CLOUDFLARE_ERROR` box, Akamai's `Access Denied`
-#: on `errors.edgesuite.net`, Sci-Hub's `<title>Verification` / captcha page).
-CHALLENGE_MARKERS = (
-    ("cloudflare", b"just a moment"), ("cloudflare", b"checking your browser"),
-    ("cloudflare", b"challenge-platform"), ("cloudflare", b"cf_chl_"), ("cloudflare", b"cf-mitigated"),
-    ("cloudflare", b"attention required"), ("cloudflare", b"cloudflare_error"),
-    ("ddos-guard", b"ddos-guard"),
-    # Akamai's error host; its own pages write it HTML-entity-encoded (`errors&#46;edgesuite&#46;net`, the
-    # four MDPI pages kept on the live store), so the marker is the bare name
-    ("akamai", b"edgesuite"),
-    ("captcha", b"recaptcha"), ("captcha", b"captcha"), ("captcha", b"<title>verification"),
-    ("incapsula", b"_incapsula_resource"), ("perimeterx", b"px-captcha"),
-    ("perfdrive", b"validate.perfdrive.com"), ("f5", b"_fs-ch-"), ("generic", b"client challenge"),
-)
-#: guard 3: response headers that ARE the challenge signature
-CHALLENGE_HEADERS = (("cf-mitigated", "challenge"), ("x-datadome", "protected"))
+# The challenge signatures (the marker list, the header signatures, the 64 KiB window) have ONE home,
+# `litkb.netutil` (S4.5 decision D24; integrator-w3 moved them there from here). These names stay for the
+# readers that already import them from the ledger; they are the same objects, never a second list.
+MARKER_WINDOW = _netutil.MARKER_WINDOW
+CHALLENGE_MARKERS = _netutil.CHALLENGE_MARKERS
+CHALLENGE_HEADERS = _netutil.CHALLENGE_HEADERS
 
 
 def challenge_cause(body, headers=None):
-    """-> the challenge family whose signature these bytes (or headers) carry, or ''."""
-    for k, v in (headers or {}).items():
-        for hk, hv in CHALLENGE_HEADERS:
-            if str(k).lower() == hk and hv in str(v).lower():
-                return f"header:{hk}"
-    head = (body or b"")[:MARKER_WINDOW].lower()
-    if head.lstrip().startswith(b"%pdf-"):
-        return ""
-    for cause, marker in CHALLENGE_MARKERS:
-        if marker in head:
-            return cause
-    return ""
+    """-> the challenge family whose signature these KEPT bytes (or headers) carry, or ''. The one detector,
+    `netutil.Client.challenge_cause`, asked with the status unknown (None): a row being typed carries its codes,
+    not the status of the answer whose bytes were kept, so every marker in the window is read (D24)."""
+    return _netutil.Client.challenge_cause(None, None, body, headers)
 
 
 def _ints(codes):
@@ -87,7 +63,8 @@ def type_blocked(codes, body=None, headers=None, tried=None, route=None):
       1b. the ROUTE's own rule: `open_access` books `blocked` ONLY when `Client.is_challenge` fired on one of
          its locations (acquire/open_access.py::fetch_open_access, unchanged since 5189749, 2026-09-14) —
          and the bytes it kept are the FIRST body served, which need not be the challenging one
-                                                                         -> challenge_or_bot_check (detail)
+                                                                         -> challenge_or_bot_check (detail; with
+         no bytes kept, `inferred`: S4.5 decision D30)
       2. the terminal code is 401                                          -> identity_required
          (guard 2: "a subscription answer about one article")
       3. the terminal code is 404 / 410                                    -> not_found
@@ -95,7 +72,9 @@ def type_blocked(codes, body=None, headers=None, tried=None, route=None):
            at 403                                                          -> identity_required (bytes)
            else                                                            -> html_or_reader (bytes)
       5. no bytes: a route's own `...=blocked` tried token (Sci-Hub marks blocked only on a challenge,
-         a captcha page or a 403 — acquire/scihub.py::fetch_scihub)       -> challenge_or_bot_check (detail)
+         a captcha page or a 403 — acquire/scihub.py::fetch_scihub)       -> challenge_or_bot_check (inferred:
+         S4.5 decision D30 — the token is the route's own word, written for a challenge, a captcha OR a bare 403
+         alike, with no body marker and no kept bytes behind it; a row with either keeps that evidence's basis)
       6. no bytes, codes only: any 200 among them (a landing page answered and served no file)
                                                                            -> html_or_reader (inferred)
          a 403                                                             -> challenge_or_bot_check (inferred;
@@ -106,8 +85,16 @@ def type_blocked(codes, body=None, headers=None, tried=None, route=None):
     cause = challenge_cause(body, headers)
     if cause:
         return "challenge_or_bot_check", "bytes", cause
+    # S4.5 decision D30 (the orchestrator's ruling on auditor-cand2 N3): a row typed from the ROUTE's own word alone
+    # (no body marker, no kept bytes) carries basis `inferred`, never `detail`; a row with kept bytes keeps the
+    # evidence's basis (rule 1b over the kept first body stays `detail`)
+    token_only = "detail"
+    # BEGIN guard: a blocked row typed from the route's own word alone is inferred, never detail
+    token_only = "inferred"
+    # END guard: a blocked row typed from the route's own word alone is inferred, never detail
     if route == "open_access":
-        return "challenge_or_bot_check", "detail", "open_access books blocked only when Client.is_challenge fired"
+        return ("challenge_or_bot_check", "detail" if body else token_only,
+                "open_access books blocked only when Client.is_challenge fired")
     last = codes[-1] if codes else None
     if last == 401:
         return "identity_required", ("bytes" if body else "detail"), "401"
@@ -118,7 +105,7 @@ def type_blocked(codes, body=None, headers=None, tried=None, route=None):
             return "identity_required", "bytes", "403 page with no challenge signature"
         return "html_or_reader", "bytes", "page with no challenge signature and no file"
     if any(str(t).endswith("=blocked") for t in (tried or [])):
-        return "challenge_or_bot_check", "detail", "route token =blocked"
+        return "challenge_or_bot_check", token_only, "route token =blocked"
     if 200 in codes:
         return "html_or_reader", "inferred", "a 200 answered and served no file (bytes not kept)"
     if 403 in codes:
@@ -126,7 +113,7 @@ def type_blocked(codes, body=None, headers=None, tried=None, route=None):
     return None, None, "untypable"
 
 
-def bad_file_verdict(data, *, headers=None, url=None, terminal_url=None):
+def bad_file_verdict(data, *, headers=None, url=None, terminal_url=None, status=None):
     """THE acceptance test's verdict (`litkb.acquire.accept.accept`, builder C1b) on the bytes a `bad-file`
     row carries: the ONE byte classifier, so a row's sub-status is the gate's own word (S4.5 CONTRACTS:
     "C1b's acceptance test RETURNS one of the bad-file sub-statuses; C1a's ledger STORES it"; seam
@@ -136,12 +123,15 @@ def bad_file_verdict(data, *, headers=None, url=None, terminal_url=None):
     The record-reading steps ABSTAIN (`metadata_fetched=False`, guard 18): typing a row the ladder has
     already refused never rests on the record. Bytes the test ACCEPTS carry no sub-status (a PDF the bind's
     page probe could not read: `run.land_and_attach`'s probe-error refusal) — the vocabulary has no word for
-    that refusal, so such a row stays untyped and `bad_file_untyped` counts it (integrator-w1, open question)."""
+    that refusal, so such a row stays untyped and `bad_file_untyped` counts it (integrator-w1, open question).
+    `status` is the terminal answer's HTTP status when the caller holds it (the live ladder does; a backfill of a
+    historical row does not), for the one challenge detector's window rule (S4.5 decision D24)."""
     from litkb.acquire import accept as A
 
     if not data:
         return None
-    return A.accept(data, headers=headers, url=url, terminal_url=terminal_url, metadata_fetched=False)
+    return A.accept(data, headers=headers, url=url, terminal_url=terminal_url, metadata_fetched=False,
+                    status=status)
 
 
 def bad_file_sub(data, headers=None, url=None, terminal_url=None):
@@ -287,10 +277,17 @@ def word_count_of_file(path):
 TYPING_COLUMNS = ("attempt_id", "sub_status", "basis", "free_to_fix", "cause")
 
 
+#: The `cause` a typing CSV gives a row whose ledger STATUS is wrong (S4.5 decision D29): it carries no sub-status,
+#: is never offered, and is a NAMED exception of `bad_file_untyped` (qc/instruments/litkb_hardening_c1a.py) — typing
+#: it inside the wrong family would be a word the fill-null backfill can never correct.
+MISBOOKED_CAUSE = "misbooked"
+
+
 def read_typing_csv(path):
     """-> (rows to offer, refused lines). A row needs an attempt id, a sub-status and a basis; a row
     whose sub-status is empty is the classifier saying "untypable" and is NOT offered (the counter keeps
-    counting it, which is the point)."""
+    counting it, which is the point); a row whose cause is MISBOOKED_CAUSE is refused by NAME (S4.5 decision
+    D29), whatever its other columns say."""
     rows, refused = [], []
     with open(path, encoding="utf-8-sig", newline="") as fh:
         for i, r in enumerate(csv.DictReader(fh), start=2):
@@ -298,6 +295,9 @@ def read_typing_csv(path):
                 (r.get("basis") or "").strip()
             if not aid:
                 refused.append({"line": i, "why": "no attempt_id"})
+            elif (r.get("cause") or "").strip() == MISBOOKED_CAUSE:
+                refused.append({"line": i, "why": "misbooked (S4.5 decision D29): never typed; a named exception of "
+                                                  "bad_file_untyped", "attempt_id": aid})
             elif not sub:
                 refused.append({"line": i, "why": "no sub_status (untypable)", "attempt_id": aid})
             else:

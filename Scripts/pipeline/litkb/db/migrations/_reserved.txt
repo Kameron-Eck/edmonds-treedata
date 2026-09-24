@@ -22,6 +22,15 @@
 #   (separator: each S4.5 branch deletes only its own line; this line stays)
 #   (separator: each S4.5 branch deletes only its own line; this line stays)
 #
+# 0035 was taken 2026-09-23 on cand/20260923-s45-w3 (S4.5 integrator-w3, decision D25) with nothing to
+# reserve, on the rule 0028 and 0023 below record: the file lands in the SAME commit that takes the number,
+# and a number on disk must not also be reserved (qc/test_litkb_p1.py::test_migration_files_are_named_and_numbered).
+# Checked rather than assumed: `git log --all --diff-filter=A --name-only` over this directory lists 0034 as
+# the highest migration ever added on any local ref, and C2a's open branch (work/20260923-s45-stage-ab) carries
+# none above 0033. 0035_admit_operator_file_proposal.sql CREATE OR REPLACEs litkb.admit — the
+# two-branches-one-function hazard below — so it was checked too: no other open ref replaces litkb.admit after
+# 0032 (the same `git log`), and 0032's text of it is dead from 0035 on (its mutation rows point at 0035).
+#
 # 0027 is no longer reserved: it landed on work/20260920-litkb-s1a as
 # 0027_hunt_request_title_scheme.sql (hunt_requests.ref_scheme gains 'title'; LITKB_WORKPLAN.md
 # S1), and a number on disk must not also be reserved

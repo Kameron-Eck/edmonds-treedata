@@ -2903,7 +2903,8 @@ one table with the SQL by `qc/test_litkb_s45_identity.py` (mutation row B1S1 on 
   identity — ISBN-10 -> ISBN-13): the Wave-0 zero-request derivations of `litkb.identifiers` (`arxiv_to_doi` — a
   CANDIDATE, `evidence.candidate`, `verified_by` NULL until DataCite confirms — `doi_to_arxiv`, `isbn10_to_13`,
   `isbn_a_doi` from a hyphenated ISBN only, `pmcid_forms`, `parse_hs_alias`).
-- The views `main_identifiers` and `ws_identifiers` carry the four new columns (appended).
+- The views `main_identifiers` and `ws_identifiers` carry the four new columns (appended) and, because 0032
+  re-states them with `v.*`, 0008's `rebased_from_version_id` too — five appended columns (auditor-cand2 N4).
 
 **The backfill.** `litkb.backfill_identifier_provenance(p_apply, p_session)` (SECURITY DEFINER, EXECUTE to
 `litkb_ingest`): FILLS each NULL `asserted_by` from the row itself (`tracker` -> `tracker`, `legacy_stem` ->
@@ -2921,7 +2922,8 @@ record, arXiv version -> concept), both FK `works(id)`, never the work itself. F
 base — a target named by a TYPE-SCOPED scheme (a chapter's `is_part_of` its book's ISBN) is the work of one of that
 scheme's identity types holding the value, whatever the source work's own type (`is_part_of`/`has_part` -> part_of; `is_preprint_of`/`is_version_of`/`has_preprint`/`has_version` ->
 version_of), and MONOTONE: trigger `works_parent_monotone` refuses to overwrite a set parent (fatcat's merge — a
-later source fills a NULL and never overwrites). `main_works` / `ws_works` carry both (appended).
+later source fills a NULL and never overwrites). `main_works` / `ws_works` carry both (appended), and 0008's
+`rebased_from_version_id` beside them (the `v.*` re-statement; auditor-cand2 N4).
 
 ## `litkb.work_relations` (litkb, migration 0032 — the edge table, with the third state)
 
@@ -3284,19 +3286,22 @@ bad_basis` or `missing_or_already_counted`), `at`. The CLI (dry run unless `--ap
 
 The shape the sub-status backfill applies, shared with builder C1b's item-8 bad-file CSV:
 `attempt_id, sub_status, basis, free_to_fix, cause`. `basis` ∈ `bytes detail inferred`; an EMPTY `sub_status` is
-the classifier saying "untypable" and is not offered (the counter keeps counting it). `type-blocked` adds review
+the classifier saying "untypable" and is not offered (the counter keeps counting it); a row whose `cause` is
+`misbooked` (`ledger.MISBOOKED_CAUSE`, S4.5 decision D29) is refused BY NAME and never typed. `type-blocked` adds review
 columns after those five: `route, http_codes, kept, kept_bytes, at`. The blocked classifier
 (`ledger.type_blocked`, strongest evidence first): a challenge signature in the kept bytes or headers →
 `challenge_or_bot_check`; a terminal 401 → `identity_required`; 404/410 → `not_found`; a kept page with no
 signature → `identity_required` at 403 else `html_or_reader`; no bytes: a route's `=blocked` token →
-`challenge_or_bot_check` (detail); a 200 among the codes → `html_or_reader` (inferred); a 403 →
+`challenge_or_bot_check` (inferred — S4.5 decision D30: the route's own word, with no body marker and no kept bytes
+behind it); a 200 among the codes → `html_or_reader` (inferred); a 403 →
 `challenge_or_bot_check` (inferred — 12 of 12 kept 403 bodies on the ledger were challenge pages, survey-data
 §2.5). `free_to_fix` is left empty for blocked rows (not assessed here).
 
 `phase4/qc/litkb_acq_probe_blocked.csv` (tracked, MEASURED read-only on live by builder C1a on 2026-09-23 with
 `py -3.12 -m litkb.acquire.ledger --role litkb_reader type-blocked --out ../phase4/qc/litkb_acq_probe_blocked.csv`
 from `Scripts/`): the historical `blocked` typing in this shape — 39 rows, all `challenge_or_bot_check` (scihub
-25 by `detail`, open_access 11 by `bytes` and 3 by `detail`). The file the orchestrator's live
+25 by `inferred` — the route's token alone, S4.5 decision D30; open_access 11 by `bytes`, 1 by `detail` — the
+route's own rule over its kept first body — and 2 by `inferred`, the same rule with no bytes kept). The file the orchestrator's live
 `backfill-sub-status --csv` applies for `blocked_untyped`; `write_csv` creates it and never overwrites one.
 
 ### The acquisition ladder (`pipeline/litkb/acquire/run.py`, S4.5 builder C1a)
@@ -3341,7 +3346,9 @@ writes nothing to the store, and records every answer.
 |---|---|---|---|
 | `rehunt_route_spends` | = 0 | run | spent attempts (not a skip/stop, not a `retry_of`) on a (route, work) inside the refusal window the REFERENCE policy replays from every earlier attempt |
 | `known_bad_relands` | = 0 | run | route attempts (not `browser`) that wrote their bytes into the store (`ok`, or `detail.quarantined`) although their `served_sha256` matched refused bytes recorded before them |
-| `bad_file_untyped` | = 0 | all-time | `bad-file` rows with NULL `sub_status` |
+| `bad_file_untyped` | = 0 | all-time | `bad-file` rows with NULL `sub_status`, less exactly the attempt ids the manifest's item-8 CSV (`probe_csvs["litkb_acq_probe_badfile.csv"]`) names cause `misbooked` (S4.5 decision D29; no CSV named or found → none excused) |
+| `bad_file_misbooked` | reported | all-time | the excused rows: untyped `bad-file` rows the item-8 CSV names `misbooked` (D29) |
+| `blocked_inferred` | reported | all-time | `blocked` rows typed on basis `inferred` — the share the report states (D30) |
 | `blocked_untyped` | = 0 | all-time | `blocked` rows with NULL `sub_status` |
 | `budget_exceeded_silently` | = 0 | run | ladders (work × workstream) that launched a spent rung past a budget with no `budget-stop` row before it. The launch's MEASUREMENTS are the row's `detail.ladder` (`spent_before`, `elapsed_s`); the THRESHOLD is read twice — the budget FROZEN outside the ladder (manifest key `ladder_budget` = {`seconds`, `attempts`}, the run's own budget recorded at freeze; absent, the reference `policy.LadderBudget().seconds`) and the budget the row declares — past either counts (Codex X2: removing the budget object cannot remove the threshold). A spent rung row with NO `detail.ladder` escaped the ladder's accounting and counts |
 | `transient_rows_unretried` | reported | run | `retriable` rows, not themselves a retry, that no retry names |
@@ -3429,9 +3436,9 @@ One row per `bad-file` acquisition attempt, typed. It is builder-C1a's backfill 
 | `bytes_kept` | `y` · `n` — this attempt's own bytes were found on disk |
 | `bytes_kept_path`, `bytes_kept_length` | where, relative to the literature root, and how long |
 | `match_method` | `sha256` · `sha256+qp.attempt` · `qp.attempt` · `was+mtime` · `sibling:<attempt id>` · `none` |
-| `sub_status` | ONE CONTRACTS `bad-file` sub-status, on every row |
+| `sub_status` | ONE CONTRACTS `bad-file` sub-status, on every row but a `misbooked` one (empty there: S4.5 decision D29) |
 | `basis` | `bytes` (typed by `accept.accept` on the kept bytes) · `detail` (the detail records the body's kind) · `inferred` (codes and hosts, or a later sibling's bytes) |
-| `cause` | closed: `landing_page` · `html_is_the_work` · `html_no_pointer` · `challenge_interstitial` · `blocked_not_bad_file` · `transport_error_string` · `mirror_miss_page` · `mirror_sweep_no_pdf` · `other` (the four `challenge_…`, `blocked_…`, `transport_…`, `mirror_miss_page` are MISBOOKED rows: a vocabulary fix, no file) |
+| `cause` | closed: `landing_page` · `html_is_the_work` · `html_no_pointer` · `mirror_sweep_no_pdf` · `other` · `misbooked` — the last for a row whose ledger STATUS is wrong (S4.5 decision D29; `finalize`): its finer cause — `challenge_interstitial` · `blocked_not_bad_file` · `transport_error_string` · `mirror_miss_page` — leads `reason`, and `sub_status` and `basis` are empty (a vocabulary fix, no file, never typed) |
 | `free_to_fix` | `y` · `n`; `html_is_the_work` is always `n` (decision D12: reported on its own line) |
 | `fix_grade` | on `y`: `measured` · `estimated` · `inferred` |
 | `fix`, `reason` | the converting rung, and why the row was typed so |
@@ -3452,6 +3459,134 @@ root). Fires: `sidecar` · `stub_constructed` · `stub_e20` · `volume` (control
 (counter `bom_valid_pdfs_refused`, this fire's own, bound `=0` in the harness's grammar).
 
 <!-- S4.5 builder C2A (Stage A + Stage B rungs): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+### Stage A and Stage B rungs (`pipeline/litkb/acquire/stage_a.py`, `stage_b.py`, `stage_b_repos.py`; S4.5 builder C2a)
+
+Registered through C1a's rung registry when `litkb.acquire.run` is imported (S4.5 decision D19); the table
+`stage_b.RUNG_TABLE` is their one home and its order IS the wave order. Every rung opts in to C1a's one scheduled
+transient retry. `metadata_only` is a new `run.Rung` field (default false): such a rung yields identifiers, never
+a file. `ask_condition` is a new `run.Rung` field (default ''): the condition under which a rung asks at all, in
+words (`stage_b.ASK_CONDITIONS`, its one home) — set for `publisher-url`, `osf`, `datacite`, `zenodo`, `figshare`,
+`ncbi-idconv`, `europepmc`, `arxiv` and `venue`; a rung with none asks every row that reaches it. It is what the
+report's `not-asked:` line states (below; auditor-C2a round 2 F3).
+
+| route | stage | needs | concurrent | metadata_only | what it asks (plan item / survey rung) |
+|---|---|---|---|---|---|
+| `eartharxiv` | A | doi | no | no | A7: the offline-harvested EarthArXiv map (below), then ONE request for the preprint PDF on a hit |
+| `publisher-url` | A | doi | no | no | A4: the Atypon-family `/doi/pdf/{doi}` template for 10.1080 / 10.1145 / 10.1177 (`stage_a.PUBLISHER_TEMPLATES`; the other publishers' templates are Stage C's) |
+| `opencitations` | B | doi | yes | yes | Wave 1: OpenCitations META `…/meta/v1/metadata/doi:{doi}` |
+| `crossref-link` | B | doi | yes | no | B4: Crossref `works/{doi}` — `link[]` (pdf in content type OR path), `alternative-id`, ISBN, `issn-type`, `relation` |
+| `openalex` | B | doi | yes | no | B3: OpenAlex `works/doi:{doi}` — `best_oa_location` + every `pdf_url`, `ids`, `pmh_id` |
+| `doaj` | B | doi | yes | no | B8: DOAJ `api/search/articles/doi:{doi}` — `bibjson.link[type=fulltext]` |
+| `openaire` | B | doi | yes | no | B9: OpenAIRE `search/publications?doi=` (XML) — PDF-naming instance URLs |
+| `hal` | B | doi | yes | no | B14: HAL search `doiId_s` — `fileMain_s` |
+| `osf` | B | doi | yes | no | B11: OSF APIv2 preprint → primary file → download (OSF prefixes only) |
+| `datacite` | B | doi, arxiv | no | no | B6: DataCite `dois/{doi}` — only for 10.48550 / 10.5281 / 10.6084, a Crossref 404 in the run, or Stage A's arXiv candidate |
+| `zenodo` | B | doi | no | no | B14: Zenodo record API for a `10.5281/zenodo.<n>` DOI |
+| `figshare` | B | doi | no | no | B14: figshare article API for a `10.6084/m9.figshare.<n>` DOI |
+| `ncbi-idconv` | B | doi | no | yes | Wave 2: NCBI ID Converter — only while pmid or pmcid is absent |
+| `s2` | B | doi, arxiv | no | no | B5 + B1: Semantic Scholar `paper/DOI:{doi}?fields=externalIds,openAccessPdf,title,year` (LAST among the services) |
+| `europepmc` | B | doi | no | no | B12 / B21: Europe PMC `resultType=core` — only once a PMCID appeared; then `?pdf=render` |
+| `arxiv` | B | doi, arxiv | no | no | B1: every arXiv id the run holds (own, edition edge, or discovered in the run), at `arxiv.org/pdf/<id>` |
+| `venue` | B | doi, arxiv | no | no | B13: ACL Anthology by id; OpenReview by title (title, first author and year agreeing) |
+
+`core` (B7) is NOT BUILT (no rung registers it; `CORE_API_KEY` blank). One `policy.POLICY` line per route (appended
+as a statement after the tuple, `legitimate` tier). A legitimate rung never asks a host a SHADOW line names and
+never asks one URL twice in a ladder run (`work["asked_urls"]`: URL -> the route that asked it, named in the
+skipping rung's note "already asked in this ladder run by <route>"). A TRANSIENT answer releases its URL, so the
+rung's one scheduled retry asks it again rather than booking `no-oa-copy` over it (auditor-C2a round 2 F1);
+transient is C1a's in-run retry rule (`backoff.classify`) applied to the answer as its own row — status 0, 408, 429
+or a 5xx as `api-error`, a challenge page as `blocked`, which C1a's final rule never retries, so a challenge URL
+stays asked. The arxiv.org PDF
+C1a's `open_access` rung asked in the same run (the work's own arXiv id, or a `10.48550/arxiv.` DOI's: an ALLOWED
+`open_access` decision in `RungContext.decisions`) is booked as asked by `open_access`, so the `arxiv` rung asks
+only the other arXiv ids it holds (`stage_b.open_access_arxiv`; auditor-C2a round 2 F10).
+
+The statuses a rung writes (`stage_b.fetch_candidates`, `stage_b.service_miss`): a PDF → `downloaded` (the ladder
+lands it through the acceptance test); every request a transport failure → `api-error`, `retriable`; a challenge
+page → `blocked` / `challenge_or_bot_check`; a page served where a file was expected → `bad-file` (typed by the
+acceptance test: `html_response`) — `publisher-url` books it `blocked` / `html_or_reader` instead (survey A4-RG);
+401/403 → `blocked` (typed `identity_required`); 404/410 on every candidate → `blocked` / `not_found`; a service that
+answered and lists no free copy → `no-oa-copy`; a service with no record → `unresolved`; 0 / 429 / 5xx from a
+service → `api-error`; a Wave-2 closure condition that fails → the rung asks nothing and the ladder writes
+`skipped` with `no_identifier` or `policy_refused`, the condition in `detail.policy.closure`.
+
+Two keys a rung's route dict adds, both copied onto the attempt's `detail` by the ladder (`run._record_result`):
+
+| detail key | written | meaning |
+|---|---|---|
+| `harvest` | when the rung harvested | the result of writing the rung's identifier rows and relation edges through `litkb.admit.harvest.record` (`stage_b.write_harvest`): `{rows, relations, identifiers, edges}` counts and `record_identifiers`' own answer, or `{error}` — a harvest never fails an acquisition |
+| `stage_b` | Stage B rungs | `gained` (the `scheme:value` pairs NEW to the run, the kill criterion's evidence), `closure_pending` (earlier rungs that key on a scheme discovered here — the one-pass cap, reported), and per rung `record_class` (A0), `crossref_class` / `work_class` (A2), `confirmed_candidate` (DataCite), `open_access_pdf` (S2) |
+| `stage_a` | the FIRST attempt row the ladder writes for a work in one `run.acquire` call (a rung's answer, a skip, a `budget-stop`, or the `browser` manual-step row — whichever comes first; `stage_a.onto_first_row`), and only that row | `stage_a.prepare`'s summary: `rejected_ids` (A1: `{scheme, value, via, why}`, never coerced), `derived` / `written` (the Wave-0 rows and `record_identifiers`' answer), `candidates` (held for DataCite), `write_error` (a Wave-0 write that failed — the acquisition went on), `shortdoi`, `class` (A2), `native` (A3's server), `record_class` (A0 on the work's type). `run.acquire`'s answer carries the same dict under `stage_a` (auditor-C2a F1) |
+
+`RungContext.work_class` (new, default ''): the A2 class `stage_a.prepare` computed; `RungContext.decide` passes
+every PolicyDecision through `stage_a.routed`, which REFUSES a shadow line for a class in
+`stage_a.SHADOW_REFUSED_CLASSES` (`preprint`, `book`, `html-only`). `stage_a.prepare` runs once in `run.acquire`
+before any rung and leaves on the work dict: `type`, `ids` ([(scheme, value_norm, via)]: `own`, an edition relation,
+or the route that discovered it in this run), `candidates` (Wave-0 CANDIDATE rows held for DataCite), `class`,
+`native` (A3), `stage_a` (the summary: rejected ids, derived rows, candidates, class, record class — recorded on
+the ladder's first attempt row, above). The Wave-0 rows it writes carry `asserted_by = 'deterministic'`. Wave 0
+builds arXiv id <-> `10.48550` DOI and ISBN-10 -> 13; ISBN-13 -> ISBN-A is NOT built (it needs a hyphenated
+ISBN, which A1's normaliser strips, and its DOI is a candidate nothing in this session confirms); the PMCID prefix
+is A1's normaliser.
+
+### The EarthArXiv map (phase4/qc/litkb_eartharxiv_map.csv; S4.5 builder C2a, A7)
+
+Written by `qc/instruments/litkb_eartharxiv_map.py --live` (the orchestrator's pass: OAI-PMH `ListRecords`,
+`oai_dc`, every resumption token, 1 s apart); read by the `eartharxiv` rung (`stage_a.eartharxiv_map`;
+`config.EARTHARXIV_MAP`, `LITKB_EARTHARXIV_MAP` overrides). Not harvested by C2a (no grant): absent, the rung
+answers `api-error` and asks nothing. Only a COMPLETE walk (the last page 200 with no resumption token, and no
+OAI-PMH `<error>` on any page — the protocol serves its errors, e.g. an expired `badResumptionToken`, INSIDE an HTTP
+200; `noRecordsMatch` on the FIRST page is the empty list, a complete walk of nothing; an unparseable 200 page stops
+the walk: `litkb_eartharxiv_map.oai_error`, auditor-C2a round 2 F4) writes the map; a walk that stops early writes
+nothing at the map path — the rows read go to `litkb_eartharxiv_map.partial.csv` beside it, which no rung reads —
+and exits 1 (a map missing pages would book `no-oa-copy` for the works on them).
+
+| column | meaning |
+|---|---|
+| `published_doi` | a non-EarthArXiv DOI the record names (dc:identifier / relation / source) — the published version's |
+| `preprint_doi` | the record's own `10.31223/…` DOI |
+| `pdf_url` | the record's http identifier containing `/download` or ending `.pdf` |
+| `oai_identifier` | the OAI record identifier |
+| `datestamp` | the OAI datestamp |
+| `rights` | `dc:rights` |
+
+### Stage A/B's recorded answers (`qc/fixtures/litkb_cassettes/stage_ab/index.jsonl`)
+
+Builder A's cassette index format, recorded ONCE by `qc/instruments/litkb_stage_ab_record.py --live` under the
+brief's grant (2026-09-23): row tags `c2a:<doi>`; the four FREE-PDF rows' and E13's Crossref / OpenAlex / Semantic
+Scholar records and the OSF preprint 10.31235/osf.io/cxp4q's two APIv2 records — JSON only, inline, the contact
+email masked. The one arXiv PDF request was recorded into an untracked scratch cassette (a PDF never enters the
+repository).
+
+### C2a's acceptance counters (`qc/instruments/litkb_hardening_c2a.py`, loaded by `hardening`)
+
+| counter | gated | scope (S4.5 decision D1) | what it counts |
+|---|---|---|---|
+| `preprints_sent_to_shadow` | = 0 | run | attempts on a shadow route (`annas scihub bban`) that SPENT (status outside `backoff.NON_SPEND_STATUSES`) for a work typed `preprint` or typed `posted-content` by the crosswalk probe CSV (key or DOI); a manifest naming no crosswalk CSV is refused |
+| `free_ceiling_measured_unconverted` | = 0 | all-time | the head probe CSV's FREE-PDF DOIs, plus the Wayback positive (10.1002/wics.1317, its census.gov row; manifest `wayback_positive_dois` overrides), whose work holds no HELD file: a `main_files` row with `status` `active` whose version `state` is neither `rejected` nor `withdrawn` (a quarantined, refused or withdrawn file is no conversion; auditor-C2a round 2 F6) |
+| `rung_conversions_<route>` | reported | run | works with an `ok` or `measured` attempt on a Stage A/B route of this builder |
+| `kill_gain_<scheme>` | reported | run | works that gained `arxiv` / `pii` / `dblp` / `isbn` / `md5` from a Stage B service (identifier version or asserted edge) |
+
+The script form prints the LITKB_LADDER1 report's lines: `yield: <route>=<converted>/<asked>` for every built Stage
+B rung (and every Stage A rung of this builder) — `asked` counts works with a row that is neither `skipped` nor
+`budget-stop`, so a skip is never an ask; for a metadata-only rung ALSO `identifiers: <route>=<works
+gaining>/<asked>` (S4.5 decision D19); for a rung with an `ask_condition` that asked NO row, reached at least one,
+and was skipped on EVERY row it reached by that condition (a row the rung itself skipped with its condition in
+`detail.policy.closure`, or the ladder's `no_identifier` skip with `detail.needs` — never a policy refusal, a
+back-off window or a dead route: `condition_skips`), ALSO `not-asked: <route> <works reached> <condition>` in the
+registry's own words (auditor-C2a round 2 F3: on live 0 works hold a zenodo or a figshare DOI or a PMCID, and a
+`=0/0` yield line asked nobody; builder A's `stage_b_rungs_unmeasured` accepts the not-asked line for such a rung
+under S4.5 decision D32's four conditions, "The not-asked line" below); `not-built: <route> <reason>` for each Stage B
+route no rung registers;
+`kill: <scheme>=<gained>/<asked> eligible=<n|n/a>` for each kill-criterion scheme; `kill-note: <text>` (md5 is
+structurally 0 in this session: no Stage B service returns one, Anna's `identifiers_unified` is not written);
+`kill-criterion: KEEP|KILL (…)`, the survey's S6 majority bar re-applied per scheme — the proposer's bar applied
+mechanically, NOT a score; a non-proposer scores it. Fires (`FIRES`, each also
+`qc/test_litkb_stage_ab.py::test_every_c2a_fire_fires`): `b1_disabled_kats` → `free_ceiling_measured_unconverted`,
+`router_disabled_preprint` → `preprints_sent_to_shadow` (the shadow tier's switch pinned ON in both arms, so the fire
+grades the router whatever `policy.SHADOW_TIER_ENABLED` says), `harvest_disabled_crosswalk_c2a` → builder B1's
+`crosswalk_rows_without_identifier`.
 
 <!-- S4.5 builder C2B (Stage C + Stage E + Sci-Hub part 1 rungs): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
 
@@ -3728,6 +3863,15 @@ measures a built Stage B rung the registry marks metadata-only (the rung's `meta
 is a PDF rung) — beside a `yield:` line, either answers for it. For a PDF-yielding rung an `identifiers:` line answers
 nothing.
 
+`not-asked: <route> <works reached> <condition>` (`NOT_ASKED_LINE`: whole line, `<works reached>` an integer >= 1, the
+condition the registry's own words) measures a built Stage B rung the registry gives an `ask_condition` (builder C2a's
+`run.Rung` field; `stage_b.ASK_CONDITIONS`) that asked NO row because that condition skipped every row it reached —
+the closure rule's Wave-2 rungs (on live 0 works hold a zenodo or a figshare DOI or a PMCID, so their yield line reads
+`=0/0`, which is not a measurement). For an unconditional rung, a line that reached nobody, or a condition that is not
+the registry's, it answers nothing (auditor-C2a round 2 F3). S4.5 decision D32 adds two more conditions — a rung
+with a yield line that asked rows AND a not-asked line is unmeasured, and the report states such a rung's yield as
+UNDETERMINED — see "The not-asked line (S4.5 decision D32)" below.
+
 ### C1b's ladder-level stub fires (S4.5 decisions D21, D22; `qc/instruments/litkb_hardening_c1b.py`)
 
 | fire | counter | known-bad |
@@ -3736,3 +3880,98 @@ nothing.
 | `stub_ladder_header_only` | `stubs_bound` | a whole article announced as a stub ONLY by `X-ELS-Status`, same arm: counted only through `detail.served_headers` (D22) -> 1 (control 0) |
 
 <!-- end of S4.5 integrator-w2 section -->
+
+<!-- S4.5 integrator-w3 (the orchestrator's rulings D23-D28 on the w3 candidate): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+### THE challenge detector (S4.5 decision D24; `pipeline/litkb/netutil.py`, integrator-w3)
+
+`netutil.Client.challenge_cause(status, url, body, headers=None)` -> the challenge family, or `''`; `is_challenge` is
+its yes / no. ONE detector, one marker list: `netutil.CHALLENGE_MARKERS`, `CHALLENGE_HEADERS`, `MARKER_WINDOW` (64 KiB)
+moved here from `litkb.acquire.ledger`, whose names now alias the same objects. Every caller asks it: open access (each
+location, headers included), the ledger's `type_blocked` / `challenge_cause` (status unknown), the landing rung
+(`landing._challenge`, before its rule table's own rows), the acceptance test, and the ladder (below).
+
+| evidence, strongest first | answer |
+|---|---|
+| a header signature (`cf-mitigated: challenge`, `x-datadome: protected`), any status | `header:<name>` |
+| a 403 on a `check=1` URL | `check=1` |
+| PDF magic at the head of the body | `''` — a PDF is never a challenge |
+| status 403 / 503 (`REFUSAL_STATUSES`): a marker in the first 64 KiB, else `CHALLENGE_RE` anywhere | the marker's family, or `challenge-re` |
+| status None (a kept payload whose answer's status the caller does not hold — the ledger's typing) | a marker in the first 64 KiB |
+| any other status (a 200 included): the page TITLE carries a marker or `CHALLENGE_RE` (survey G0d: a solved page names its guard in its scripts, never its title) | the first marker in the 64 KiB window, else `challenge-re` |
+
+What moved (recorded fixtures, `challenge_probe.py` in integrator-w3's scratch): MDPI's REAL Akamai "Access Denied" 403
+(`qc/fixtures/litkb_mdpi_pdf_akamai_a3b93f589df6.html`) is a challenge (`akamai`) — open access booked it
+`bad-file/html_response` before; the landing rule table's `page_cause` for Wiley and OUP reads `header:cf-mitigated`
+(the one detector's first evidence), where it read the retired label `netutil.CHALLENGE_RE`. No recorded page changed
+verdict.
+
+| field | where | what it holds |
+|---|---|---|
+| `facts.challenge` | the acceptance test's verdict (`accept.Verdict.challenge`; `detail.acceptance.facts`) | the family the one detector found in bytes the magic step refused; the refusal's sub-status is unchanged (`html_response` / `too_small` / `missing_pdf_header`: the bytes' own word) |
+| `detail.challenge` | `litkb.acquisition_attempts` | the family, on a row the LADDER re-booked: a rung's `bad-file` whose served bytes the one detector calls a challenge is written `blocked` / `challenge_or_bot_check`, `retriable` false (`run._challenge_of`, first sight through the acceptance test's verdict, a known-bad match asked directly). NOT for a Stage E route (`policy.STAGE_OF` = `E`): an archive replaying a challenge page it once captured did not refuse this client — that row stays `bad-file` with `facts.challenge` |
+
+### An operator's file through admission (S4.5 decision D25; migration `0035_admit_operator_file_proposal.sql`)
+
+`litkb admit --doi D --file F` and the MCP `litkb_admit(doi=, file=)` call `front.admit_registry(..., operator_file=True)`:
+the file JSON carries `source_route` = `front.OPERATOR_ADMIT_ROUTE` (`held-in-place`: the file is admitted where it lies
+under the literature root, `acquire --from-file`'s in-place route) and `source_url` = `in place <rel_path>`. Migration
+0035 re-creates `litkb.admit` from 0032's text verbatim plus ONE guard: a file whose `source_route` is on
+`litkb._proposal_source_routes()` is written as a PROPOSAL, whatever the admission's mode. Checks 1-4 are unchanged (a
+file that fails binding or is already held still refuses the admission).
+
+| result key | value |
+|---|---|
+| `outcome` | unchanged (`admitted` for a registry admission: the work and its identifiers are facts) |
+| `file_state` | `proposed` (the operator's file: `file_versions.state` `proposed`, not in `main_files`) or `promoted` (every other caller — the legacy loader passes no route); absent when no file was admitted |
+| `proposed`, `next` (CLI and MCP only; `front.operator_file_note`) | the proposal's `version_id` / `file_id` / `rel_path` / `source_route`, and how a second session decides it (`litkb approve-files` / `refuse-files`) |
+
+`operator_binds_unproposed` (`qc/instruments/litkb_hardening_b2.py`, `OPERATOR_ROUTES`) reads these binds: an admitted
+operator file that became main's version of record after the freeze counts.
+
+### The live pass's shadow switch (S4.5 decision D27; `qc/instruments/litkb_ladder_run.py`, `litkb_acceptance.py`)
+
+| field | where | what it holds |
+|---|---|---|
+| `shadow_tier` | the hardening manifest (`hardening --freeze`, `_frozen_shadow_tier`) | `{"enabled": false, "code_default": <policy.SHADOW_TIER_ENABLED>, "ruling": "S4.5 decision D27 / Scope ruling ..."}` |
+| `shadow_tier` | the recording report (`write_recording_report`) | `{"enabled", "overridden", "manifest"}`: the switch the pass ran with, whether `--allow-shadow-tier` overrode the refusal, and what the manifest recorded |
+
+`run_rows` sets `policy.SHADOW_TIER_ENABLED` to the manifest's recorded `false` for the pass and restores the code
+default after it (the code default stays as merged). A manifest that does not record the switch off (none recorded, or
+`true`) is REFUSED before anything is recorded or run (`ShadowTierRefused`; the CLI exits 2) unless `--allow-shadow-tier`
+(`allow_shadow=True`) overrides it, and then the pass runs with the switch on.
+
+### The report's named exceptions (S4.5 decisions D11, D23; `qc/instruments/litkb_hardening_a.py`)
+
+`exception: <counter> <item> <reason>` (`EXCEPTION_LINE`: whole line; the reason required) in the LITKB_LADDER1 report
+names ONE item of ONE counter as an exception, with its refusal reason. `named_exceptions(manifest, counter)` reads them
+(`{item: reason}`; a report that is not there names none). A counter that admits exceptions leaves an item out only when
+the report names it AND the database holds the refusal the reason describes; an item the report does not name is counted
+(never silent). `free_ceiling_measured_unconverted` (builder C2a's) admits binding refusals (D23: the IIASA Wayback
+copy passes the acceptance test and the binder refuses its corporate first author — a record / binder gap, reported,
+not a Stage E miss): a free-ceiling DOI with no held file is excused only when the report names it AND the ledger
+holds a `binding-failed` / `binding-pending` attempt of its work (`litkb_hardening_c2a.binding_refusal`); REPORTED
+`free_ceiling_named_exceptions` counts the excused rows. The Wayback row is builder C2c's re-graded positive (IIASA,
+`_wayback_positive` reads `litkb_hardening_c2c.WAYBACK_ROWS`). The ladder-1 run driver prints the lines the report
+carries after its pass (`litkb_ladder_run.report_lines`: C2a's Stage A/B lines, then
+`free_ceiling_exception_lines` — one `exception:` line per binding refusal the ledger holds, its reason the
+binder's own).
+
+### A pending file proposal is not a held file (S4.5 decision D28)
+
+`run.work_record.held_files` counts MAIN's active files only. A work whose only file is a pending PROPOSAL (an operator's
+`--from-file` or `admit --file`, a web landing) is not held: the ladder still asks it, and bytes it lands that the
+proposal already holds end `duplicate-held` (the sha256 dedupe). The proposal's identity is exactly what a second
+session has not confirmed (`litkb-from-file-version-state`).
+
+### The not-asked line (S4.5 decision D32; `qc/instruments/litkb_hardening_a.py` `NOT_ASKED_LINE`)
+
+`not-asked: <route> <works reached> <condition>` measures a CONDITIONAL Stage B rung for `stage_b_rungs_unmeasured` only
+when ALL FOUR hold, else the rung is unmeasured (fail closed): (1) the registry gives the rung an `ask_condition`
+(`stage_b.ASK_CONDITIONS`) and `<condition>` is byte-equal to it — a paraphrase answers nothing; (2) `<works reached>`
+>= 1 — a rung the ladder never reached is unmeasured, not not-asked; (3) the report holds no `yield:` line with asked
+> 0 for that route — a rung is asked or not-asked, never both; (4) the LITKB_LADDER1 report states such a rung's yield
+on this corpus as UNDETERMINED (never eligible), not zero: its condition held for no work, so the run measured nothing
+about what the rung would convert.
+
+<!-- end of S4.5 integrator-w3 section -->

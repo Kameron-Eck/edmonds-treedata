@@ -40,3 +40,11 @@ def scihub_mirrors(env=None):
 
 
 SCIHUB_MIRRORS = scihub_mirrors()
+
+
+# S4.5 C2a
+#: Stage A7's harvested EarthArXiv map, published DOI -> preprint PDF (litkb.acquire.stage_a.eartharxiv_map;
+#: written by qc/instruments/litkb_eartharxiv_map.py, the orchestrator's live pass). A measured output, so it lives
+#: beside the other acquisition probes under phase4/qc/; `LITKB_EARTHARXIV_MAP` overrides (read at call time).
+EARTHARXIV_MAP = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))))), "phase4", "qc", "litkb_eartharxiv_map.csv")

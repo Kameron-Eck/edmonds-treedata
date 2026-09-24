@@ -17,6 +17,37 @@ BASE = "https://annas-archive.gl"
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0"
 CHALLENGE_RE = re.compile(rb"Just a moment|DDoS-Guard|Checking your browser", re.I)
 
+# ── THE challenge signatures: one home (S4.5 decision D24; moved here from litkb.acquire.ledger by
+# integrator-w3 — the ledger, the landing rung and the acceptance test read them through
+# Client.challenge_cause, never a list of their own) ─────────────────────────────────────────────
+#: How far into a served body the markers are looked for: guard 3 (PDF-sources survey §1) reads
+#: "first-64 KB markers". The challenge TITLE is read in the same window.
+MARKER_WINDOW = 64 * 1024
+#: (cause, marker) pairs, lower-cased, searched in the first MARKER_WINDOW bytes. Sources: guard 3 and
+#: its C6-RG extension (`just a moment`, `attention required`, `recaptcha`, `_fs-ch-`, `client
+#: challenge`, `validate.perfdrive.com`, `_incapsula_resource`, `px-captcha`); CHALLENGE_RE's three;
+#: and the page shapes survey-data §2.5 MEASURED in litkb's own kept bytes (Cloudflare
+#: `challenge-platform` / `cf_chl_`, ScienceDirect's `CLOUDFLARE_ERROR` box, Akamai's `Access Denied`
+#: on `errors.edgesuite.net`, Sci-Hub's `<title>Verification` / captcha page).
+CHALLENGE_MARKERS = (
+    ("cloudflare", b"just a moment"), ("cloudflare", b"checking your browser"),
+    ("cloudflare", b"challenge-platform"), ("cloudflare", b"cf_chl_"), ("cloudflare", b"cf-mitigated"),
+    ("cloudflare", b"attention required"), ("cloudflare", b"cloudflare_error"),
+    ("ddos-guard", b"ddos-guard"),
+    # Akamai's error host; its own pages write it HTML-entity-encoded (`errors&#46;edgesuite&#46;net`, the
+    # four MDPI pages kept on the live store), so the marker is the bare name
+    ("akamai", b"edgesuite"),
+    ("captcha", b"recaptcha"), ("captcha", b"captcha"), ("captcha", b"<title>verification"),
+    ("incapsula", b"_incapsula_resource"), ("perimeterx", b"px-captcha"),
+    ("perfdrive", b"validate.perfdrive.com"), ("f5", b"_fs-ch-"), ("generic", b"client challenge"),
+)
+#: guard 3: response headers that ARE the challenge signature
+CHALLENGE_HEADERS = (("cf-mitigated", "challenge"), ("x-datadome", "protected"))
+#: The statuses at which the whole refusal page is read for a signature (the pre-S4.5 rule's two). At any
+#: other status only the page TITLE is read — survey G0d (VERIFIED): "never detect the challenge by
+#: searching the body for 'ddos-guard': a solved record page mentions it in its own scripts".
+REFUSAL_STATUSES = (403, 503)
+
 SCIDB_MIN_INTERVAL = 5.0
 RATE_BACKOFF = 60.0
 
@@ -165,26 +196,62 @@ class Client:
     # -- bot-challenge handling (optional; without FlareSolverr the login cookie stands) --
 
     @staticmethod
-    def is_challenge(status, url, body):
-        """A bot challenge at ANY status (S4.5 item 2; the 2026-09-22 Sci-Hub diagnosis D1 measured
-        `sci-hub.wf` answering its Cloudflare "Checking your browser" page at HTTP 200, which the old
-        403/503-only rule booked as a miss). At 403/503 the whole body is searched, as before. At any
-        other status only the page TITLE is: PDF-sources survey G0d (VERIFIED) — "never detect the
-        challenge by searching the body for 'ddos-guard': a solved record page mentions it in its own
-        scripts" — and a PDF is never a challenge. The title is read in the first 64 KiB (guard 3's
-        "first-64 KB markers")."""
+    def challenge_cause(status, url, body, headers=None):
+        """-> the challenge family these bytes / headers / URL carry, or ''. THE one challenge detector
+        (S4.5 decision D24: the ledger's typing, the open-access and Sci-Hub routes, the landing rung and
+        the acceptance test all call it — integrator-w3 folded the ledger's marker list in here, so a page
+        one of them calls a challenge the others do too). Evidence, strongest first:
+
+          a header signature (CHALLENGE_HEADERS), at any status             -> header:<name>
+          a 403 on a `check=1` URL (Sci-Hub's challenge redirect)            -> check=1
+          PDF magic at the head of the body                                  -> '' (a PDF is never a challenge)
+          status 403 / 503 (REFUSAL_STATUSES): a CHALLENGE_MARKERS marker in the first MARKER_WINDOW bytes,
+            or CHALLENGE_RE anywhere in the page (the pre-S4.5 rule)         -> the family / `challenge-re`
+          status None — a KEPT payload whose answer's status the caller does not hold (the ledger's typing
+            of a row already booked, litkb.acquire.ledger.challenge_cause): the markers in the window
+          any other status — a bot challenge at ANY status (S4.5 item 2; the 2026-09-22 Sci-Hub diagnosis
+            D1 measured `sci-hub.wf` answering its Cloudflare "Checking your browser" page at HTTP 200):
+            the page TITLE only, matched against the markers and CHALLENGE_RE (survey G0d, REFUSAL_STATUSES:
+            a solved page names its guard in its own scripts, never in its title)
+
+        MDPI's Akamai "Access Denied" page is served at 403 (qc/fixtures/litkb_mdpi_pdf_akamai_a3b93f589df6.html):
+        its `edgesuite` marker makes it a challenge here. The pre-D24 `is_challenge` read CHALLENGE_RE only,
+        so the open-access route booked that page `bad-file/html_response` (auditor-C2b F12)."""
         body = body or b""
+        for k, v in (headers or {}).items():
+            for hk, hv in CHALLENGE_HEADERS:
+                if str(k).lower() == hk and hv in str(v).lower():
+                    return f"header:{hk}"
         if status == 403 and "check=1" in (url or ""):
-            return True
-        if status in (403, 503):
-            return bool(CHALLENGE_RE.search(body))
-        # BEGIN guard: a challenge page is a challenge at ANY status
-        head = body[:64 * 1024]
+            return "check=1"
+        head = body[:MARKER_WINDOW]
         if head.lstrip()[:5] == b"%PDF-":
-            return False
+            return ""
+        if status is None or status in REFUSAL_STATUSES:
+            low = head.lower()
+            # BEGIN guard: a refusal page is read for every challenge marker, not only CHALLENGE_RE's three
+            for cause, marker in CHALLENGE_MARKERS:
+                if marker in low:
+                    return cause
+            # END guard: a refusal page is read for every challenge marker, not only CHALLENGE_RE's three
+            if status is not None and CHALLENGE_RE.search(body):
+                return "challenge-re"
+            return ""
+        # BEGIN guard: a challenge page is a challenge at ANY status
+        # the TITLE decides whether; the window then names which family (Springer's "Client Challenge" page is
+        # F5's: its `_fs-ch-` script sits in the body, the generic words in the title)
         title = re.search(rb"<title[^>]*>(.*?)</title", head, re.I | re.S)
-        return bool(title and CHALLENGE_RE.search(title.group(1)))
+        if title and (any(marker in title.group(0).lower() for _c, marker in CHALLENGE_MARKERS)
+                      or CHALLENGE_RE.search(title.group(1))):
+            low = head.lower()
+            return next((cause for cause, marker in CHALLENGE_MARKERS if marker in low), "challenge-re")
         # END guard: a challenge page is a challenge at ANY status
+        return ""
+
+    @staticmethod
+    def is_challenge(status, url, body, headers=None):
+        """Is this answer a bot challenge? `Client.challenge_cause`'s yes / no (D24: one detector)."""
+        return bool(Client.challenge_cause(status, url, body, headers))
 
     def _flare_post(self, payload):
         """POST to FlareSolverr /v1. Split out so tests can stub it."""
@@ -265,7 +332,7 @@ class Client:
             st, hd, body = self._raw_get(url, accept, timeout, follow, data, headers)
         else:
             st, hd, body = self._raw_get(url, accept, timeout, follow, data)
-        if self.flaresolverr and self.is_challenge(st, url, body) and self.solve_challenge(url):
+        if self.flaresolverr and self.is_challenge(st, url, body, hd) and self.solve_challenge(url):
             again = None
             # BEGIN guard: the challenge retry keeps the caller's headers
             # (S4.5 builder-C2b, survey-code §1.1: the retry used to drop them, so a Stage C request's Referer and

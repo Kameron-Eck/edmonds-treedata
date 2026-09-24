@@ -985,8 +985,11 @@ def _admit(doi=None, arxiv=None, title=None, authors=None, year=None, key=None, 
     with _conn("writer") as conn:
         res = front.admit_registry(conn, ws_id, token, doi=doi, arxiv=arxiv, claimed=claimed or None,
                                    key=key, file_path=file, agent=a, session=s,
-                                   client=_registry_client())
-    return _out({"ok": res.get("outcome") == "admitted"} | res)
+                                   client=_registry_client(),
+                                   # S4.5 decision D25: the caller's file is a proposal (migration 0035)
+                                   operator_file=bool(file))
+        note = front.operator_file_note(conn, res)
+    return _out({"ok": res.get("outcome") == "admitted"} | res | note)
 
 
 def _acquire(key=None, doi=None, routes="open_access", from_file=None, max_archive_downloads=0,
@@ -1516,6 +1519,7 @@ def build_server():
     @srv.tool(name="litkb_admit", description=(
         "Admit a work by DOI or arXiv id, optionally binding a PDF already on disk. Identity is the "
         "registry record plus the verified file; the five admission checks run in one transaction. "
+        "A file you hand in lands as a PROPOSAL a second session approves (never main's version). "
         "A work no registry can confirm is a manual admission at the CLI, signed off by a SECOND "
         "session — not by any tool here."))
     def litkb_admit(doi: str = "", arxiv: str = "", title: str = "", authors: str = "",

@@ -25,7 +25,11 @@ WHAT THIS MODULE COUNTS (docs/SCHEMAS.md, "S4.5 builder A", is the one home of e
                           LITKB_LADDER1 report the manifest names (:func:`stage_b_rungs`). A measured
                           zero (`=0/35`) IS measured. A rung the registry marks `metadata_only` (it yields
                           identifiers, never a file) may answer with an :data:`IDENTIFIERS_LINE`
-                          (`identifiers: <route>=<works gaining>/<asked>`) instead (S4.5 decision D19).
+                          (`identifiers: <route>=<works gaining>/<asked>`) instead (S4.5 decision D19). A rung
+                          the registry gives an `ask_condition` (builder C2a's `run.Rung` field: it asks only
+                          under that condition) may answer with a :data:`NOT_ASKED_LINE` (`not-asked: <route>
+                          <works reached> <condition>`) when its condition skipped every row it reached
+                          (auditor-C2a round 2 F3).
   replay_rows_graded_against_stubs  replayed register rows whose `acquirer` column is `stub` — the
                           synthetic `_acquirer_stub` return, read off what the replay RAN, not off
                           what the register asks for.
@@ -84,6 +88,29 @@ NOT_BUILT_LINE = re.compile(r"^not-built: (?P<route>[a-z0-9_-]+)[ \t]+(?P<reason
 IDENTIFIERS_LINE = re.compile(r"^identifiers: (?P<route>[a-z0-9_-]+)=(?P<converted>\d+)/(?P<asked>\d+)[ \t]*$",
                               re.M)
 
+#: A CONDITIONAL Stage B rung that asked nobody because its own ask condition skipped EVERY row it reached
+#: (auditor-C2a round 2 F3: the closure rule's Wave-2 rungs ask only under a condition — on live 0 works hold a
+#: zenodo or a figshare DOI or a PMCID — so their yield line reads `=0/0`, which `yields` refuses as a measurement):
+#: `not-asked: <route> <works reached> <condition>`, whole line. It measures a rung ONLY when the registry gives that
+#: rung an `ask_condition` (builder C2a's `run.Rung` field), the line reached at least one work, and its condition is
+#: the registry's own words — an unconditional rung, a line that reached nobody, or a reason typed by hand answers
+#: nothing. Builder C2a prints it (`qc/instruments/litkb_hardening_c2a.py` report_lines). S4.5 decision D32 (the
+#: orchestrator's ruling, 2026-09-23) adopts it with FOUR conditions, all of which must hold or the rung is UNMEASURED
+#: (fail closed): (1) the registry gives the rung an `ask_condition` and the line's condition is BYTE-EQUAL to it, never
+#: a paraphrase; (2) the line reached at least one work; (3) the report holds NO `yield:` line with asked > 0 for the
+#: same route — a rung is asked or not-asked, never both; (4) the report states such a rung's yield on this corpus as
+#: UNDETERMINED, never zero (docs/SCHEMAS.md, the grammar's row).
+NOT_ASKED_LINE = re.compile(r"^not-asked: (?P<route>[a-z0-9_-]+) (?P<reached>\d+)[ \t]+(?P<condition>\S[^\n]*?)[ \t]*$",
+                            re.M)
+
+#: A NAMED EXCEPTION of a gated counter (S4.5 decisions D11 and D23: a row whose bytes the BINDING gate refused is
+#: "a NAMED exception ... with its refusal reason, exactly like acceptance-test refusals; never silent"):
+#: `exception: <counter> <item> <reason>` in the LITKB_LADDER1 report, whole line, the reason required. A counter
+#: that admits exceptions leaves an item out ONLY when the report names it here AND the database holds the refusal
+#: the counter checks for (`free_ceiling_measured_unconverted`: a binding refusal of that work); an item the
+#: report does not name is counted — fail closed. docs/SCHEMAS.md holds the grammar. Integrator-w3.
+EXCEPTION_LINE = re.compile(r"^exception: (?P<counter>[a-z0-9_]+) (?P<item>\S+)[ \t]+(?P<reason>\S[^\n]*)$", re.M)
+
 REPLAY_SUMMARY_KIND = "litkb-hardening-replay"
 
 #: The CONSTRUCTED register and cassette the replay fires run (qc/fixtures, named constructed).
@@ -117,6 +144,15 @@ def _resolve(manifest, p):
         return None
     q = Path(p)
     return q if q.is_absolute() else Path(manifest.get("repo") or SCRIPTS.parent) / q
+
+
+def named_exceptions(manifest, counter):
+    """{item: reason} of every well-formed exception line the manifest's report names for `counter`
+    (:data:`EXCEPTION_LINE`, S4.5 decision D23). A report that is not there names none, so nothing is excused
+    (fail closed). Integrator-w3."""
+    p = _resolve(manifest or {}, (manifest or {}).get("report_path"))
+    text = p.read_text(encoding="utf-8", errors="replace") if p is not None and p.is_file() else ""
+    return {m["item"]: m["reason"].strip() for m in EXCEPTION_LINE.finditer(text) if m["counter"] == counter}
 
 
 def _content_sha(path):
@@ -201,12 +237,29 @@ def metadata_only_routes(rungs=None):
     return {r.route for r in rungs if P.STAGE_OF.get(r.route) == "B" and getattr(r, "metadata_only", False)}
 
 
+def not_asked(text):
+    """{route: (works reached, condition)} of every well-formed not-asked line."""
+    return {m["route"]: (int(m["reached"]), m["condition"].strip()) for m in NOT_ASKED_LINE.finditer(text or "")}
+
+
+def conditional_routes(rungs=None):
+    """{route: its ask condition} of the Stage B rungs the registry gives an `ask_condition` (builder C2a's `run.Rung`
+    field; a rung object without it asks every row that reaches it). Read off the REGISTRY, like `stage_b_rungs`."""
+    from litkb.acquire import policy as P
+    from litkb.acquire import run as R
+
+    rungs = R.RUNGS if rungs is None else rungs
+    return {r.route: str(getattr(r, "ask_condition", "") or "").strip() for r in rungs
+            if P.STAGE_OF.get(r.route) == "B" and str(getattr(r, "ask_condition", "") or "").strip()}
+
+
 def stage_b_unmeasured_detail(manifest, rungs=None):
     """The Stage B routes the report leaves unmeasured, built ones first: a BUILT rung with no yield
     line, and an UNBUILT route with no not-built line. A yield line for an unbuilt route, or a not-built
     line for a built rung, answers neither question. A built rung the registry marks metadata-only is
     measured by a yield line OR an identifiers line (S4.5 decision D19); a PDF rung's identifiers line
-    answers nothing."""
+    answers nothing. A built rung the registry gives an ask condition is ALSO measured by a not-asked line
+    that reached at least one work and states that condition (auditor-C2a round 2 F3)."""
     p = _resolve(manifest, manifest.get("report_path"))
     text = p.read_text(encoding="utf-8", errors="replace") if p is not None and p.is_file() else ""
     got, excused = yields(text), not_built(text)
@@ -214,6 +267,15 @@ def stage_b_unmeasured_detail(manifest, rungs=None):
     meta = metadata_only_routes(rungs)
     got = {**{r: v for r, v in yields(text, IDENTIFIERS_LINE).items() if r in meta}, **got}
     # END guard: a metadata-only Stage B rung is measured by the identifiers it gained
+    # BEGIN guard: a conditional Stage B rung its own condition skipped on every row is measured by its not-asked line
+    cond = conditional_routes(rungs)
+    got = {**{r: (0, 0) for r, (n, why) in not_asked(text).items() if n >= 1 and cond.get(r) == why}, **got}
+    # END guard: a conditional Stage B rung its own condition skipped on every row is measured by its not-asked line
+    # BEGIN guard: a rung both asked and not-asked in one report is unmeasured
+    # (S4.5 decision D32 condition 3: "a rung is either asked or not-asked, never both" — a contradiction fails closed)
+    asked = {r for r, (_c, n) in yields(text).items() if n > 0}
+    got = {r: v for r, v in got.items() if not (r in asked and r in not_asked(text))}
+    # END guard: a rung both asked and not-asked in one report is unmeasured
     built, unbuilt = stage_b_rungs(rungs)
     # BEGIN guard: a Stage B rung with no yield line in the report is unmeasured
     return [r for r in built if r not in got] + [r for r in unbuilt if r not in excused]

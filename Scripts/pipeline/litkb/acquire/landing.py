@@ -424,7 +424,7 @@ def _is_html(headers, body):
 
 def _challenge(status, headers, body, url, rules, table, urls=()):
     """-> the challenge family these bytes / headers / URLs carry, or '' (guard 3 + C6 + C6-RG + C7, and each
-    selected rule's own signature; the page shapes MEASURED in litkb's own kept bytes are litkb.acquire.ledger's).
+    selected rule's own signature; the generic signatures are THE one detector's, `netutil.Client.challenge_cause`).
     `urls` is every URL of the request's redirect chain, the final answer's Location included."""
     from litkb.netutil import Client
 
@@ -434,9 +434,10 @@ def _challenge(status, headers, body, url, rules, table, urls=()):
         for m in table["global"].get("challenge_url_markers") or []:
             if m in low:
                 return f"challenge-url:{m}"
-    if Client.is_challenge(status, url, body):
-        return "netutil.CHALLENGE_RE"
-    cause = _ledger.challenge_cause(body, headers)
+    # THE one challenge detector (S4.5 decision D24, integrator-w3): the generic signatures — the markers, the
+    # header signatures, the title rule at a non-refusal status — are netutil's, asked once. What follows is this
+    # rung's own rule table (WAF statuses, cookie walls, each rule's host-specific signature), not a second list.
+    cause = Client.challenge_cause(status, url, body, headers)
     if cause:
         return cause
     if int(status or 0) in (table["global"].get("waf_statuses") or []):

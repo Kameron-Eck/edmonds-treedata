@@ -106,10 +106,55 @@ def known_bad_relands(conn, manifest):
         """, (frozen, ws)).fetchone()[0]
 
 
+#: The item-8 CSV (builder C1b's `qc/instruments/litkb_acq_probe_badfile.py`) as the manifest's `probe_csvs` names it.
+BADFILE_CSV = "litkb_acq_probe_badfile.csv"
+
+
+def misbooked_ids(manifest):
+    """The attempt ids the manifest's item-8 CSV names cause `misbooked` (S4.5 decision D29: their ledger status is
+    wrong, so they carry no bad-file sub-status). A manifest naming no such CSV, or naming one that is not there,
+    excuses NOTHING — fail closed. The path is repo-relative, resolved against `manifest["repo"]` (seam S-d's rule)."""
+    import csv
+
+    from litkb.acquire import ledger as L
+
+    rel = ((manifest or {}).get("probe_csvs") or {}).get(BADFILE_CSV)
+    if not rel:
+        return set()
+    p = Path(rel)
+    p = p if p.is_absolute() else Path((manifest or {}).get("repo") or SCRIPTS.parent) / p
+    if not p.is_file():
+        return set()
+    with open(p, encoding="utf-8-sig", newline="") as fh:
+        return {r["attempt_id"].strip() for r in csv.DictReader(fh)
+                if (r.get("cause") or "").strip() == L.MISBOOKED_CAUSE and (r.get("attempt_id") or "").strip()}
+
+
+def _untyped_bad_file_ids(conn):
+    return {r[0] for r in conn.execute("SELECT id::text FROM litkb.acquisition_attempts "
+                                       "WHERE status = 'bad-file' AND sub_status IS NULL").fetchall()}
+
+
 def bad_file_untyped(conn, manifest):
-    """ALL-TIME: `bad-file` attempts with no sub-status."""
+    """ALL-TIME: `bad-file` attempts with no sub-status, less the rows the item-8 CSV NAMES misbooked (S4.5 decision
+    D29 — exactly those attempt ids; each is REPORTED as `bad_file_misbooked`, never silent)."""
+    excused = set()
+    # BEGIN guard: bad_file_untyped excuses only the rows the item-8 CSV names misbooked
+    excused = misbooked_ids(manifest)
+    # END guard: bad_file_untyped excuses only the rows the item-8 CSV names misbooked
+    return len(_untyped_bad_file_ids(conn) - excused)
+
+
+def bad_file_misbooked(conn, manifest):
+    """REPORTED (D29): untyped `bad-file` attempts the item-8 CSV names misbooked — the excused rows, named."""
+    return len(_untyped_bad_file_ids(conn) & misbooked_ids(manifest))
+
+
+def blocked_inferred(conn, manifest):
+    """REPORTED (D30): `blocked` attempts typed on basis `inferred` — the share the report states (a row typed from
+    the route's own token alone, or from codes with no bytes kept)."""
     return conn.execute("SELECT count(*) FROM litkb.acquisition_attempts "
-                        "WHERE status = 'bad-file' AND sub_status IS NULL").fetchone()[0]
+                        "WHERE status = 'blocked' AND sub_status_basis = 'inferred'").fetchone()[0]
 
 
 def blocked_untyped(conn, manifest):
@@ -232,6 +277,8 @@ COUNTERS = {
     "budget_exceeded_silently": budget_exceeded_silently,
 }
 REPORTED = {
+    "bad_file_misbooked": bad_file_misbooked,
+    "blocked_inferred": blocked_inferred,
     "transient_rows_unretried": transient_rows_unretried,
     "attempts_without_sha": attempts_without_sha,
     "attempts_without_terminal": attempts_without_terminal,

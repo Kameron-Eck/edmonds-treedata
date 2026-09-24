@@ -911,8 +911,12 @@ def test_the_committed_bad_file_csv_is_typed_in_the_contracts_vocabulary():
     import csv
     rows = list(csv.DictReader(BADFILE_CSV.open(encoding="utf-8")))
     assert rows and list(rows[0]) == B.COLUMNS
-    assert {r["sub_status"] for r in rows} <= set(CONTRACTS_BAD_FILE) and all(r["sub_status"] for r in rows)
-    assert {r["basis"] for r in rows} <= {"bytes", "detail", "inferred"}
+    # S4.5 decision D29: a MISBOOKED row (its ledger status is wrong) carries NO sub-status and no basis; every
+    # other row carries one CONTRACTS word
+    typed = [r for r in rows if r["cause"] != "misbooked"]
+    assert {r["sub_status"] for r in typed} <= set(CONTRACTS_BAD_FILE) and all(r["sub_status"] for r in typed)
+    assert all(r["sub_status"] == "" == r["basis"] for r in rows if r["cause"] == "misbooked")
+    assert {r["basis"] for r in typed} <= {"bytes", "detail", "inferred"}
     assert {r["cause"] for r in rows} <= set(B.CAUSES)
     assert all(r["free_to_fix"] == "n" for r in rows if r["cause"] == "html_is_the_work")
     assert all(r["bytes_kept_path"] and r["bytes_kept_length"] for r in rows if r["basis"] == "bytes")

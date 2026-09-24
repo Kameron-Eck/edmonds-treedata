@@ -236,8 +236,10 @@ def _call_admit(conn, ws, token, candidate, route, key, work, identifiers, file_
 
 def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=None, file_path=None, root=None,
                    agent, session, client=None, pacer=None, candidate_id=None, source="manual",
-                   source_detail=None, extra_identifiers=()):
-    """Check 1 on the registry, check 3 on the file, then litkb.admit(). -> the database's result dict."""
+                   source_detail=None, extra_identifiers=(), operator_file=False):
+    """Check 1 on the registry, check 3 on the file, then litkb.admit(). -> the database's result dict.
+    `operator_file`: the file is one the OPERATOR handed in (`admit --file`, the MCP `file=`), so it lands as a
+    PROPOSAL (`file_state` `proposed` in the result; S4.5 decision D25, migration 0035)."""
     if client is None:
         from litkb.netutil import Client
         client = Client()
@@ -330,6 +332,15 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
             # BEGIN call site: a registry admission's probe refusal gets its database row
             raise _probe_refused(conn, ws, token, e)
             # END call site: a registry admission's probe refusal gets its database row
+        # S4.5 decision D25 (integrator-w3): the OPERATOR's file (`litkb admit --file`, the MCP `litkb_admit(file=)`)
+        # joins the operator-bind gate — it carries the in-place operator route, and migration 0035 writes it as a
+        # PROPOSAL a second session approves while the registry-confirmed work stays a fact. The legacy loader and
+        # every other caller pass operator_file=False: their files are unchanged.
+        # BEGIN guard: an operator's file handed to a registry admission names its operator route
+        if operator_file:
+            file_json["source_route"] = OPERATOR_ADMIT_ROUTE
+            file_json["source_url"] = f"in place {file_json['rel_path']}"
+        # END guard: an operator's file handed to a registry admission names its operator route
     if candidate_id is None:
         candidate_id = add_candidate(
             conn, ws, token, source=source, source_detail=source_detail, title=claimed.get("title") or work["title"],
@@ -576,6 +587,15 @@ def approve(conn, ws, token, admission_id, agent, session):
 #: A MIRROR: the one home is migration 0034's `litkb._proposal_source_routes()`, and
 #: qc/test_litkb_adjudicate.py holds this tuple equal to it.
 PROPOSAL_SOURCE_ROUTES = ("browser", "held-in-place", "web")
+#: The source route an OPERATOR's file handed to a registry admission carries (`litkb admit --doi D --file F`, the
+#: MCP `litkb_admit(file=...)`): the file is admitted where it lies under the literature root, which is
+#: `acquire --from-file`'s in-place route (`run.attach_in_place`). Migration 0035 writes such a file as a PROPOSAL
+#: (S4.5 decision D25, integrator-w3), and `operator_binds_unproposed` reads the route.
+OPERATOR_ADMIT_ROUTE = "held-in-place"
+#: What a caller tells the operator when the admission's file is a proposal (the CLI and the MCP tool say it).
+OPERATOR_FILE_NEXT = ("the file is a PROPOSAL (S4.5 decision D25): a SECOND session approves it — "
+                      "`litkb approve-files <version_id>` (or refuses it: `litkb refuse-files <version_id> --reason R`); "
+                      "until then main holds the work but not this file")
 
 #: The entities whose versions `withdraw` takes (the five version tables of migration 0001).
 VERSION_ENTITIES = ("work", "identifier", "file", "gap", "use")
@@ -748,6 +768,19 @@ def pending_file_proposals(conn, version_ids=None):
     """[{version_id, file_id, work_id, key, sha256, rel_path, source_route, ...}] (PENDING_FILES_SQL)."""
     ids = [str(v) for v in version_ids] if version_ids else None
     return [dict(zip(_PENDING_COLS, r)) for r in conn.execute(PENDING_FILES_SQL, {"ids": ids}).fetchall()]
+
+
+def operator_file_note(conn, res):
+    """What `admit --file` / the MCP `litkb_admit(file=)` add to an admission's answer (S4.5 decision D25): the
+    file's state, and — when it is a proposal — the version a second session decides and how. {} otherwise."""
+    if not res.get("file_id") or not res.get("file_state"):
+        return {}
+    out = {"file_state": res["file_state"]}
+    if res["file_state"] == "proposed":
+        mine = [p for p in pending_file_proposals(conn) if str(p["file_id"]) == str(res["file_id"])]
+        out["proposed"] = [{k: p[k] for k in ("version_id", "file_id", "rel_path", "source_route")} for p in mine]
+        out["next"] = OPERATOR_FILE_NEXT
+    return out
 
 
 def decide_plan(conn, version_ids, session):

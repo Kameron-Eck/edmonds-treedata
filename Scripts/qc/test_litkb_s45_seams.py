@@ -386,7 +386,11 @@ def test_the_committed_badfile_csv_is_a_typing_csv_the_backfill_offers_whole():
         n = sum(1 for _ in fh)
     assert set(L.TYPING_COLUMNS) <= set(header), header
     rows, refused = L.read_typing_csv(BADFILE_CSV)
-    assert refused == [] and len(rows) == n and n > 0, refused
+    # S4.5 decision D29: the MISBOOKED rows are refused BY NAME (never typed); every other row is offered
+    with open(BADFILE_CSV, encoding="utf-8-sig", newline="") as fh:
+        misbooked = {r["attempt_id"] for r in csv.DictReader(fh) if r["cause"] == L.MISBOOKED_CAUSE}
+    assert {x["attempt_id"] for x in refused} == misbooked and all("D29" in x["why"] for x in refused), refused
+    assert len(rows) + len(refused) == n and n > 0 and rows
     assert {r["sub_status"] for r in rows} <= set(P.BAD_FILE_SUBS)
     assert {r["basis"] for r in rows} <= set(P.SUB_STATUS_BASES) - {"live"}
 
@@ -412,18 +416,21 @@ def test_c1bs_typing_applied_by_c1as_backfill_types_the_rows(pg, tmp_path):
         wr = csv.DictWriter(fh, fieldnames=badfile.COLUMNS)
         wr.writeheader()
         for k, data in kept.items():
-            st, cause, free, _grade, _fix, _reason, _ptr = badfile.type_kept(data)
-            wr.writerow({"attempt_id": str(ids[k]), "sub_status": st, "basis": "bytes", "cause": cause,
-                         "free_to_fix": free})
+            st, cause, free, _grade, _fix, reason, _ptr = badfile.type_kept(data)
+            # the row as the instrument writes it (S4.5 decision D29: the client's own transport-error string is a
+            # MISBOOKED row — no sub-status, cause `misbooked`)
+            wr.writerow(badfile.finalize({"attempt_id": str(ids[k]), "sub_status": st, "basis": "bytes", "cause": cause,
+                                          "free_to_fix": free, "reason": reason}))
     rec = ingest_connect(c.DB_TEST)
     try:
         out = L.backfill_sub_status(pg.conn, f, session="seams", apply=True, recorder=rec)
     finally:
         rec.close()
-    assert out["applied"]["applied"] == 2, out
+    assert out["applied"]["applied"] == 1, out
+    assert [x["attempt_id"] for x in out["refused_lines"]] == [str(ids["dns"])], out
     got = dict(pg.conn.execute("SELECT id::text, sub_status || '/' || sub_status_basis FROM litkb.acquisition_attempts "
                                "WHERE id = ANY(%s)", ([str(i) for i in ids.values()],)).fetchall())
-    assert got == {str(ids["html"]): "html_response/bytes", str(ids["dns"]): "too_small/bytes"}, got
+    assert got == {str(ids["html"]): "html_response/bytes", str(ids["dns"]): None}, got
 
 
 # ── A x C1a/C1b: the hardening loader ──────────────────────────────────────────────────────────

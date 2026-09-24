@@ -2755,6 +2755,15 @@ def _frozen_ladder_budget():
     return {"seconds": b.seconds, "attempts": b.attempts}
 
 
+def _frozen_shadow_tier():
+    """{"enabled": False, "code_default", "ruling"}: the switch the live pass runs with (S4.5 decision D27; integrator-w3)."""
+    from litkb.acquire import policy as P
+
+    return {"enabled": False, "code_default": bool(P.SHADOW_TIER_ENABLED),
+            "ruling": "S4.5 decision D27 / Scope ruling 2026-09-23: item 5b not built; the live run runs with the shadow "
+                      "tier switched OFF"}
+
+
 def _hardening_freeze(args):
     for required in ("workstream", "out"):
         if not getattr(args, required):
@@ -2822,6 +2831,10 @@ def _hardening_freeze(args):
         # against it (Codex X2: removing the budget object must not remove the threshold the checker reads;
         # auditor-C1a r2 F6 / r3 F4, routed to this file; integrator-w2). `attempts` null = derived per ladder.
         "ladder_budget": _frozen_ladder_budget(),
+        # the shadow tier switch the live pass runs with: OFF (S4.5 decision D27, the Scope ruling — item 5b is not
+        # built). The run driver (litkb_ladder_run.shadow_switch) refuses a manifest that does not record it off
+        # unless explicitly overridden; the code default (policy.SHADOW_TIER_ENABLED) stays as merged. integrator-w3
+        "shadow_tier": _frozen_shadow_tier(),
         # CONTRACTS' shape: {basename: path}; the content hash of each beside it (brief-A asked for
         # {path, sha256} under one key — the other builders' counters read the CONTRACTS shape)
         "probe_csvs": {p.name: _rel(repo, p) for p in probes},

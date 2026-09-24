@@ -210,8 +210,10 @@ def cmd_admit(args, conn):
                               file_path=args.file, agent=agent, session=session, source_detail=detail,
                               extra_identifiers=([{"scheme": "tracker", "value": str(args.tracker_id),
                                                    "verified_by": None, "evidence": {"source": "Reports/literature_tracker.csv"}}]
-                                                 if args.tracker_id else ()))
-    _print(_summary(res))
+                                                 if args.tracker_id else ()),
+                              # S4.5 decision D25: the operator's --file is a proposal (migration 0035)
+                              operator_file=bool(args.file))
+    _print(_summary(res) | front.operator_file_note(conn, res))
     return 0 if res["outcome"] == "admitted" else 1
 
 

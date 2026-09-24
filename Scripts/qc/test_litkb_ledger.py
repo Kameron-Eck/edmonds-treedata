@@ -248,7 +248,10 @@ def test_one_403_never_suppresses_the_host_for_another_work(pg, tmp_path):
     _acq(pg, w, ws, a, _store(tmp_path), stub, routes=("open_access",))
     _acq(pg, w, ws, b, _store(tmp_path), stub, routes=("open_access",))
     ra, rb = _rows(pg, a["work_id"])[0], _rows(pg, b["work_id"])[0]
-    assert (ra[2], rb[2]) == ("bad-file", "bad-file") and rb[1] == "open_access", (ra, rb)
+    # S4.5 decision D24 (integrator-w3): the Akamai page is a challenge to THE one detector — `blocked`, typed
+    # `challenge_or_bot_check` (it was `bad-file` while `netutil.is_challenge` read CHALLENGE_RE only)
+    assert (ra[2], rb[2]) == ("blocked", "blocked") and rb[1] == "open_access", (ra, rb)
+    assert (ra[3], rb[3]) == ("challenge_or_bot_check", "challenge_or_bot_check"), (ra, rb)
     assert rb[7] == 403 and "skipped" not in {ra[2], rb[2]}
 
 
@@ -628,7 +631,7 @@ def test_a_rung_registers_with_its_own_policy_line_or_not_at_all(monkeypatch):
     pre-fetch lines come WITH it (`policy_lines`, into the one `policy.POLICY`); a rung with no line is refused at
     registration — never a rung the policy refuses on every work. A line must be the rung's own route and its
     stage's tier (a shadow front can never be declared legitimate), and a (route, host) is lined once. The rungs
-    here are CONSTRUCTED (routes `osf`, `bban`; stub bodies)."""
+    here are CONSTRUCTED (routes `core`, `bban`; stub bodies)."""
     from litkb.acquire import policy as P
     from litkb.acquire import run
 
@@ -636,20 +639,20 @@ def test_a_rung_registers_with_its_own_policy_line_or_not_at_all(monkeypatch):
     for line in P.POLICY:                                      # the static lines obey the same tier rule
         assert (line.tier == P.SHADOW) == (P.STAGE_OF[line.route] == "shadow"), line
     mine = []
-    osf = run.Rung("osf", lambda work, ctx: {"status": "not-in-archive"}, concurrent=True)
+    core = run.Rung("core", lambda work, ctx: {"status": "not-in-archive"}, concurrent=True)
     with pytest.raises(ValueError, match="no litkb.acquire.policy.POLICY line"):
-        run.register(osf, mine)
-    assert mine == [] and not P.decide("osf").allowed
+        run.register(core, mine)
+    assert mine == [] and not P.decide("core").allowed
     with pytest.raises(ValueError, match="own staged route"):
-        run.register(osf, mine, policy_lines=(P.PolicyLine("zenodo", "zenodo.org", "legitimate", "CONSTRUCTED"),))
+        run.register(core, mine, policy_lines=(P.PolicyLine("zenodo", "zenodo.org", "legitimate", "CONSTRUCTED"),))
     bban = run.Rung("bban", lambda work, ctx: {"status": "not-in-archive"})
     with pytest.raises(ValueError, match="is not the tier of stage"):
         run.register(bban, mine, policy_lines=(P.PolicyLine("bban", "bban.example", "legitimate", "CONSTRUCTED"),))
-    line = P.PolicyLine("osf", "api.osf.io", "legitimate", "CONSTRUCTED test line")
-    assert run.register(osf, mine, policy_lines=(line,)) is osf and mine == [osf]
-    assert P.decide("osf").allowed and P.decide("osf", "api.osf.io").line == P.POLICY.index(line)
+    line = P.PolicyLine("core", "api.core.ac.uk", "legitimate", "CONSTRUCTED test line")
+    assert run.register(core, mine, policy_lines=(line,)) is core and mine == [core]
+    assert P.decide("core").allowed and P.decide("core", "api.core.ac.uk").line == P.POLICY.index(line)
     with pytest.raises(ValueError, match="already in POLICY"):
-        P.add_lines((line,), route="osf")
+        P.add_lines((line,), route="core")
 
 
 @pg_only
@@ -898,9 +901,11 @@ def test_a_challenge_page_at_200_is_blocked_and_the_old_rule_books_it_a_miss(pg,
     work = P2M._admitted(pg, w, ws)
     _acq(pg, w, ws, work, _store(tmp_path), stub, routes=("open_access",))
     assert _rows(pg, work["work_id"])[0][2:4] == ("blocked", "challenge_or_bot_check")
-    old = staticmethod(lambda status, url, body: bool(
-        (status == 403 and "check=1" in (url or "")) or (status in (403, 503) and netutil.CHALLENGE_RE.search(body or b""))))
-    monkeypatch.setattr(netutil.Client, "is_challenge", old)
+    # the pre-item-2 rule, as THE one detector (S4.5 D24: `is_challenge` is `challenge_cause`'s yes/no, and the
+    # acceptance test and the ladder ask `challenge_cause` — so the old rule is put there, integrator-w3)
+    old = staticmethod(lambda status, url, body, headers=None: "old-rule" if (
+        (status == 403 and "check=1" in (url or "")) or (status in (403, 503) and netutil.CHALLENGE_RE.search(body or b""))) else "")
+    monkeypatch.setattr(netutil.Client, "challenge_cause", old)
     page2 = page.replace(b"</body>", uuid.uuid4().hex.encode() + b"</body>")
     stub2 = {"open_access": P2M.RouteStub({"api.unpaywall.org": _unpaywall("https://mirror.example/x"),
                                            "mirror.example": (200, {}, page2)})}
@@ -973,7 +978,8 @@ def test_the_blocked_classifier_on_recorded_and_shaped_pages():
     assert L.type_blocked([200, 200, 403]) == ("html_or_reader", "inferred",
                                                "a 200 answered and served no file (bytes not kept)")
     assert L.type_blocked([403])[:2] == ("challenge_or_bot_check", "inferred")
-    assert L.type_blocked([200], None, None, ["sci-hub.ru:200=blocked"])[:2] == ("challenge_or_bot_check", "detail")
+    # S4.5 decision D30: the route's own token alone is `inferred` evidence, never `detail`
+    assert L.type_blocked([200], None, None, ["sci-hub.ru:200=blocked"])[:2] == ("challenge_or_bot_check", "inferred")
     assert L.type_blocked([]) == (None, None, "untypable")
     # the route's own rule: open_access books blocked only when a challenge answered (its kept bytes are the
     # FIRST body served, e.g. a landing page, and need not be the challenging one)
@@ -1085,7 +1091,9 @@ def test_the_counters_module_names_the_plans_counters_and_every_one_runs(pg):
     assert set(C1A.COUNTERS) == {"rehunt_route_spends", "known_bad_relands", "bad_file_untyped", "blocked_untyped",
                                  "budget_exceeded_silently"}
     assert set(C1A.REPORTED) == {"transient_rows_unretried", "attempts_without_sha", "attempts_without_terminal",
-                                 "files_without_word_count", "hits_without_version"}
+                                 "files_without_word_count", "hits_without_version",
+                                 # S4.5 decisions D29 / D30 (integrator-w3)
+                                 "bad_file_misbooked", "blocked_inferred"}
     m = {"frozen_at": pg.one("SELECT clock_timestamp()")[0], "run_workstream_ids": [str(pg.ws())]}
     for name, fn in {**C1A.COUNTERS, **C1A.REPORTED}.items():
         assert isinstance(fn(pg.conn, m), int), name

@@ -181,6 +181,14 @@ class Verdict:
         return self
 
     @property
+    def challenge(self):
+        """The challenge family THE one detector (`netutil.Client.challenge_cause`, S4.5 decision D24) found in
+        bytes the magic step refused, or ''. A challenge is not a bad file: the ladder books a live host's
+        challenge `blocked/challenge_or_bot_check` (litkb.acquire.run._record_result), whatever byte word the
+        refusal carries."""
+        return self.facts.get("challenge") or ""
+
+    @property
     def complete(self):
         """True only when every step that should have run did run (qpdf unavailable or unable to open -> False)."""
         return not any(o in ("qpdf-unavailable", "unreadable", "encrypted") or str(o).startswith("qpdf-error")
@@ -622,8 +630,10 @@ def evidence_of(headers, url, terminal_url):
 # ── the test ──────────────────────────────────────────────────────────────────────────────
 
 def accept(data, *, headers=None, url=None, terminal_url=None, doi=None, record_pages=None,
-           metadata_fetched=True, qpdf_runner=None):
-    """The acceptance test, steps 1-13 of the module docstring. -> Verdict (never raises on bad bytes)."""
+           metadata_fetched=True, qpdf_runner=None, status=None):
+    """The acceptance test, steps 1-13 of the module docstring. -> Verdict (never raises on bad bytes).
+    `status` is the HTTP status of the answer that served the bytes, when the caller holds it: THE one challenge
+    detector reads a refusal page (403 / 503) whole and any other answer by its title (D24); None = not known."""
     v = Verdict()
     data = data or b""
     v.facts.update(served_bytes=len(data), served_sha256=hashlib.sha256(data).hexdigest(),
@@ -650,10 +660,20 @@ def accept(data, *, headers=None, url=None, terminal_url=None, doi=None, record_
     # 3 magic (C1-RG a)
     # BEGIN guard: bytes without the PDF magic are refused with what they are
     if not magic_ok(data):
+        # S4.5 decision D24 (integrator-w3): bytes that are not a PDF are asked THE one challenge detector, so a bot
+        # challenge is named as one — never left to read as an ordinary HTML page (MDPI's Akamai 403)
+        # BEGIN guard: the acceptance test asks the one challenge detector about bytes that are not a PDF
+        from litkb.netutil import Client
+
+        cause = Client.challenge_cause(status, terminal_url or url, data, headers)
+        if cause:
+            v.facts["challenge"] = cause
+        # END guard: the acceptance test asks the one challenge detector about bytes that are not a PDF
         if _looks_like_html(data):
             v.facts["landing"] = landing_signals(data)
             return v.refuse("magic", "html_response",
                             f"the {len(data)} bytes are an HTML page"
+                            + (f"; a bot challenge ({v.challenge})" if v.challenge else "")
                             + ("; it carries a PDF pointer Stage C can follow" if v.facts["landing"]["pdf_pointer"]
                                else ""))
         if len(data) < MIN_PDF_BYTES:

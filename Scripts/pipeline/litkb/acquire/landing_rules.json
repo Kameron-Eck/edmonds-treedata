@@ -154,7 +154,7 @@
                  "survey": "section 2.1 Wiley row"},
       "example": {"doi": "10.1002/wics.1317", "work_key": "Winkler_2014_matching-record-linkage", "fixture": "wiley",
                   "why": "a no-oa-copy row (the Wayback positive row's work; head probe: doi.org -> Wiley answered 403)",
-                  "expect": {"page": "challenge_or_bot_check", "page_cause": "netutil.CHALLENGE_RE", "candidates": ["https://onlinelibrary.wiley.com/doi/pdfdirect/10.1002/wics.1317", "https://onlinelibrary.wiley.com/doi/pdf/10.1002/wics.1317"], "work": {"venue": "WIREs Computational Statistics"}}}
+                  "expect": {"page": "challenge_or_bot_check", "page_cause": "header:cf-mitigated", "candidates": ["https://onlinelibrary.wiley.com/doi/pdfdirect/10.1002/wics.1317", "https://onlinelibrary.wiley.com/doi/pdf/10.1002/wics.1317"], "work": {"venue": "WIREs Computational Statistics"}}}
     },
     {
       "id": "ieee",
@@ -263,7 +263,7 @@
                  "survey": "section 2.1 OUP row", "note": "Silverchair.js, NOT 'Oxford University Press.js' (which targets the book store)"},
       "example": {"doi": "10.1093/biomet/asq010", "work_key": "Mei_2010_efficient-scalable-schemes-monitoring", "fixture": "oup",
                   "why": "a no-oa-copy row (head probe: doi.org -> OUP answered 403)",
-                  "expect": {"page": "challenge_or_bot_check", "page_cause": "netutil.CHALLENGE_RE", "candidates": ["https://academic.oup.com/doi/pdf/10.1093/biomet/asq010"], "work": {"venue": "Biometrika"}}}
+                  "expect": {"page": "challenge_or_bot_check", "page_cause": "header:cf-mitigated", "candidates": ["https://academic.oup.com/doi/pdf/10.1093/biomet/asq010"], "work": {"venue": "Biometrika"}}}
     },
     {
       "id": "copernicus",

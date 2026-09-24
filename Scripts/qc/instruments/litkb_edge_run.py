@@ -522,10 +522,12 @@ def _ladder_acquirer(spec):
                 stack.enter_context(mock.patch("litkb.config.SCIHUB_MIRRORS", mirrors))
                 stack.enter_context(mock.patch("litkb.acquire.policy.POLICY", _pinned_mirror_policy(mirrors)))
             # a row that names no routes replays the ladder the live hunt asks (`hunt._default_acquire`: every
-            # registered rung, `run.ladder_routes` — seam integrator-w2), not only today's three
+            # registered rung, `run.ladder_routes` — seam integrator-w2), not only today's three. `pacing={}`: a
+            # replay reproduces ONE recorded row, so it starts from a cold per-route state — another row's recorded
+            # 429/503 must not cool a route for this one (S4.5 decision D41's cool-down lives in `pacing`)
             return R.acquire(conn, ws_id, token, work, store=store, agent=agent, session=session,
                              routes=routes or R.ladder_routes(), pacer=_no_wait_pacer(),
-                             annas_pacer=_no_wait_pacer(), printer=lambda *a, **k: None)
+                             annas_pacer=_no_wait_pacer(), printer=lambda *a, **k: None, pacing={})
     return _tagged(_acquire, "ladder")
 
 

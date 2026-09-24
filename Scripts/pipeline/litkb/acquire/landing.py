@@ -956,6 +956,15 @@ def fetch_landing(work, ctx):
     asked = 0
     while queue and asked < MAX_CANDIDATES:
         c = queue.pop(0)
+        # S4.5 decision D44 (builder-fix7): a candidate on a host cooling down in this run (it answered this route a
+        # 429 / 503) is not asked and not counted as asked — recorded in `landing.cooled` (and by the request gate in
+        # the row's `cooldown_skipped`) — and the candidates on the OTHER hosts are asked as before
+        # BEGIN guard: a candidate on a cooling host is skipped and the other hosts are asked
+        if _backoff.cooling_url(c.url) is not None:
+            ev.setdefault("cooled", []).append({"url": evidence_url(c.url), "source": c.source,
+                                                "host": host_of(c.url)})
+            continue
+        # END guard: a candidate on a cooling host is skipped and the other hosts are asked
         asked += 1
         out = _try(client, c, pacer, table, rule_ids, note, context=urls, doi=doi)
         ev["candidates"].append({"url": evidence_url(c.url), "source": c.source, "rule": c.rule, "score": c.score,
@@ -984,6 +993,14 @@ def fetch_landing(work, ctx):
         if kind == "two_hop":
             queue = data + queue
     # 4 no file
+    # (S4.5 decision D44: a candidate skipped because its host was cooling may hold the file — with no refusal to
+    # weigh, the answer is that the ladder could not ask yet: retriable, never a miss or a refusal)
+    # BEGIN guard: candidates skipped for a cooling host make a retriable answer, never a miss
+    if ev.get("cooled") and not refusals:
+        return _result("api-error", ev, tried, codes, hop=last["hop"], retriable=True,
+                       note=f"{len(ev['cooled'])} candidate(s) not asked: their host is cooling down in this run "
+                            f"(S4.5 decision D44); no other candidate answered a PDF or a refusal")
+    # END guard: candidates skipped for a cooling host make a retriable answer, never a miss
     if refusals:
         best = min(refusals, key=lambda r: REFUSAL_ORDER.index(r[0]))
         return _result("blocked", ev, tried, codes, hop=best[1], sub_status=best[0], rejected=best[1].body,

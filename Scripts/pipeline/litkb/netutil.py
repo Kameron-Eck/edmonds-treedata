@@ -4,6 +4,7 @@ Ported from D:\\tools\\annas-mcp\\aa_fetch.py (2026-09-13, its verified gates; d
 `import litkb` stays light. The client never raises and never leaks a registered secret: every string it
 returns for an error, and every log line built from it, goes through redact().
 """
+import contextvars
 import http.cookiejar
 import json
 import os
@@ -168,9 +169,45 @@ def redact_shapes(obj):
     return obj
 
 
+#: S4.5 decision D44 (builder-fix7): the acquisition ladder's REQUEST GATE for the rung call in progress
+#: (`litkb.acquire.backoff.Gate`, set by `litkb.acquire.run._call_rung` around ONE rung call, in that call's own
+#: thread/context). `Client.get` asks it before every request — a host cooling down in this run is never asked —
+#: and tells it every answer, so the ladder knows WHICH host answered a 429 / 503. None (every caller outside a
+#: ladder rung) changes nothing.
+REQUEST_GATE = contextvars.ContextVar("litkb_request_gate", default=None)
+
+
+class HostCooling(Exception):
+    """S4.5 decision D44: the request gate refused a request to a host that is cooling down in this run (it answered
+    429 / 503, or a wait no row sits out). Raised BEFORE any byte is sent; `facts` are what the ledger records."""
+
+    def __init__(self, host, url, facts):
+        super().__init__(f"{host} is cooling down in this run until {(facts or {}).get('cool_until')}")
+        self.host, self.url, self.facts = host, url, dict(facts or {})
+
+
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+
+class _GatedRedirect(urllib.request.HTTPRedirectHandler):
+    """S4.5 decision D44, auditor-fix7 F1: a redirect the client FOLLOWS (`follow=True`) is a request to another host,
+    and the ladder's request gate (`REQUEST_GATE`) is asked about EVERY hop: the hop's own answer is credited to the
+    host that gave it (a 3xx, which never cools a host), and a hop to a host cooling down in this run is NOT followed —
+    the 3xx comes back as the answer and the refusal is on the gate (raising here would be swallowed by `_raw_get`'s
+    transport catch as a status 0). Outside a ladder rung call (no gate) it follows exactly as urllib's own handler."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        gate = REQUEST_GATE.get()
+        follow = True             # the unguarded default: every hop is followed, whoever it goes to
+        # BEGIN guard: every hop of a followed redirect is asked of the request gate
+        if gate is not None:
+            follow = gate.hop(req.full_url, code, dict(headers or {}), newurl)
+        # END guard: every hop of a followed redirect is asked of the request gate
+        if not follow:
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 class Client:
@@ -186,7 +223,7 @@ class Client:
                              else os.environ.get("FLARESOLVERR_URL", "")).rstrip("/")
         self.cj = http.cookiejar.CookieJar()
         cp = urllib.request.HTTPCookieProcessor(self.cj)
-        self._follow = urllib.request.build_opener(cp)
+        self._follow = urllib.request.build_opener(cp, _GatedRedirect())      # D44 / auditor-fix7 F1: every hop gated
         self._nofollow = urllib.request.build_opener(cp, _NoRedirect())
         #: An explicitly injected cassette (tests). None means "whatever litkb.cassette.active()
         #: says at request time" — the environment, so an MCP hunt's child process records and
@@ -328,6 +365,14 @@ class Client:
         return res
 
     def get(self, url, accept="text/html", timeout=120, follow=True, data=None, headers=None):
+        gate = None
+        # BEGIN guard: a request to a host cooling down in this run is never sent
+        # (S4.5 decision D44, builder-fix7: the ladder's request gate, `REQUEST_GATE`; raises `HostCooling` before any
+        # byte leaves, which the ladder's route boundary records as the host's cool-down — never a request)
+        gate = REQUEST_GATE.get()
+        if gate is not None:
+            gate.before(url)
+        # END guard: a request to a host cooling down in this run is never sent
         if headers:
             st, hd, body = self._raw_get(url, accept, timeout, follow, data, headers)
         else:
@@ -343,6 +388,10 @@ class Client:
                 st, hd, body = self._raw_get(url, accept, timeout, follow, data, again)
             else:
                 st, hd, body = self._raw_get(url, accept, timeout, follow, data)
+        if gate is not None:
+            # D44: the gate learns which host answered what — the host at the END of a followed redirect chain
+            # (`Gate.after` reads the chain `Gate.hop` recorded), never the host that was only asked (auditor-fix7 F1)
+            gate.after(url, st, hd, body)
         return st, hd, body
 
     def login(self, key):

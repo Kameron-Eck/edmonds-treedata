@@ -658,9 +658,12 @@ def test_a_rung_registers_with_its_own_policy_line_or_not_at_all(monkeypatch):
 @pg_only
 def test_a_scheduled_retry_whose_wait_spends_the_budget_is_not_launched(pg, tmp_path):
     """The budget is checked again AFTER a scheduled retry's wait. On a CONSTRUCTED clock (the pacer's sleep
-    advances it; the ladder budget reads it): a 503 with Retry-After 30 against a 10 s budget — the retry would be
-    launched at 30 s, past the budget, i.e. the silent overrun `budget_exceeded_silently` counts. It is not
-    launched; the original stays `retriable` and unretried; the next rung meets the spent budget as a `budget-stop`."""
+    advances it; the ladder budget reads it): a 503 with Retry-After 8 against a 5 s budget — the retry would be
+    launched at 8 s, past the budget, i.e. the silent overrun `budget_exceeded_silently` counts. It is not
+    launched; the original stays `retriable` and unretried; the next rung meets the spent budget as a `budget-stop`.
+    (8 s, not the 30 s this test used before S4.5 decision D41: a wait over `backoff.IN_ROW_WAIT_MAX_S` is never sat
+    out at all — the route cools instead, qc/test_litkb_s45_cooldown.py — so only a wait under it can cross the
+    budget.)"""
     from litkb.acquire import policy as P
 
     now = [0.0]
@@ -670,17 +673,17 @@ def test_a_scheduled_retry_whose_wait_spends_the_budget_is_not_launched(pg, tmp_
     work = P2M._admitted(pg, w, ws)
     frozen = pg.one("SELECT clock_timestamp()")[0]
     stub = {"open_access": P2M.RouteStub({"api.unpaywall.org": _unpaywall("https://oa.example/p.pdf"),
-                                          "oa.example": (503, {"Retry-After": "30"}, b"")}),
+                                          "oa.example": (503, {"Retry-After": "8"}, b"")}),
             "scihub": P2M.RouteStub({})}                       # asked = raises
     from litkb.acquire import run
     run.acquire(w, ws, pg.tokens[ws], work, store=_store(tmp_path), agent="c1a", session="c1a-1", clients=stub,
                 pacer=pacer, printer=lambda *a, **k: None, routes=("open_access", "scihub"), pacing={},
-                ladder_budget=P.LadderBudget(seconds=10, clock=lambda: now[0]))
+                ladder_budget=P.LadderBudget(seconds=5, clock=lambda: now[0]))
     rows = [(r[1], r[2], r[3], r[9], r[11]) for r in _rows(pg, work["work_id"]) if r[1] != "browser"]
     # (an EMPTY 503 is a server's answer: `bad-file` typed `too_small` from its terminal, retriable — S4.5 decision D15)
     assert rows == [("open_access", "bad-file", "too_small", True, None),
                     ("ladder", "budget-stop", "budget_seconds", None, None)], rows
-    m = {"frozen_at": frozen, "run_workstream_ids": [str(ws)], "ladder_budget": {"seconds": 10, "attempts": None}}
+    m = {"frozen_at": frozen, "run_workstream_ids": [str(ws)], "ladder_budget": {"seconds": 5, "attempts": None}}
     assert C1A.budget_exceeded_silently(pg.conn, m) == 0
     assert C1A.transient_rows_unretried(pg.conn, m) == 1          # reported, honestly: the retry was not asked
 

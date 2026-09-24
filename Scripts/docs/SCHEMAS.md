@@ -3205,7 +3205,7 @@ writer is still `litkb.record_acquisition_attempt` alone, re-created with the ne
 |---|---|---|
 | `route` | text, CHECK | `policy.ROUTES_ALL`: `open_access annas scihub browser hunt-url` (0001/0028), `ladder` (a row no single rung owns: a `budget-stop`, and only a `skipped` or `budget-stop`), the Stage A/B rungs `arxiv openalex crossref-link s2 datacite core doaj openaire osf europepmc venue zenodo hal figshare opencitations ncbi-idconv eartharxiv publisher-url`, Stage C `landing`, the shadow front `bban`, Stage E `wayback ia commoncrawl`. Which stage a rung route runs in: `policy.STAGE_OF` |
 | `status` | text, CHECK | 0013's fifteen plus four ATTEMPT words (never hunt states — the hunt's closed STATES/REASONS and the acceptance instrument's `CLOSED_STATES` pin are unchanged): `skipped` (a rung the ladder did not ask; its reason is the sub-status — guard 14), `budget-stop` (the ladder budget ran out before this point; route `ladder` — guard 12), `measured` (a rung answered a hit in MEASURE mode and nothing was landed — S4.5 decision D9), `known-bad` (a route served bytes whose sha256 matches refused bytes; nothing was written) |
-| `sub_status` | text, CHECK consistent with `status` | WHY. `bad-file`: `html_response too_small missing_pdf_header corrupt_pdf_header early_eof_with_trailing_payload stub_not_article volume_not_article cited_document_not_this_article compressed_or_archived_payload`; `blocked`: `identity_required challenge_or_bot_check not_found html_or_reader`; `not-in-archive`: `not_in_corpus no_pdf_link`; `skipped`: `dead_route` (a prior terminal miss, `run.DEAD_STATUSES`) · `dead_in_run` (a prior `blocked` in THIS workstream — plan item 2) · `no_identifier` (the rung needs an identifier the work does not hold) · `policy_refused` (the pre-fetch PolicyDecision) · `backoff_window` (the refusal ladder has not reopened); `budget-stop`: `budget_seconds budget_attempts`; `ok` / `measured`: `unverified_keep` (guard 17: landed although a check that needs metadata could not run). NULL for every other status, and on history until the reviewed backfill types it. A `skipped` or `budget-stop` row with NULL is refused (`acquisition_attempts_skip_has_reason`) |
+| `sub_status` | text, CHECK consistent with `status` | WHY. `bad-file`: `html_response too_small missing_pdf_header corrupt_pdf_header early_eof_with_trailing_payload stub_not_article volume_not_article cited_document_not_this_article compressed_or_archived_payload`; `blocked`: `identity_required challenge_or_bot_check not_found html_or_reader`; `not-in-archive`: `not_in_corpus no_pdf_link`; `skipped`: `dead_route` (a prior terminal miss, `run.DEAD_STATUSES`) · `dead_in_run` (a prior `blocked` in THIS workstream — plan item 2) · `no_identifier` (the rung needs an identifier the work does not hold) · `policy_refused` (the pre-fetch PolicyDecision) · `backoff_window` (the refusal ladder has not reopened — or, with `detail.cooldown`, the rung was stopped before asking anything by a HOST cooling in this run after a 429 / 503: S4.5 decisions D41, D44 and D45, "The in-run cool-down per host" below); `budget-stop`: `budget_seconds budget_attempts`; `ok` / `measured`: `unverified_keep` (guard 17: landed although a check that needs metadata could not run). NULL for every other status, and on history until the reviewed backfill types it. A `skipped` or `budget-stop` row with NULL is refused (`acquisition_attempts_skip_has_reason`) |
 | `sub_status_basis` | text, CHECK | how the sub-status was decided: `live` (every row the ladder writes; the function forces it), `bytes` / `detail` / `inferred` (the reviewed backfill only). NULL exactly when `sub_status` is |
 | `served_sha256` | text, hex CHECK | sha256 of the bytes the route SERVED on this attempt, landed or not (item 1). NULL when nothing was served — a transport failure's `(0, "<Class>: <message>")` answer is the client's own error text, not served bytes, and is noted in `detail` |
 | `terminal_url` | text | the response that decided the attempt (redacted). For the Unpaywall lookup it is the API URL WITHOUT its query (the account email never reaches the ledger). PRE-REDIRECT: `netutil.Client` does not expose the post-redirect URL (open question for the client's owner) |
@@ -3322,8 +3322,9 @@ the budget (`policy.LadderBudget`: `seconds` 505 — the OBSERVED MAXIMUM of 17 
 landed nothing, one outlier, E13's 504.76 s (median 52.77 s, next largest 62.09 s): no historical hunt would
 have hit it, and the run's manifest `ladder_budget` is where a re-measured value belongs; `attempts` DERIVED =
 rungs × (1 + one scheduled retry); `concurrency` DERIVED = the widest concurrent stage), one scheduled retry for
-a transient answer (rungs that opt in; the budget is checked AGAIN after the retry's wait — Retry-After or the AIMD
-delay, up to 300 s — and a retry the wait has put past the budget is not launched: the original stays `retriable`
+a transient answer (rungs that opt in; the retry is scheduled only when its wait — Retry-After or the AIMD delay —
+is at most `backoff.IN_ROW_WAIT_MAX_S`, a longer one cooling the host instead, S4.5 decisions D41/D44 below; the budget
+is checked AGAIN after the retry's wait, and a retry the wait has put past the budget is not launched: the original stays `retriable`
 and unretried, and the next stage or rung writes the `budget-stop`; in a concurrent stage the siblings launched
 beside the rung count as spent in both checks and in the retry's `spent_before`, because they are asked before any
 is settled — fix round 3, auditor-C1a r2 F2), the rejected-hash lookup (`ledger.rejected_match`: every uncleared
@@ -3341,6 +3342,109 @@ itself refused are typed by the same test and keep its summary in `detail.accept
 Stage C reads). `mode="measure"` (`run.measure`, the run driver's hook) asks every rung — a route's earlier
 terminal miss does not skip it there — judges every hit by the acceptance test (`measured` or `bad-file`),
 writes nothing to the store, and records every answer.
+
+### The in-run cool-down per host (S4.5 decisions D41, D44 and D45, builder-fix7)
+
+WHY (measured on the live ladder-1 run, 2026-09-24, read back as litkb_reader: the ledger's `wayback` rows'
+`detail.ladder` and the RECORD-mode cassette's headers): after ~45 rows archive.org answered 429 — 9 times, none
+carrying Retry-After — the in-run AIMD delay doubled to its 300 s ceiling, and every later work's wayback ask first
+slept that delay (`run._pace`: launches at elapsed 16 … 224, 300 s) and then again before a scheduled retry the 505 s
+budget refused: ~10 min a row, and the host that asked the run to slow down was asked again by every work. The
+persisted (route, work) refusal ladder above cannot help: the NEXT work is another key. D41 cooled the ROUTE; D44
+(the coordinator's ruling on builder-fix7's question 1) keys the cool-down by the HOST THAT ANSWERED, so a multi-host
+rung (landing, open access, a Stage B rung's publisher URLs) keeps asking its OTHER hosts while one cools; D45 (on
+builder-fix7's round-2 questions) makes that host table ONE for the whole run, shared ACROSS routes — a 429 / 503 is
+the host telling this client to slow down, so the Wayback availability API's 429 on archive.org also gates the
+Internet Archive rung's archive.org requests — and marks every row that left a URL untried for a cooling host
+`retriable`.
+
+THE RULE (`litkb.acquire.backoff`: `COOLDOWN_CODES`, `IN_ROW_WAIT_MAX_S`, `is_rate_limit`, `long_wait`,
+`cooldown_seconds`, `HostCooldowns` (`cool` / `cooling`), `HOSTS_KEY`, `Gate`, `cooling_url`; `litkb.netutil`: `REQUEST_GATE`,
+`HostCooling`, `Client.get`; `litkb.acquire.run`: `_call_rung`, `_GatedClient`, `_cooled_answer`, `_cool_after`,
+`settle`, `_pace`):
+- EVERY rung call runs under a REQUEST GATE (`backoff.Gate`, set as `netutil.REQUEST_GATE` by `run._call_rung` in the
+  call's own thread/context). `netutil.Client.get` — and the ladder's wrapper around an injected client — asks it
+  before each request and tells it each answer (host, status, Retry-After, whether the body is a bot challenge);
+  a redirect the client FOLLOWS (`follow=True`) is asked hop by hop (`netutil._GatedRedirect` → `Gate.hop`): a hop
+  to a cooling host is NOT followed (its 3xx comes back as the answer, the refusal recorded), each hop's 3xx is
+  credited to the host that gave it, and the final answer to the host at the END of the chain — never to the host
+  that was only asked (auditor-fix7 F1: a publisher's 429 behind a followed doi.org URL used to cool doi.org);
+- after every recorded answer (an original or its retry) each HOST the gate saw answer 429 or 503 cools
+  (`is_rate_limit` — never a 403, guard 29; never a bot challenge at any code, guard 3), and, when the answer itself is
+  transient (0, 408, 429, 5xx) and its next wait — max(AIMD delay, Retry-After), capped at 300 s — is over
+  `IN_ROW_WAIT_MAX_S`, the host that GAVE its terminal answer cools (`long_wait`; the gate's record of that answer —
+  the URL the rung asked, the code it got — names the host) unless that answer was a bot challenge: a challenge
+  NEVER starts a cool-down, by either cause (auditor-fix7 F2: a rung that books its challenge `api-error` — Wayback,
+  IA, a Stage B service — made it a transient long wait). The gate reads every transient answer's body with THE one
+  detector (`netutil.Client.challenge_cause`, D24);
+- a cooling host's `cool_until` = now + that answer's Retry-After (capped at `AIMD_CEILING_S`, 300 s — the cap the
+  scheduled retry has always put on it) or, with none, the route's AIMD delay as the answer moved it (at least the
+  AIMD's first step, 2 s); a cool-down of that host already running longer is kept;
+- while a host is cooling, no request of ANY ROUTE is sent to it in the run (D45): a multi-host rung's candidate loop
+  (`landing.fetch_landing`, `stage_b.fetch_candidates`, `open_access.fetch_open_access`) skips that one URL
+  (`backoff.cooling_url`) and asks the others — the row records the skipped URLs and KEEPS the status the answering
+  host(s) gave (host B's `blocked/not_found` stays that) but is `retriable` true (D45: never a permanent miss while a
+  candidate was untried; this overrides "a blocked row is never retriable"; never on a success); if every URL it
+  would have asked was on a cooling host, the row is `api-error`, retriable (never a miss, a refusal or a bad file). Any other
+  request to a cooling host raises `netutil.HostCooling` before a byte is sent and the route boundary books it: with
+  nothing asked yet, ONE `skipped` / `backoff_window` row with `detail.cooldown` naming the host — for a single-host
+  rung (Wayback's first request, a Stage B API) the whole rung, as D41 had it; with answers already received, an
+  `api-error` (retriable) carrying them. Neither `retry_dead` nor MEASURE mode lifts it. Past `cool_until` the host is
+  asked again; a 2xx decays the AIMD delay as before;
+- the one scheduled retry is never refused the host whose answer it has just waited for (its wait is at least that
+  cool-down); a host cooled longer than the wait is still refused;
+- NO ROW SITS OUT A LONG WAIT: a scheduled retry whose wait is over `IN_ROW_WAIT_MAX_S` is not scheduled (the original
+  stays `retriable`, unretried — the reported `transient_rows_unretried` counts it), and the pacing wait before a
+  route is asked (`run._pace`) is capped at the same threshold (the coordinator's ruling: the cap stands); the longer
+  wait is the cool-down's. A cool-down started by `long-wait` on a 5xx streak other than 503 stands too (recorded).
+
+WHERE THE STATE LIVES: in the run's ONE `backoff.HostCooldowns` (`hosts`: host -> clock, cool_until, facts), kept in the
+ladder's `pacing` dict under `backoff.HOSTS_KEY` beside the per-route `Aimd`s — in a live process
+`litkb.acquire.run.PACING`, module-level, which the ladder-1 run driver
+(`qc/instruments/litkb_ladder_run.py`) reaches from every row: its hunt rows through `hunt._default_acquire` and its
+measure rows through `run.measure`, neither passing `pacing`. So a cool-down survives across works in ONE process; a
+new process starts cold (an empty `PACING`; the skip rows in the ledger record what the previous process knew). Its
+clock is the ladder pacer's (`Pacer.clock`, `time.monotonic` by default), kept with each cool-down. A caller passing
+its own `pacing={}` (every test, every fire, the register replay in `qc/instruments/litkb_edge_run.py` — a replay
+reproduces ONE recorded row) starts cold per call.
+
+| constant | value | source / status |
+|---|---|---|
+| `backoff.COOLDOWN_CODES` | {429, 503} | S4.5 decision D41; the two "slow down" answers (RFC 6585 §4, RFC 9110 §15.6.4) a Retry-After qualifies (RFC 9110 §10.2.3); never 403 (guard 29) |
+| `backoff.IN_ROW_WAIT_MAX_S` (`BackoffPolicy.in_row_wait_max_s`) | 10 s | litkb's own one-retry convention, `admit/resolver.py::registry_get` ("one 10 s back-off on 429"); cross-checked on the live run: 505 s budget / 48 attempts (`detail.ladder.budget`) = 10.5 s per attempt. UNCALIBRATED |
+| the cool-down's Retry-After cap | `backoff.AIMD_CEILING_S` = 300 s | W25 (pypaperretriever `backoff_max_s`), the cap the scheduled retry already applied. UNCALIBRATED |
+| the cool-down's floor with no Retry-After | 2 s = `AIMD_DECAY_S` × `AIMD_MULTIPLIER` | the AIMD's own first step (W25): a 429 inside a row that was not itself transient moved no delay. UNCALIBRATED |
+
+`detail.cooldown` on the skip row of a rung the gate stopped before it asked anything (and on the `api-error` of one
+stopped after answers) — the persisted window's skip carries `next_allowed_at` / `refusals` instead:
+
+| key | meaning |
+|---|---|
+| `host`, `trigger_route` | the cooling HOST (D44) and the route whose answer cooled it (D45: it gates every route — a Wayback 429 names `wayback` on the IA rung's skip) |
+| `trigger_attempt_id` | the attempt whose answer started the host's cool-down (another work's row, earlier in the run) |
+| `trigger_status`, `status_code` | that attempt's status word and the HTTP code the host answered (429, 503, or the transient code of a `long-wait`) |
+| `cause` | `rate-limit` (429 / 503) or `long-wait` (a transient answer whose next wait was over the in-row threshold) |
+| `wait_s`, `wait_source` | how long the host cools, and from what: `retry-after`, `retry-after-capped` (the 300 s cap), `aimd` |
+| `retry_after_s` | the host's Retry-After in seconds, or null (none was sent) |
+| `cooled_at`, `cool_until` | wall-clock ISO timestamps (UTC) of the trigger's answer and of the cool-down's end |
+| `ruling` | `S4.5 decisions D41, D44, D45` |
+
+`detail.cooldown_skipped` on ANY row of a rung call that did not ask one or more URLs because their host was cooling:
+a list of {`host`, `url` (without its query), `cooldown` (the facts above)}. Stage C also lists them in
+`detail.landing.cooled` ({`url`, `source`, `host`}) and never in `detail.landing.candidates` (those were asked).
+
+A RELAYED design (CLAUDE.md §3.4c), UNVALIDATED until an independent referee scores it on the resumed run's rows.
+A LIMIT, deferred to the D42 replay (auditor-fix7 F3): a replayed row runs on the replay's pacer (no sleeps, the real
+monotonic clock), so a cool-down started INSIDE one replayed row runs in wall-clock seconds while none of the row's
+waits pass, and a row the live run skipped because an EARLIER row cooled the host starts cold in the replay. The
+replay's fix (a virtual clock, or refusing exactly the URLs the recorded row names in `cooldown_skipped`) is the D42
+replay work's.
+
+Tests: `qc/test_litkb_s45_cooldown.py` (25; the independent auditor's checks adopted — auditor-fix7; a LOOPBACK
+redirect server for F1: CONSTRUCTED stubs on a worker database, a controllable pacer clock; the
+live path through the real `netutil.Client.get`; landing's two hosts, its row retriable; Wayback's 429 gating the IA
+rung while another host is asked; Stage B's and open access's URL loops); mutation rows C1A44–C1A78 in
+`qc/instruments/litkb_p2_mutations.py`.
 
 ### C1a's acceptance counters (`qc/instruments/litkb_hardening_c1a.py`, loaded by `hardening`)
 

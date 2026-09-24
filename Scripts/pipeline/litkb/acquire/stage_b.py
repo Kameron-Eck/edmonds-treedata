@@ -222,6 +222,7 @@ def fetch_candidates(route, candidates, ctx, work=None, *, html_status="bad-file
     tried, codes, notes = [], [], []
     kept, kept_url, kept_term, last_term = None, "", None, None
     challenge = False
+    cooled = []                 # S4.5 decision D44: candidates not asked because their host is cooling
     for url, meta in candidates:
         h = host_of(url)
         # BEGIN guard: a legitimate rung never asks a shadow host, and never asks one URL twice in a run
@@ -236,6 +237,17 @@ def fetch_candidates(route, candidates, ctx, work=None, *, html_status="bad-file
                 continue
             asked[url] = route
         # END guard: a legitimate rung never asks a shadow host, and never asks one URL twice in a run
+        # S4.5 decision D44 (builder-fix7): a candidate on a host cooling down in this run (it answered this route a
+        # 429 / 503) is not asked — noted here and by the request gate on the row (`cooldown_skipped`) — and the
+        # candidates on the OTHER hosts are asked as before; its reservation is released, so no rung reads it asked
+        # BEGIN guard: a candidate on a cooling host is skipped and the other hosts are asked
+        if _backoff.cooling_url(url) is not None:
+            with _ASKED_LOCK:
+                asked.pop(url, None)
+            notes.append(f"{h}: cooling down in this run (S4.5 decision D44), not asked")
+            cooled.append(url)
+            continue
+        # END guard: a candidate on a cooling host is skipped and the other hosts are asked
         st, hd, body, term = get(ctx, route, url, accept=PDF_ACCEPT, timeout=PDF_TIMEOUT)
         # BEGIN guard: a transient answer is no answer, and the scheduled retry may ask its URL again
         own = "blocked" if st and Client.is_challenge(st, url, body) else "api-error"
@@ -262,6 +274,11 @@ def fetch_candidates(route, candidates, ctx, work=None, *, html_status="bad-file
     if kept is not None:
         base.update({"rejected": kept, "rejected_url": kept_url})
     if not codes:
+        # BEGIN guard: candidates skipped for a cooling host make a retriable answer, never a miss
+        if cooled:
+            # every candidate left to ask was on a cooling host: not a miss — asking after the cool-down can change it
+            return {**base, "status": "api-error", "retriable": True, "detail": "; ".join(notes)}
+        # END guard: candidates skipped for a cooling host make a retriable answer, never a miss
         return {**base, "status": "no-oa-copy", "detail": "; ".join(notes) or "no candidate to ask"}
     real = [c for c in codes if c]
     if not real:
@@ -287,7 +304,7 @@ def answered(route, candidates, ctx, work, *, harvest=None, term=None, detail=""
     No candidate at all -> `no-oa-copy` (the service knows the work and lists no free copy)."""
     if candidates:
         r = fetch_candidates(route, candidates, ctx, work, html_status=html_status)
-        if r.get("status") == "no-oa-copy" and term:
+        if not r.get("http_codes") and term:
             # every candidate was one this run had asked (or a shadow host's): the service's own answer decides
             r["terminal"], r["http_codes"] = term, [term["status_code"]]
     else:

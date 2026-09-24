@@ -2911,6 +2911,135 @@ replace("C1A42", f"{PKG}/acquire/run.py",
 replace("C1A43", f"{PKG}/acquire/ledger.py", '    if "html" in ctype.lower():\n', "    if False:\n",
         "a no-byte `bad-file` whose terminal response is HTML is typed `too_small` (D15: html -> html_response)",
         tests=TESTS_C1A)
+# -- builder-fix7 (S4.5 decisions D41 + D44 + D45): the in-run cool-down per HOST (shared by every route), and no row
+#    sits out a long wait.
+#    Each row turns its test file red by a WORSE ANSWER (a cooling host asked, another host NOT asked, a long wait sat
+#    out, a 403 or a challenge cooling a host), never by an error --
+TESTS_COOLDOWN = ["qc/test_litkb_s45_cooldown.py"]
+BACKOFF = f"{PKG}/acquire/backoff.py"
+replace("C1A44", f"{PKG}/acquire/run.py",
+        "    except _netutil.HostCooling as e:       # D44: the request gate stopped the rung before a cooling host\n",
+        "    except ArithmeticError as e:       # D44: the request gate stopped the rung before a cooling host\n",
+        "a rung the request gate stopped before a cooling host is booked a crashed `api-error`, not the skip naming "
+        "the host (D41/D44)", tests=TESTS_COOLDOWN)
+block("C1A45", f"{PKG}/acquire/run.py", "guard: a rate-limit answer cools its host for the rest of the run",
+      "a 429 / 503 (or a long wait) starts no cool-down: the next work asks the rate-limited host at once",
+      tests=TESTS_COOLDOWN)
+block("C1A46", f"{PKG}/acquire/run.py", "guard: a retry's rate-limit answer cools the route too",
+      "a scheduled retry answered 503 again and its host is not cooled for it: only the original's (shorter) "
+      "cool-down runs, and the next work asks the host", tests=TESTS_COOLDOWN)
+block("C1A47", f"{PKG}/acquire/run.py", "guard: an in-row retry never sits out a long wait",
+      "a scheduled retry sits out its whole wait (Retry-After / AIMD, up to 300 s) inside the row: the live ~10 min rows",
+      tests=TESTS_COOLDOWN)
+block("C1A48", f"{PKG}/acquire/run.py", "guard: a pacing wait is never sat out past the in-row threshold",
+      "the pacing wait before a route is asked is the whole AIMD delay (224 s, 300 s on the live run), not the "
+      "in-row threshold", tests=TESTS_COOLDOWN)
+replace("C1A49", BACKOFF, "COOLDOWN_CODES = frozenset({429, 503})\n", "COOLDOWN_CODES = frozenset({429, 503, 403})\n",
+        "a 403 cools its host for every work (guard 29: one refusal about ONE work retires the host)",
+        tests=TESTS_COOLDOWN)
+replace("C1A50", BACKOFF, "COOLDOWN_CODES = frozenset({429, 503})\n", "COOLDOWN_CODES = frozenset({429})\n",
+        "a 503 (Service Unavailable, the host's other 'slow down') starts no cool-down", tests=TESTS_COOLDOWN)
+block("C1A51", BACKOFF, "guard: a challenge never cools a host",
+      "a bot challenge served at 503 cools its host for every work (guard 3, guard 29)", tests=TESTS_COOLDOWN)
+block("C1A52", BACKOFF, "guard: a cool-down ends at cool_until",
+      "a cool-down never ends: past cool_until the host is still refused for the rest of the process",
+      tests=TESTS_COOLDOWN)
+block("C1A53", BACKOFF, "guard: a Retry-After is honoured only up to the stated ceiling",
+      "a Retry-After of an hour cools the host for an hour (the stated 300 s cap is gone)", tests=TESTS_COOLDOWN)
+replace("C1A54", BACKOFF, "IN_ROW_WAIT_MAX_S = 10.0\n", "IN_ROW_WAIT_MAX_S = 300.0\n",
+        "the in-row threshold raised to the AIMD ceiling (the pre-D41 behaviour): every wait is sat out in the row",
+        tests=TESTS_COOLDOWN)
+replace("C1A55", BACKOFF, "    if retry_after is not None:\n        # BEGIN guard: a Retry-After is honoured",
+        "    if False:\n        # BEGIN guard: a Retry-After is honoured",
+        "the server's Retry-After is ignored: the host cools for the AIMD delay (2 s) though it said 120 s",
+        tests=TESTS_COOLDOWN)
+# -- S4.5 decision D44 (the coordinator's ruling on builder-fix7's question 1): key by (route, HOST) --
+replace("C1A56", BACKOFF, "        entry = self.hosts.get(host)\n",
+        "        entry = next(iter(self.hosts.values()), None)\n",
+        "the cool-down no longer keyed by host: one publisher host's 429 stops a multi-host rung (landing) asking every "
+        "other host, the DOI resolver included (D44)", tests=TESTS_COOLDOWN)
+block("C1A57", BACKOFF, "guard: a cool-down is keyed by the host that answered",
+      "no cool-down is ever found: every host that answered 429 / 503 is asked again by the next work",
+      tests=TESTS_COOLDOWN)
+block("C1A58", f"{PKG}/acquire/landing.py", "guard: a candidate on a cooling host is skipped and the other hosts are asked",
+      "landing asks the cooling host's candidate: the request gate stops the whole rung there and host B's "
+      "candidate is never asked (D44)", tests=TESTS_COOLDOWN)
+block("C1A59", f"{PKG}/acquire/landing.py",
+      "guard: candidates skipped for a cooling host make a retriable answer, never a miss",
+      "a landing whose every candidate was on a cooling host is booked a refusal (`blocked/html_or_reader`), not a "
+      "retriable answer (D44)", tests=TESTS_COOLDOWN)
+block("C1A60", f"{PKG}/acquire/stage_b.py", "guard: a candidate on a cooling host is skipped and the other hosts are asked",
+      "Stage B's candidate loop asks the cooling host's URL (D44)", tests=TESTS_COOLDOWN)
+block("C1A61", f"{PKG}/acquire/stage_b.py",
+      "guard: candidates skipped for a cooling host make a retriable answer, never a miss",
+      "a Stage B rung whose every candidate was on a cooling host is booked the miss `no-oa-copy` (D44)",
+      tests=TESTS_COOLDOWN)
+block("C1A62", f"{PKG}/acquire/open_access.py",
+      "guard: a location on a cooling host is skipped and the other hosts are asked",
+      "open access asks the cooling host's location (D44)", tests=TESTS_COOLDOWN)
+block("C1A63", f"{PKG}/acquire/open_access.py",
+      "guard: locations skipped for a cooling host make a retriable answer, never a bad file",
+      "open access whose every location was on a cooling host is booked a `bad-file` (D44)", tests=TESTS_COOLDOWN)
+block("C1A64", f"{PKG}/acquire/run.py", "guard: an injected client is seen through the request gate",
+      "an injected client (a stub, a replay's) bypasses the request gate: the cooling host is asked through it and "
+      "none of its answers cools a host (D44)", tests=TESTS_COOLDOWN)
+block("C1A65", f"{PKG}/netutil.py", "guard: a request to a host cooling down in this run is never sent",
+      "netutil.Client.get ignores the request gate: the live path (a rung's own Client) asks the cooling host and "
+      "none of its answers cools a host (D44)", tests=TESTS_COOLDOWN)
+block("C1A66", f"{PKG}/acquire/run.py", "guard: a URL the request gate did not ask is recorded on the row",
+      "a URL skipped for its cooling host leaves no trace on the row (`detail.cooldown_skipped`) (D44)",
+      tests=TESTS_COOLDOWN)
+block("C1A67", f"{PKG}/acquire/run.py",
+      "guard: a scheduled retry is never refused the host whose answer it waited for",
+      "the one scheduled retry is refused by the cool-down its own original started (on a pacer whose sleep does "
+      "not move its clock): the retry is never asked (D44)", tests=TESTS_C1A)
+# -- S4.5 decision D45 (the coordinator's rulings on builder-fix7's round-2 questions) --
+block("C1A68", f"{PKG}/acquire/run.py", "guard: one host table for the whole run, shared by every route",
+      "a host table per ROUTE again (D44's key): Wayback's 429 on archive.org does not gate the IA rung, which asks "
+      "archive.org at once (D45)", tests=TESTS_COOLDOWN)
+block("C1A69", f"{PKG}/acquire/run.py",
+      "guard: a row with a URL untried for a cooling host is retriable, whatever the answering hosts said",
+      "a row whose rung left a candidate untried for a cooling host is a permanent answer (`blocked/not_found`, not "
+      "retriable): dead for the work though host A was never asked (D45)", tests=TESTS_COOLDOWN)
+# -- auditor-fix7 (the independent audit of this change): F1 (a followed redirect), F2 (a challenge by the long-wait
+#    cause) and its own mutations AM1-AM6, whose tests were adopted into qc/test_litkb_s45_cooldown.py --
+block("C1A70", f"{PKG}/netutil.py", "guard: every hop of a followed redirect is asked of the request gate",
+      "a redirect `netutil.Client` follows is never asked of the gate: a 302 into a cooling host reaches it "
+      "(auditor-fix7 F1, case B)", tests=TESTS_COOLDOWN)
+block("C1A71", BACKOFF, "guard: an answer is credited to the host at the end of the redirect chain",
+      "the answer to a followed redirect is credited to the host that was ASKED: the redirector (doi.org) cools for "
+      "the 429 another host gave (auditor-fix7 F1, case A)", tests=TESTS_COOLDOWN)
+block("C1A72", f"{PKG}/acquire/run.py", "guard: a challenge never cools a host, by the long-wait cause either",
+      "a bot challenge booked `api-error` (Wayback, IA, a Stage B service) cools its host through the long-wait cause "
+      "(auditor-fix7 F2)", tests=TESTS_COOLDOWN)
+replace("C1A73", BACKOFF, "        if st and is_transient_code(st):\n            challenge = bool(",
+        "        if st == 503:\n            challenge = bool(",
+        "the gate reads a body for a challenge at 503 only: a challenge served at 429 cools its host (auditor-fix7 AM1)",
+        tests=TESTS_COOLDOWN)
+replace("C1A74", BACKOFF, "        if self.cooling(host) is None or until > self.hosts[host][1]:\n", "        if True:\n",
+        "a SHORTER cool-down replaces a longer one still running: a host that said Retry-After 120 is asked after 2 s "
+        "(auditor-fix7 AM2)", tests=TESTS_COOLDOWN)
+replace("C1A75", f"{PKG}/acquire/run.py",
+        "    if not obs:\n        return {\"status\": \"skipped\", \"sub_status\": \"backoff_window\"",
+        "    if obs is not None:\n        return {\"status\": \"skipped\", \"sub_status\": \"backoff_window\"",
+        "a rung stopped by the gate AFTER it had answers is booked a non-spend skip: the answers (a landing 302) are "
+        "dropped (auditor-fix7 AM3)", tests=TESTS_COOLDOWN)
+replace("C1A76", BACKOFF,
+        "    return max(float(aimd_delay or 0.0), policy.aimd_decay_s * policy.aimd_multiplier), \"aimd\"\n",
+        "    return float(aimd_delay or 0.0), \"aimd\"\n",
+        "no 2 s floor: a 429 without Retry-After in a row that moved no delay cools its host for 0 s (auditor-fix7 AM4)",
+        tests=TESTS_COOLDOWN)
+replace("C1A77", f"{PKG}/acquire/run.py",
+        "            sit_out = min(wait, bo.aimd_ceiling_s) <= bo.in_row_wait_max_s\n",
+        "            sit_out = min(wait, bo.aimd_ceiling_s) < bo.in_row_wait_max_s\n",
+        "the in-row boundary off by one: a wait of exactly 10 s is neither sat out nor cooled (auditor-fix7 AM5)",
+        tests=TESTS_COOLDOWN)
+replace("C1A78", f"{PKG}/acquire/run.py",
+        "        host = match[\"host\"] if match else (_backoff.host_of(term.get(\"url\")) or\n"
+        "                                            (observed[-1][\"host\"] if observed else \"\"))\n",
+        "        host = (observed[0][\"host\"] if observed else \"\")\n",
+        "the long-wait cause cools the FIRST host the call asked (doi.org on landing), not the host that gave the "
+        "transient answer (auditor-fix7 AM6)", tests=TESTS_COOLDOWN)
 
 # -- builder-C1b (bytes: THE acceptance test litkb/acquire/accept.py, a sidecar on every quarantine) --
 # Each row weakens ONE step of the acceptance test or ONE sidecar write and must turn qc/test_litkb_accept.py

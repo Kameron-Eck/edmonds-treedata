@@ -35,6 +35,7 @@ import os
 import urllib.parse
 
 from litkb.acquire import accept as _accept
+from litkb.acquire import backoff as _backoff
 from litkb.netutil import Client, add_secret, redact
 
 PAPER_SEARCH_ENV = r"D:\edmonds-pipeline\secrets\paper_search.env"
@@ -147,7 +148,17 @@ def fetch_open_access(doi, arxiv_id, pacer, *, client=None, locations=None):
     rejected, rejected_url, rejected_at = None, "", None
     answered = None
     client_error = ""
+    cooled = []                 # S4.5 decision D44: locations not asked because their host is cooling
     for url in urls:
+        # S4.5 decision D44 (builder-fix7): a location on a host cooling down in this run (it answered open access a
+        # 429 / 503) is not asked — noted in `tried` and by the request gate on the row (`cooldown_skipped`) — and the
+        # locations on the OTHER hosts are asked as before
+        # BEGIN guard: a location on a cooling host is skipped and the other hosts are asked
+        if _backoff.cooling_url(url) is not None:
+            cooled.append(url)
+            tried.append(f"{urllib.parse.urlparse(url).netloc}=cooling")
+            continue
+        # END guard: a location on a cooling host is skipped and the other hosts are asked
         if pacer is not None:
             pacer.wait()
         st, hd, body = client.get(url, accept="application/pdf,*/*;q=0.5", timeout=300)
@@ -179,6 +190,15 @@ def fetch_open_access(doi, arxiv_id, pacer, *, client=None, locations=None):
         if Client.is_challenge(st, url, body, hd):
             blocked = True
         tried.append(f"{host}:{st}")
+    # BEGIN guard: locations skipped for a cooling host make a retriable answer, never a bad file
+    if cooled and not codes:
+        # every location was on a cooling host: nothing about the file was asked — retriable, never a bad file
+        return {"status": "api-error", "retriable": True, "pdf": None, "source_url": "", "tried": tried,
+                "http_codes": [], "terminal": terminal,
+                "detail": redact("; ".join([n for n in notes if n] + [
+                    f"{len(cooled)} location(s) not asked: their host is cooling down in this run "
+                    f"(S4.5 decision D44)"]))}
+    # END guard: locations skipped for a cooling host make a retriable answer, never a bad file
     return {"status": "blocked" if blocked else "bad-file", "pdf": None, "source_url": "", "tried": tried,
             # this route books `blocked` only when a challenge answered (the `blocked` sub-status it KNOWS)
             **({"sub_status": "challenge_or_bot_check"} if blocked else {}),

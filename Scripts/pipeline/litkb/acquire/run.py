@@ -47,6 +47,16 @@ and the loop does everything around it, for every rung alike:
   * Stage B's rungs run concurrently (wall-clock = the slowest), bounded by the budget's concurrency; every
     database write stays on this thread, in registry order;
   * a transient answer gets ONE scheduled in-run retry (rungs that opt in), recorded with `retry_of`;
+  * THE IN-RUN COOL-DOWN (S4.5 decisions D41, D44, D45; litkb.acquire.backoff): a HOST that answered 429 or 503
+    (never a 403, guard 29; never a bot challenge) cools for the rest of its wait, for EVERY route: every rung call
+    runs under a request gate (`backoff.Gate` as `netutil.REQUEST_GATE`) that sends no request to that host until
+    cool_until, while other hosts are asked (a multi-host rung skips the one URL and records it —
+    `detail.cooldown_skipped` — and its row is retriable); a rung stopped by it before asking anything is
+    `skipped/backoff_window` with `detail.cooldown` naming the host and the route whose answer cooled it — for a
+    single-host rung the whole rung. No row sits out a long wait (a scheduled retry's or a pacing wait over
+    `backoff.IN_ROW_WAIT_MAX_S`): the host cools instead. The state is the run's `backoff.HostCooldowns`, kept in
+    `pacing` under `backoff.HOSTS_KEY` — in a live process `PACING`, which the run driver's hunt and measure rows
+    share, so it survives across works in one process; a new process starts cold;
   * the served bytes' sha256 is checked against the refused-bytes record BEFORE anything is written
     (the rejected-hash lookup): a match is never landed or quarantined again (`known-bad`);
   * every rung's bytes go through THE ACCEPTANCE TEST (litkb.acquire.accept, S4.5 item 5: "the bytes
@@ -59,6 +69,7 @@ and the loop does everything around it, for every rung alike:
 """
 import datetime
 import hashlib
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -73,6 +84,7 @@ from litkb.acquire import policy as _policy
 from litkb.acquire import recovery as _recovery
 from litkb.acquire.store import QUARANTINE, STAGING, Store, file_facts, pdf_shape, reason_path
 from litkb.admit import binding as _binding
+from litkb import netutil as _netutil
 from litkb.netutil import Pacer, add_secret, redact
 
 ROUTES = ("open_access", "annas", "scihub")
@@ -661,6 +673,12 @@ def ladder_routes(rungs=None):
 
 #: In-run AIMD pacing per route (litkb.acquire.backoff.Aimd), shared by every acquire() in this process —
 #: a run's pacing state. Not persisted (guard 3's "not persisted" and the module docstring of backoff).
+#: It also carries the run's IN-RUN COOL-DOWNS, per host and shared by every route (S4.5 decisions D41, D44, D45:
+#: `backoff.HostCooldowns` under `backoff.HOSTS_KEY`): the ladder-1 run driver
+#: (`qc/instruments/litkb_ladder_run.py`) runs every row in ONE process — its hunt rows through
+#: `hunt._default_acquire`, its measure rows through `measure`, both passing no `pacing` — so a host cooled by
+#: one work stays cooled for the works after it until its cool_until. A new process starts cold (this dict is
+#: empty at import); the skip rows in the ledger say what the previous process knew.
 PACING = {}
 
 
@@ -675,7 +693,8 @@ def _identifier(rung, work):
 def _skip_reason(conn, rung, work, prior, ws, retry_dead, ctx, bo):
     """-> (sub_status, detail) when this rung must NOT be asked now, else None. Checked in order: the work
     holds no identifier the rung needs; a dead route; `blocked` earlier in this run; the refusal ladder's
-    window; the pre-fetch policy."""
+    window; the pre-fetch policy. (The in-run cool-down of a HOST is not a skip here: it is the request gate's,
+    `_call_rung` — S4.5 decision D44.)"""
     route = rung.route
     if _identifier(rung, work) is None:
         return "no_identifier", {"needs": list(rung.needs)}
@@ -719,8 +738,69 @@ def _skip_reason(conn, rung, work, prior, ws, retry_dead, ctx, bo):
     return None
 
 
-def _call_rung(rung, work, ctx):
-    """-> (route dict, exception or None). THE ROUTE BOUNDARY: a rung that raises is an api-error attempt."""
+class _GatedClient:
+    """S4.5 decision D44: an INJECTED client (a test's stub, a replay's) seen through the same request gate
+    `netutil.Client.get` consults — so a cooling host is never asked through it either, and its answers tell the
+    gate which host said what. Every other attribute is the client's own."""
+
+    def __init__(self, inner):
+        self._inner = inner
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+    def get(self, url, *a, **k):
+        gate = _netutil.REQUEST_GATE.get()
+        if gate is not None:
+            gate.before(url)
+        st, hd, body = self._inner.get(url, *a, **k)
+        if gate is not None:
+            gate.after(url, st, hd, body)
+        return st, hd, body
+
+
+def _gated(clients):
+    """The injected clients as the rungs will see them: through the request gate (a `netutil.Client` consults it
+    itself and is handed on as it is)."""
+    out = dict(clients or {})
+    # BEGIN guard: an injected client is seen through the request gate
+    out = {k: (v if (v is None or isinstance(v, _netutil.Client)) else _GatedClient(v)) for k, v in out.items()}
+    # END guard: an injected client is seen through the request gate
+    return out
+
+
+def _cooled_answer(e, gate):
+    """S4.5 decision D44: a rung stopped by the request gate (`netutil.HostCooling`: its next request was to a host
+    cooling down in this run) -> the route dict. Nothing asked yet: `skipped/backoff_window` naming the host — for a
+    single-host rung that is the whole rung, as D41 had it. Something asked first: those answers are the row's
+    (`api-error`, retriable: asking after the cool-down can change it), never dropped."""
+    obs = list(gate.observed) if gate is not None else []
+    if not obs:
+        return {"status": "skipped", "sub_status": "backoff_window", "cooldown": e.facts}
+    last = obs[-1]
+    return {"status": "api-error", "retriable": True, "http_codes": [o["status"] for o in obs],
+            "terminal": {"url": last["url"], "status_code": last["status"],
+                         "at": datetime.datetime.now(datetime.timezone.utc).isoformat()},
+            "cooldown": e.facts,
+            "detail": f"stopped before asking {e.host}: it is cooling down in this run until "
+                      f"{e.facts.get('cool_until')} (S4.5 decision D44)"}
+
+
+def _call_rung(rung, work, ctx, gate=None):
+    """-> (route dict, exception or None). THE ROUTE BOUNDARY: a rung that raises is an api-error attempt. The call
+    runs under `gate` (S4.5 decision D44: `netutil.REQUEST_GATE` for this call, in this thread's context), whose
+    record rides on the route dict as `cooldown_gate`."""
+    token = _netutil.REQUEST_GATE.set(gate)
+    try:
+        r, exc = _call_rung_gated(rung, work, ctx, gate)
+    finally:
+        _netutil.REQUEST_GATE.reset(token)
+    if gate is not None:
+        r["cooldown_gate"] = gate.summary()
+    return r, exc
+
+
+def _call_rung_gated(rung, work, ctx, gate):
     # BEGIN guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
     # Until S3 an exception out of any route call — a socket reset the client did not model, a parser that
     # met a shape it did not expect, an archive page that changed — propagated out of acquire(), out of
@@ -730,6 +810,8 @@ def _call_rung(rung, work, ctx):
     # DEAD_STATUSES, the held queue and every later "what has this work been through" question read.
     try:
         return rung.fn(work, ctx), None
+    except _netutil.HostCooling as e:       # D44: the request gate stopped the rung before a cooling host
+        return _cooled_answer(e, gate), None
     except Exception as e:                  # noqa: BLE001 — the route boundary is the point
         return {"status": "api-error"}, e
     # END guard: a route that RAISES is a recorded api-error attempt, never a hunt-wide traceback
@@ -807,7 +889,9 @@ def _land(conn, ws, token, work, data, *, route, source_url, store, index, agent
 DETAIL_KEYS = ("detail", "tried", "via", "md5", "record_doi", "title_best", "downloads_left", "rec_size", "quota",
                "reason", "policy", "version",
                # seam builder-C2b: Stage C's evidence (landing page, rules and their freshness, every candidate)
-               "landing")
+               "landing",
+               # S4.5 decision D44: the host cool-down that stopped the rung (`_cooled_answer`)
+               "cooldown")
 
 
 def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, agent, session, retry_of=None,
@@ -827,6 +911,12 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
         detail = {k: r.get(k) for k in DETAIL_KEYS if r.get(k) not in (None, "", [])}
     if "policy" not in detail and route in ctx.decisions:
         detail["policy"] = [ctx.decisions[route]]
+    # S4.5 decision D44: every URL this rung call did not ask because its host was cooling down is on its row
+    untried = (r.get("cooldown_gate") or {}).get("refused") or []
+    # BEGIN guard: a URL the request gate did not ask is recorded on the row
+    if untried:
+        detail["cooldown_skipped"] = untried
+    # END guard: a URL the request gate did not ask is recorded on the row
     if ladder:
         detail["ladder"] = ladder
     src = redact(r.get("source_url") or r.get("rejected_url") or
@@ -957,6 +1047,13 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
     retriable = r.get("retriable") if forced is None else forced
     if retriable is None:
         retriable = _backoff.retriable(status, codes, exc)
+    # (S4.5 decision D45.) A row whose rung left a URL UNTRIED because its host was cooling keeps the status the
+    # answering host(s) gave — B's `blocked/not_found` stays that — but is never a permanent miss: asking again after
+    # the cool-down can change it. Overrides the blocked-row rule above (the coordinator's ruling); never a success.
+    # BEGIN guard: a row with a URL untried for a cooling host is retriable, whatever the answering hosts said
+    if untried and status not in _backoff.SUCCESS_STATUSES:
+        retriable = True
+    # END guard: a row with a URL untried for a cooling host is retriable, whatever the answering hosts said
     # seam builder-C2a: the identifiers a rung read are written with their provenance through B1's one write path, on
     # the attempt that read them (S4.5 decision D2; litkb.acquire.stage_b.write_harvest — never raises); Stage A's
     # record rides on the ladder's first row for the work (litkb.acquire.stage_a.onto_first_row; auditor-C2a F1)
@@ -981,6 +1078,50 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
     # END call site: a route's quarantine gets its database row
     return {"id": aid, "status": status, "sub_status": sub, "codes": codes, "detail": detail, "quarantine": q,
             "exception": type(exc).__name__ if exc is not None else "", "retriable": retriable}
+
+
+def _cool_after(route, row, r, aimd, hosts, bo, clock):
+    """S4.5 decisions D41, D44: after ONE recorded answer (an original or its retry), cool every HOST that answered
+    it a 429 / 503 (the request gate's `observed`, each with its own Retry-After; a bot challenge never), and — when
+    the answer itself is transient and its next wait is longer than a row sits out — the host that gave the terminal
+    answer. The route's AIMD delay has already been moved by this answer. The cool-downs go in the RUN's host table
+    `hosts` (S4.5 decision D45: every route asking a cooled host is gated, and the facts name the route whose answer
+    started it). -> [the facts of each cool-down started].
+    `clock` is the ladder's pacer clock (the one its waits are measured on)."""
+    started = []
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    def cool(host, code, cause, ra):
+        seconds, source = _backoff.cooldown_seconds(ra, aimd.delay_s, bo)
+        started.append(hosts.cool(clock, seconds, {
+            "trigger_route": route, "host": host, "trigger_attempt_id": str(row["id"]), "trigger_status": row["status"],
+            "status_code": code, "cause": cause, "wait_s": seconds, "wait_source": source, "retry_after_s": ra,
+            "cooled_at": now.isoformat(), "cool_until": (now + datetime.timedelta(seconds=seconds)).isoformat(),
+            "ruling": "S4.5 decisions D41, D44, D45"}, host))
+
+    observed = (r.get("cooldown_gate") or {}).get("observed") or []
+    for o in observed:
+        if o.get("host") and _backoff.is_rate_limit(o.get("status"), o.get("challenge")):
+            cool(o["host"], o["status"], "rate-limit", o.get("retry_after_s"))
+    term = r.get("terminal") or {}
+    ra = _backoff.retry_after_s(term.get("headers"))
+    if _backoff.long_wait(row["status"], row["codes"], max(aimd.delay_s, ra or 0.0), bo):
+        # the gate's own record of the terminal answer (the URL the rung asked, the code it got): the host that GAVE it
+        # — the end of a followed redirect chain, never the redirector (auditor-fix7 F1) — and whether it was a bot
+        # challenge (auditor-fix7 F2)
+        match = next((o for o in reversed(observed) if not o.get("hop") and o.get("asked") == _backoff._bare(
+            term.get("url")) and o.get("status") == term.get("status_code")), None)
+        host = match["host"] if match else (_backoff.host_of(term.get("url")) or
+                                            (observed[-1]["host"] if observed else ""))
+        # BEGIN guard: a challenge never cools a host, by the long-wait cause either
+        # (guard 3 and D41: a bot challenge at any code is a refusal of this client, never a rate; auditor-fix7 F2 — a
+        # rung that books its challenge `api-error` (Wayback, IA, a Stage B service) made it a transient long wait)
+        if match is not None and match.get("challenge"):
+            host = ""
+        # END guard: a challenge never cools a host, by the long-wait cause either
+        if host:
+            cool(host, row["codes"][-1], "long-wait", ra)
+    return started
 
 
 def _move_backoff(conn, ws, token, work, route, row, bo):
@@ -1082,12 +1223,26 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
     lb = (ladder_budget or _policy.LadderBudget()).resolved(chosen)
     bo = backoff or _backoff.BackoffPolicy()
     pacing = PACING if pacing is None else pacing
+    #: the clock the ladder's waits are measured on (the pacer's; S4.5 decisions D41/D44's cool-downs read it)
+    clock = getattr(pacer, "clock", None) or time.monotonic
+
+    def hosts_for(route):
+        """The host table this route's calls read and write: the RUN's one table (S4.5 decision D45)."""
+        key = ("hosts", route)   # the unguarded default: a table per route (D44's key)
+        # BEGIN guard: one host table for the whole run, shared by every route
+        key = _backoff.HOSTS_KEY
+        # END guard: one host table for the whole run, shared by every route
+        return pacing.setdefault(key, _backoff.HostCooldowns())
+
+    def gate_for(route, exempt=()):
+        """ONE rung call's request gate over the run's per-host cool-downs (S4.5 decisions D44, D45)."""
+        return _backoff.Gate(route, hosts_for(route), clock, exempt)
     # seam builder-C2a: Stage A, once, before any rung (litkb.acquire.stage_a.prepare): the A2 class the pre-fetch
     # policy consults, the A1-canonical identifiers and edition-edge targets the rungs ask with, the Wave-0 rows
     # BEGIN call site: Stage A prepares the work before its first rung
     _stage_a.prepare(conn, ws, token, work, None, agent=agent, session=session)
     # END call site: Stage A prepares the work before its first rung
-    ctx = RungContext(clients=clients, pacer=pacer, budget=budget, index=index, printer=printer, mode=mode,
+    ctx = RungContext(clients=_gated(clients), pacer=pacer, budget=budget, index=index, printer=printer, mode=mode,
                       annas_session=annas_session, annas_pacer=annas_pacer, work_class=work.get("class", ""))
     prior = prior_attempts(conn, wid)
     # seam builder-C2c: the dead URLs earlier attempts recorded are Stage E's input (a rung never reads the database)
@@ -1133,7 +1288,11 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             # a rung that refused itself on policy (every host line it would ask refused): a skip, not a spend
             # (seam builder-C2c: and the rung's own note on why, e.g. a Stage E rung that was named no dead URL)
             skip(rung.route, r.get("sub_status") or "policy_refused",
-                 {"policy": r.get("policy"), **({"detail": r["detail"]} if r.get("detail") else {})},
+                 {"policy": r.get("policy"), **({"detail": r["detail"]} if r.get("detail") else {}),
+                  # S4.5 decision D44: a rung the request gate stopped before it asked anything names the host
+                  **({"cooldown": r["cooldown"]} if r.get("cooldown") else {}),
+                  **({"cooldown_skipped": r["cooldown_gate"]["refused"]}
+                     if (r.get("cooldown_gate") or {}).get("refused") else {})},
                  _identifier(rung, work))
             return
         row = _record_result(conn, ws, token, work, rung, r, exc, ctx, store=store, dedupe=dedupe, agent=agent,
@@ -1143,6 +1302,13 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         printer(f"  {rung.route}: {row['status']}")
         aimd = pacing.setdefault(rung.route, _backoff.Aimd(policy=bo))
         aimd.on_answer(row["status"], row["codes"])
+        # (S4.5 decisions D41, D44.) A host that answered 429 / 503 — or gave a transient answer whose next wait is
+        # longer than a row sits out — is not asked again by this route in the run until its cool_until (the request
+        # gate, `_call_rung`); a 403 never cools a host (guard 29), nor does a bot challenge.
+        cooled_now = []                 # the unguarded default: no host cools
+        # BEGIN guard: a rate-limit answer cools its host for the rest of the run
+        cooled_now = _cool_after(rung.route, row, r, aimd, hosts_for(rung.route), bo, clock)
+        # END guard: a rate-limit answer cools its host for the rest of the run
         pending = 0                     # the unguarded default: only the rows already settled count as spent
         # BEGIN guard: a concurrent stage's retry counts the siblings launched beside it
         # (auditor-C1a r2 F2.) A concurrent stage's rungs are all asked before any is settled, so when this rung's
@@ -1157,24 +1323,43 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         if (rung.retry_transient and exc is None and _backoff.classify(row["status"], row["codes"]) == "transient"
                 and lb.exhausted(started, spent + pending) is None):
             wait = max(aimd.delay_s, _backoff.retry_after_s((r.get("terminal") or {}).get("headers")) or 0.0)
-            pacer.sleep(min(wait, bo.aimd_ceiling_s))
-            retry_now = True                # the unguarded default: the retry follows its wait unconditionally
-            # BEGIN guard: the ladder budget is checked again after a scheduled retry's wait
-            # (the wait is Retry-After or the AIMD delay, up to its 300 s ceiling: a retry launched after the wait
-            # crossed `seconds` is a launch past the budget — the silent overrun `budget_exceeded_silently`
-            # counts. Not asked: the original row stays `retriable` and unretried, and the next stage or rung
-            # meets the spent budget and writes the `budget-stop` row. Fix round 2.)
-            retry_now = lb.exhausted(started, spent + pending) is None
-            # END guard: the ladder budget is checked again after a scheduled retry's wait
-            if retry_now:
-                again = launch(pending)
-                r2, exc2 = _call_rung(rung, work, ctx)
-                row = _record_result(conn, ws, token, work, rung, r2, exc2, ctx, store=store, dedupe=dedupe,
-                                     agent=agent, session=session, retry_of=row["id"], ladder=again)
-                spent += 1
-                note(rung.route, row)
-                printer(f"  {rung.route}: {row['status']} (scheduled retry)")
-                aimd.on_answer(row["status"], row["codes"])
+            sit_out = True                  # the unguarded default: the row waits out whatever the wait is
+            # BEGIN guard: an in-row retry never sits out a long wait
+            # (S4.5 decision D41. The live ladder-1 run, 2026-09-24: archive.org's 429s doubled the AIMD delay to its
+            # 300 s ceiling and each row waited it out before a retry the budget then refused — ~10 min a row. A
+            # wait over `in_row_wait_max_s` is not scheduled: the original stays `retriable` and unretried, and the
+            # host is cooling instead (`_cool_after`, above), so no later work asks it until the wait has passed.)
+            sit_out = min(wait, bo.aimd_ceiling_s) <= bo.in_row_wait_max_s
+            # END guard: an in-row retry never sits out a long wait
+            if sit_out:
+                waited = min(wait, bo.aimd_ceiling_s)
+                pacer.sleep(waited)
+                retry_now = True            # the unguarded default: the retry follows its wait unconditionally
+                # BEGIN guard: the ladder budget is checked again after a scheduled retry's wait
+                # (the wait is Retry-After or the AIMD delay, up to the in-row threshold: a retry launched after the
+                # wait crossed `seconds` is a launch past the budget — the silent overrun `budget_exceeded_silently`
+                # counts. Not asked: the original row stays `retriable` and unretried, and the next stage or rung
+                # meets the spent budget and writes the `budget-stop` row. Fix round 2.)
+                retry_now = lb.exhausted(started, spent + pending) is None
+                # END guard: the ladder budget is checked again after a scheduled retry's wait
+                if retry_now:
+                    again = launch(pending)
+                    exempt = ()
+                    # BEGIN guard: a scheduled retry is never refused the host whose answer it waited for
+                    # (the retry comes after `waited`, which is at least every cool-down this answer started that is
+                    # no longer than it — Retry-After, else the same AIMD delay: its host is asked again, as scheduled)
+                    exempt = {f["host"] for f in cooled_now if f.get("wait_s", 0) <= waited}
+                    # END guard: a scheduled retry is never refused the host whose answer it waited for
+                    r2, exc2 = _call_rung(rung, work, ctx, gate_for(rung.route, exempt))
+                    row = _record_result(conn, ws, token, work, rung, r2, exc2, ctx, store=store, dedupe=dedupe,
+                                         agent=agent, session=session, retry_of=row["id"], ladder=again)
+                    spent += 1
+                    note(rung.route, row)
+                    printer(f"  {rung.route}: {row['status']} (scheduled retry)")
+                    aimd.on_answer(row["status"], row["codes"])
+                    # BEGIN guard: a retry's rate-limit answer cools the route too
+                    _cool_after(rung.route, row, r2, aimd, hosts_for(rung.route), bo, clock)
+                    # END guard: a retry's rate-limit answer cools the route too
         # END guard: a transient answer gets one scheduled retry, named as one
         _move_backoff(conn, ws, token, work, rung.route, row, bo)
         if row["status"] in ("ok", "measured") and _policy.decide(rung.route).tier == _policy.LEGITIMATE:
@@ -1207,13 +1392,14 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             room = max(0, (lb.attempts or len(askable)) - spent)
             asked, left = askable[:room], askable[room:]
             for g in asked:
-                _pace(pacing, g.route, pacer)
+                _pace(pacing, g.route, pacer, bo)
             launches = [launch(i) for i in range(len(asked))]
             if len(asked) > 1:
                 with ThreadPoolExecutor(max_workers=max(1, min(lb.concurrency or 1, len(asked)))) as ex:
-                    answers = list(ex.map(lambda g: _call_rung(g, work, ctx), asked))
+                    gates = {g.route: gate_for(g.route) for g in asked}
+                    answers = list(ex.map(lambda g: _call_rung(g, work, ctx, gates[g.route]), asked))
             else:
-                answers = [_call_rung(g, work, ctx) for g in asked]
+                answers = [_call_rung(g, work, ctx, gate_for(g.route)) for g in asked]
             for i, (g, (r, exc), at_launch) in enumerate(zip(asked, answers, launches)):
                 settle(g, r, exc, at_launch, answers[i + 1:])
             if left and outcome is None:
@@ -1230,9 +1416,9 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
             if s:
                 skip(g.route, s[0], s[1], _identifier(g, work))
                 continue
-            _pace(pacing, g.route, pacer)
+            _pace(pacing, g.route, pacer, bo)
             at_launch = launch()
-            r, exc = _call_rung(g, work, ctx)
+            r, exc = _call_rung(g, work, ctx, gate_for(g.route))
             settle(g, r, exc, at_launch)
         else:
             continue
@@ -1277,11 +1463,19 @@ def measure(conn, ws, token, work, *, store, agent, session, **kw):
 from litkb.acquire import stage_b as _stage_b  # noqa: E402
 
 
-def _pace(pacing, route, pacer):
-    """Wait out the route's in-run AIMD delay before asking it (0 until the route answers transiently)."""
+def _pace(pacing, route, pacer, bo=None):
+    """Wait out the route's in-run AIMD delay before asking it (0 until the route answers transiently) — never
+    longer than a row sits out (S4.5 decision D41): a longer delay is carried by its host's cool-down instead,
+    which refused that host to every work until the delay had passed (`_cool_after`, the request gate)."""
     aimd = pacing.get(route)
     if aimd is not None and aimd.delay_s > 0:
-        pacer.sleep(aimd.delay_s)
+        wait = aimd.delay_s             # the unguarded default: the whole AIMD delay, up to its 300 s ceiling
+        # BEGIN guard: a pacing wait is never sat out past the in-row threshold
+        # (the live ladder-1 run, 2026-09-24: after archive.org's 429s every later wayback ask first slept the AIMD
+        # delay — 16, 64, 63 ... 224, 300 s — whether or not the host still refused; `detail.ladder.elapsed_s`)
+        wait = min(wait, (bo or aimd.policy).in_row_wait_max_s)
+        # END guard: a pacing wait is never sat out past the in-row threshold
+        pacer.sleep(wait)
 
 
 # seam builder-C2c: Stage E's rung modules register themselves at import (E1 Wayback, E3 Internet Archive, E5 Common

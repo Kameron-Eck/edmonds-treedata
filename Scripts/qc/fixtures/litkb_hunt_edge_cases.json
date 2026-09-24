@@ -9,16 +9,17 @@
   "source": "where this row came from — a survey section, a report line, or the read-only SELECT that found it",
   "expected": "the (state, reason) pair `litkb.hunt.hunt` must answer. Absent on a held_for_ruling row: the expected state IS the ruling",
   "adjudication": "why that pair, from code file:line plus the attempts history. The auditor adds its own key beside the builder's",
-  "live": "mode (execute | waits-on-migration | replay-only | not-a-hunt), why, and whether the live run may spend. `waits-on-migration` is never written here: a row that NEEDS a migration carries `needs_migration` and the mode is decided at freeze by measuring db_migration_tip",
-  "replay": "seed + stubs for the deterministic re-run: `inputs` (hunt kwargs), `seed`, `registry`, `fetch`, `routes`, `extract`, and an optional `expected` that OVERRIDES the row's when the replay database cannot hold the live precondition",
+  "live": "mode (execute | waits-on-migration | replay-only | not-a-hunt), why, and whether the live run may spend. `waits-on-migration` is never written here: a row that NEEDS a migration carries `needs_migration` and the mode is decided at freeze by measuring db_migration_tip. `first_expected` is the row's FIRST expectation, kept when a measured pair superseded it; `superseded_expected` is the pair the ladder-1 recording replaced (S4.5 run-plan §4)",
+  "replay": "seed + stubs for the deterministic re-run: `inputs` (hunt kwargs), `seed`, `registry`, `fetch`, `routes`, `extract`, `world`, and an optional `expected` that OVERRIDES the row's when the replay database cannot hold the live precondition",
   "asserts": "extra checks beyond the pair — in_main, admission_state, new_admissions, attempt_status",
   "held_for_ruling": "question + evidence, for a row whose expected state only Kam can settle"
  },
  "_replay_stub_kinds": {
   "registry": "none (404 to everything, a TERMINAL miss) · status:<n> (one status to everything) · record (a Crossref record for this row's DOI, so admission lands in main; optional `title`/`author`/`year` carry the REAL record's fields, which a ladder row that lands a recorded PDF needs for binding) · title_gate (the frozen Crossref search body of qc/fixtures/litkb_title_gate_wrong_work.json)",
   "fetch": "explode (any call fails the row) · pdf (200 + the bytes fixture) · html (200 + builder B's real Crossref-blog fixture, declared text/html) · status:<n> (that status, no bytes)",
-  "routes": "none (acquisition must not be reached) · acquirer (a synthetic acquire() return built from `outcome` + `route_detail`) · real-oa-raises (the REAL acquire() ladder restricted to open access, with litkb.acquire.open_access.fetch_open_access raising) · ladder (S4.5 item 7: the REAL acquire() ladder, every request answered by a recorded cassette - `cassette` names a fixture index, else the run's recorded index; `routes` the routes the live pass reached; `mirrors` the Sci-Hub mirrors it was recorded against). `pending_recording` on an `acquirer` row says what recording takes it off the stub",
-  "extract": "off (extract=False) · stub (extract_and_ingest returns a fixed artifact pair; `tei`/`docling` pick the reason) · raise:<ExceptionClass>"
+  "routes": "none (acquisition must not be reached) · acquirer (a synthetic acquire() return built from `outcome` + `route_detail`) · real-oa-raises (the REAL acquire() ladder restricted to open access, with litkb.acquire.open_access.fetch_open_access raising) · ladder (S4.5 item 7: the REAL acquire() ladder, every request answered by a recorded cassette - `cassette` names a fixture index, else the run's recorded index; `routes` the routes the live pass reached; `mirrors` the Sci-Hub mirrors it was recorded against). `pending_recording` on an `acquirer` row says what recording takes it off the stub. A `ladder` row with NO `cassette` replays the live pass's recorded index, which is not in the repository: only `hardening --replay` grades it, and the edges pytest writes it `graded-by-hardening-replay` (never hunted, never a stub; S4.5 run-plan §8 Q3)",
+  "extract": "off (extract=False) · stub (extract_and_ingest returns a fixed artifact pair; `tei`/`docling` pick the reason) · raise:<ExceptionClass>",
+  "world": "the recorded row's world a fresh replay store lacks (register-editor Q1, builder-fix8): `disk` [{rel_path, sha256, evidence}] — a PDF the live ladder found ALREADY ON DISK (an attempt's `on_disk`), written under the replay's store root before the row is replayed, from the bytes THIS ROW'S RECORDING served under that sha256 (litkb_edge_run._seed_world; anything else refuses the row, named). Seeds no database state"
  },
  "vocabulary": {
   "_note": "copied from litkb.hunt at write time (2026-09-21, branch work/20260921-litkb-s3-c). qc/test_litkb_edges.py::test_the_register_vocabulary_is_hunts_own pins it against the module, so a state or a reason added to hunt.py without this file fails the suite.",
@@ -177,12 +178,23 @@
    "ref_scheme": "doi",
    "source": "held-queue `manifest:Kats_2019b_soft-staple-algorithm-combined` (Reports/held_queue_results.csv, survey-data §10 'unobtainable DOI'); litkb_reader SELECT 2026-09-21: work Kats_2019_soft-staple-algorithm-combined, 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + browser/manual-step.",
    "expected": {
-    "state": "blocked",
-    "reason": "403"
+    "state": "held",
+    "reason": "duplicate-held"
    },
    "adjudication": {
     "builder": "DEVIATION FROM THE BRIEF'S PROPOSAL, measured: no work in the corpus has all THREE routes dead. `DEAD_STATUSES['scihub']` is `{'not-in-archive'}` (acquire/run.py:42) and `scihub/not-in-archive` has ZERO rows live (survey-data §0's route/status census; re-measured 2026-09-21). So open_access and annas are dead-skipped (run.py:382-387) and Sci-Hub IS attempted — this row DOES spend. With no route landing a file, `_acquisition_stop` (hunt.py:797) finds no quota-stop, no blocked and no api-error in `route_detail` and falls through to `held/not-acquired`.",
-    "orchestrator_2026-09-21": "LIVE 2026-09-21 (manifest frozen 10:09:12Z, head 568988b): OA and annas were dead-skipped as adjudicated, and Sci-Hub was really called through the four mirrors from config — sci-hub.ru 200=blocked, sci-hub.ren 200=blocked, sci-hub.box 403=blocked, sci-hub.wf 200=no-pdf-link — so the attempt is `blocked` and the precedence rule names `blocked/403` over `held/not-acquired`. The first expectation was a PREDICTION about a remote host (flagged by the phase-2 audit before the run) and it did not hold on the day. The pair recorded here is the one the code produces for what the host answered; the UNOBTAINABLE class (a Sci-Hub `not-in-archive`) is demonstrated in replay only — no corpus work has ever received that answer."
+    "orchestrator_2026-09-21": "LIVE 2026-09-21 (manifest frozen 10:09:12Z, head 568988b): OA and annas were dead-skipped as adjudicated, and Sci-Hub was really called through the four mirrors from config — sci-hub.ru 200=blocked, sci-hub.ren 200=blocked, sci-hub.box 403=blocked, sci-hub.wf 200=no-pdf-link — so the attempt is `blocked` and the precedence rule names `blocked/403` over `held/not-acquired`. The first expectation was a PREDICTION about a remote host (flagged by the phase-2 audit before the run) and it did not hold on the day. The pair recorded here is the one the code produces for what the host answered; the UNOBTAINABLE class (a Sci-Hub `not-in-archive`) is demonstrated in replay only — no corpus work has ever received that answer.",
+    "orchestrator_2026-09-24": {
+     "run": "ladder-1 live pass, manifest _derived/hardening/hardening-1-manifest.json (frozen_at 2026-09-24T08:22:40.799077+00:00, head cd2f23b8f7b5309ddb864792804447a0c195cea2)",
+     "run_row": "L005",
+     "run_csv": "_derived/hardening/LITKB_LADDER1_2026-09-24_run.csv",
+     "run_csv_sha256": "8ddad087dc867a9e200cf1f3cdef86903ee69e2638a4b1742e025c1a648dbdb7",
+     "recording_sha256": "b5ee65d856163397429e6d249101614290ed8ae7862570cc1caa8438bf51521c",
+     "recorded_pair": "held/duplicate-held",
+     "superseded_pair": "blocked/403",
+     "cassette_take": "d7eb6246ff44",
+     "why": "RE-GRADED AGAINST THE RECORDED TRUTH (run-plan §4; the rule S4.5 decision D10 states for E13). The ladder-1 live pass (manifest hardening-1, frozen 2026-09-24T08:22:40Z; run row L005, started 08:36:45Z, 17 attempt rows) answered held/duplicate-held: the shadow tier was OFF (S4.5 decision D27) and open_access was dead-skipped; Stage B's crossref-link rung met a challenge at link.springer.com (blocked/challenge_or_bot_check), and the arxiv rung fetched arxiv.org/pdf/1910.12077 (200, the arXiv id harvested this run) whose sha256 the ladder's dedupe found ALREADY ON DISK (the attempt's detail: 'already on disk; nothing written'), so nothing was bound and `litkb.hunt._acquisition_stop` answered held/duplicate-held. Superseded: blocked/403, the Sci-Hub mirrors' answer of 2026-09-21. The row no longer demonstrates the unobtainable class (run-plan §4 names that for S4.6). Written by register-editor from the run CSV and the live ladder-1 attempt rows (litkb_reader); the orchestrator fills the two hashes when the pass ends. A replay that disagrees is the replay referee's finding, never an edit here."
+    }
    },
    "live": {
     "mode": "execute",
@@ -192,45 +204,50 @@
     "first_expected": {
      "state": "held",
      "reason": "not-acquired"
+    },
+    "superseded_expected": {
+     "state": "blocked",
+     "reason": "403"
     }
    },
    "replay": {
     "inputs": {
-     "spend": true
+     "spend": true,
+     "extract": false
     },
     "seed": null,
+    "world": {
+     "disk": [
+      {
+       "rel_path": "Validation/Kats_2019b_soft-staple-algorithm-combined.pdf",
+       "sha256": "d54e42ec8dee5e3f0193afe7c168fa2247d8fd6a9ab8c6a627d01cac672d8ae7",
+       "evidence": "ladder-1 attempt 01a0d28f-6533-7aec-86a5-12ba30e768e3 (route arxiv, status duplicate-held, at 2026-09-24T08:36:48Z, run row L005): its detail names on_disk [Validation/Kats_2019b_soft-staple-algorithm-combined.pdf] for served_sha256 d54e42ec8dee ('already on disk; nothing written') — read as litkb_reader by builder-fix8. The corpus file at that path hashes to it, and so does this row's recorded arxiv.org/pdf/1910.12077 body (take d7eb6246ff44, 603,791 B; the body the replay seeds from)"
+      }
+     ],
+     "_why": "register-editor Q1 (builder-fix8): the live row found the arXiv copy it fetched ALREADY ON DISK (litkb.acquire.run.land_and_attach's disk dedupe: an unbound topic-folder file the live store's disk index held when the row began), so it answered held/duplicate-held. A replay's store is a fresh temporary root holding nothing, so the same bytes would land and bind there. `world.disk` puts that file back — at the same rel_path, with the bytes THIS ROW'S RECORDING served under that sha256 (litkb_edge_run._seed_world refuses any other) — before the row is replayed; the replay summary names each seed (`world_seeds`). The expected pair is NOT changed by this (CLAUDE.md §3.4c)."
+    },
     "registry": {
-     "kind": "record"
+     "kind": "record",
+     "title": "A Soft STAPLE Algorithm Combined with Anatomical Knowledge",
+     "author": "Kats",
+     "year": 2019
     },
     "fetch": {
      "kind": "explode"
     },
     "routes": {
-     "kind": "acquirer",
-     "pending_recording": {
-      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
-      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
-     },
-     "outcome": "not-acquired",
-     "route_detail": [
-      {
-       "route": "open_access",
-       "status": "no-oa-copy",
-       "codes": [],
-       "exception": ""
-      },
-      {
-       "route": "annas",
-       "status": "not-in-archive",
-       "codes": [],
-       "exception": ""
-      },
-      {
-       "route": "scihub",
-       "status": "not-in-archive",
-       "codes": [],
-       "exception": ""
-      }
+     "kind": "ladder",
+     "routes": [
+      "eartharxiv",
+      "opencitations",
+      "crossref-link",
+      "openalex",
+      "doaj",
+      "openaire",
+      "hal",
+      "ncbi-idconv",
+      "s2",
+      "arxiv"
      ]
     },
     "extract": {
@@ -238,9 +255,9 @@
     },
     "expected": {
      "state": "held",
-     "reason": "not-acquired"
+     "reason": "duplicate-held"
     },
-    "_why": "the replay stubs Sci-Hub to answer like a route with no copy, which is the unobtainable class; live, the host decides"
+    "_why": "LADDER ROW (S4.5 item 7; run-plan §4): the REAL acquisition ladder replays the ladder-1 live pass's recording of this row (index row tag = this `ref`, take d7eb6246ff44) from the run's recorded index. It has no `routes.cassette` of its own, so only `hardening --replay`, handed that index, grades it; the edges pytest names it `graded-by-hardening-replay` and never hunts it (run-plan §8 Q3). `routes.routes` are this work's ladder-1 routes after frozen_at that were not skipped (a fresh replay database would ask a dead-skipped, backed-off or policy-refused route and miss the cassette): every one made a request except eartharxiv, which answered from the offline harvested map (asked, S4.5 decision D37; no request, so no miss). `inputs.extract` false because the live pass hunted with extract=False (run-plan §3). `expected` is the run CSV's pair, the same as the top-level one: the replay of a recording expects what the live pass answered (D10)."
    },
    "asserts": {}
   },
@@ -431,11 +448,22 @@
    "source": "work AllenMatthew_2026_manual-labelling-artificially-inflates, tracker 165, 0 main_files, attempts open_access/no-oa-copy + annas/not-in-archive + browser/manual-step; the fetched Apollo handle page is still at _litkb_staging/incoming/AllenMatthew_2026_manual-labelling.download, 486110 bytes of HTML (survey-data §5, §9).",
    "expected": {
     "state": "blocked",
-    "reason": "403"
+    "reason": "challenge"
    },
    "adjudication": {
     "builder": "A LANDING PAGE IS NOT THE PAPER. open_access is dead-skipped (`no-oa-copy` is in DEAD_STATUSES, run.py:42), annas is dead-skipped (`not-in-archive`), Sci-Hub is attempted. No route status here is `quota-stop`, `blocked` or `api-error`, so `_acquisition_stop`'s precedence (hunt.py:797-822) falls through to `held/not-acquired` — the one answer that says `hand a file in` rather than `retry` or `ask Kam`.",
-    "orchestrator_2026-09-21": "LIVE 2026-09-21 (manifest frozen 10:09:12Z, head 568988b): OA and annas were dead-skipped as adjudicated, and Sci-Hub was really called through the four mirrors from config — sci-hub.ru 200=blocked, sci-hub.ren 200=blocked, sci-hub.box 403=blocked, sci-hub.wf 200=no-pdf-link — so the attempt is `blocked` and the precedence rule names `blocked/403` over `held/not-acquired`. The first expectation was a PREDICTION about a remote host (flagged by the phase-2 audit before the run) and it did not hold on the day. The pair recorded here is the one the code produces for what the host answered; the UNOBTAINABLE class (a Sci-Hub `not-in-archive`) is demonstrated in replay only — no corpus work has ever received that answer."
+    "orchestrator_2026-09-21": "LIVE 2026-09-21 (manifest frozen 10:09:12Z, head 568988b): OA and annas were dead-skipped as adjudicated, and Sci-Hub was really called through the four mirrors from config — sci-hub.ru 200=blocked, sci-hub.ren 200=blocked, sci-hub.box 403=blocked, sci-hub.wf 200=no-pdf-link — so the attempt is `blocked` and the precedence rule names `blocked/403` over `held/not-acquired`. The first expectation was a PREDICTION about a remote host (flagged by the phase-2 audit before the run) and it did not hold on the day. The pair recorded here is the one the code produces for what the host answered; the UNOBTAINABLE class (a Sci-Hub `not-in-archive`) is demonstrated in replay only — no corpus work has ever received that answer.",
+    "orchestrator_2026-09-24": {
+     "run": "ladder-1 live pass, manifest _derived/hardening/hardening-1-manifest.json (frozen_at 2026-09-24T08:22:40.799077+00:00, head cd2f23b8f7b5309ddb864792804447a0c195cea2)",
+     "run_row": "L006",
+     "run_csv": "_derived/hardening/LITKB_LADDER1_2026-09-24_run.csv",
+     "run_csv_sha256": "8ddad087dc867a9e200cf1f3cdef86903ee69e2638a4b1742e025c1a648dbdb7",
+     "recording_sha256": "b5ee65d856163397429e6d249101614290ed8ae7862570cc1caa8438bf51521c",
+     "recorded_pair": "blocked/challenge",
+     "superseded_pair": "blocked/403",
+     "cassette_take": "e27c1de567ca",
+     "why": "RE-GRADED AGAINST THE RECORDED TRUTH (run-plan §4; the rule S4.5 decision D10 states for E13). The ladder-1 live pass (manifest hardening-1, frozen 2026-09-24T08:22:40Z; run row L006, started 08:36:48Z, 26 attempt rows) answered blocked/challenge: the shadow tier was OFF (S4.5 decision D27; scihub skipped policy_refused), open_access and annas were dead-skipped; Stage B asked datacite and zenodo (no PDF); Stage C's landing rung followed doi.org to the Apollo item page and found no PDF link (not-in-archive/no_pdf_link); Stage E's wayback rung answered once api-error (a 504 from the CDX API) and once blocked/not_found (no capture), ia not-in-archive/not_in_corpus, commoncrawl api-error twice (its index answered 502/504, before the Common Crawl switch-off of S4.5 decision D40). `_acquisition_stop` names the first `blocked` attempt, and with no 403 among its codes the reason is `challenge`. Superseded: blocked/403, the Sci-Hub mirrors' answer of 2026-09-21. Written by register-editor from the run CSV and the live ladder-1 attempt rows (litkb_reader); the orchestrator fills the two hashes when the pass ends. A replay that disagrees is the replay referee's finding, never an edit here."
+    }
    },
    "live": {
     "mode": "execute",
@@ -445,53 +473,56 @@
     "first_expected": {
      "state": "held",
      "reason": "not-acquired"
+    },
+    "superseded_expected": {
+     "state": "blocked",
+     "reason": "403"
     }
    },
    "replay": {
     "inputs": {
-     "spend": true
+     "spend": true,
+     "extract": false
     },
     "seed": null,
     "registry": {
-     "kind": "record"
+     "kind": "record",
+     "title": "Manual Labelling Artificially Inflates Deep Learning-Based Segmentation Performance on Red-Green-Blue Images of Closed Canopy: Validation Using Terrestrial Laser Scanning",
+     "author": "Allen, Matthew",
+     "year": 2026
     },
     "fetch": {
      "kind": "explode"
     },
     "routes": {
-     "kind": "acquirer",
-     "pending_recording": {
-      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
-      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
-     },
-     "outcome": "not-acquired",
-     "route_detail": [
-      {
-       "route": "open_access",
-       "status": "bad-file",
-       "codes": [
-        200
-       ],
-       "exception": ""
-      },
-      {
-       "route": "scihub",
-       "status": "bad-file",
-       "codes": [
-        200
-       ],
-       "exception": ""
-      }
+     "kind": "ladder",
+     "routes": [
+      "eartharxiv",
+      "opencitations",
+      "crossref-link",
+      "openalex",
+      "doaj",
+      "openaire",
+      "hal",
+      "datacite",
+      "zenodo",
+      "ncbi-idconv",
+      "s2",
+      "venue",
+      "landing",
+      "wayback",
+      "ia",
+      "commoncrawl"
      ]
     },
     "extract": {
      "kind": "off"
     },
     "expected": {
-     "state": "held",
-     "reason": "not-acquired"
+     "state": "blocked",
+     "reason": "challenge"
     },
-    "_why": "the replay stubs Sci-Hub to answer like a route with no copy, which is the unobtainable class; live, the host decides"
+    "_why": "LADDER ROW (S4.5 item 7; run-plan §4): the REAL acquisition ladder replays the ladder-1 live pass's recording of this row (index row tag = this `ref`, take e27c1de567ca) from the run's recorded index. It has no `routes.cassette` of its own, so only `hardening --replay`, handed that index, grades it; the edges pytest names it `graded-by-hardening-replay` and never hunts it (run-plan §8 Q3). `routes.routes` are this work's ladder-1 routes after frozen_at that were not skipped (a fresh replay database would ask a dead-skipped, backed-off or policy-refused route and miss the cassette): every one made a request except eartharxiv, which answered from the offline harvested map (asked, S4.5 decision D37; no request, so no miss). `inputs.extract` false because the live pass hunted with extract=False (run-plan §3). `expected` is the run CSV's pair, the same as the top-level one: the replay of a recording expects what the live pass answered (D10)."
    },
    "asserts": {}
   },
@@ -725,61 +756,76 @@
    "ref_scheme": "doi",
    "source": "acquisition_attempts: open_access/blocked http_codes {403} twice AND scihub/blocked twice, work Pfitzmann_2022_doclaynet-large-human-annotated, workstream improve-review-1 (survey-data §7 '403 / challenge'). litkb_reader SELECT 2026-09-21: in main, 0 main_files.",
    "expected": {
-    "state": "blocked",
-    "reason": "403"
+    "state": "bound-unextracted",
+    "reason": "fresh-bound"
    },
    "adjudication": {
-    "builder": "`blocked` is NOT in DEAD_STATUSES for any route (acquire/run.py:42), so both routes are attempted again. `_acquisition_stop`'s precedence (hunt.py:797-822): no `quota-stop`, then the first `blocked` wins, and 403 vs challenge is decided by whether that attempt's `http_codes` hold a 403 — this work's do. A1 added `route_detail` to acquire()'s return precisely so the codes reach this rule (builder-A1.md §5 item 8)."
+    "builder": "`blocked` is NOT in DEAD_STATUSES for any route (acquire/run.py:42), so both routes are attempted again. `_acquisition_stop`'s precedence (hunt.py:797-822): no `quota-stop`, then the first `blocked` wins, and 403 vs challenge is decided by whether that attempt's `http_codes` hold a 403 — this work's do. A1 added `route_detail` to acquire()'s return precisely so the codes reach this rule (builder-A1.md §5 item 8).",
+    "orchestrator_2026-09-24": {
+     "run": "ladder-1 live pass, manifest _derived/hardening/hardening-1-manifest.json (frozen_at 2026-09-24T08:22:40.799077+00:00, head cd2f23b8f7b5309ddb864792804447a0c195cea2)",
+     "run_row": "L002",
+     "run_csv": "_derived/hardening/LITKB_LADDER1_2026-09-24_run.csv",
+     "run_csv_sha256": "8ddad087dc867a9e200cf1f3cdef86903ee69e2638a4b1742e025c1a648dbdb7",
+     "recording_sha256": "b5ee65d856163397429e6d249101614290ed8ae7862570cc1caa8438bf51521c",
+     "recorded_pair": "bound-unextracted/fresh-bound",
+     "superseded_pair": "blocked/403",
+     "cassette_take": "d5db13986c83",
+     "why": "RE-GRADED AGAINST THE RECORDED TRUTH (S4.5 decision D10, by name). The ladder-1 live pass (manifest hardening-1, frozen 2026-09-24T08:22:40Z; run row L002, started 08:34:47Z, 17 attempt rows) answered bound-unextracted/fresh-bound: Stage A's publisher-url (dl.acm.org) and open_access (doi.org) each met the ACM challenge (blocked/challenge_or_bot_check, 403), Stage B harvested arXiv 2206.01062 and its arxiv rung landed arxiv.org/pdf/2206.01062 (200, 4,310,680 bytes), which was bound as a fact; the pass ran with extract=False (run-plan §3, --no-extract), so the file is bound and not extracted. Superseded: blocked/403 (the S3 expectation, confirmed live 2026-09-21). Written by register-editor from the run CSV and the live ladder-1 attempt rows (litkb_reader); the orchestrator fills the two hashes when the pass ends. A replay that disagrees is the replay referee's finding, never an edit here."
+    }
    },
    "live": {
     "mode": "execute",
     "why": "both routes really answer; the host is expected to refuse this client again",
-    "spend": true
+    "spend": true,
+    "first_expected": {
+     "state": "blocked",
+     "reason": "403"
+    },
+    "superseded_expected": {
+     "state": "blocked",
+     "reason": "403"
+    }
    },
    "replay": {
     "inputs": {
-     "spend": true
+     "spend": true,
+     "extract": false
     },
     "seed": null,
     "registry": {
-     "kind": "record"
+     "kind": "record",
+     "title": "DocLayNet: A Large Human-Annotated Dataset for Document-Layout Segmentation",
+     "author": "Pfitzmann",
+     "year": 2022
     },
     "fetch": {
      "kind": "explode"
     },
     "routes": {
-     "kind": "acquirer",
-     "pending_recording": {
-      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
-      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
-     },
-     "outcome": "not-acquired",
-     "route_detail": [
-      {
-       "route": "open_access",
-       "status": "blocked",
-       "codes": [
-        200,
-        200,
-        403,
-        403
-       ],
-       "exception": ""
-      },
-      {
-       "route": "scihub",
-       "status": "blocked",
-       "codes": [
-        200,
-        200
-       ],
-       "exception": ""
-      }
+     "kind": "ladder",
+     "routes": [
+      "eartharxiv",
+      "publisher-url",
+      "open_access",
+      "opencitations",
+      "crossref-link",
+      "openalex",
+      "doaj",
+      "openaire",
+      "hal",
+      "ncbi-idconv",
+      "s2",
+      "arxiv"
      ]
     },
     "extract": {
      "kind": "off"
-    }
+    },
+    "expected": {
+     "state": "bound-unextracted",
+     "reason": "fresh-bound"
+    },
+    "_why": "LADDER ROW (S4.5 item 7; run-plan §4): the REAL acquisition ladder replays the ladder-1 live pass's recording of this row (index row tag = this `ref`, take d5db13986c83) from the run's recorded index. It has no `routes.cassette` of its own, so only `hardening --replay`, handed that index, grades it; the edges pytest names it `graded-by-hardening-replay` and never hunts it (run-plan §8 Q3). `routes.routes` are this work's ladder-1 routes after frozen_at that were not skipped (a fresh replay database would ask a dead-skipped, backed-off or policy-refused route and miss the cassette): every one made a request except eartharxiv, which answered from the offline harvested map (asked, S4.5 decision D37; no request, so no miss). `inputs.extract` false because the live pass hunted with extract=False (run-plan §3). `expected` is the run CSV's pair, the same as the top-level one: the replay of a recording expects what the live pass answered (D10)."
    },
    "asserts": {}
   },
@@ -1057,7 +1103,15 @@
     "inputs": {
      "extract": false
     },
-    "inputs_why": "the live path passes exactly these to hunt(); extract=False is the ruling (litkb-book-policy / S4 owns extraction), not a convenience"
+    "inputs_why": "the live path passes exactly these to hunt(); extract=False is the ruling (litkb-book-policy / S4 owns extraction), not a convenience",
+    "first_expected": {
+     "state": "blocked",
+     "reason": "403"
+    },
+    "superseded_expected": {
+     "state": "blocked",
+     "reason": "403"
+    }
    },
    "ruling": {
     "ruled_by": "Kam",
@@ -1070,10 +1124,21 @@
    },
    "expected": {
     "state": "blocked",
-    "reason": "403"
+    "reason": "challenge"
    },
    "adjudication": {
-    "builder": "[orchestrator, S3 wrap-up 2026-09-21, from the MEASURED live pair - no prediction was adjudicated here; an auditor may add its key] MEASURED, not derived: the pair the first live hunt produced. The attempts history was EMPTY before it (no route had ever been tried on the corpus's one book). After it, open_access/no-oa-copy and annas/not-in-archive are DEAD statuses (acquire/run.py DEAD_STATUSES) and are skipped; Sci-Hub is really attempted and answered blocked on every mirror that day, so the pair is a PREDICTION about a remote host, like E03/E07 - flagged as such. The unobtainable class (a Sci-Hub not-in-archive) is the replay's expectation."
+    "builder": "[orchestrator, S3 wrap-up 2026-09-21, from the MEASURED live pair - no prediction was adjudicated here; an auditor may add its key] MEASURED, not derived: the pair the first live hunt produced. The attempts history was EMPTY before it (no route had ever been tried on the corpus's one book). After it, open_access/no-oa-copy and annas/not-in-archive are DEAD statuses (acquire/run.py DEAD_STATUSES) and are skipped; Sci-Hub is really attempted and answered blocked on every mirror that day, so the pair is a PREDICTION about a remote host, like E03/E07 - flagged as such. The unobtainable class (a Sci-Hub not-in-archive) is the replay's expectation.",
+    "orchestrator_2026-09-24": {
+     "run": "ladder-1 live pass, manifest _derived/hardening/hardening-1-manifest.json (frozen_at 2026-09-24T08:22:40.799077+00:00, head cd2f23b8f7b5309ddb864792804447a0c195cea2)",
+     "run_row": "L003",
+     "run_csv": "_derived/hardening/LITKB_LADDER1_2026-09-24_run.csv",
+     "run_csv_sha256": "8ddad087dc867a9e200cf1f3cdef86903ee69e2638a4b1742e025c1a648dbdb7",
+     "recording_sha256": "b5ee65d856163397429e6d249101614290ed8ae7862570cc1caa8438bf51521c",
+     "recorded_pair": "blocked/challenge",
+     "superseded_pair": "blocked/403",
+     "cassette_take": "9106b2e71f1e",
+     "why": "RE-GRADED AGAINST THE RECORDED TRUTH (run-plan §4; the rule S4.5 decision D10 states for E13). The ladder-1 live pass (manifest hardening-1, frozen 2026-09-24T08:22:40Z; run row L003, started 08:34:52Z, 25 attempt rows) answered blocked/challenge: the shadow tier was OFF (S4.5 decision D27; scihub skipped policy_refused), open_access and annas were dead-skipped; Stage C's landing rung fetched the Taylor & Francis PREVIEW behind citation_pdf_url and booked it bad-file/stub_not_article, never bound (the plan's NEGATIVE; `asserts.attempt_status`); Stage E's wayback rung answered blocked/not_found, ia not-in-archive/not_in_corpus, commoncrawl api-error twice (502/504, before the Common Crawl switch-off of S4.5 decision D40). `_acquisition_stop` names the first `blocked` attempt, and with no 403 among its codes the reason is `challenge`. The stub_not_article sub-status is not an assert the edge grader can read (`_asserts_offences`); the replay referee compares it from the attempt rows. Superseded: blocked/403, the Sci-Hub mirrors' answer of 2026-09-21. Written by register-editor from the run CSV and the live ladder-1 attempt rows (litkb_reader); the orchestrator fills the two hashes when the pass ends. A replay that disagrees is the replay referee's finding, never an edit here."
+    }
    },
    "replay": {
     "inputs": {
@@ -1082,49 +1147,46 @@
     },
     "seed": null,
     "registry": {
-     "kind": "record"
+     "kind": "record",
+     "title": "Multi-State Survival Models for Interval-Censored Data",
+     "author": "van den Hout",
+     "year": 2016
     },
     "fetch": {
      "kind": "explode"
     },
     "routes": {
-     "kind": "acquirer",
-     "pending_recording": {
-      "why": "graded by `_acquirer_stub`, a synthetic return built from this row's own route_detail: no route runs and no attempt row is written (S4.5 item 7). Counted by replay_rows_graded_against_stubs until its recording exists; the recording is not faked",
-      "until": "the orchestrator's live pass in workstream ladder-1 records this row's cassette in RECORD mode (S4.5 decision D9); then `routes.kind` becomes `ladder` with `routes.routes` set to the routes that pass actually reached, and the row is re-graded against the recorded truth (item 7; decision D10 for E13)"
-     },
-     "outcome": "not-acquired",
-     "route_detail": [
-      {
-       "route": "open_access",
-       "status": "no-oa-copy",
-       "codes": [],
-       "exception": ""
-      },
-      {
-       "route": "annas",
-       "status": "not-in-archive",
-       "codes": [],
-       "exception": ""
-      },
-      {
-       "route": "scihub",
-       "status": "not-in-archive",
-       "codes": [],
-       "exception": ""
-      }
+     "kind": "ladder",
+     "routes": [
+      "eartharxiv",
+      "opencitations",
+      "crossref-link",
+      "openalex",
+      "doaj",
+      "openaire",
+      "hal",
+      "ncbi-idconv",
+      "s2",
+      "venue",
+      "landing",
+      "wayback",
+      "ia",
+      "commoncrawl"
      ]
     },
     "extract": {
      "kind": "off"
     },
     "expected": {
-     "state": "held",
-     "reason": "not-acquired"
+     "state": "blocked",
+     "reason": "challenge"
     },
-    "_why": "the live pair blocked/403 is a fact about the Sci-Hub mirrors on 2026-09-21; the replay demonstrates the UNOBTAINABLE class instead (every route answers not-in-archive / no-oa-copy) and expects held/not-acquired, as E03 does - both expectations are in the register and both are graded"
+    "_why": "LADDER ROW (S4.5 item 7; run-plan §4): the REAL acquisition ladder replays the ladder-1 live pass's recording of this row (index row tag = this `ref`, take 9106b2e71f1e) from the run's recorded index. It has no `routes.cassette` of its own, so only `hardening --replay`, handed that index, grades it; the edges pytest names it `graded-by-hardening-replay` and never hunts it (run-plan §8 Q3). `routes.routes` are this work's ladder-1 routes after frozen_at that were not skipped (a fresh replay database would ask a dead-skipped, backed-off or policy-refused route and miss the cassette): every one made a request except eartharxiv, which answered from the offline harvested map (asked, S4.5 decision D37; no request, so no miss). `inputs.extract` false because the live pass hunted with extract=False (run-plan §3). `expected` is the run CSV's pair, the same as the top-level one: the replay of a recording expects what the live pass answered (D10)."
    },
-   "source": "work VanDenHout_2016_multi-state-survival-models (main_works.type='book', doi 10.1201/9781315374321, tracker 443), 0 files, attempts EMPTY until the first live hunt 2026-09-21 (workstream title-hunts-1; Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E20). survey-data section 5."
+   "source": "work VanDenHout_2016_multi-state-survival-models (main_works.type='book', doi 10.1201/9781315374321, tracker 443), 0 files, attempts EMPTY until the first live hunt 2026-09-21 (workstream title-hunts-1; Reports/LITKB_TITLE_HUNTS_2026-09-21.csv row E20). survey-data section 5.",
+   "asserts": {
+    "attempt_status": "bad-file"
+   }
   },
   {
    "id": "E21",

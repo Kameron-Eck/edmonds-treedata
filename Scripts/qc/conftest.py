@@ -141,6 +141,13 @@ def pytest_terminal_summary(terminalreporter):
             line += (f"  <- {counts['skipped']} SKIPPED: litkb server/role/psycopg absent, "
                      "so those guards were NOT tested")
         terminalreporter.write_line(line)
+    # BEGIN guard: a register row the edges pytest did not replay is named in the summary
+    # S4.5 run-plan §8 Q3: the rows the live pass recorded are graded by `hardening --replay` only. The edges
+    # pytest names and counts them (`qc/test_litkb_edges.py`); this line says so on every run that reached
+    # them, the way the skip count above says which guards were NOT tested.
+    for note in getattr(terminalreporter.config, "_litkb_named_outcomes", None) or ():
+        terminalreporter.write_line(note)
+    # END guard: a register row the edges pytest did not replay is named in the summary
 
 
 # ── no test reaches the network (S4.5 item 7; brief-COMMON rule 11) ──────────────────────────

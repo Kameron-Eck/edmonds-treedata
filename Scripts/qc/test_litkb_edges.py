@@ -401,12 +401,138 @@ def test_a_waiting_row_is_skipped_live_and_executed_in_replay(A, E, tmp_path):
 def test_the_replay_expectation_may_override_and_both_are_recorded(E, register):
     """A freshly migrated database cannot hold a precondition only the live corpus has (E05's
     answer turns on a PROPOSED work admitted months ago). Such a row carries `replay.expected`,
-    which overrides for the replay ALONE — both are in the register, and both are graded."""
+    which overrides for the replay ALONE — both are in the register, and both are graded.
+
+    A row the live pass RECORDED is the opposite case (S4.5 run-plan §4; decision D10's rule): its replay
+    replays that recording, so its `replay.expected` IS the live pair — the run CSV's — and an override that
+    differed would be a register expecting the replay to contradict the recording it replays."""
     over = [r for r in E.rows_of(register) if (r.get("replay") or {}).get("expected")]
     assert over, "no row exercises the override"
+    assert [r for r in over if not E.graded_by_hardening_replay(r)], "no row exercises a DIFFERING override"
     for row in over:
-        assert E.expected_of(row) != E.expected_of(row, replay=True), row["id"]
+        if E.graded_by_hardening_replay(row):
+            assert E.expected_of(row) == E.expected_of(row, replay=True), row["id"]
+        else:
+            assert E.expected_of(row) != E.expected_of(row, replay=True), row["id"]
         assert (row["replay"].get("_why") or "").strip(), row["id"]
+
+
+# ── the rows the live pass recorded: graded by `hardening --replay` only (S4.5 run-plan §8 Q3) ─────────────
+
+#: The register rows the ladder-1 live pass RECORDED, converted from the synthetic acquirer by the register-editor
+#: from the run CSV (run-plan §4). E16 stays on the synthetic acquirer: it is replay-only and no live recording of
+#: it can exist (run-plan §8 Q2). Pinned HERE, not derived from `litkb_edge_run.graded_by_hardening_replay`: a
+#: predicate that widened or narrowed would move a derived set with it.
+RECORDED_BY_LADDER_1 = {"E03", "E07", "E13", "E20"}
+
+
+class _UntouchableConn:
+    """A connection a row named `graded-by-hardening-replay` never reaches: the replay decides that before any
+    database work, so ANY use of this object means the row went on to be hunted."""
+
+    def __getattr__(self, name):
+        raise AssertionError(f"the replay touched the database ({name}): the row was hunted, not named")
+
+
+def _no_hunt(**kw):
+    raise AssertionError(f"hunt() was called for {kw.get('ref')}: the row was hunted, not named")
+
+
+def _routes(row):
+    return (row.get("replay") or {}).get("routes") or {}
+
+
+def test_the_register_holds_exactly_the_rows_ladder_1_recorded(E, register):
+    """The conversion, read off the register's own structure: the four rows are `ladder` rows with no cassette of
+    their own, carry the routes the live pass reached, and carry no pending marker; E16 alone stays on the stub."""
+    rows = E.rows_of(register)
+    ladder_no_cassette = {r["id"] for r in rows if _routes(r).get("kind") == "ladder" and not _routes(r).get("cassette")}
+    assert ladder_no_cassette == RECORDED_BY_LADDER_1, ladder_no_cassette
+    assert {r["id"] for r in rows if E.graded_by_hardening_replay(r)} == RECORDED_BY_LADDER_1
+    assert {r["id"] for r in rows if _routes(r).get("kind") == "acquirer"} == {"E16"}
+    for r in rows:
+        if r["id"] in RECORDED_BY_LADDER_1:
+            assert not _routes(r).get("pending_recording"), r["id"]
+            assert _routes(r).get("routes"), r["id"]
+            assert (r["replay"].get("registry") or {}).get("title"), r["id"]
+            assert (r["live"].get("superseded_expected") or {}).get("state"), r["id"]
+            assert (r["adjudication"].get("orchestrator_2026-09-24") or {}).get("run_row"), r["id"]
+
+
+def test_a_recorded_row_replayed_with_no_run_index_is_named_and_never_hunted(E, register, tmp_path):
+    """Q3's outcome, on the four REAL rows: with no run index handed to the replay, each is written
+    `graded-by-hardening-replay` with an EMPTY observed pair — no database touched, no hunt called, no
+    synthetic acquirer — and its message says who grades it."""
+    by_id = {r["id"]: r for r in E.rows_of(register)}
+    for rid in sorted(RECORDED_BY_LADDER_1):
+        out = E.replay_row(by_id[rid], conn=_UntouchableConn(), db="litkb_test_unused", tmp=str(tmp_path),
+                           hunt=_no_hunt, defer_recorded=True)
+        assert out["acquirer"] == E.GRADED_BY_HARDENING_REPLAY, out
+        assert (out["traceback"], out["observed_state"], out["observed_reason"], out["attempt_statuses"],
+                out["seconds"]) == ("0", "", "", "", ""), out
+        assert "hardening --replay" in out["message"], out
+
+
+def test_only_the_edges_flag_defers_and_only_a_recorded_row_with_no_index(E, register, tmp_path):
+    """Every case here must go on to be HUNTED — the untouchable connection says so: the gate's call (no flag),
+    a replay handed the run's index, the stub row E16, and a CONSTRUCTED copy of E13 carrying a cassette of its
+    own (a fixture index, the way the constructed register's rows do)."""
+    by_id = {r["id"]: r for r in E.rows_of(register)}
+    own = json.loads(json.dumps(by_id["E13"]))
+    own["id"] = "E13-CONSTRUCTED-OWN-CASSETTE"
+    own["replay"]["routes"]["cassette"] = "litkb_cassettes/constructed_scihub_403/index.jsonl"
+    cases = [("the gate's call, no flag", by_id["E13"], None, False),
+             ("the run's index handed over", by_id["E13"], object(), True),
+             ("a synthetic-acquirer row", by_id["E16"], None, True),
+             ("a ladder row with its own cassette", own, None, True)]
+    for what, row, cassette, flag in cases:
+        with pytest.raises(AssertionError, match="the row was hunted, not named"):
+            E.replay_row(row, conn=_UntouchableConn(), db="litkb_test_unused", tmp=str(tmp_path / row["id"]),
+                         hunt=_no_hunt, cassette=cassette, defer_recorded=flag)
+            pytest.fail(f"{what}: {row['id']} was named graded-by-hardening-replay")
+
+
+def test_a_named_row_that_reaches_the_grader_is_a_mismatch_never_a_pass(A, E, register, tmp_path):
+    """FAIL-CLOSED at the grader: the gate never defers, but a CSV row carrying the word that reached the
+    `edges` grader anyway (what `hardening --replay` grades with) compares an EMPTY observed pair with the
+    register's and is refused — the word is not an answer."""
+    row = {r["id"]: r for r in E.rows_of(register)}["E07"]
+    out = E.replay_row(row, conn=_UntouchableConn(), db="litkb_test_unused", tmp=str(tmp_path), hunt=_no_hunt,
+                       defer_recorded=True)
+    path = _csv(E, tmp_path / "replay.csv", [out])
+    manifest, _p = _manifest(tmp_path, [row], path)
+    counters, offences = A.check_edges(manifest, rows=[row], csv_path=path, replay=True)
+    assert counters["executed"] == 1 and counters["state_or_reason_mismatches"] == 1, counters
+    assert any(o.startswith("E07: observed /") for o in offences), offences
+    assert not A.edges_ok(counters, 1)
+
+
+def test_the_named_rows_are_printed_in_the_terminal_summary(E):
+    """Never silent: the note the register replay leaves on the config is written by the suite's terminal
+    summary (qc/conftest.py, loaded by path — qc is not a package), and nothing is written without one."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_conftest_named_outcomes", Path(__file__).with_name("conftest.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    class _Reporter:
+        def __init__(self, notes):
+            self.stats, self.lines = {}, []
+            self.config = type("Cfg", (), {})()
+            if notes is not None:
+                self.config._litkb_named_outcomes = notes
+
+        def write_line(self, line):
+            self.lines.append(line)
+
+    note = f"litkb edges: {E.GRADED_BY_HARDENING_REPLAY}=4 (E03 E07 E13 E20)"
+    rep = _Reporter([note])
+    mod.pytest_terminal_summary(rep)
+    assert rep.lines == [note], rep.lines
+    quiet = _Reporter(None)
+    mod.pytest_terminal_summary(quiet)
+    assert quiet.lines == [], quiet.lines
 
 
 # ── the driver's resume rule ───────────────────────────────────────────────────────────────
@@ -460,12 +586,18 @@ def test_a_replay_handed_a_connection_neither_locks_nor_resets(E, tmp_path):
 # ── the replay, end to end on the worker database ──────────────────────────────────────────
 
 @pg_only
-def test_the_register_replays_on_a_worker_database(A, E, register, tmp_path, litkb_pg_base):
+def test_the_register_replays_on_a_worker_database(A, E, register, tmp_path, litkb_pg_base, request):
     """EVERY non-held row of the real register, re-run against its own stubs on LITKB_TEST_DB.
 
     This is the proof the register is adjudicated rather than asserted: each row's expected pair
     is produced by the real `litkb.hunt.hunt` with the world replaced at the seams the hunt suite
     already uses. Every row must match — E06 included, since builder B's HTML branch landed.
+
+    EXCEPT THE ROWS THE LIVE PASS RECORDED (S4.5 run-plan §8 Q3). E03 E07 E13 E20 replay the ladder-1
+    recorded index, which is not in the repository, so here they are written `graded-by-hardening-replay`
+    (`defer_recorded=True`) — NAMED in the CSV, COUNTED against `RECORDED_BY_LADDER_1`, printed in the
+    terminal summary, never hunted and never put on the synthetic acquirer — and `hardening --replay`, which
+    is handed the index, grades them (fail-closed there: with no index they are its named tracebacks).
 
     THE FIXTURE'S CONNECTION IS PASSED IN, and it has to be: `litkb_pg_base` holds the suite's
     advisory lock for the whole pytest session, so a replay that opened its own connection would
@@ -488,21 +620,37 @@ def test_the_register_replays_on_a_worker_database(A, E, register, tmp_path, lit
     _psycopg, conn, _ran = litkb_pg_base
     out = tmp_path / "replay.csv"
     try:
-        E.run_replay(register, out, db=db, tmp=str(tmp_path), conn=conn)
+        E.run_replay(register, out, db=db, tmp=str(tmp_path), conn=conn, defer_recorded=True)
     finally:
         from litkb.db import migrate
 
         migrate.reset(conn)
         migrate.apply(conn)
+    written = E.existing_rows(out)
+    hunt_rows = [r for r in E.rows_of(register) if E.is_hunt_row(r)]
+
+    # Q3: the recorded rows — named, counted, printed; never hunted, never on the stub
+    named = sorted(r["row_id"] for r in written if r["acquirer"] == E.GRADED_BY_HARDENING_REPLAY)
+    assert set(named) == RECORDED_BY_LADDER_1, named
+    for r in written:
+        if r["row_id"] in RECORDED_BY_LADDER_1:
+            assert (r["traceback"], r["observed_state"], r["attempt_statuses"]) == ("0", "", ""), r
+            assert "hardening --replay" in r["message"], r
+    stubs = {r["row_id"] for r in written if r["acquirer"] == "stub"}
+    assert stubs == {r["id"] for r in hunt_rows if _routes(r).get("kind") == "acquirer"} == {"E16"}, stubs
+    request.config._litkb_named_outcomes = list(getattr(request.config, "_litkb_named_outcomes", None) or []) + [
+        f"litkb edges: {E.GRADED_BY_HARDENING_REPLAY}={len(named)} ({' '.join(named)}) <- recorded by the "
+        "ladder-1 live pass: NOT replayed here; `hardening --replay` grades them against the recorded index"]
+
+    graded = [r for r in E.rows_of(register) if r["id"] not in RECORDED_BY_LADDER_1]
     manifest = {"kind": "litkb-edges", "db": db, "db_migration_tip": 28,
                 "fixture": str(FIXTURE), "fixture_sha256": A._register_sha256(FIXTURE),
-                "rows": [{"id": r["id"], "mode": E.resolve_mode(r, 28)}
-                         for r in E.rows_of(register)],
+                "rows": [{"id": r["id"], "mode": E.resolve_mode(r, 28)} for r in graded],
                 "run_csv": str(out), "replay_csv": str(out)}
-    counters, offences = A.check_edges(manifest, csv_path=str(out), replay=True)
+    counters, offences = A.check_edges(manifest, rows=graded, csv_path=str(out), replay=True)
     assert counters["tracebacks"] == 0, offences
     assert counters["skipped"] == 0, offences
     assert counters["state_or_reason_mismatches"] == 0, offences
     assert offences == [], offences
-    assert counters["executed"] == len(
-        [r for r in E.rows_of(register) if E.is_hunt_row(r)]), counters
+    assert counters["executed"] == len(hunt_rows) - len(named), counters
+    assert counters["executed"] + len(named) == len(written), (counters, len(written))

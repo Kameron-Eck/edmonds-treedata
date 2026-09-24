@@ -2623,8 +2623,8 @@ is asked, nothing lands twice), `source` (EVERY selector that chose it, in selec
 selector's reason, `;`-joined), `work_id`, `key`. Deduplicated BY WORK; a resolved work is hunted by its
 own stored identifier (DOI, else arXiv). The selectors, in order: `register` (register rows E13 E21 E06
 E20) · `pending-recording` (every register row carrying `replay.routes.pending_recording` whose live mode
-is `execute` — E03 E07 E13 E20 today: each must be RECORDED to come off the synthetic acquirer; E16 is
-replay-only) · `ruled` (ruled-run tracker rows 187, 194 — every leg) · `ruled-registry-transient` (ruled-run rows
+is `execute` — each must be RECORDED to come off the synthetic acquirer; E03 E07 E13 E20 were, by the ladder-1
+pass, and none is left (the register-editor section below); E16 is replay-only) · `ruled` (ruled-run tracker rows 187, 194 — every leg) · `ruled-registry-transient` (ruled-run rows
 that ended `api-error/registry-transient`) · `post-freeze-probe` (10.1016/j.rse.2024.114101, named by
 the plan) · `free-pdf` (head probe `verdict` FREE-PDF) · `wayback` (head probe `status` 404: an advertised
 URL gone dead) · `bronze-landing` (no-oa-copy probe `unpaywall_url` on doi.org) · `no-oa-copy` (every
@@ -2784,7 +2784,8 @@ row `traceback=1`, message `CassetteMiss: …`). **The register gains** `replay.
 the routes the live pass reached; `mirrors`: the Sci-Hub mirrors it was recorded against),
 `replay.registry` `record` fields `title`/`author`/`year` (the real record's, for a ladder row that binds
 a recorded PDF), and `replay.routes.pending_recording` (`why`, `until`) on every row still on the
-synthetic acquirer (E03 E07 E13 E16 E20; E16's says no live recording can exist).
+synthetic acquirer (E16 alone since the ladder-1 recording converted E03 E07 E13 E20 — the register-editor
+section below; E16's says no live recording can exist).
 
 ## Builder A's hardening counters (`qc/instruments/litkb_hardening_a.py`)
 
@@ -2835,6 +2836,63 @@ folder beside the index, `constructed_scihub_html`); the known-bads mutate row C
 **A yield line that asked no row** (`yield: <route>=<converted>/0`) is not a measurement and does not
 count: the plan asks every Stage B rung of every `no-oa-copy` row, so `=0/0` says the rung was asked of
 nobody (`litkb_hardening_a.yields`). `=0/35` is a measured zero.
+
+### The replay's world (S4.5 decisions D42, D46; auditor-fix7 F3 and N1; register-editor Q1 — builder-fix8)
+
+A replayed `ladder` row reproduces the world its recording was made in, not only the answers (`litkb_edge_run`):
+
+- **The policy (D42).** For a row replayed under a REPLAY-mode cassette, every pre-fetch policy line of a route the row
+  names in `replay.routes.routes` (the routes its recorded take asked, filled from the live attempts) that carries an
+  `off_why` is switched ON for that row's `acquire` call only (`litkb_edge_run._recorded_policy`; the module table is
+  patched for the call and restored, never edited). A route the row does not name keeps its switch; the shadow tier
+  keeps its own. Under a RECORD cassette (the live pass) or none, nothing is switched: the switch cannot be reached
+  from a live run. Each line switched is named per row in the replay summary's `policy_switches` and on stderr
+  (`policy switched on for the replay: row=<id> <route>/<host>`). The four ladder-1 register rows: E07 and E20 were
+  recorded before Common Crawl's D39/D40 switch, so both of that route's lines are switched on for them.
+- **The clock (F3).** Each replayed row gets its own virtual clock (`litkb_edge_run._ReplayClock`): the replay's pacers
+  never wait, and every sleep the ladder asks for moves that clock by exactly its length. The ladder reads its pacer's
+  clock for the in-run host cool-downs (the cool-down per host, builder-fix7's section), so a cool-down started inside a
+  replayed row ends where it ended live and identical answers give identical rows on a fast or a slow machine.
+- **The budget (D42).** A replayed row's `policy.LadderBudget` is the one the live hunt resolved — over the WHOLE ladder
+  (`hunt._default_acquire` asks `run.ladder_routes()`), 505 s / 48 attempts / concurrency 8 on every ladder-1 register
+  row's `detail.ladder.budget` — not one resolved over the row's `routes.routes` alone; its seconds are read on the
+  row's virtual clock (`litkb_edge_run._replay_budget`).
+- **The disk (register-editor Q1).** `replay.world.disk` = [{`rel_path`, `sha256`, `evidence`}] names a PDF the live
+  ladder found ALREADY ON DISK for the row (an attempt's `detail.on_disk` on a `duplicate-held` answer). Before the row
+  is replayed the file is written at `rel_path` under the replay's store root with the bytes THIS ROW'S recorded take
+  served under that sha256 (`litkb_edge_run._seed_world`, reading the cassette's own integrity-checked body). Refused —
+  the row a named traceback (`the replay world could not be seeded`), nothing hunted — when the rel_path is absolute
+  or leaves the store root, when no entry of the row's latest take stored a body under that sha256 (another row's
+  bytes, a scrubbed body), or when the stored body is missing or altered (a counted miss). Each seed is named in the
+  replay summary's `world_seeds` ({`row`, `rel_path`, `sha256`, `bytes`}) and on stderr. E03 carries one (its live
+  arxiv fetch was `duplicate-held` against the corpus's Validation file Kats_2019b_soft-staple-algorithm-combined.pdf).
+
+**The replay summary gains** `policy_switches` ({`row`, `route`, `host`, `off_why`, `ruling`}) and `world_seeds`
+(above), both inside `summary_sha256`. **REPORTED**: `replay_policy_switches` (`litkb_hardening_a`) — the summary's
+`policy_switches`, counted; its DETAILS name each row and line. **The register gains** `replay.world` (`disk`, `_why`).
+
+**LIMITS, named (not built):**
+- **Redirect hops (auditor-fix7 N1).** A cassette entry records the REQUESTED url (`key.url`), whether redirects were
+  followed (`key.follow`), and the FINAL answer of a followed chain (status, headers, body) — never the final URL and
+  never the hops (measured: no entry of the ladder-1 index carries any response key but `status`, `headers`,
+  `cookies_set`, `body`). A replaying client answers without urllib, so no hop reaches the request gate and
+  `backoff.Gate.after` credits the host that was ASKED: a publisher's 429/503 recorded behind a followed `doi.org`
+  redirect would cool `doi.org` in a replay where it cooled the publisher live. The four ladder-1 register rows'
+  takes hold no 429 and no 503 at all (measured), so no cool-down is started in their replays by either host; Stage
+  C walks its redirects itself (`follow` false: each hop is its own recorded entry, credited to its own host).
+- **Cool-downs from EARLIER rows.** A replayed row starts with an empty host table: a row the live run skipped
+  because an earlier row had cooled a host would ask it in the replay. None of the four register rows ran under the
+  cool-down code (recorded before it landed; their live attempts carry no `cooldown`/`cooldown_skipped`, measured).
+- **Latency.** The budget's seconds count only the waits the ladder slept; a live `budget-stop` that host latency
+  caused is not reproduced.
+- **The rest of the live work's state.** The replay admits the work fresh from the recorded registry record (the live
+  row found it held in main, with more identifiers), and `routes.routes` leaves out the routes the live row skipped;
+  a sha256 the live dedupe matched in the DATABASE (`held_as_file`) is not seeded — no converted row has one (E03's
+  sha256 is in no `litkb.files` row, read as litkb_reader).
+
+Tests: `qc/test_litkb_s45_replay_world.py` (9; CONSTRUCTED recordings at urllib's opener seam and on a loopback
+server, the REAL ladder through the replay's acquirer; the same row replayed on a fast and a slow machine); mutation
+rows FX8a–FX8l in `qc/instruments/litkb_p2_mutations.py`.
 
 <!-- S4.5 builder B1 (identifier model, migration 0032): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
 
@@ -3438,7 +3496,8 @@ A LIMIT, deferred to the D42 replay (auditor-fix7 F3): a replayed row runs on th
 monotonic clock), so a cool-down started INSIDE one replayed row runs in wall-clock seconds while none of the row's
 waits pass, and a row the live run skipped because an EARLIER row cooled the host starts cold in the replay. The
 replay's fix (a virtual clock, or refusing exactly the URLs the recorded row names in `cooldown_skipped`) is the D42
-replay work's.
+replay work's. BUILT for the first half (builder-fix8: the replay's virtual clock, "The replay's world" in builder A's
+block); the second half (a cool-down an EARLIER row started) stays a named limit there.
 
 Tests: `qc/test_litkb_s45_cooldown.py` (25; the independent auditor's checks adopted — auditor-fix7; a LOOPBACK
 redirect server for F1: CONSTRUCTED stubs on a worker database, a controllable pacer clock; the
@@ -4108,3 +4167,33 @@ on this corpus as UNDETERMINED (never eligible), not zero: its condition held fo
 about what the rung would convert.
 
 <!-- end of S4.5 integrator-w3 section -->
+
+<!-- S4.5 register-editor (run-plan §4 "Who edits the register" + §8 Q3): its SCHEMAS rows go between this marker and the next; the orchestrator removes the markers at landing -->
+
+### The register rows the ladder-1 live pass recorded (S4.5 run-plan §4; register-editor)
+
+E03 E07 E13 E20 (`qc/fixtures/litkb_hunt_edge_cases.json`) are `ladder` rows graded against the ladder-1 recording
+(the rule S4.5 decision D10 states for E13). Per row: `replay.routes` = {`kind`: `ladder`, `routes`: the routes of
+that work's ladder-1 attempt rows after `frozen_at` that were not skips — a fresh replay database would ASK a
+dead-skipped, backed-off or policy-refused route and miss the cassette; `eartharxiv` answers from the offline harvested
+map (asked, S4.5 decision D37) with no request, and is kept}; no `routes.cassette` (the run's recorded index answers);
+`replay.registry` `record` with the real main record's `title`, first author's `family` as `author`, `year`;
+`replay.inputs.extract` false (the live pass hunted with extract=False); the expected pair, top-level AND
+`replay.expected`, is the run CSV's (`state`, `reason`); `live.superseded_expected` is the pair it replaced and
+`live.first_expected` the row's first expectation (kept where the row already had one); `adjudication`
+`orchestrator_2026-09-24` = {`run`, `run_row` (the manifest's L id), `run_csv`, `run_csv_sha256`,
+`recording_sha256` (both written as the literal `<<ORCHESTRATOR-FILLS-AT-RUN-END>>` until the pass ends),
+`recorded_pair`, `superseded_pair`, `cassette_take` (the index take of the row's tag), `why`}. E20 also asserts
+`attempt_status` `bad-file` (its preview, never bound). `replay.routes.pending_recording` is gone from all four.
+
+**The edge CSV's `acquirer` gains `graded-by-hardening-replay`** (`litkb_edge_run.GRADED_BY_HARDENING_REPLAY`,
+S4.5 run-plan §8 Q3): written ONLY by `litkb_edge_run.run_replay(..., defer_recorded=True)` — the edges pytest's
+call — for a register row the live pass recorded (`litkb_edge_run.graded_by_hardening_replay`: `routes.kind`
+`ladder` with no `routes.cassette`) when the replay was handed NO run index. The row is not hunted and the database
+is not touched; `traceback` 0, `observed_state`/`observed_reason` EMPTY, `message` naming `hardening --replay`. The
+edges pytest counts these rows against its pinned set and the suite's terminal summary prints them (a `litkb edges:`
+line). The gate never writes it: `hardening --replay` replays with the recorded index, and without one each such
+row is the named no-cassette traceback its summary counts in `replay_rows_disagreeing`; a CSV row carrying the word
+that reaches the `edges` grader is a pair mismatch (its pair is empty) — fail-closed both ways.
+
+<!-- end of S4.5 register-editor section -->

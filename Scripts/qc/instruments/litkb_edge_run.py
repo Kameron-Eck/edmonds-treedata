@@ -85,6 +85,24 @@ EDGE_CSV_COLUMNS = ("row_id", "class", "mode", "ref", "ref_scheme",
 #: `real-oa-raises` the real ladder with one route made to raise, `none` no acquirer installed.
 ACQUIRER_TAG = "_litkb_acquirer"
 
+#: The `acquirer` word for a register row ONLY `hardening --replay` can grade (S4.5 run-plan §8 Q3, accepted by the
+#: orchestrator). A row the live pass RECORDED is a `ladder` row with no `routes.cassette` of its own
+#: (:func:`graded_by_hardening_replay`): it replays from the run's recorded index, which is not in the repository
+#: (untracked on the recording machine, its PDF bodies never tracked), so a replay handed no run index cannot
+#: answer it. `run_replay(..., defer_recorded=True)` — the edges pytest's call, and no other — writes such a row
+#: with this word and hunts nothing: the row is NAMED in the CSV and the caller COUNTS it; it is never put on the
+#: synthetic acquirer. Without the flag (`hardening --replay`, `edges --replay`) the row stays the named traceback
+#: of the guard "a ladder row is answered by its recorded cassette or not at all", and a CSV row carrying this word
+#: that reaches the `edges` grader anyway is a pair mismatch (its observed pair is empty): fail-closed both ways.
+GRADED_BY_HARDENING_REPLAY = "graded-by-hardening-replay"
+
+
+def graded_by_hardening_replay(row):
+    """Is `row` a register row the live pass recorded — `replay.routes.kind` `ladder` with no `routes.cassette`
+    of its own — so that only a replay handed the run's recorded index (`hardening --replay`) can grade it?"""
+    routes = (row.get("replay") or {}).get("routes") or {}
+    return routes.get("kind") == "ladder" and not routes.get("cassette")
+
 
 def _tagged(fn, what):
     setattr(fn, ACQUIRER_TAG, what)
@@ -495,14 +513,18 @@ def _replay_open_session(key_file=None, client=None):
     return (c, REPLAY_ANNAS_KEY) if ok else (None, None)
 
 
-def _ladder_acquirer(spec):
+def _ladder_acquirer(spec, switched=None):
     """The REAL `litkb.acquire.run.acquire` (S4.5 item 7) — the function `hunt._default_acquire`
     calls — run under whatever cassette `litkb.cassette.use` has installed, so every `Client` a route
     builds replays from it. What differs from a live hunt, and only this: the pacers do not sleep
-    (timing is not part of an answer), the archive login uses the stand-in key
-    (`_replay_open_session`), `routes` may name the routes the LIVE run actually reached (a route the
-    live database dead-skipped was never recorded, and a fresh replay database has no attempt to
-    skip it on), and `mirrors` pins the Sci-Hub mirrors the recording was made against.
+    (timing is not part of an answer) and read the row's own virtual clock (`_ReplayClock`, auditor-fix7
+    F3), the ladder budget is the live hunt's read on that clock (`_replay_budget`), the archive login
+    uses the stand-in key (`_replay_open_session`), `routes` may name the routes the LIVE run actually
+    reached (a route the live database dead-skipped was never recorded, and a fresh replay database has
+    no attempt to skip it on), a policy line switched off after the recording is switched on again for
+    exactly those routes when a REPLAY cassette is in force (`_recorded_policy`, S4.5 decision D42 —
+    each line named on the returned function's `switched` list, or on `switched` when the caller hands
+    its own), and `mirrors` pins the Sci-Hub mirrors the recording was made against.
 
     A pinned mirror is also NAMED to the ladder's pre-fetch policy (`_pinned_mirror_policy`; seam
     integrator-w1, A x C1a): since S4.5 the ladder asks `litkb.acquire.policy.decide` for every mirror
@@ -514,6 +536,7 @@ def _ladder_acquirer(spec):
     def _acquire(conn, ws_id, token, work, *, store, agent, session):
         import contextlib
 
+        from litkb.acquire import policy as P
         from litkb.acquire import run as R
 
         with contextlib.ExitStack() as stack:
@@ -521,14 +544,71 @@ def _ladder_acquirer(spec):
             if mirrors:
                 stack.enter_context(mock.patch("litkb.config.SCIHUB_MIRRORS", mirrors))
                 stack.enter_context(mock.patch("litkb.acquire.policy.POLICY", _pinned_mirror_policy(mirrors)))
+            # S4.5 decision D42: the policy the recording was made under, for THIS row only (`_recorded_policy`):
+            # a route this row's recorded take asked is not refused by a line switched off after the recording
+            policy, on = _recorded_policy(routes)
+            if on:
+                stack.enter_context(mock.patch.object(P, "POLICY", policy))
+                _acquire.switched.extend(on)
             # a row that names no routes replays the ladder the live hunt asks (`hunt._default_acquire`: every
             # registered rung, `run.ladder_routes` — seam integrator-w2), not only today's three. `pacing={}`: a
             # replay reproduces ONE recorded row, so it starts from a cold per-route state — another row's recorded
-            # 429/503 must not cool a route for this one (S4.5 decision D41's cool-down lives in `pacing`)
+            # 429/503 must not cool a route for this one (S4.5 decision D41's cool-down lives in `pacing`). ONE
+            # virtual clock for the row (`_ReplayClock`, auditor-fix7 F3): the pacers and the budget read it, so a
+            # cool-down started inside the row runs in the row's own slept seconds, never in wall time
+            clock = _ReplayClock()
             return R.acquire(conn, ws_id, token, work, store=store, agent=agent, session=session,
-                             routes=routes or R.ladder_routes(), pacer=_no_wait_pacer(),
-                             annas_pacer=_no_wait_pacer(), printer=lambda *a, **k: None, pacing={})
+                             routes=routes or R.ladder_routes(), pacer=_no_wait_pacer(clock),
+                             annas_pacer=_no_wait_pacer(clock), printer=lambda *a, **k: None, pacing={},
+                             ladder_budget=_replay_budget(clock))
+    #: every policy line a call of this acquirer switched on (S4.5 decision D42) — `replay_row` reads it after the
+    #: hunt, off the acquirer it INSTALLED, and the replay summary names each one
+    _acquire.switched = switched if switched is not None else []
     return _tagged(_acquire, "ladder")
+
+
+#: S4.5 decision D42, word for word in what the replay summary records beside each line it switches on.
+D42_RULING = ("S4.5 decision D42: the replay reproduces the world a recording was made in, policy included — a "
+              "route this row's recorded take asked is switched on for this row's replay only")
+
+
+def _recorded_policy(routes):
+    """S4.5 decision D42 (register-editor Q2): the pre-fetch policy a REPLAYED row runs under -> (policy, switched).
+
+    The live pass recorded some rows before a policy line was switched off (D39/D40: Common Crawl's two hosts,
+    `PolicyLine.off_why`, landed MID-RUN). Such a row's recorded take ASKED that route — it is in the row's
+    `replay.routes.routes`, filled from the live attempts — and today's table refuses it before its cassette is ever
+    read: the replay would record `skipped/policy_refused` where the recording holds answers, and every recorded
+    request of that route would be stale. So for exactly the routes the row names, every line carrying an `off_why`
+    is returned ON (`off_why` cleared), and `switched` names each one ({route, host, off_why, ruling}) for the replay
+    summary. Nothing else changes: a route the row does not name keeps its switch, the shadow tier keeps its own.
+
+    REPLAY ONLY, and it cannot be reached from a live run: the switch is granted only while the cassette in force
+    (`litkb.cassette.active`) is in REPLAY mode — every request of the row is then answered from the recording and
+    none can leave the machine. Under a RECORD cassette (a live pass) or none, the table is returned unchanged and
+    nothing is switched. The caller installs the table for ONE row's `acquire` call and restores it after
+    (`mock.patch.object`); the module table is never edited."""
+    import dataclasses
+
+    from litkb import cassette as C
+    from litkb.acquire import policy as P
+
+    policy = P.POLICY
+    cas = C.active()
+    # BEGIN guard: a policy line is switched on only for a replayed row, never outside a replay
+    if cas is None or cas.mode != "replay":
+        return policy, []
+    # END guard: a policy line is switched on only for a replayed row, never outside a replay
+    named = set(routes or ())
+    switched, out = [], []
+    for line in policy:
+        # BEGIN guard: only the routes this row's recording asked are switched on
+        if line.off_why and line.route in named:
+            switched.append({"route": line.route, "host": line.host, "off_why": line.off_why, "ruling": D42_RULING})
+            line = dataclasses.replace(line, off_why="")
+        # END guard: only the routes this row's recording asked are switched on
+        out.append(line)
+    return tuple(out), switched
 
 
 def _pinned_mirror_policy(mirrors):
@@ -550,6 +630,67 @@ def _pinned_mirror_policy(mirrors):
                                       "a Sci-Hub mirror a replayed register row pins (litkb_edge_run)",
                                       P.SHADOW_CORPUS_FROZEN_AT))
     return P.POLICY + tuple(extra)
+
+
+class WorldSeedRefused(Exception):
+    """A row's `replay.world` could not be put in place faithfully: the replay of that row is refused, named."""
+
+
+def _seed_world(world, root, cassette, tag):
+    """Put the recorded row's WORLD in place before it is replayed (register-editor Q1, builder-fix8). -> [the
+    facts seeded], each {rel_path, sha256, bytes}.
+
+    `world.disk` lists the PDFs the live ladder found ALREADY ON DISK for this row — the attempt detail's `on_disk`
+    for a `duplicate-held` answer (`litkb.acquire.run.land_and_attach`'s disk dedupe), each {rel_path, sha256,
+    evidence}. The live disk index held them when the row began (`acquire` builds it first); a replay's store is a
+    fresh temporary root that holds nothing, so the same served bytes would land and bind there, and the replay
+    would grade a world the recording was not made in. Each file is written at its rel_path under the replay's
+    store root with the bytes THIS ROW'S RECORDING served under that sha256 (its cassette body, integrity-checked by
+    the cassette itself) — the bytes the live dedupe matched, since the dedupe key IS the sha256.
+
+    Fails closed (`WorldSeedRefused`, the row is a named traceback and nothing is hunted) when: there is no
+    cassette; a rel_path is absolute or leaves the root; no entry of this row's recorded take served that sha256
+    (a seed must be bytes THIS ROW's recording holds — never a body another row served, never bytes from
+    elsewhere); its stored body is missing or altered (`litkb.cassette.CassetteBodyMissing`, also a counted
+    miss). WHAT IT DOES NOT SEED: a sha256 the live dedupe matched in the DATABASE (`held_as_file`) — no converted
+    row has one (E03's live match was on disk; its sha256 is in no `litkb.files` row, read as litkb_reader) — and the
+    rest of the live work's state (its identifiers, its earlier attempts): the replay admits the work fresh from the
+    recorded registry record, and `replay.routes.routes` leaves out the routes the live row skipped."""
+    from litkb import cassette as C
+
+    disk = list((world or {}).get("disk") or [])
+    if not disk:
+        return []
+    if cassette is None:
+        raise WorldSeedRefused("a replay world is seeded from the row's recording, and this row has no cassette")
+    root = Path(root).resolve()
+    row = C._norm_row(tag)
+    seeded = []
+    for d in disk:
+        rel, sha = str(d.get("rel_path") or ""), str(d.get("sha256") or "").lower()
+        dst = (root / rel).resolve()
+        # BEGIN guard: a seeded file lands inside the replay's own store root
+        if not rel or Path(rel).is_absolute() or root not in dst.parents:
+            raise WorldSeedRefused(f"world.disk rel_path {rel!r} is not a path inside the replay's store root")
+        # END guard: a seeded file lands inside the replay's own store root
+        # the STORED body's sha256: a body the recorder scrubbed (a registered secret inside it) is stored under
+        # another name than the bytes the live disk held, and so never matches
+        served = [e for e in cassette.entries if e.get("row", "") == row
+                  and ((e.get("response") or {}).get("body") or {}).get("sha256") == sha]
+        source = None               # the unguarded default: whatever body the store holds under that name
+        # BEGIN guard: a seeded file is bytes this row's recording served
+        if not served:
+            raise WorldSeedRefused(f"world.disk {rel}: no entry of row {row!r}'s recorded take served sha256 "
+                                   f"{sha[:12]} — a replay world holds only bytes the recording holds")
+        source = served[0]
+        # END guard: a seeded file is bytes this row's recording served
+        # `Cassette._body` fails closed on a stored body that is missing or no longer hashes to its name (a counted
+        # miss, `litkb.cassette.CassetteBodyMissing`)
+        data = cassette._body(source) if source is not None else cassette.body_path(sha).read_bytes()
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(data)
+        seeded.append({"rel_path": rel, "sha256": sha, "bytes": len(data)})
+    return seeded
 
 
 def _row_cassette(spec, run_cassette):
@@ -666,16 +807,20 @@ def _seed(conn, ws_id, spec, row):
     return {"key": key, "work_id": str(work_id), "file_id": str(file_id), "run_id": str(run_id)}
 
 
-def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cassettes_used=None):
+def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cassettes_used=None,
+               defer_recorded=False, policy_switches=None, world_seeds=None):
     """One register row, re-run against stubs on the worker database. -> the CSV row dict.
 
     `cassette` is the run's recorded index (a replay-mode `litkb.cassette.Cassette`) that `ladder`
     rows without one of their own replay from; `guard` is the `litkb.cassette.SocketGuard` the whole
     replay runs inside, read here only to count this row's share of its attempts. `cassettes_used`
     (a list, optional) collects every cassette a row replayed from — the run's AND a row's own — so
-    the caller's staleness diff reads all of them (auditor-A round 1, F1)."""
-    from litkb import workstream
-
+    the caller's staleness diff reads all of them (auditor-A round 1, F1). `defer_recorded` (the edges
+    pytest only): a row the live pass recorded, replayed with no run index, is written
+    :data:`GRADED_BY_HARDENING_REPLAY` and not hunted — before the database is touched.
+    `policy_switches` and `world_seeds` (lists, optional) collect, per row, every policy line the replay
+    switched on for it (S4.5 decision D42, `_recorded_policy`) and every file its `replay.world` put on the
+    replay's disk (`_seed_world`, register-editor Q1) — the replay summary names both."""
     if hunt is None:
         import litkb.hunt as H
         hunt = H.hunt
@@ -683,6 +828,19 @@ def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cass
     rp = row.get("replay") or {}
     inputs = dict(rp.get("inputs") or {})
     out = _base_row(row, "replay", replay=True)
+    # BEGIN guard: a recorded row with no run index is named graded-by-hardening-replay, never hunted
+    # S4.5 run-plan §8 Q3. The row's answer lives in the live pass's recorded index; with no index there is
+    # nothing honest to replay it against. Hunting it would end in the no-cassette traceback below, and
+    # answering it from the synthetic acquirer would grade a stub the register no longer names. So it is
+    # written as its own outcome — the `acquirer` column says so, the observed pair stays EMPTY (a grader
+    # that reads this row compares an empty pair and refuses it), and the caller counts it by name.
+    if defer_recorded and cassette is None and graded_by_hardening_replay(row):
+        out["acquirer"] = GRADED_BY_HARDENING_REPLAY
+        out["message"] = (f"{row['id']} replays the live pass's recorded index, which this replay was not "
+                          "handed: graded by `hardening --replay` only, and not hunted here")
+        return out
+    # END guard: a recorded row with no run index is named graded-by-hardening-replay, never hunted
+    from litkb import workstream
 
     root = Path(tmp) / f"lit_{row['id']}"
     (root / "Validation").mkdir(parents=True, exist_ok=True)
@@ -738,6 +896,19 @@ def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cass
         # END guard: a ladder row is answered by its recorded cassette or not at all
         if cassettes_used is not None and not any(c is row_cassette for c in cassettes_used):
             cassettes_used.append(row_cassette)
+        # register-editor Q1: the world the live row met on disk, from the ledger's facts and the recording's bytes
+        seeded = []                 # the unguarded default: the replay's fresh store, holding nothing
+        # BEGIN guard: a recorded row's world is in place before it is replayed
+        try:
+            seeded = _seed_world(rp.get("world"), root, row_cassette, row.get("ref"))
+        except Exception as e:      # noqa: BLE001 — WorldSeedRefused, CassetteBodyMissing: never hunted, named
+            out["traceback"] = "1"
+            out["acquirer"] = "ladder"
+            out["message"] = f"{row['id']}: the replay world could not be seeded — {type(e).__name__}: {e}"[:500]
+            return out
+        # END guard: a recorded row's world is in place before it is replayed
+        if world_seeds is not None:
+            world_seeds.extend(dict(s, row=row["id"]) for s in seeded)
         kwargs["acquirer"] = _ladder_acquirer(routes)
     elif rkind != "none":
         raise ValueError(f"litkb_edge_run: unknown routes kind {rkind!r}")
@@ -808,6 +979,9 @@ def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cass
         for p in reversed(patches):
             p.stop()
     out["seconds"] = round(time.monotonic() - t0, 2)
+    if policy_switches is not None:
+        # the policy lines this row's replay switched on (S4.5 decision D42), read off the acquirer INSTALLED
+        policy_switches.extend(dict(s, row=row["id"]) for s in getattr(kwargs.get("acquirer"), "switched", ()))
     out["new_admissions"] = max(
         0, conn.execute("SELECT count(*) FROM litkb.admissions").fetchone()[0] - before)
     out["network_calls"] = (len(guard.blocked) - net_before) if guard is not None else ""
@@ -837,15 +1011,78 @@ def _exception_class(name):
     return cls if isinstance(cls, type) and issubclass(cls, BaseException) else RuntimeError
 
 
-def _no_wait_pacer():
+class _ReplayClock:
+    """THE REPLAY'S CLOCK (auditor-fix7 F3, S4.5 decision D46): a virtual monotonic clock that moves ONLY when the
+    replayed ladder sleeps. A replay never waits (timing is not an answer), but the ladder's in-run host cool-down
+    (S4.5 decisions D41, D44, D45: `litkb.acquire.backoff.HostCooldowns`) and the ladder budget read a clock — and
+    the pacer's clock is the one `litkb.acquire.run.acquire` reads. With the real `time.monotonic` behind a pacer
+    that does not sleep, a cool-down started inside a replayed row ran in WALL seconds while none of the row's
+    sleeps passed: the same recorded answers gave a different row on a fast machine than on a slow one (auditor-fix7
+    measured it: a 503 Retry-After 5 on archive.org left the next IA rung `skipped/backoff_window` in the replay
+    where the live shape asked it). Here every sleep advances the clock by exactly what the live ladder would have
+    waited, so a cool-down ends where it ended live and identical answers give identical rows. The live ladder's own
+    clock (`netutil.Pacer`'s default, the real one) is untouched: this class lives in the replay instrument only."""
+
+    #: an arbitrary start: every reader takes differences of this clock, never its value
+    START = 1000.0
+
+    def __init__(self, start=START):
+        self.t = float(start)
+        self.slept = []
+
+    def __call__(self):
+        return self.t
+
+    def sleep(self, seconds):
+        s = max(0.0, float(seconds or 0.0))
+        self.slept.append(s)
+        # BEGIN guard: a replayed row's clock moves by exactly what the ladder slept
+        self.t += s
+        # END guard: a replayed row's clock moves by exactly what the ladder slept
+
+
+def _no_wait_pacer(clock=None):
+    """A pacer that never waits, on the replay's virtual clock (`_ReplayClock`; auditor-fix7 F3): its sleeps move
+    that clock instead of the process. One clock per replayed row — `_ladder_acquirer` hands the same one to the
+    ladder's pacer, the archive pacer and the ladder budget."""
     from litkb.netutil import Pacer
 
-    return Pacer(interval=0, sleep=lambda s: None)
+    clock = clock if clock is not None else _ReplayClock()
+    return Pacer(interval=0, sleep=clock.sleep, clock=clock)
+
+
+def _replay_budget(clock):
+    """The ladder budget a replayed row runs under: the one the LIVE hunt resolved, read on the replay's clock.
+
+    The live pass's hunt asks the WHOLE ladder (`litkb.hunt._default_acquire`: `routes=run.ladder_routes()`), so its
+    `policy.LadderBudget` resolves attempts and concurrency over every registered rung — every ladder-1 register row
+    recorded `detail.ladder.budget` = {seconds 505, attempts 48, concurrency 8} (read as litkb_reader, builder-fix8).
+    A replay asks only the routes the live pass reached (`replay.routes.routes`), and resolving over those alone
+    shrank the attempts budget (E03's 10 routes -> 20) — a world the recording was not made in (S4.5 decision D42).
+    Its seconds are read on the replay's virtual clock (auditor-fix7 F3): the waits the ladder slept count, the
+    hosts' own latency does not (a replay has none) — a live budget-stop that latency caused is not reproduced, a
+    named limit (docs/SCHEMAS.md, builder-fix8)."""
+    from litkb.acquire import policy as P
+    from litkb.acquire import run as R
+
+    budget = P.LadderBudget(clock=clock)     # the unguarded default: resolved over the row's own routes by `acquire`
+    # BEGIN guard: a replayed row's budget is the whole ladder's the live hunt resolved
+    whole = P.LadderBudget().resolved(R.ladder_rungs(R.ladder_routes()))
+    budget = P.LadderBudget(seconds=whole.seconds, attempts=whole.attempts, concurrency=whole.concurrency, clock=clock)
+    # END guard: a replayed row's budget is the whole ladder's the live hunt resolved
+    return budget
 
 
 def run_replay(register, out_csv, *, db, tmp, only=None, hunt=None, db_tip=None, conn=None,
-               cassette=None, guard=None, cassettes_used=None):
-    """Every non-held, hunt-shaped row, on a WORKER database.
+               policy_switches=None, world_seeds=None,
+               cassette=None, guard=None, cassettes_used=None, defer_recorded=False):
+    """Every non-held, hunt-shaped row, on a WORKER database. `policy_switches` / `world_seeds`: `replay_row`'s.
+
+    `defer_recorded` is the EDGES PYTEST's flag and nobody else's (S4.5 run-plan §8 Q3): with no run
+    `cassette`, a row the live pass recorded (:func:`graded_by_hardening_replay`) is written
+    :data:`GRADED_BY_HARDENING_REPLAY` instead of hunted, and the caller names and counts it. The gate
+    (`hardening --replay`, `litkb_hardening_a.build_replay_summary`) never passes it: there such a row with no
+    index is the named no-cassette traceback, and its summary counts it disagreeing.
 
     `conn` IS NOT AN OPTIMISATION — IT IS THE DEADLOCK. `qc/conftest.py`'s `litkb_pg_base` resets
     and migrates the worker database ONCE per pytest session and then HOLDS
@@ -887,7 +1124,9 @@ def run_replay(register, out_csv, *, db, tmp, only=None, hunt=None, db_tip=None,
                     continue
                 written.append(replay_row(row, conn=conn, db=db, tmp=tmp, hunt=hunt,
                                           cassette=cassette, guard=guard,
-                                          cassettes_used=cassettes_used))
+                                          cassettes_used=cassettes_used,
+                                          defer_recorded=defer_recorded,
+                                          policy_switches=policy_switches, world_seeds=world_seeds))
                 write_csv(out_csv, written)
     finally:
         if own:

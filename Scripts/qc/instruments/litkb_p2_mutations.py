@@ -2525,6 +2525,71 @@ replace("S45A46", CASSETTE,
 block("S45A47", HARDA, "guard: rows not replayed of a recording that does not exist are unread, never 0",
       "`cassette_rows_not_replayed` reads a vacuous 0 when no recording exists (round 2 note F5)",
       tests=TESTS_HARD)
+# -- register-editor (S4.5 run-plan §8 Q3: the edges pytest's named outcome for the rows the ladder-1 live pass
+#    recorded, E03 E07 E13 E20; the gate `hardening --replay` stays fail-closed) --
+block("S45Q3a", EDGERUN, "guard: a recorded row with no run index is named graded-by-hardening-replay, never hunted",
+      "a row the live pass recorded, replayed with no run index, is HUNTED instead of named: the edges pytest's "
+      "register replay turns it into the no-cassette traceback (and a replay that reached the database for it "
+      "at all is the defect Q3 exists to prevent)", tests=TESTS_EDGES)
+replace("S45Q3b", EDGERUN, '    return routes.get("kind") == "ladder" and not routes.get("cassette")\n',
+        '    return routes.get("kind") in ("ladder", "acquirer") and not routes.get("cassette")\n',
+        "the named outcome widens to a synthetic-acquirer row: E16 (replay-only, on the stub) is named "
+        "graded-by-hardening-replay and silently leaves the replay it is graded in", tests=TESTS_EDGES)
+replace("S45Q3c", EDGERUN, '    return routes.get("kind") == "ladder" and not routes.get("cassette")\n',
+        '    return routes.get("kind") == "ladder"\n',
+        "the named outcome widens to a ladder row with a cassette OF ITS OWN (a fixture index in the repository, "
+        "the constructed register's shape): a row every checkout can replay is named and never replayed",
+        tests=TESTS_EDGES)
+replace("S45Q3d", EDGERUN, "               cassette=None, guard=None, cassettes_used=None, defer_recorded=False):\n",
+        "               cassette=None, guard=None, cassettes_used=None, defer_recorded=True):\n",
+        "the GATE defers too (`run_replay`'s default flipped): `hardening --replay` with no recorded index writes "
+        "the four recorded rows graded-by-hardening-replay instead of its named no-cassette tracebacks",
+        tests=TESTS_HARD)
+block("S45Q3e", CONFTEST, "guard: a register row the edges pytest did not replay is named in the summary",
+      "the terminal summary stops naming the recorded rows the edges pytest did not replay: every `pytest qc` "
+      "run passes with four register rows ungraded and nothing said", tests=TESTS_EDGES)
+# -- builder-fix8 (the replay's world: S4.5 decisions D42, D46 / auditor-fix7 F3; register-editor Q1). The FX8
+#    rows' reds are in qc/test_litkb_s45_replay_world.py; the DB-backed ones need LITKB_TEST_DB --
+TESTS_FIX8 = ["qc/test_litkb_s45_replay_world.py"]
+block("FX8a", EDGERUN, "guard: a replayed row's clock moves by exactly what the ladder slept",
+      "the replay's virtual clock never moves: a cool-down started inside a replayed row never ends, so the IA rung "
+      "the recording ASKED is refused `skipped/backoff_window` in the replay (auditor-fix7 F3, the other way round)",
+      tests=TESTS_FIX8)
+replace("FX8b", EDGERUN, "    return Pacer(interval=0, sleep=clock.sleep, clock=clock)\n",
+        "    return Pacer(interval=0, sleep=lambda s: None)\n",
+        "auditor-fix7 F3 reinstated: the replay's pacer reads the REAL clock again, so one recorded row replays "
+        "differently on a fast machine (IA refused) and a slow one (IA asked)", tests=TESTS_FIX8)
+block("FX8c", EDGERUN, "guard: a replayed row's budget is the whole ladder's the live hunt resolved",
+      "a replayed row's ladder budget is resolved over its own `routes.routes` (E03's 10 routes -> 20 attempts), not "
+      "the whole ladder's 48 the live hunt ran under (S4.5 decision D42: the world a recording was made in)",
+      tests=TESTS_FIX8)
+block("FX8d", EDGERUN, "guard: a policy line is switched on only for a replayed row, never outside a replay",
+      "S4.5 decision D42's switch reaches outside a replay: under a RECORD cassette (the live pass) the replay's "
+      "acquirer asks Common Crawl, which the policy table has switched off (D39)", tests=TESTS_FIX8)
+block("FX8e", EDGERUN, "guard: only the routes this row's recording asked are switched on",
+      "no line is switched on: a row recorded while Common Crawl was on (E07, E20) replays `skipped/policy_refused` "
+      "and every recorded Common Crawl request is stale (register-editor Q2, S4.5 decision D42)", tests=TESTS_FIX8)
+replace("FX8f", EDGERUN, "        if line.off_why and line.route in named:\n", "        if line.off_why:\n",
+        "the switch widens to EVERY line switched off, whatever the row's recording asked: a row that never asked "
+        "Common Crawl asks it in its replay (D42: 'exactly the routes that row's recorded take ASKED')",
+        tests=TESTS_FIX8)
+replace("FX8g", EDGERUN, "                _acquire.switched.extend(on)\n", "                pass\n",
+        "a policy line switched on for a row is not NAMED: the replay summary's `policy_switches` stays empty while "
+        "the row ran under a table that is not today's (D42: 'named in the replay summary')", tests=TESTS_FIX8)
+replace("FX8h", HARDA, '        "policy_switches": switches,\n', '        "policy_switches": [],\n',
+        "the replay summary drops the per-row switches the replay made (D42)", tests=TESTS_FIX8)
+block("FX8i", EDGERUN, "guard: a recorded row's world is in place before it is replayed",
+      "the replay's store stays empty: E03's live `duplicate-held` (bytes already on disk) replays as a fresh bind "
+      "(register-editor Q1), and a seed the recording does not hold is never refused", tests=TESTS_FIX8)
+block("FX8j", EDGERUN, "guard: a seeded file lands inside the replay's own store root",
+      "a `replay.world.disk` rel_path that leaves the store root (`../x.pdf`) is written outside it and the row is "
+      "hunted", tests=TESTS_FIX8)
+block("FX8k", EDGERUN, "guard: a seeded file is bytes this row's recording served",
+      "a seed is written from ANY body the store holds under that sha256 — another row's bytes — and the row is "
+      "replayed in a world its own recording never held", tests=TESTS_FIX8)
+replace("FX8l", HARDA, '        "world_seeds": seeds,\n', '        "world_seeds": [],\n',
+        "the replay summary stops naming the files a row's world put on the replay's disk (register-editor Q1)",
+        tests=TESTS_FIX8)
 # ==== end S4.5 builder A rows ====
 
 

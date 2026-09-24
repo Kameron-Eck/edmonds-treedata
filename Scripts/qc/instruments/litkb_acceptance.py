@@ -3181,6 +3181,13 @@ def cmd_hardening(args):
             stale_n = "unread"
         for r in s.get("rows_not_replayed") or []:
             print(f"recorded, not replayed: row={r['row']} entries={r['entries']}", file=sys.stderr)
+        # S4.5 decision D42 / register-editor Q1: what the replay changed in a row's world, each named
+        for p in s.get("policy_switches") or []:
+            print(f"policy switched on for the replay: row={p['row']} {p['route']}/{p['host']} (S4.5 decision D42)",
+                  file=sys.stderr)
+        for w in s.get("world_seeds") or []:
+            print(f"world seeded for the replay: row={w['row']} {w['rel_path']} sha256={w['sha256'][:12]} "
+                  f"({w['bytes']} B, from the row's recording)", file=sys.stderr)
         try:
             not_replayed_n = HA.count_rows_not_replayed(s)
         except HA.Unread:

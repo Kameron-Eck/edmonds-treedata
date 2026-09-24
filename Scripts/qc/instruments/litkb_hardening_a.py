@@ -309,8 +309,9 @@ def build_replay_summary(conn, *, register, register_path, db, workdir, cassette
     workdir = Path(workdir)
     out_csv = Path(out_csv or workdir / "replay.csv")
     used = [cassette] if cassette is not None else []
+    switches, seeds = [], []
     E.run_replay(register, out_csv, db=db, tmp=str(workdir), conn=conn, cassette=cassette, guard=guard,
-                 cassettes_used=used)
+                 cassettes_used=used, policy_switches=switches, world_seeds=seeds)
     rows = E.rows_of(register)
     manifest = {"kind": "litkb-edges", "db": db, "db_migration_tip": None,
                 "rows": [{"id": r["id"], "mode": E.resolve_mode(r, None)} for r in rows],
@@ -350,6 +351,12 @@ def build_replay_summary(conn, *, register, register_path, db, workdir, cassette
         "stale": stale,
         "rows_not_replayed": not_replayed,
         "row_cassette_misses": row_misses,
+        # S4.5 decision D42: every pre-fetch policy line a replayed row ran with switched ON because its recording
+        # asked that route before the line was switched off ({row, route, host, off_why, ruling}) — named, per row
+        "policy_switches": switches,
+        # register-editor Q1 (builder-fix8): every file a row's `replay.world` put on the replay's disk before it
+        # was replayed ({row, rel_path, sha256, bytes}), from the recording's own bytes
+        "world_seeds": seeds,
     }
     summary["summary_sha256"] = summary_sha(summary)
     return summary
@@ -526,6 +533,13 @@ def cassette_record_errors(conn, manifest):
     return len(load_recording(manifest).get("record_errors") or [])
 
 
+def replay_policy_switches(conn, manifest):
+    """Pre-fetch policy lines the replay switched ON for a row whose recording asked that route before the line
+    was switched off (S4.5 decision D42; the summary's `policy_switches`). REPORTED: each is a named, per-row
+    departure from today's table, never a silent one."""
+    return len(load_summary(manifest).get("policy_switches") or [])
+
+
 def cassette_interactions(conn, manifest):
     """Live interactions in the recorded index (latest take per row). REPORTED."""
     from litkb import cassette as C
@@ -550,6 +564,7 @@ REPORTED = {
     "cassette_interactions": cassette_interactions,
     "cassette_rows_not_replayed": cassette_rows_not_replayed,
     "cassette_record_errors": cassette_record_errors,
+    "replay_policy_switches": replay_policy_switches,
 }
 
 
@@ -576,6 +591,9 @@ DETAILS = {
         if r.get("acquirer") == "stub"],
     "cassette_record_errors": lambda conn, m: [
         f"a recording the live pass could not write: {e}" for e in load_recording(m).get("record_errors") or []],
+    "replay_policy_switches": lambda conn, m: [
+        f"row {s['row']}: {s['route']}/{s['host']} switched ON for its replay (S4.5 decision D42; off since: "
+        f"{s['off_why'][:80]}...)" for s in load_summary(m).get("policy_switches") or []],
 }
 
 

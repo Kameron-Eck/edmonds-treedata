@@ -388,14 +388,18 @@ def test_the_replay_summary_is_refused_when_its_register_or_index_changed(HA, tm
 
 
 def test_every_synthetic_acquirer_row_carries_a_pending_recording_marker(HA):
-    """The five rows stay on the stub until the live pass records them (E16 can never be recorded
-    live, and its marker says so); the counter REPORTS them."""
+    """A row stays on the stub, marked, until the live pass records it; the counter REPORTS the marked rows.
+    The ladder-1 live pass recorded E03 E07 E13 E20, and the register-editor converted them to `ladder` rows
+    with no marker (S4.5 run-plan §4); E16 can never be recorded live (replay-only, run-plan §8 Q2), and its
+    marker says so."""
     rows = json.loads(REGISTER.read_text(encoding="utf-8"))["rows"]
     stub = {r["id"] for r in rows if ((r.get("replay") or {}).get("routes") or {}).get("kind") == "acquirer"}
     marked = {r["id"] for r in rows if ((r.get("replay") or {}).get("routes") or {}).get("pending_recording")}
-    assert stub == marked == {"E03", "E07", "E13", "E16", "E20"}
+    assert stub == marked == {"E16"}
+    ladder = {r["id"] for r in rows if ((r.get("replay") or {}).get("routes") or {}).get("kind") == "ladder"}
+    assert ladder == {"E03", "E07", "E13", "E20"}, ladder
     m = {"repo": str(SCRIPTS.parent), "register": {"path": str(REGISTER)}}
-    assert HA.replay_rows_pending_recording(None, m) == 5
+    assert HA.replay_rows_pending_recording(None, m) == 1
 
 
 # ── the hardening command: modules, unread, the manifest, the harness ────────────────────────
@@ -1033,11 +1037,18 @@ def test_the_run_driver_passes_no_extract_to_every_hunt(LR, A, tmp_path, monkeyp
 
 def test_the_freeze_selects_every_execute_row_pending_a_recording(A):
     """F8: every register row still on the synthetic acquirer whose live mode is `execute` is a run
-    row by name (E03 E07 E13 E20) — not by the luck of a probe selector; E16 (replay-only) is not."""
+    row by name — not by the luck of a probe selector; E16 (replay-only) is not. The ladder-1 live pass
+    recorded the four it selected (E03 E07 E13 E20, converted by the register-editor, S4.5 run-plan §4), so
+    the REAL register selects none; the rule is held on a CONSTRUCTED copy with E03's marker put back."""
     reg = json.loads(REGISTER.read_text(encoding="utf-8"))
-    got = A._sel_pending_recording({"register": reg})
-    by_ref = {r["ref"]: r for r in reg["rows"]}
-    assert sorted(by_ref[c["ref"]]["id"] for c in got) == ["E03", "E07", "E13", "E20"]
+    assert A._sel_pending_recording({"register": reg}) == []
+    constructed = json.loads(json.dumps(reg))            # CONSTRUCTED: E03 back on the stub, marked
+    by_id = {r["id"]: r for r in constructed["rows"]}
+    by_id["E03"]["replay"]["routes"] = {"kind": "acquirer", "outcome": "not-acquired", "route_detail": [],
+                                        "pending_recording": {"why": "CONSTRUCTED", "until": "CONSTRUCTED"}}
+    got = A._sel_pending_recording({"register": constructed})
+    by_ref = {r["ref"]: r for r in constructed["rows"]}
+    assert sorted(by_ref[c["ref"]]["id"] for c in got) == ["E03"]       # E16 is marked too, and replay-only
     assert ("pending-recording", A._sel_pending_recording) in A.RUN_SELECTORS
 
 
@@ -1111,7 +1122,12 @@ def test_freeze_grade_and_replay_on_a_worker_database(A, HA, tmp_path, litkb_pg_
     the real register), the manifest round-tripping through `load_hardening_manifest`; the CLI grade
     before any replay (every replay counter unread, the exit failing); `hardening_replay` over the
     register AND the CONSTRUCTED register (the plan's raise cases E14 E15 E17 and the C rows among
-    them); the CLI grade after it — `cassettes_stale` still UNREAD, because no recording exists."""
+    them); the CLI grade after it — `cassettes_stale` still UNREAD, because no recording exists.
+
+    THE GATE STAYS FAIL-CLOSED (S4.5 run-plan §8 Q3): the four rows the ladder-1 live pass recorded (E03 E07
+    E13 E20, `ladder` rows with no cassette of their own since the register-editor's conversion) replay here
+    with NO recorded index, so each is the named no-cassette traceback and the replay counts all four
+    disagreeing — never `graded-by-hardening-replay`, the edges pytest's word, which the gate does not write."""
     from litkb.db import connect as c
     from litkb.extract import queue_fire as F
 
@@ -1144,12 +1160,13 @@ def test_freeze_grade_and_replay_on_a_worker_database(A, HA, tmp_path, litkb_pg_
         assert m["recording_report"].endswith("_recording.json") and m["constructed_register"]["sha256"]
         assert m["cassette_index"]["sha256"] is None
         sel = m["selectors"]
+        # pending-recording selects nothing: the live pass recorded every execute row it named (run-plan §4)
         assert (sel["register"], sel["pending-recording"], sel["post-freeze-probe"], sel["no-oa-copy"],
                 sel["bronze-landing"], sel["free-pdf"], sel["wayback"], sel["bban"], sel["crosswalk"]) == (
-            4, 4, 1, 2, 1, 1, 1, 1, 1), sel
+            4, 0, 1, 2, 1, 1, 1, 1, 1), sel
         assert all(r["mode"] == "hunt" and r["id"].startswith("L") and r["source"] for r in m["rows"])
         pending = {r["ref"] for r in m["rows"] if "pending-recording" in r["source"]}
-        assert len(pending) == 4, pending
+        assert len(pending) == 0, pending
 
         code = A.main(["hardening", "--manifest", str(out)])
         before = capsys.readouterr()
@@ -1161,16 +1178,22 @@ def test_freeze_grade_and_replay_on_a_worker_database(A, HA, tmp_path, litkb_pg_
         for rid in ("E14", "E15", "E17", "C403", "CTRUNC", "CHTML"):
             r = rows[rid]
             assert (r["observed_state"], r["observed_reason"]) == (r["expected_state"], r["expected_reason"]), r
-        assert (HA.count_stubs(s), HA.count_network(s), HA.count_disagreeing(s)) == (5, 0, 0), s["edges_offences"]
+        recorded = {"E03", "E07", "E13", "E20"}
+        for rid in sorted(recorded):
+            r = rows[rid]
+            assert (r["acquirer"], r["traceback"]) == ("ladder", "1"), r
+            assert "is a `ladder` row with no cassette" in r["message"], r
+        assert {o.split(":", 1)[0] for o in s["edges_offences"]} == recorded, s["edges_offences"]
+        assert (HA.count_stubs(s), HA.count_network(s), HA.count_disagreeing(s)) == (1, 0, 4), s["edges_offences"]
 
         code = A.main(["hardening", "--manifest", str(out)])
         after = capsys.readouterr()
         assert code == 1
         # no recording exists yet: the staleness diff, the rows-not-replayed list and the recording's
         # lost writes are all UNREAD, never a vacuous 0 (auditor-A round 2, F5)
-        for piece in ("replay_rows_graded_against_stubs=5", "replay_network_calls=0",
-                      "replay_rows_disagreeing=0", "cassettes_stale=unread", "cassette_rows_not_replayed=unread",
-                      "cassette_record_errors=unread", "replay_rows_pending_recording=5"):
+        for piece in ("replay_rows_graded_against_stubs=1", "replay_network_calls=0",
+                      "replay_rows_disagreeing=4", "cassettes_stale=unread", "cassette_rows_not_replayed=unread",
+                      "cassette_record_errors=unread", "replay_rows_pending_recording=1"):
             assert piece in after.out, (piece, after.out)
         assert "does not exist" in after.err
     finally:

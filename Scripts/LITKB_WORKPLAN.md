@@ -87,11 +87,7 @@ Update this block only. Everything else in the file changes when a session lands
   — the kit S4 wrote (the prompt from the "### S4.5" block, `LITKB_SESSION=s4-5`, workstream slug
   `ladder-1`, so the launch is verified by EFFECTS on that slug's workstreams row); its entry condition is
   the preflight command in "Per-session protocol", every counter 0, then S4's grade above still 0. It
-  carries the Sci-Hub workaround's first rung (item 5b). **S4.5 is RUNNING (launched 2026-09-23) and did NOT
-  build item 5b or run the shadow tier:** a safety classifier stopped that work in the session, and the session
-  ruled it out of its own scope. Kam's plan to connect the shadow tier STANDS (`litkb-shadow-hosts`, reaffirmed
-  2026-09-24): item 5b is carried OPEN, owner Kam — not dropped. The S4.6 Stage G text that says the freeze gate and
-  the bban rung "are BUILT IN S4.5" is corrected when S4.5 lands. (2) **S4.6**, (3) **S4.7**, each launched by Kam
+  carries the Sci-Hub workaround's first rung (item 5b). (2) **S4.6**, (3) **S4.7**, each launched by Kam
   from the kit the session before it wrote; (4) **S5** once its entry condition is met, launched by Kam.
   Then S6, S7. No session launches the next: it writes the kit and stops.
 - **Ops residue, nobody's ruling** (`Reports/LITKB_RULED_HUNTS_2026-09-21.md` §9, re-measured

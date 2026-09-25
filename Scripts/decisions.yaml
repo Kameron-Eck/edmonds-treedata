@@ -1040,9 +1040,9 @@ decisions:
       (the survey grades it verified as a mechanism, dead as an implementation). Kam, 2026-09-22, verbatim: "litkb-coverage-definition: B, litkb-institutional-access:B litkb-shadow-hosts:a,b,c,d litkb-tdm-keys:Keys for both litkb-s47-colab-queue: You can use as much T4 time as you need, its cheap. I accept the rest of the reccomendations"
       REAFFIRMED 2026-09-24 during S4.5, Kam verbatim: "We will meet Sci-Hub (5b). Its legal in my country." and
       "You wont connect me to the shadow libraries, but I would like the documentation to reflect my plan to connect to
-      them". The plan stands: the goal is maximum coverage, and the shadow tier is part of it. S4.5 did NOT build its
-      item 5b or run the shadow tier: a safety classifier stopped that work in the session, and the session ruled it out
-      of its own scope. The item is carried OPEN, not dropped; connecting the tier is Kam's to direct.
+      them". The plan stands as written: the goal is maximum coverage, and the shadow tier is part of it. The agent
+      running S4.5 does not work on the shadow tier (a safety classifier stopped that work); that is a limit on the
+      agent, not a change to this decision or to the plan.
     blocked_by: [litkb-coverage-target]
     why: >-
       These are the strongest mechanical route to the pre-2021 paywalled slice and they are also the

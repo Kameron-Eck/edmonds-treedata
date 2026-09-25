@@ -1,0 +1,1874 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	  <header>
+		    <query>(oaftype exact result) and (resulttypeid exact publication) and ((pidclassid exact "doi" and pid exact "10.3390/rs12091505"))</query>
+				  <locale>en_US</locale>	
+					<size>10</size>
+			   <page>1</page>
+			   <total>1</total>
+							<fields>
+							</fields>
+			</header>
+	  <results>
+										<result xmlns:dri="http://www.driver-repository.eu/namespace/dri"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+         <header>
+            <dri:objIdentifier>doi_dedup___::157561ac7f3400546b1441335e6a19b1</dri:objIdentifier>
+            <dri:dateOfCollection>2026-08-19T06:46:45.118502571</dri:dateOfCollection>
+            <dri:dateOfTransformation/>
+         </header>
+         <metadata>
+            <oaf:entity xmlns:oaf="http://namespace.openaire.eu/oaf"
+                        xsi:schemaLocation="http://namespace.openaire.eu/oaf https://www.openaire.eu/schema/1.0/oaf-1.0.xsd">
+               <oaf:result>
+                  <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                  <collectedfrom name="Multidisciplinary Digital Publishing Institute"
+                                 id="openaire____::c2cdfa5866e03cdd07d313cbc8fb8311"/> 
+                  <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                  <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                  <collectedfrom name="Microsoft Academic Graph"
+                                 id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                  <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                  <originalId>rs12091505</originalId> 
+                  <originalId>10.3390/rs12091505</originalId> 
+                  <originalId>50|doiboost____|157561ac7f3400546b1441335e6a19b1</originalId> 
+                  <originalId>50|dblp________::8b630f66437a4286470aa02fd637ca6e</originalId> 
+                  <originalId>50|doajarticles::68c3bfb6b232a98dd1d8c897d196abee</originalId> 
+                  <originalId>oai:doaj.org/article:08673aff2af74149bdeddaac2b3d9e72</originalId> 
+                  <originalId>3025327333</originalId> 
+                  <originalId>50|multidiscipl::3f4a7159a541c469357b426043db988c</originalId> 
+                  <originalId>oai:mdpi.com:/2072-4292/12/9/1505/</originalId> 
+                  <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types">10.3390/rs12091505</pid> 
+                  <measure id="influence" score="2.7044067E-9" class="C4"/> 
+                  <measure id="popularity" score="1.4721275E-8" class="C4"/> 
+                  <measure id="influence_alt" score="20" class="C4"/> 
+                  <measure id="citationCount" score="21" class="C4"/> 
+                  <measure id="popularity_alt" score="7.86112" class="C4"/> 
+                  <measure id="impulse" score="11" class="C4"/> 
+                  <fulltext>https://www.mdpi.com/2072-4292/12/9/1505/pdf</fulltext> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">Mapping Seasonal Tree Canopy Cover and Leaf Area Using Worldview-2/3 Satellite Imagery: A Megacity-Scale Case Study in Tokyo Urban Area</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title"
+                         inferred="false"
+                         provenanceaction="sysimport:crosswalk:repository"
+                         trust="0.9">Mapping Seasonal Tree Canopy Cover and Leaf Area Using Worldview-2/3 Satellite Imagery: A Megacity-Scale Case Study in Tokyo Urban Area.</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">mapping seasonal tree canopy cover and leaf area using worldview 2 3 satellite imagery a megacity scale case study in tokyo urban area</title> 
+                  <bestaccessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                   schemename="dnet:access_modes"/> 
+                  <creator rank="1" orcid="0000-0003-4876-4272">Yutaka Kokubu</creator> 
+                  <creator rank="2">Seiichi Hara</creator> 
+                  <creator rank="3">Akira Tani</creator> 
+                  <dateofacceptance>2020-05-09</dateofacceptance> 
+                  <description>&lt;jats:p&gt;This study presents a methodology for developing a high-resolution (2 m) urban tree canopy leaf area inventory in different tree phenological seasons and a subsequent application of the methodology to a 625 km2 urban area in Tokyo. Satellite remote sensing has the advantage of imaging large areas simultaneously. However, mapping the tree canopy cover and leaf area accurately is still difficult in a highly heterogeneous urban landscape. The WorldView-2/3 satellite imagery at the individual tree level (2 m resolution) was used to map urban trees based on a simple pixel-based classification method. The comparison of our mapping results with the tree canopy cover derived from aerial photography shows that the error margin is within an acceptable range of 5.5% at the 3.0 km2 small district level, 5.0% at the 60.9 km2 municipality level, and 1.2% at the 625 km2 city level. Furthermore, we investigated the relationship between the satellite data (vegetation index) and in situ tree-measurement data (leaf area index) to develop a simple model to directly map the tree leaf area from the WorldView-2/3 imagery. The estimated total leaf area in Tokyo urban area in the leaf-on season (633 km2) was twice that of the leaf-off season (319 km2). Our results also showed that the estimated total leaf area in Tokyo urban area was 1.9–6.2 times higher than the results of the moderate-resolution (30 m) satellite imagery.&lt;/jats:p&gt;</description> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">leaf area index</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">tree canopy cover</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Science</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Q</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">megacity</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">04 agricultural and veterinary sciences</subject> 
+                  <subject classid="SDG" classname="Sustainable Development Goals"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:sdg">15. Life on land</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">satellite imagery</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">aerial photography</subject> 
+                  <subject classid="SDG" classname="Sustainable Development Goals"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:sdg">13. Climate action</subject> 
+                  <subject classid="SDG" classname="Sustainable Development Goals"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:sdg">11. Sustainability</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">0401 agriculture, forestry, and fisheries</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">urban forest</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">ecosystem services</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">WorldView-2/3</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">vegetation index</subject> 
+                  <language classid="eng" classname="English" schemeid="dnet:languages"
+                            schemename="dnet:languages"/> 
+                  <relevantdate classid="created" classname="created" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-05-11</relevantdate> 
+                  <relevantdate classid="published-online" classname="published-online"
+                                schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-05-09</relevantdate> 
+                  <relevantdate classid="UNKNOWN" classname="UNKNOWN" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date"
+                                inferred="false"
+                                provenanceaction="sysimport:crosswalk:repository"
+                                trust="0.9">2020-01-01</relevantdate> 
+                  <publisher>MDPI AG</publisher> 
+                  <source>Crossref</source> 
+                  <source>Remote Sensing, Vol 12, Iss 9, p 1505 (2020)</source> 
+                  <source>Issue 9</source> 
+                  <source>Volume 12</source> 
+                  <source>Pages: 1505</source> 
+                  <source>Remote Sensing</source> 
+                  <format>application/pdf</format> 
+                  <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                              schemename="dnet:result_typologies"/> 
+                  <resourcetype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                schemename="dnet:result_typologies"/> 
+                  <isgreen>false</isgreen> 
+                  <openaccesscolor>gold</openaccesscolor> 
+                  <isindiamondjournal>false</isindiamondjournal> 
+                  <publiclyfunded>false</publiclyfunded> 
+                  <journal eissn="2072-4292" sp="1505" vol="12">Remote Sensing</journal> 
+                  <datainfo>
+                     <inferred>true</inferred>
+                     <deletedbyinference>false</deletedbyinference>
+                     <trust>0.8</trust>
+                     <inferenceprovenance>dedup-result-decisiontree-v4</inferenceprovenance>
+                     <provenanceaction classid="sysimport:dedup" classname="Inferred by OpenAIRE"
+                                       schemeid="dnet:provenanceActions"
+                                       schemename="dnet:provenanceActions"/>
+                  </datainfo> 
+                  <rels>
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::6dce365e4c2027508ea93401b3cc65c5</to>
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <dateofacceptance>2020-04-25</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://doi.org/10.3390/rs12091357</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.3390/rs12091357</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Felix B. Fritschi</creator> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <dateofacceptance>2020-04-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doaj.org/article/e5a6fd98f9c14142b195911d48f7d7ee</url> 
+                	          <webresource>
+                	             <url>https://doaj.org/article/e5a6fd98f9c14142b195911d48f7d7ee</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                        <dateofacceptance>2020-04-25</dateofacceptance> 
+                        <description>&lt;jats:p&gt;Non-destructive crop monitoring over large areas with high efficiency is of great significance in precision agriculture and plant phenotyping, as well as decision making with regards to grain policy and food security. The goal of this research was to assess the potential of combining canopy spectral information with canopy structure features for crop monitoring using satellite/unmanned aerial vehicle (UAV) data fusion and machine learning. Worldview-2/3 satellite data were tasked synchro</description> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.3390/rs12091357</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.3390/rs12091357</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Maitiniyazi Maimaitijiang</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <creator>Paheding Sidike</creator> 
+                        <publisher>MDPI AG</publisher> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://www.mdpi.com/2072-4292/12/9/1357/pdf</url> 
+                	          <webresource>
+                	             <url>https://www.mdpi.com/2072-4292/12/9/1357/pdf</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Ahmad M. Daloye</creator> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <dateofacceptance>2020-04-25</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <fulltext>https://www.mdpi.com/2072-4292/12/9/1357/pdf</fulltext> 
+                           <url>https://dx.doi.org/10.3390/rs12091357</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.3390/rs12091357</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Vasit Sagan</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Crop Monitoring Using Satellite/UAV Data Fusion and Machine Learning</title> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.3390/rs12091357</pid> 
+                        <collectedfrom name="Multidisciplinary Digital Publishing Institute"
+                                       id="openaire____::c2cdfa5866e03cdd07d313cbc8fb8311"/> 
+                        <creator>Hasanjan Erkbol</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dblp.org/rec/journals/remotesensing/MaimaitijiangSS20.html</url> 
+                           <url>https://doi.org/10.3390/rs12091357</url> 
+                	          <webresource>
+                	             <url>https://dblp.org/rec/journals/remotesensing/MaimaitijiangSS20.html</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://doi.org/10.3390/rs12091357</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:crossref"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">pending_org_::642420e61fd70973d2c404e96b08ef8b</to>
+                        <legalname>University of Shizuoka</legalname> 
+                        <legalshortname>University of Shizuoka</legalshortname> 
+                        <country classid="JP" classname="Japan" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <websiteurl>http://www.u-shizuoka-ken.ac.jp/</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::549c968d9bb658acd387253b0f71b4d3</to>
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Journal of Glaciology"
+                                     id="doajarticles::3e7cb902028066419af19ccad9bcf89d"/> 
+                           <dateofacceptance>2020-08-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY NC SA</license> 
+                           <url>https://doi.org/10.1017/jog.2020.62</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1017/jog.2020.62</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Journal of Glaciology"
+                                     id="doajarticles::3e7cb902028066419af19ccad9bcf89d"/> 
+                           <dateofacceptance>2020-08-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doaj.org/article/5544cfd255914d13a915138d18febefb</url> 
+                	          <webresource>
+                	             <url>https://doaj.org/article/5544cfd255914d13a915138d18febefb</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Joseph MacGregor</creator> 
+                        <creator>Mark Fahnestock</creator> 
+                        <collectedfrom name="Research.fi" id="openaire____::ddcdf7dcef98c2a7626bbb11d1a7b534"/> 
+                        <creator>Jeffrey Welker</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0038" classname="Other literature type"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.5194/egusphere-egu2020-10963</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.5194/egusphere-egu2020-10963</url>
+                	          </webresource> 
+                        </instance> 
+                        <description>&lt;jats:title&gt;Abstract&lt;/jats:title&gt;&lt;jats:p&gt;Each summer, surface melting of the margin of the Greenland Ice Sheet exposes a distinctive visible stratigraphy that is related to past variability in subaerial dust deposition across the accumulation zone and subsequent ice flow toward the margin. Here we map this surface stratigraphy along the northern margin of the ice sheet using mosaicked Sentinel-2 multispectral satellite imagery from the end of the 2019 melt season and finer-resolution WorldView-2</description> 
+                        <creator>William Colgan</creator> 
+                        <collectedfrom name="University of Oulu Repository - Jultika"
+                                       id="opendoar____::af5d5ef24881f3c3049a7b9bfe74d58b"/> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <collectedfrom name="Bielefeld Academic Search Engine (BASE)"
+                                       id="openaire____::df45502607927471ecf8a6ae83683ff5"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="University of Oulu Repository - Jultika"
+                                     id="opendoar____::af5d5ef24881f3c3049a7b9bfe74d58b"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://urn.fi/urn:nbn:fi-fe2020091569491</url> 
+                	          <webresource>
+                	             <url>http://urn.fi/urn:nbn:fi-fe2020091569491</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY NC SA</license> 
+                           <url>http://jultika.oulu.fi/files/nbnfi-fe2020091569491.pdf</url> 
+                	          <webresource>
+                	             <url>http://jultika.oulu.fi/files/nbnfi-fe2020091569491.pdf</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Research.fi" id="openaire____::ddcdf7dcef98c2a7626bbb11d1a7b534"/> 
+                           <dateofacceptance>2020-09-17</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1017/jog.2020.62</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1017/jog.2020.62</url>
+                	          </webresource> 
+                        </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2020-03-23</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.5194/egusphere-egu2020-10963</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.5194/egusphere-egu2020-10963</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">The age of surface-exposed ice along the northern margin of the Greenland Ice Sheet</title> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Journal of Glaciology"
+                                     id="doajarticles::3e7cb902028066419af19ccad9bcf89d"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY NC ND</license> 
+                           <url>https://www.cambridge.org/core/services/aop-cambridge-core/content/view/6BEEFE408E50199E397AEC589ACB14B6/S0022143020000623a.pdf/div-class-title-the-age-of-surface-exposed-ice-along-the-northern-margin-of-the-greenland-ice-sheet-div.pdf</url> 
+                	          <webresource>
+                	             <url>https://www.cambridge.org/core/services/aop-cambridge-core/content/view/6BEEFE408E50199E397AEC589ACB14B6/S0022143020000623a.pdf/div-class-title-the-age-of-surface-exposed-ice-along-the-northern-margin-of-the-greenland-ice-sheet-div.pdf</url>
+                	          </webresource> 
+                        </instance> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1017/jog.2020.62</pid> 
+                        <creator>Nicolaj Larsen</creator> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Copenhagen University Research Information System"
+                                     id="opendoar____::030e65da2b1c944090548d36b244b28d"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1017/jog.2020.62</url> 
+                           <url>https://curis.ku.dk/ws/files/248500064/The_age_of_surface_exposed_ice_along_the_northern_margin_of_the_Greenland_Ice_Sheet.pdf</url> 
+                           <url>https://researchprofiles.ku.dk/da/publications/ae704f2a-0067-44c3-9d2d-91ecad6e6ebe</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1017/jog.2020.62</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://curis.ku.dk/ws/files/248500064/The_age_of_surface_exposed_ice_along_the_northern_margin_of_the_Greenland_Ice_Sheet.pdf</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://researchprofiles.ku.dk/da/publications/ae704f2a-0067-44c3-9d2d-91ecad6e6ebe</url>
+                	          </webresource> 
+                        </instance> 
+                        <dateofacceptance>2020-03-23</dateofacceptance> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.5194/egusphere-egu2020-10963</pid> 
+                        <collectedfrom name="Copenhagen University Research Information System"
+                                       id="opendoar____::030e65da2b1c944090548d36b244b28d"/> 
+                        <publisher>Cambridge University Press (CUP)</publisher> 
+                        <creator>Kristian Kjeldsen</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1017/jog.2020.62</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1017/jog.2020.62</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                  </rels>
+                  <children>
+                     <result objidentifier="doi_________::157561ac7f3400546b1441335e6a19b1">
+            	           <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://www.mdpi.com/2072-4292/12/9/1505/pdf</url> 
+            		             <webresource>
+            		                <url>https://www.mdpi.com/2072-4292/12/9/1505/pdf</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>Seiichi Hara</creator> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.3390/rs12091505</pid> 
+                        <dateofacceptance>2020-05-09</dateofacceptance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Mapping Seasonal Tree Canopy Cover and Leaf Area Using Worldview-2/3 Satellite Imagery: A Megacity-Scale Case Study in Tokyo Urban Area</title> 
+                        <description>&lt;jats:p&gt;This study presents a methodology for developing a high-resolution (2 m) urban tree canopy leaf area inventory in different tree phenological seasons and a subsequent application of the methodology to a 625 km2 urban area in Tokyo. Satellite remote sensing has the advantage of imaging large areas simultaneously. However, mapping the tree canopy cover and leaf area accurately is still difficult in a highly heterogeneous urban landscape. The WorldView-2/3 satellite imagery at the individua</description> 
+                        <creator>Akira Tani</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <publisher>MDPI AG</publisher> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <dateofacceptance>2020-05-09</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://doi.org/10.3390/rs12091505</url> 
+            		             <webresource>
+            		                <url>https://doi.org/10.3390/rs12091505</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>Yutaka Kokubu</creator> 
+                     </result> 
+                     <result objidentifier="multidiscipl::3f4a7159a541c469357b426043db988c">
+            	           <description>This study presents a methodology for developing a high-resolution (2 m) urban tree canopy leaf area inventory in different tree phenological seasons and a subsequent application of the methodology to a 625 km2 urban area in Tokyo. Satellite remote sensing has the advantage of imaging large areas simultaneously. However, mapping the tree canopy cover and leaf area accurately is still difficult in a highly heterogeneous urban landscape. The WorldView-2/3 satellite imagery at the individual tree l</description> 
+                        <creator>Kokubu, Yutaka</creator> 
+                        <publisher>Multidisciplinary Digital Publishing Institute</publisher> 
+                        <creator>Tani, Akira</creator> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <dateofacceptance>2020-05-09</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <fulltext>https://www.mdpi.com/2072-4292/12/9/1505/pdf</fulltext> 
+                           <url>https://dx.doi.org/10.3390/rs12091505</url> 
+            		             <webresource>
+            		                <url>https://dx.doi.org/10.3390/rs12091505</url>
+            		             </webresource> 
+            	           </instance> 
+                        <collectedfrom name="Multidisciplinary Digital Publishing Institute"
+                                       id="openaire____::c2cdfa5866e03cdd07d313cbc8fb8311"/> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Mapping Seasonal Tree Canopy Cover and Leaf Area Using Worldview-2/3 Satellite Imagery: A Megacity-Scale Case Study in Tokyo Urban Area</title> 
+                        <creator>Hara, Seiichi</creator> 
+                        <dateofacceptance>2020-05-09</dateofacceptance> 
+                     </result> 
+                     <result objidentifier="doajarticles::68c3bfb6b232a98dd1d8c897d196abee">
+            	           <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                        <dateofacceptance>2020-05-01</dateofacceptance> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                           <dateofacceptance>2020-05-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doaj.org/article/08673aff2af74149bdeddaac2b3d9e72</url> 
+            		             <webresource>
+            		                <url>https://doaj.org/article/08673aff2af74149bdeddaac2b3d9e72</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>Seiichi Hara</creator> 
+                        <description>This study presents a methodology for developing a high-resolution (2 m) urban tree canopy leaf area inventory in different tree phenological seasons and a subsequent application of the methodology to a 625 km&lt;sup&gt;2&lt;/sup&gt; urban area in Tokyo. Satellite remote sensing has the advantage of imaging large areas simultaneously. However, mapping the tree canopy cover and leaf area accurately is still difficult in a highly heterogeneous urban landscape. The WorldView-2/3 satellite imagery at the indivi</description> 
+                        <creator>Akira Tani</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Mapping Seasonal Tree Canopy Cover and Leaf Area Using Worldview-2/3 Satellite Imagery: A Megacity-Scale Case Study in Tokyo Urban Area</title> 
+                        <publisher>MDPI AG</publisher> 
+                        <creator>Yutaka Kokubu</creator> 
+                     </result> 
+                     <result objidentifier="dblp________::8b630f66437a4286470aa02fd637ca6e">
+            	           <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Mapping Seasonal Tree Canopy Cover and Leaf Area Using Worldview-2/3 Satellite Imagery: A Megacity-Scale Case Study in Tokyo Urban Area.</title> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <creator>Seiichi Hara</creator> 
+                        <creator>Akira Tani</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <creator>Yutaka Kokubu</creator> 
+                        <instance>
+            	              <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dblp.org/rec/journals/remotesensing/KokubuHT20.html</url> 
+                           <url>https://doi.org/10.3390/rs12091505</url> 
+            		             <webresource>
+            		                <url>https://dblp.org/rec/journals/remotesensing/KokubuHT20.html</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://doi.org/10.3390/rs12091505</url>
+            		             </webresource> 
+            	           </instance> 
+                     </result> 
+                     <instance>
+                        <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/rs12091505</alternateidentifier> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://dblp.org/rec/journals/remotesensing/KokubuHT20.html</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                        <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                        <dateofacceptance>2020-05-01</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/rs12091505</alternateidentifier> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://doaj.org/article/08673aff2af74149bdeddaac2b3d9e72</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.3390/rs12091505</pid> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>CC BY</license> 
+            	           <webresource>
+            	              <url>https://www.mdpi.com/2072-4292/12/9/1505/pdf</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <collectedfrom name="Multidisciplinary Digital Publishing Institute"
+                                       id="openaire____::c2cdfa5866e03cdd07d313cbc8fb8311"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                        <hostedby name="Remote Sensing" id="doajarticles::f7180a75ef642fcf5309759e0d2c431a"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <dateofacceptance>2020-05-09</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.3390/rs12091505</pid> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">3025327333</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/rs12091505</alternateidentifier> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">3025327333</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/rs12091505</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/rs12091505</alternateidentifier> 
+                        <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>CC BY</license> 
+                        <fulltext>https://www.mdpi.com/2072-4292/12/9/1505/pdf</fulltext> 
+            	           <webresource>
+            	              <url>https://doi.org/10.3390/rs12091505</url>
+            	           </webresource> 
+                     </instance> 
+                  </children>
+               </oaf:result>
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                        <id value="doi_________::bd224fd955174cfd52319c4f9b27e284" type="openaire"
+                            trustLevel="0.68419737"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                        <id value="od______9730::8d60270c57f6dedb3c56727897e710b8" type="openaire"
+                            trustLevel="0.672942"/>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                        <id value="doi_________::e23272f9255388b28791e28aec287415" type="openaire"
+                            trustLevel="0.62809986"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                        <id value="doi_________::202ea83949ca34db0157951706f9ee3a" type="openaire"
+                            trustLevel="0.6509117"/>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                        <id value="doi_________::bd224fd955174cfd52319c4f9b27e284" type="openaire"
+                            trustLevel="0.68419737"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                        <id value="doi_________::bd224fd955174cfd52319c4f9b27e284" type="openaire"
+                            trustLevel="0.68419737"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                        <id value="od______9730::8d60270c57f6dedb3c56727897e710b8" type="openaire"
+                            trustLevel="0.672942"/>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                        <id value="doi_________::e23272f9255388b28791e28aec287415" type="openaire"
+                            trustLevel="0.62809986"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                        <id value="doi_________::202ea83949ca34db0157951706f9ee3a" type="openaire"
+                            trustLevel="0.6509117"/>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                        <id value="doi_________::bd224fd955174cfd52319c4f9b27e284" type="openaire"
+                            trustLevel="0.68419737"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                        <id value="doi_________::bd224fd955174cfd52319c4f9b27e284" type="openaire"
+                            trustLevel="0.68419737"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                        <id value="od______9730::8d60270c57f6dedb3c56727897e710b8" type="openaire"
+                            trustLevel="0.672942"/>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                        <id value="doi_________::e23272f9255388b28791e28aec287415" type="openaire"
+                            trustLevel="0.62809986"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                        <id value="doi_________::202ea83949ca34db0157951706f9ee3a" type="openaire"
+                            trustLevel="0.6509117"/>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Grote, R.; Samson, R.; Alonso, R.; Amorim, J.H.; Cariñanos, P.; Churkina, G.; Fares, S.; Le Thiec, D.; Niinemets, Ü.; Mikkelsen, T.N.; et al. Functional traits of urban trees: Air pollution mitigation potential. Front. Ecol. Environ. 2016, 14, 543-550. [CrossRef] Endreny, T.A. Strategically growing the urban forest will improve our world. Nat. Commun. 2018, 9, 1160.</rawText>
+                        <id value="doi_________::bd224fd955174cfd52319c4f9b27e284" type="openaire"
+                            trustLevel="0.68419737"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>10. Song, Y.; Imanishi, J.; Sasaki, T.; Ioki, K.; Morimoto, Y. Estimation of broad-leaved canopy growth in the urban forested area using multi-temporal airborne LiDAR datasets. Urban For. Urban Green. 2016, 16, 142-149. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>11. Singh, K.K.; Gagné, S.A.; Meentemeyer, R.K. Urban forests and human well-being. In Comprehensive Remote Sensing; Elsevier: Amsterdam, The Netherlands, 2017; ISBN 9780128032206.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>12. Li, X.; Chen, W.Y.; Sanesi, G.; Lafortezza, R. Remote sensing in urban forestry: Recent applications and future directions. Remote Sens. 2019, 11, 1144. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>13. Ministry of Internal A airs and Communications Japan. Stastistical Handbook of Japan 2015; Statistics Bureau Ministry of Internal A airs and Communications Japan: Tokyo, Japan, 2015.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>14. Updike, T.; Comp, C. Radiometric Use of WorldView-2 Imagery Technical Note; DigitalGlobe: Longmont, CO, USA, 2010.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>15. Kuester, M. Radiometric Use of WorldView-3 Imagery; DigitalGlobe: Longmont, CO, USA, 2016.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>16. Raju, P.D.; Neelima, G. Image Segmentation by using Histogram Thresholding. Ijcset 2012, 2, 776-779.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>17. Li, M.; Zang, S.; Zhang, B.; Li, S.; Wu, C. A review of remote sensing image classification techniques: The role of Spatio-contextual information. Eur. J. Remote Sens. 2014, 47, 389-411. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>18. Pal, M.; Mather, P.M. An assessment of the e ectiveness of decision tree methods for land cover classification. Remote Sens. Environ. 2003, 86, 554-565. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>19. Fang, H.; Liang, S. Leaf Area Index Models. In Encyclopedia of Ecology, Five-Volume Set; Elsevier: Amsterdam, The Netherlands, 2008; ISBN 9780080914565.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>20. Baret, F.; Guyot, G. Potentials and limits of vegetation indices for LAI and APAR assessment. Remote Sens. Environ. 1991, 35, 161-173. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>21. Jiang, Z.; Huete, A.R. Linearization of NDVI based on its relationship with vegetation fraction. Photogramm. Eng. Remote Sens. 2010, 76, 965-975. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>22. Viña, A.; Gitelson, A.A.; Nguy-Robertson, A.L.; Peng, Y. Comparison of di erent vegetation indices for the remote assessment of green leaf area index of crops. Remote Sens. Environ. 2011, 115, 3468-3478. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>23. Tucker, C.J. Red and photographic infrared linear combinations for monitoring vegetation. Remote Sens. Environ. 1979, 7, 127-150. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>24. Birky, A.K. NDVI and a simple model of deciduous forest seasonal dynamics. Ecol. Model. 2001, 143, 43-58. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>25. Qiao, K.; Zhu, W.; Xie, Z.; Li, P. Estimating the Seasonal Dynamics of the Leaf Area Index Using Piecewise LAI-VI Relationships Based on Phenophases. Remote Sens. 2019, 11, 689. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>26. Pinty, B.; Lavergne, T.; Widlowski, J.L.; Gobron, N.; Verstraete, M.M. On the need to observe vegetation canopies in the near-infrared to estimate visible light absorption. Remote Sens. Environ. 2009, 113, 10-23. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>27. Rouse, J.W.; Haas, R.H.; Schell, J.A.; Deering, D.W. Monitoring the Vernal Advancement and Retrogradation (Green Wave E ect) of Natural Vegetation; Progress Report RSC 1978-1; Texas A&amp;M University, Remote Sensing Center: College Station, TX, USA, 1973.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>28. Pu, R.; Landry, S. A comparative analysis of high spatial resolution IKONOS and WorldView-2 imagery for mapping urban tree species. Remote Sens. Environ. 2012, 124, 516-533. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>29. Gitelson, A.A. Wide Dynamic Range Vegetation Index for Remote Quantification of Biophysical Characteristics of Vegetation. J. Plant Physiol. 2004, 161, 165-173. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>30. Jiang, Z.; Huete, A.R.; Didan, K.; Miura, T. Development of a two-band enhanced vegetation index without a blue band. Remote Sens. Environ. 2008, 112, 3833-3845. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>31. Welles, J.M.; Norman, J.M. Instrument for Indirect Measurement of Canopy Architecture. Agron. J. 1991, 83, 818-825. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>32. Dufrêne, E.; Bréda, N. Estimation of deciduous forest leaf area index using direct and indirect methods. Oecologia 1995, 104, 156-162. [CrossRef] [PubMed]</rawText>
+                        <id value="doi_________::6beae007e92be703dea83853c85070bb" type="openaire"
+                            trustLevel="0.6804385"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>33. Hoshi, N. Estimation of leaf area index in natural deciduous broad-leaved forests using landsat TM data. Nihon Ringakkai Shi/J. Jpn. For. Soc. 2001. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>34. Kimm, H.; Ryu, Y. Seasonal variations in photosynthetic parameters and leaf area index in an urban park. Urban For. Urban Green. 2015, 14, 1059-1067. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>35. Tillack, A.; Clasen, A.; Kleinschmit, B.; Förster, M. Estimation of the seasonal leaf area index in an alluvial forest using high-resolution satellite-based vegetation indices. Remote Sens. Environ. 2014, 141, 52-63. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>36. Potithep, S.; Nagai, S.; Nasahara, K.N.; Muraoka, H.; Suzuki, R. Two separate periods of the LAI-VIs relationships using in situ measurements in a deciduous broadleaf forest. Agric. For. Meteorol. 2013, 169, 148-155. [CrossRef]</rawText>
+                        <id value="doi_________::cd5cf3c2ec31a2e6513de36bf070c15a" type="openaire"
+                            trustLevel="0.62724406"/>
+                     </reference>
+                     <reference position="29">
+                        <rawText>37. Justice, C.O.; Townshend, J.R.G.; Holben, A.N.; Tucker, C.J. Analysis of the phenology of global vegetation using meteorological satellite data. Int. J. Remote Sens. 1985, 6, 1271-1318. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>38. Gu, Y.; Wylie, B.K.; Howard, D.M.; Phuyal, K.P.; Ji, L. NDVI saturation adjustment: A new approach for improving cropland performance estimates in the Greater Platte River Basin, USA. Ecol. Indic. 2013, 30, 1-6. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>39. Chen, P.Y.; Fedosejevs, G.; Tiscareño-López, M.; Arnold, J.G. Assessment of MODIS-EVI, MODIS-NDVI and VEGETATION-NDVI composite data using agricultural measurements: An example at corn fields in western Mexico. Environ. Monit. Assess. 2006, 119, 69-82. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>40. Kobayashi, H.; Suzuki, R.; Kobayashi, S. Reflectance seasonality and its relation to the canopy leaf area index in an eastern Siberian larch forest: Multi-satellite data and radiative transfer analyses. Remote Sens. Environ. 2007, 106, 238-252. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>41. Badgley, G.; Field, C.B.; Berry, J.A. Canopy near-infrared reflectance and terrestrial photosynthesis. Sci. Adv. 2017, 3, e1602244. [CrossRef] [PubMed]</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>42. Spanner, M.A.; Piercej, L.L.; Peterson, D.L.; Running, S.W. Remote sensing of temperate coniferous forest leaf area index the influence of canopy closure, understory vegetation and background reflectance. Int. J. Remote Sens. 1990, 11, 95-111. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>43. Eriksson, H.M.; Eklundh, L.; Kuusk, A.; Nilson, T. Impact of understory vegetation on forest canopy reflectance and remotely sensed LAI estimates. Remote Sens. Environ. 2006, 103, 408-418. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>44. Meyer, L.H.; Heurich, M.; Beudert, B.; Premier, J.; Pflugmacher, D. Comparison of Landsat-8 and Sentinel-2 data for estimation of leaf area index in temperate forests. Remote Sens. 2019, 11, 1160. [CrossRef]</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>45. Pu, R.; Landry, S.; Yu, Q. Assessing the potential of multi-seasonal high resolution Pléiades satellite imagery for mapping urban tree species. Int. J. Appl. Earth Obs. Geoinf. 2018, 71, 144-158. [CrossRef]</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+            </oaf:entity>
+         </metadata>
+      </result>
+						</results>
+	  <browseResults>
+								</browseResults>
+</response>

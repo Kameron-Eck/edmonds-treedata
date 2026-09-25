@@ -1,0 +1,272 @@
+{
+  "doi": "10.3390/s8042161",
+  "hops": [
+    {
+      "n": 0,
+      "provenance": {
+        "cassette_line": 1601,
+        "key_sha256": "443c9d85006422595c456861f6bd7d1a970c934a2ca1975957f213624346004a",
+        "recorded_at": "2026-09-24T17:03:16.646010+00:00",
+        "recorded_url": "https://doi.org/10.3390/s8042161"
+      },
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://doi.org/10.3390/s8042161"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a4035c961912758c-SEA",
+          "Connection": "close",
+          "Content-Type": "text/html;charset=utf-8",
+          "Date": "Thu, 24 Sep 2026 17:03:17 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=NwVnaUfksHMACjLc0k9PMz9xVhef2XUu9pLG9TienkamKeJl8NLcAIbvxigTt%2FZBDuT51yBuiu8iDGJNQYWjW0t6q1t14PmgRL%2FLhnAwc05vpwBdhqp2H6s%3D\"}]}",
+          "Server": "cloudflare",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "expires": "Thu, 24 Sep 2026 18:02:53 GMT",
+          "location": "https://www.mdpi.com/1424-8220/8/4/2161",
+          "permissions-policy": "interest-cohort=(),browsing-topics=()",
+          "vary": "Origin"
+        },
+        "length": 163,
+        "sha256": "aaed7c5bed42e65921acb92b1afa46a56b73f368957bffa116044bed71514c2f",
+        "status": 302
+      }
+    },
+    {
+      "n": 1,
+      "provenance": {
+        "cassette_line": 1602,
+        "key_sha256": "5b7dd16a737fee84604d1fcd52546c8ca8fde3f583c29190cc0b7b35fde4ae58",
+        "recorded_at": "2026-09-24T17:03:19.773538+00:00",
+        "recorded_url": "https://www.mdpi.com/1424-8220/8/4/2161"
+      },
+      "request": {
+        "accept": "text/html",
+        "follow": false,
+        "headers": {},
+        "url": "https://www.mdpi.com/1424-8220/8/4/2161"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Akamai-GRN": "0.c737cb17.1790269400.f481ea",
+          "Cache-Control": "max-age=0, no-cache, no-store",
+          "Connection": "close",
+          "Content-Length": "396",
+          "Content-Type": "text/html",
+          "Date": "Thu, 24 Sep 2026 17:03:20 GMT",
+          "Expires": "Thu, 24 Sep 2026 17:03:20 GMT",
+          "Mime-Version": "1.0",
+          "Pragma": "no-cache",
+          "Server-Timing": "cdn-cache; desc=HIT",
+          "Strict-Transport-Security": "max-age=31536000"
+        },
+        "length": 396,
+        "sha256": "aa2dceafdd8df6eae5313f39092b110667fd847ba90a273477a4977888177276",
+        "status": 403
+      }
+    },
+    {
+      "n": 2,
+      "provenance": {
+        "cassette_line": 1603,
+        "key_sha256": "1eedb3df05223414dae5f722707ec45f5eb0272f63b8964bb9d6f8053ce7232c",
+        "recorded_at": "2026-09-24T17:03:22.807898+00:00",
+        "recorded_url": "https://mdpi-res.com/d_attachment/sensors/sensors-8-02161/article_deploy/sensors-8-02161.pdf"
+      },
+      "request": {
+        "accept": "application/pdf,text/html;q=0.8,*/*;q=0.5",
+        "follow": false,
+        "headers": {
+          "Range": "bytes=0-4095",
+          "Referer": "https://www.mdpi.com/"
+        },
+        "url": "https://mdpi-res.com/d_attachment/sensors/sensors-8-02161/article_deploy/sensors-8-02161.pdf"
+      },
+      "response": {
+        "body_file": "hop2.body",
+        "headers": {
+          "CF-RAY": "a4035cbb8c4febbe-SEA",
+          "Cache-Control": "public, max-age=432000",
+          "Connection": "close",
+          "Content-Type": "text/html",
+          "Date": "Thu, 24 Sep 2026 17:03:23 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=CKoaXcbZ1VaKP7ZOPZu%2BO%2BbtSukZGG38WLf4zCA%2FejVtNOeOAUi605YTf9VMyCji8F95grN7UDbyVHTfNPPtj4N58ftSICI6RQfsoQUxx5kYCJxpr4V7z%2BykpCNBaQ%3D%3D\"}]}",
+          "Server": "cloudflare",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "MISS",
+          "content-disposition": "attachment; filename=\"sensors-8-02161.pdf\"",
+          "vary": "Accept-Encoding"
+        },
+        "length": 548,
+        "sha256": "d465172175d35d493fb1633e237700022bd849fa123164790b168b8318acb090",
+        "status": 404
+      }
+    },
+    {
+      "n": 3,
+      "provenance": {
+        "cassette_line": 1604,
+        "key_sha256": "7bafb445b339016a0584d0f08785ae459ebb70653b239038e4a2b6cda2f758cc",
+        "recorded_at": "2026-09-24T17:03:25.787816+00:00",
+        "recorded_url": "https://mdpi-res.com/d_attachment/s/s-8-02161/article_deploy/s-8-02161.pdf"
+      },
+      "request": {
+        "accept": "application/pdf,text/html;q=0.8,*/*;q=0.5",
+        "follow": false,
+        "headers": {
+          "Range": "bytes=0-4095",
+          "Referer": "https://www.mdpi.com/"
+        },
+        "url": "https://mdpi-res.com/d_attachment/s/s-8-02161/article_deploy/s-8-02161.pdf"
+      },
+      "response": {
+        "body_file": "hop3.body",
+        "headers": {
+          "CF-RAY": "a4035cce5fecbe44-SEA",
+          "Cache-Control": "public, max-age=432000",
+          "Connection": "close",
+          "Content-Type": "text/html",
+          "Date": "Thu, 24 Sep 2026 17:03:26 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=lrl8WMVb4KUdEI%2FPjxA99D10UKLO%2FkS%2Bstn0%2FUVL87FuHlig%2FOthUOCYfoGh8DDlFtGlZWvHmmgZIqIiOS8Z5gaDqTnM8HUAC7TCZHIUA5KLr9DslKvL%2FL5MHvbk%2BA%3D%3D\"}]}",
+          "Server": "cloudflare",
+          "Transfer-Encoding": "chunked",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "MISS",
+          "content-disposition": "attachment; filename=\"s-8-02161.pdf\"",
+          "vary": "Accept-Encoding"
+        },
+        "length": 548,
+        "sha256": "d465172175d35d493fb1633e237700022bd849fa123164790b168b8318acb090",
+        "status": 404
+      }
+    },
+    {
+      "n": 4,
+      "provenance": {
+        "cassette_line": 1605,
+        "key_sha256": "ca592bfc2a5bfafea833f859838ea67d152237c4c69bd8cc56b3a98630b140e4",
+        "recorded_at": "2026-09-24T17:03:28.766596+00:00",
+        "recorded_url": "https://www.mdpi.com/1424-8220/8/4/2161/pdf"
+      },
+      "request": {
+        "accept": "application/pdf,text/html;q=0.8,*/*;q=0.5",
+        "follow": false,
+        "headers": {
+          "Range": "bytes=0-4095",
+          "Referer": "https://www.mdpi.com/1424-8220/8/4/2161/pdf?version=1403308393"
+        },
+        "url": "https://www.mdpi.com/1424-8220/8/4/2161/pdf"
+      },
+      "response": {
+        "body_file": "hop4.body",
+        "headers": {
+          "Akamai-GRN": "0.cb37cb17.1790269409.ca394947",
+          "Cache-Control": "max-age=0, no-cache, no-store",
+          "Connection": "close",
+          "Content-Length": "408",
+          "Content-Type": "text/html",
+          "Date": "Thu, 24 Sep 2026 17:03:29 GMT",
+          "Expires": "Thu, 24 Sep 2026 17:03:29 GMT",
+          "Mime-Version": "1.0",
+          "Pragma": "no-cache",
+          "Server-Timing": "cdn-cache; desc=HIT",
+          "Strict-Transport-Security": "max-age=31536000"
+        },
+        "length": 408,
+        "sha256": "c065a2042e347dcdb78316ce0fc5baed01348e4a6dcb67f565eaf1eacc0b715d",
+        "status": 403
+      }
+    },
+    {
+      "n": 5,
+      "provenance": {
+        "dropped_headers": "Date, CF-RAY, Report-To, NEL (per-request Cloudflare telemetry)",
+        "recorded_at": "2026-09-24T23:50:35Z",
+        "recorded_by": "builder-FX-C, curl, the FX-C network grant (brief-FIXWAVE.md FX-C item 1: at most 2 GETs to mdpi-res.com for one one-digit-volume article); GET 1 of 2, the only one made; request headers = the landing rung's (netutil.UA, landing.PDF_ACCEPT, landing.PROBE_RANGE, the MDPI Referer)"
+      },
+      "request": {
+        "accept": "application/pdf,text/html;q=0.8,*/*;q=0.5",
+        "follow": false,
+        "headers": {
+          "Range": "bytes=0-4095",
+          "Referer": "https://www.mdpi.com/"
+        },
+        "url": "https://mdpi-res.com/d_attachment/sensors/sensors-08-02161/article_deploy/sensors-08-02161.pdf"
+      },
+      "response": {
+        "body_file": "hop5.body",
+        "headers": {
+          "Cache-Control": "public, max-age=432000",
+          "Connection": "keep-alive",
+          "Content-Length": "4096",
+          "Content-Type": "application/pdf",
+          "Server": "cloudflare",
+          "Vary": "accept-encoding",
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+          "access-control-allow-methods": "GET, POST, OPTIONS",
+          "access-control-allow-origin": "*",
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "MISS",
+          "content-disposition": "attachment; filename=\"sensors-08-02161.pdf\"",
+          "content-range": "bytes 0-4095/370175",
+          "etag": "\"53a4c969-5a5ff\"",
+          "last-modified": "Fri, 20 Jun 2014 23:53:13 GMT",
+          "x-robots-tag": "noindex"
+        },
+        "length": 4096,
+        "sha256": "c934676cb6f9487ca04bfd207bd5734f2d0b885d266e562506418dc1b2a3962d",
+        "status": 206
+      }
+    },
+    {
+      "n": 6,
+      "provenance": {
+        "cassette_line": 1609,
+        "key_sha256": "447516e45474d1fc3ce53c9083fe718e6579737bb62dce235a3782412d07acdf",
+        "note": "PLACED: bytes RECORDED at web.archive.org/web/20170923044936id_/https://www.mdpi.com/1424-8220/8/4/2161/pdf (MDPI's origin /pdf answer captured 2017-09-23, origin Content-Disposition sensors-08-02161.pdf, x-archive-orig-etag \"53a4c969-5a5ff\", x-archive-orig-content-length 370175), served here as the whole answer at the CDN URL because they ARE that file: the live 206 above is byte-identical to their first 4096 bytes, and its content-range total 370175 and etag 53a4c969-5a5ff are the capture's. The response HEADERS are CONSTRUCTED from the live 206's (Content-Type, Content-Disposition, ETag) with Content-Length 370175.",
+        "recorded_at": "2026-09-24T17:04:34.064042+00:00",
+        "recorded_url": "https://web.archive.org/web/20170923044936id_/https://www.mdpi.com/1424-8220/8/4/2161/pdf"
+      },
+      "request": {
+        "accept": "application/pdf,text/html;q=0.8,*/*;q=0.5",
+        "follow": false,
+        "headers": {
+          "Referer": "https://www.mdpi.com/"
+        },
+        "url": "https://mdpi-res.com/d_attachment/sensors/sensors-08-02161/article_deploy/sensors-08-02161.pdf"
+      },
+      "response": {
+        "body_file": "hop6.body",
+        "headers": {
+          "Content-Length": "370175",
+          "Content-Type": "application/pdf",
+          "content-disposition": "attachment; filename=\"sensors-08-02161.pdf\"",
+          "etag": "\"53a4c969-5a5ff\""
+        },
+        "length": 370175,
+        "sha256": "958ff7472a1ce17f0db4300c5d8b2cb468a7f345a4d7ab9ea578e9038dfa2724",
+        "status": 200
+      }
+    }
+  ],
+  "kind": "litkb-fxc-row-recording",
+  "manifest": "hardening-1 (_derived/hardening/hardening-1-manifest.json, frozen_at 2026-09-24T08:22:40.799077+00:00, workstream ladder-1 01a0ce84-b7ee-7437-9eee-2f44b65692ef)",
+  "row": "L074",
+  "source": "the ladder-1 cassette index _derived/hardening/cassettes/ladder-1/index.jsonl and its body store D:/edmonds-pipeline/litkb_derived/cassette_bodies (READ-ONLY evidence of the live run hardening-1)",
+  "venue": "Sensors",
+  "version": 1,
+  "why": "referee-stage-c (REJECT, MDPI yield): the CDN template built sensors-8-02161 (volume unpadded) and the CDN answered 404; the row ended blocked/challenge_or_bot_check at www.mdpi.com's Akamai 403. Hops 0-4 are the landing rung's own requests in the run (MEASURE mode), hop 5 the FX-C live probe of the padded URL, hop 6 the whole file (PLACED, see its provenance)",
+  "work_key": "Coulter_2008"
+}

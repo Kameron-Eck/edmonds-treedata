@@ -1,0 +1,205 @@
+{
+ "what": "S4.5 fix wave builder-FX-E: REAL recorded answers of hardening-1 (the ladder-1 live run, RECORD mode), copied for the FX-E tests (qc/test_litkb_fx_stage_e.py). Not constructed; nothing was requested to make this fixture.",
+ "source_index": "_derived/hardening/cassettes/ladder-1/index.jsonl",
+ "source_index_sha256": "4566ea2892447398ea3f96e441cb20eebe6ec5592d03973e7b6a65511a17074e",
+ "source_manifest": "_derived/hardening/hardening-1-manifest.json (frozen_at 2026-09-24T08:22:40.799077+00:00)",
+ "index.jsonl": "VERBATIM lines of the source index (its header line first), one per entry below: key, response status, headers and inline bodies exactly as recorded (secrets were scrubbed at record) \u2014 EXCEPT archive.org's `X-IP` response header, which echoes the recording client's own public address: its value is masked `<CLIENT-IP>` (the line re-serialised compactly; key and body untouched). Entries so changed carry `x_ip_masked` below.",
+ "entries": [
+  {
+   "manifest_row": "L007",
+   "index_entry": 241,
+   "take": "053bab537c4e",
+   "seq": 0,
+   "key_sha256": "07b456452e18c934c626cbd82f2706f89b1a53f0dd96252e2723163adc7519a9",
+   "url": "https://api.openalex.org/works/doi:10.5067/doc/ceoswgcv/lpv/lc.001?mailto=<KEY>",
+   "status": 200,
+   "body_sha256": "b7078ad45736f42da20e877b1f23399f0555e4cb4f5b4f15448d8bf9607b23bc",
+   "body_length": 12291,
+   "body": "inline"
+  },
+  {
+   "manifest_row": "L007",
+   "index_entry": 247,
+   "take": "053bab537c4e",
+   "seq": 0,
+   "key_sha256": "da97d8b99c79f6ba23b9df5da15d35e915c280197576ef5348df6c9d869a3011",
+   "url": "https://pure.iiasa.ac.at/id/eprint/20873/1/CEOS_WGCV_LPV_Land_Cover_protocol_Sept2025_V1.pdf",
+   "status": 404,
+   "body_sha256": "7e709d16a4f746f42fe425458ee2387b81842c4a61bc7add48b0c40f3fcf6fa5",
+   "body_length": 20332,
+   "body": "inline"
+  },
+  {
+   "manifest_row": "L007",
+   "index_entry": 248,
+   "take": "053bab537c4e",
+   "seq": 0,
+   "key_sha256": "27e4f5e759a5f86aba20f04a247f3447c75c217b0df6fe2dc1d73aa21d4d454a",
+   "url": "https://pure.iiasa.ac.at/id/eprint/20873/1/CEOS_WGCV_LPV_Land_Cover_protocol_Sept2025_V1.0.pdf",
+   "status": 200,
+   "body_sha256": "41c07271c1786b39f3068ba3598fcd0c8a00d7f472c4a20f02fe0fe20afba5f9",
+   "body_length": 7701642,
+   "body": "bodies/41c07271c1786b39f3068ba3598fcd0c8a00d7f472c4a20f02fe0fe20afba5f9.head4096.bin",
+   "truncated_to": 4096,
+   "head_sha256": "f445614a4e2f9d45e43942edc765b8f79656cef44aefd625e905a4d32a65f4f9"
+  },
+  {
+   "manifest_row": "L007",
+   "index_entry": 256,
+   "take": "053bab537c4e",
+   "seq": 0,
+   "key_sha256": "ee6f34d75ae2c5de36efb05828271435b59144f997607e450b95cf50183bb72c",
+   "url": "https://archive.org/wayback/available?url=https%3A%2F%2Fpure.iiasa.ac.at%2Fid%2Feprint%2F20873%2F1%2FCEOS_WGCV_LPV_Land_Cover_protocol_Sept2025_V1.0.pdf",
+   "status": 200,
+   "body_sha256": "82424866e1e2e5ab5daed5dba97e5bd948f83192546ecf36ec461d8a45534eea",
+   "body_length": 131,
+   "body": "inline",
+   "x_ip_masked": true
+  },
+  {
+   "manifest_row": "L007",
+   "index_entry": 257,
+   "take": "053bab537c4e",
+   "seq": 0,
+   "key_sha256": "c71e5827626f710dcba77305791d86562aca881125c29ac3ffb4d51ad55191bb",
+   "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fpure.iiasa.ac.at%2Fid%2Feprint%2F20873%2F1%2FCEOS_WGCV_LPV_Land_Cover_protocol_Sept2025_V1.0.pdf&output=json&filter=statuscode%3A200&filter=mimetype%3Aapplication%2Fpdf&collapse=digest&limit=-5",
+   "status": 200,
+   "body_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+   "body_length": 3,
+   "body": "inline"
+  },
+  {
+   "manifest_row": "L007",
+   "index_entry": 264,
+   "take": "053bab537c4e",
+   "seq": 0,
+   "key_sha256": "5c23259996fcec4d7a67fb3a4be502885ef72af18c0408461da3f6671b8dd1a0",
+   "url": "https://archive.org/advancedsearch.php?q=%28external-identifier%3A%22urn%3Adoi%3A10.5067%2Fdoc%2Fceoswgcv%2Flpv%2Flc.001%22+OR+%28%28title%3A%22Land+Cover+and+Change+Map+Accuracy+Assessment+and+Area+Estimation+Good+Practices+Protocol%22%29+AND+creator%3A%28Land+Product+Validation+Subgroup+%28Working+Group+on+Calibration+and+Validation%29%29%29+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=mediatype&fl%5B%5D=external-identifier&rows=5&page=1&output=json",
+   "status": 200,
+   "body_sha256": "0c9c3512949deca46fdcc7d240aa193de6778c71ceb16dba0b2da4a208549ec9",
+   "body_length": 76,
+   "body": "inline"
+  },
+  {
+   "manifest_row": "L054",
+   "index_entry": 1170,
+   "take": "b9c09ed61e04",
+   "seq": 0,
+   "key_sha256": "f9b026b904102d6d4751790ea954f0fbfcd5c28bfbb35373bc0ea66de348e01d",
+   "url": "https://api.unpaywall.org/v2/10.1016/j.rse.2019.111492?email=<KEY>",
+   "status": 200,
+   "body_sha256": "9c6df86d67256dd648014c532d5ff4256c9b45e795c0f3b0a0bd49daf0c5e0e2",
+   "body_length": 4492,
+   "body": "inline"
+  },
+  {
+   "manifest_row": "L054",
+   "index_entry": 1172,
+   "take": "b9c09ed61e04",
+   "seq": 0,
+   "key_sha256": "b21a1306068ce620a47ecba56f61c5885c4bd5da39ff4309ff7326a5b8c4ad39",
+   "url": "https://www.sciencedirect.com/science/article/am/pii/S0034425719305115?via%3Dihub",
+   "status": 403,
+   "body_sha256": "1fc257ee9bcb064e082eb92ce95f2d718f27b14d17394215bf3bea83810cdcce",
+   "body_length": 832805,
+   "body": "bodies/1fc257ee9bcb064e082eb92ce95f2d718f27b14d17394215bf3bea83810cdcce.head4096.bin",
+   "truncated_to": 4096,
+   "head_sha256": "932c183a9fe496ed30866436420a622e6c43b424f3443f599438da64d6ef36d6"
+  },
+  {
+   "manifest_row": "L054",
+   "index_entry": 1178,
+   "take": "b9c09ed61e04",
+   "seq": 0,
+   "key_sha256": "b728ef91f563218ec451a55698b9933fb9b8b07eeb2d4e6ba69ce4859e750519",
+   "url": "http://hdl.handle.net/10810/59883",
+   "status": 404,
+   "body_sha256": "370ad249c0d59bffda3ead83846219a224cc5555f063a91f0cf98785449c1ff7",
+   "body_length": 1551,
+   "body": "inline"
+  },
+  {
+   "manifest_row": "L054",
+   "index_entry": 1200,
+   "take": "b9c09ed61e04",
+   "seq": 0,
+   "key_sha256": "999aa49915f3b7251a229e6d1cb15950deaf8e8b80a49f5f94ed6fb38ecbc605",
+   "url": "https://archive.org/advancedsearch.php?q=%28external-identifier%3A%22urn%3Adoi%3A10.1016%2Fj.rse.2019.111492%22+OR+%28%28title%3A%22Mitigating+the+effects+of+omission+errors+on+area+and+area+change+estimates%22%29+AND+creator%3A%28Olofsson%29%29%29+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=mediatype&fl%5B%5D=external-identifier&rows=5&page=1&output=json",
+   "status": 200,
+   "body_sha256": "0b5e6b1c82f9bb5569771f070b3f55d6ee0ce618b430567980d2b29e93b1133b",
+   "body_length": 640,
+   "body": "inline"
+  }
+ ],
+ "truncated_bodies": "The two STORED bodies the tests need are kept as their FIRST 4096 BYTES only (bodies/<recorded sha>.head4096.bin): the IIASA V1.0 PDF (7,701,642 B) and the ScienceDirect 403 page (832,805 B). The tests use them only as what they are at their start (a PDF's `%PDF-` magic; an HTML page at 403): which URLs reach Stage E does not depend on the rest. `body_sha256`/`body_length` are the recorded whole body's; `head_sha256` the kept bytes'.",
+ "works": {
+  "L007": {
+   "key": "LPVSubgroup_2025_land-cover-change-accuracy-protocol",
+   "title": "Land Cover and Change Map Accuracy Assessment and Area Estimation Good Practices Protocol",
+   "year": 2025,
+   "first_author": "Land Product Validation Subgroup (Working Group on Calibration and Validation",
+   "title_forms": [
+    "Land Cover and Change Map Accuracy Assessment and Area Estimation Good Practices Protocol"
+   ],
+   "doi": "10.5067/doc/ceoswgcv/lpv/lc.001",
+   "arxiv": null,
+   "pages": null,
+   "work_id": "01a0c72c-42bd-7c3d-b93e-7c6ace8ff514"
+  },
+  "L054": {
+   "key": "Olofsson_2020_mitigating-effects-omission-errors",
+   "title": "Mitigating the effects of omission errors on area and area change estimates",
+   "year": 2020,
+   "first_author": "Olofsson",
+   "title_forms": [
+    "Mitigating the effects of omission errors on area and area change estimates"
+   ],
+   "doi": "10.1016/j.rse.2019.111492",
+   "arxiv": null,
+   "pages": "111492",
+   "work_id": "01a0a070-31dc-7002-8355-75cc6a959892"
+  },
+  "L022": {
+   "key": "Winkler_2014_matching-record-linkage",
+   "title": "Matching and record linkage",
+   "year": 2014,
+   "first_author": "Winkler",
+   "title_forms": [
+    "Matching and record linkage"
+   ],
+   "doi": "10.1002/wics.1317",
+   "arxiv": null,
+   "pages": "313-325",
+   "work_id": "01a0a7c2-4c82-7796-abb7-c5580d8d5952"
+  }
+ },
+ "works_note": "litkb.acquire.run.work_record on the live database, read as litkb_reader by builder-FX-E 2026-09-24 (the fields the rungs read).",
+ "asked_urls.json": "the 292 distinct URLs E1 (wayback) and E5 (commoncrawl) were asked about in hardening-1, from the attempt rows' 'asked about:' notes (live, litkb_reader, attempts after frozen_at in the run's workstreams). 143 are metadata-API URLs (api2.openreview.net 72, doaj.org/api 70, zenodo.org/api 1; referee-stage-e N2).",
+ "invenio.jsonl": "VERBATIM lines of the source index (its header line first; no header masked \u2014 neither line carries X-IP or Set-Cookie): the InvenioRDM file-content URLs behind auditor-FX-E F1. L006 (register E07): the Zenodo record answer B14 asked for (zenodo.org/api/records/20559202, inline body: every file's links.self is /api/records/<id>/files/<key>/content). L063: the Rogue Scholar PDF crossref-link LANDED (ok) at rogue-scholar.org/api/records/ggw55-1rr53/files/10.64000_e6ey2-wce96.pdf/content (answered 200 application/octet-stream, %PDF; its stored body is not copied).",
+ "invenio": [
+  {
+   "manifest_row": "L006",
+   "index_entry": 207,
+   "take": "e27c1de567ca",
+   "seq": 0,
+   "key_sha256": "b057320e6cc56646c97bbeb75d4ec170da28fcd3e0cca38c09d75d4d00ea83f1",
+   "url": "https://zenodo.org/api/records/20559202",
+   "status": 200,
+   "body_sha256": "7fc58628cff2ec4444f18bb6e9335f115dea1dc8fb0cade85d1df0b8e5ec2f41",
+   "body_length": 17136,
+   "body": "inline"
+  },
+  {
+   "manifest_row": "L063",
+   "index_entry": 1392,
+   "take": "db457d5aef58",
+   "seq": 0,
+   "key_sha256": "6db7f98e50b98676a51ad5a82d1f8cb06b85c056d5d28ef81ffc8c87c1a83790",
+   "url": "https://rogue-scholar.org/api/records/ggw55-1rr53/files/10.64000_e6ey2-wce96.pdf/content",
+   "status": 200,
+   "body_sha256": "254b3765fe9890e1db18b3df7b9c2ba12927810487f5e1a4bf5580b51b9c3b0d",
+   "body_length": 477473,
+   "body": "not kept (a stored body; the request URL is the evidence)"
+  }
+ ]
+}

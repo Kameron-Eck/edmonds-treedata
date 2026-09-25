@@ -299,14 +299,27 @@ def admit_registry(conn, ws, token, *, doi=None, arxiv=None, claimed=None, key=N
     if rec is None and (doi or arxiv):
         transient = [c for c in checks["registry_calls"] if _registry.is_transient(c["status"])]
         if transient:
+            refused = [f for f in (_registry.client_refusal(c["registry"], c["status"]) for c in transient) if f]
+            retryable = True        # the unguarded default: every transient answer says "hunt it again" at once
+            # BEGIN guard: a registry host refusing this client is booked not retriable, with its evidence
+            # (S4.5 decision D51; builder FX-S: export.arxiv.org's 406, `registry.CLIENT_REFUSALS`). ANY retriable
+            # answer makes the whole admission retriable (S4.5 decision D56, integrator-w4; auditor-FX-S F1): a mixed
+            # DOI+arXiv admission whose Crossref answered 503 while arXiv refused this client could still confirm the
+            # DOI through Crossref on an immediate re-ask — `client_refusal` stays attached either way
+            retryable = any(_registry.retriable(c["registry"], c["status"]) for c in transient)
+            # END guard: a registry host refusing this client is booked not retriable, with its evidence
+            said = ", ".join(f"{c['registry']} {c['status']}" for c in transient)
+            message = (f"the registry answered {said} for {doi or arxiv} — a transient answer, not a verdict on the "
+                       "record. Nothing was admitted and nothing was written; hunt the reference again.")
+            if not retryable and refused:
+                message = (f"the registry answered {said} for {doi or arxiv} — "
+                           + "; ".join(f"{f['host']} refusing this client: {f['rule']} ({f['measured']})"
+                                       for f in refused)
+                           + ". Nothing was admitted and nothing was written; not retriable in this run.")
             return {"outcome": "registry-transient", "registry_calls": checks["registry_calls"],
-                    "transient": transient, "retryable": True,
-                    "identifier": str(doi or arxiv),
-                    "message": ("the registry answered "
-                                + ", ".join(f"{c['registry']} {c['status']}" for c in transient)
-                                + f" for {doi or arxiv} — a transient answer, not a verdict on the "
-                                  "record. Nothing was admitted and nothing was written; hunt the "
-                                  "reference again.")}
+                    "transient": transient, "retryable": retryable,
+                    **({"client_refusal": refused} if refused else {}),
+                    "identifier": str(doi or arxiv), "message": message}
     # END guard: a registry that answered transiently is a RETRY, not a refused admission
     if registry_only:
         for i in identifiers:

@@ -1,0 +1,87 @@
+{
+  "doi": "10.1371/journal.pone.0065808",
+  "hops": [
+    {
+      "n": 0,
+      "provenance": {
+        "cassette_line": 2774,
+        "key_sha256": "cba3445f8423d5c88e42b383d35763b58ca659d98ab9251dce1da305f8948290",
+        "recorded_at": "2026-09-24T17:55:23.941411+00:00",
+        "recorded_url": "https://doaj.org/api/search/articles/doi:10.1371/journal.pone.0065808"
+      },
+      "request": {
+        "accept": "application/json",
+        "follow": true,
+        "headers": {},
+        "url": "https://doaj.org/api/search/articles/doi:10.1371/journal.pone.0065808"
+      },
+      "response": {
+        "body_file": "hop0.body",
+        "headers": {
+          "CF-RAY": "a403a8eeeb84ec23-SEA",
+          "Connection": "close",
+          "Content-Type": "application/json",
+          "Date": "Thu, 24 Sep 2026 17:55:24 GMT",
+          "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+          "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=1OQc3dMcJAFi5RnLsjH%2FG8nnHEUfCVQEAq%2Bop1fAge0Qja0G0Qu9O7q5g5IwrN%2FiOO3iyV3xi3O%2B6h6V1OJK8xSRqMH%2BYHWAH03Qja2ipf15Glsj4xxPgt5O\"}]}",
+          "Server": "cloudflare",
+          "Transfer-Encoding": "chunked",
+          "access-control-allow-origin": "*",
+          "cf-cache-status": "DYNAMIC",
+          "link": "<https://doaj.org/api/v4/search/articles/doi:10.1371/journal.pone.0065808?page=1&pageSize=10>; rel=last",
+          "vary": "Accept-Encoding",
+          "x-total-count": "1"
+        },
+        "length": 3188,
+        "sha256": "5c4bd5bbef2f14308ef7637915fce98fb650b5968bb9b5fe9e26552b7531c360",
+        "status": 200
+      }
+    },
+    {
+      "n": 1,
+      "provenance": {
+        "cassette_line": 2782,
+        "key_sha256": "0175cf664f7bac6e2b8bae03fdb8e3e5f0358501ef5daa8242083c23c9e02f05",
+        "recorded_at": "2026-09-24T17:55:25.746571+00:00",
+        "recorded_url": "https://doi.org/10.1371/journal.pone.0065808"
+      },
+      "request": {
+        "accept": "application/pdf,*/*;q=0.5",
+        "follow": true,
+        "headers": {},
+        "url": "https://doi.org/10.1371/journal.pone.0065808"
+      },
+      "response": {
+        "body_file": "hop1.body",
+        "headers": {
+          "Alt-Svc": "h3=\":443\"; ma=2592000",
+          "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+          "Connection": "close",
+          "Content-Language": "en-US",
+          "Content-Type": "text/html;charset=UTF-8",
+          "Date": "Thu, 24 Sep 2026 17:55:26 GMT",
+          "Expires": "0",
+          "Pragma": "no-cache",
+          "Server": "Apache",
+          "Strict-Transport-Security": "max-age=31536000",
+          "Transfer-Encoding": "chunked",
+          "Vary": "Accept-Encoding",
+          "Via": "1.1 google",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY",
+          "X-XSS-Protection": "1; mode=block"
+        },
+        "length": 213604,
+        "sha256": "98d354a971c631647e1c159e3f86f73576e1514d77fd9e824b338bb19bd6e6cc",
+        "status": 200
+      }
+    }
+  ],
+  "kind": "litkb-fxc-row-recording",
+  "manifest": "hardening-1 (_derived/hardening/hardening-1-manifest.json, frozen_at 2026-09-24T08:22:40.799077+00:00, workstream ladder-1 01a0ce84-b7ee-7437-9eee-2f44b65692ef)",
+  "row": "L139",
+  "source": "the ladder-1 cassette index _derived/hardening/cassettes/ladder-1/index.jsonl and its body store D:/edmonds-pipeline/litkb_derived/cassette_bodies (READ-ONLY evidence of the live run hardening-1)",
+  "version": 1,
+  "why": "referee-stage-c (gated landing_pages_booked_bad_file=3 on the run; S4.5 decision D50): the doaj rung was served the article's HTML page, carrying citation_pdf_url, and booked it bad-file/html_response; open_access bound the work in the same concurrent Stage B wave, so Stage C never ran",
+  "work_key": "Miller_2013_determining-occurrence-dynamics-when"
+}

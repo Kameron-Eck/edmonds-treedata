@@ -1,0 +1,898 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	  <header>
+		    <query>(oaftype exact result) and (resulttypeid exact publication) and ((pidclassid exact "doi" and pid exact "10.48550/arxiv.2002.06048"))</query>
+				  <locale>en_US</locale>	
+					<size>10</size>
+			   <page>1</page>
+			   <total>1</total>
+							<fields>
+							</fields>
+			</header>
+	  <results>
+										<result xmlns:dri="http://www.driver-repository.eu/namespace/dri"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+         <header>
+            <dri:objIdentifier>doi_dedup___::b7e9e49fe698a0c63a8527cdd4d557af</dri:objIdentifier>
+            <dri:dateOfCollection>2026-08-19T06:44:23.670040327</dri:dateOfCollection>
+            <dri:dateOfTransformation/>
+         </header>
+         <metadata>
+            <oaf:entity xmlns:oaf="http://namespace.openaire.eu/oaf"
+                        xsi:schemaLocation="http://namespace.openaire.eu/oaf https://www.openaire.eu/schema/1.0/oaf-1.0.xsd">
+               <oaf:result>
+                  <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                  <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                  <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                  <collectedfrom name="arXiv.org e-Print Archive"
+                                 id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                  <originalId>10.1609/aaai.v35i3.16350</originalId> 
+                  <originalId>50|doiboost____|b7e9e49fe698a0c63a8527cdd4d557af</originalId> 
+                  <originalId>50|datacite____::0fa0c7fc4dc397bb01b2597aa37d07d3</originalId> 
+                  <originalId>10.48550/arxiv.2002.06048</originalId> 
+                  <originalId>50|od________18::72eb5b46d97243a4484e6ddf54dbd16f</originalId> 
+                  <originalId>oai:arXiv.org:2002.06048</originalId> 
+                  <originalId>50|dblp________::d5d08034d0cd4519a832a74e61121705</originalId> 
+                  <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types">10.1609/aaai.v35i3.16350</pid> 
+                  <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types"
+                       inferred="false"
+                       provenanceaction="sysimport:actionset"
+                       trust="0.9">10.48550/arxiv.2002.06048</pid> 
+                  <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types"
+                       inferred="false"
+                       provenanceaction="sysimport:crosswalk:repository"
+                       trust="0.9">2002.06048</pid> 
+                  <measure id="influence" score="4.179969E-9" class="C4"/> 
+                  <measure id="popularity" score="1.9617657E-8" class="C4"/> 
+                  <measure id="influence_alt" score="28" class="C4"/> 
+                  <measure id="citationCount" score="29" class="C4"/> 
+                  <measure id="popularity_alt" score="12.05536" class="C4"/> 
+                  <measure id="impulse" score="17" class="C4"/> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">AutoLR: Layer-wise Pruning and Auto-tuning of Learning Rates in Fine-tuning of Deep Networks</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title"
+                         inferred="false"
+                         provenanceaction="sysimport:crosswalk:repository"
+                         trust="0.9">AutoLR: Layer-wise Pruning and Auto-tuning of Learning Rates in Fine-tuning of Deep Networks.</title> 
+                  <bestaccessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                   schemename="dnet:access_modes"/> 
+                  <creator rank="1">Youngmin Ro</creator> 
+                  <creator rank="2">Jin Young Choi 0002</creator> 
+                  <dateofacceptance>2021-05-18</dateofacceptance> 
+                  <description>&lt;jats:p&gt;Existing fine-tuning methods use a single learning rate over all layers. In this paper, first, we discuss that trends of layer-wise weight variations by fine-tuning using a single learning rate do not match the well-known notion that lower-level layers extract general features and higher-level layers extract specific features. Based on our discussion, we propose an algorithm that improves fine-tuning performance and reduces network complexity through layer-wise pruning and auto-tuning of layer-wise learning rates. The proposed algorithm has verified the effectiveness by achieving state-of-the-art performance on the image retrieval benchmark datasets (CUB-200, Cars-196, Stanford online product, and Inshop). Code is available at https://github.com/youngminPIL/AutoLR.&lt;/jats:p&gt;</description> 
+                  <embargoenddate>2020-02-01</embargoenddate> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies">FOS: Computer and information sciences</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies">Computer Vision and Pattern Recognition (cs.CV)</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">0202 electrical engineering, electronic engineering, information engineering</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Computer Science - Computer Vision and Pattern Recognition</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">02 engineering and technology</subject> 
+                  <language classid="und" classname="Undetermined" schemeid="dnet:languages"
+                            schemename="dnet:languages"/> 
+                  <relevantdate classid="created" classname="created" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2022-09-08</relevantdate> 
+                  <relevantdate classid="published-online" classname="published-online"
+                                schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2021-05-18</relevantdate> 
+                  <relevantdate classid="submitted" classname="submitted" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-02-14</relevantdate> 
+                  <relevantdate classid="updated" classname="updated" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-02-17</relevantdate> 
+                  <relevantdate classid="submitted" classname="submitted" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-02-17</relevantdate> 
+                  <relevantdate classid="updated" classname="updated" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-02-18</relevantdate> 
+                  <relevantdate classid="submitted" classname="submitted" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2021-01-04</relevantdate> 
+                  <relevantdate classid="updated" classname="updated" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2021-01-05</relevantdate> 
+                  <relevantdate classid="available" classname="available" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-02-01</relevantdate> 
+                  <relevantdate classid="issued" classname="issued" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-01-01</relevantdate> 
+                  <publisher>Association for the Advancement of Artificial Intelligence (AAAI)</publisher> 
+                  <source>Crossref</source> 
+                  <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                              schemename="dnet:result_typologies"/> 
+                  <resourcetype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                schemename="dnet:result_typologies"/> 
+                  <isgreen>true</isgreen> 
+                  <isindiamondjournal>false</isindiamondjournal> 
+                  <publiclyfunded>false</publiclyfunded> 
+                  <journal issn="2159-5399" eissn="2374-3468" ep="2494" sp="2486" vol="35">Proceedings of the AAAI Conference on Artificial Intelligence</journal> 
+                  <datainfo>
+                     <inferred>true</inferred>
+                     <deletedbyinference>false</deletedbyinference>
+                     <trust>0.8</trust>
+                     <inferenceprovenance>dedup-result-decisiontree-v4</inferenceprovenance>
+                     <provenanceaction classid="sysimport:dedup" classname="Inferred by OpenAIRE"
+                                       schemeid="dnet:provenanceActions"
+                                       schemename="dnet:provenanceActions"/>
+                  </datainfo> 
+                  <rels>
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::eb5aab4f120f1504b5be4a4a4045ecd1</to>
+                        <creator>Venu Govindaraju</creator> 
+                        <creator>Deen Dayal Mohan</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1109/CVPR42600.2020.01460</url> 
+                           <url>https://dblp.org/rec/conf/cvpr/MohanSFSG20.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1109/CVPR42600.2020.01460</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/conf/cvpr/MohanSFSG20.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Moving in the Right Direction: A Regularization for Deep Metric Learning</title> 
+                        <description>Deep metric learning leverages carefully designed sampling strategies and loss functions that aid in optimizing the generation of a discriminable embedding space. While effective sampling of pairs is critical for shaping the metric space during training, the relative interactions between pairs, and consequently the forces exerted on these pairs that direct their displacement in the embedding space can significantly impact the formation of well separated clusters. In this work, we identify a shor</description> 
+                        <creator>Dennis Fedorishin</creator> 
+                        <creator>Srirangaraj Setlur</creator> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1109/cvpr42600.2020.01460</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1109/cvpr42600.2020.01460</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Nishant Sankaran</creator> 
+                        <dateofacceptance>2020-06-01</dateofacceptance> 
+                        <instance>
+                           <accessright classid="CLOSED" classname="Closed Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2020-06-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>IEEE Copyright</license> 
+                           <url>https://doi.org/10.1109/cvpr42600.2020.01460</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1109/cvpr42600.2020.01460</url>
+                	          </webresource> 
+                        </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1109/cvpr42600.2020.01460</pid> 
+                        <publisher>IEEE</publisher> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:rawaff"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::ca981d44cbe7e6bb2d6dc904a4c57675</to>
+                        <legalname>Seoul National University</legalname> 
+                        <legalshortname>SNU</legalshortname> 
+                        <country classid="KR" classname="Korea (Republic of)" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <websiteurl>http://www.snu.ac.kr/index.html</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::f14508f54c77e6a4d6f3aa3260e712e5</to>
+                        <creator>Aymeric Histace</creator> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <creator>Pierre Jacob</creator> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <creator>Edouard Klein</creator> 
+                        <creator>David Picard</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/pdf/1908.02735</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/pdf/1908.02735</url>
+                	          </webresource> 
+                        </instance> 
+                        <description>Learning an effective similarity measure between image representations is key to the success of recent advances in visual search tasks (e.g. verification or zero-shot learning). Although the metric learning part is well addressed, this metric is usually computed over the average of the extracted deep features. This representation is then trained to be discriminative. However, these deep features tend to be scattered across the feature space. Consequently, the representations are not robust to ou</description> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <publisher>IEEE</publisher> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1109/iccv.2019.00664</pid> 
+                        <dateofacceptance>2019-10-01</dateofacceptance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2019-08-07</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1908.02735</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1908.02735</url>
+                	          </webresource> 
+                        </instance> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.1908.02735</pid> 
+                        <instance>
+                           <accessright classid="CLOSED" classname="Closed Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2019-10-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>IEEE Copyright</license> 
+                           <url>https://doi.org/10.1109/iccv.2019.00664</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1109/iccv.2019.00664</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY SA</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.1908.02735</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.48550/arxiv.1908.02735</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1109/ICCV.2019.00664</url> 
+                           <url>https://dblp.org/rec/conf/iccv/JacobPHK19.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1109/ICCV.2019.00664</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/conf/iccv/JacobPHK19.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1908.02735</url> 
+                           <url>https://dblp.org/rec/journals/corr/abs-1908-02735.html</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1908.02735</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/corr/abs-1908-02735.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1109/iccv.2019.00664</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1109/iccv.2019.00664</url>
+                	          </webresource> 
+                        </instance> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1908.02735</pid> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Metric Learning With HORDE: High-Order Regularizer for Deep Embeddings</title> 
+                     </rel> 
+                  </rels>
+                  <children>
+                     <result objidentifier="dblp________::d5d08034d0cd4519a832a74e61121705">
+            	           <instance>
+            	              <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dblp.org/rec/conf/aaai/RoC21.html</url> 
+                           <url>https://doi.org/10.1609/aaai.v35i3.16350</url> 
+            		             <webresource>
+            		                <url>https://dblp.org/rec/conf/aaai/RoC21.html</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://doi.org/10.1609/aaai.v35i3.16350</url>
+            		             </webresource> 
+            	           </instance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">AutoLR: Layer-wise Pruning and Auto-tuning of Learning Rates in Fine-tuning of Deep Networks.</title> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <creator>Youngmin Ro</creator> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <creator>Jin Young Choi 0002</creator> 
+                     </result> 
+                     <result objidentifier="arXiv_______::62b5f963d2ddae8f1c247cd8a71c1c15">
+            	           <creator>Ro, Youngmin</creator> 
+                        <dateofacceptance>2020-02-14</dateofacceptance> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2020-02-14</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/2002.06048</url> 
+            		             <webresource>
+            		                <url>http://arxiv.org/abs/2002.06048</url>
+            		             </webresource> 
+            	           </instance> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">2002.06048</pid> 
+                        <creator>Choi, Jin Young</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">AutoLR: Layer-wise Pruning and Auto-tuning of Learning Rates in Fine-tuning of Deep Networks</title> 
+                        <description>Existing fine-tuning methods use a single learning rate over all layers. In this paper, first, we discuss that trends of layer-wise weight variations by fine-tuning using a single learning rate do not match the well-known notion that lower-level layers extract general features and higher-level layers extract specific features. Based on our discussion, we propose an algorithm that improves fine-tuning performance and reduces network complexity through layer-wise pruning and auto-tuning of layer-w</description> 
+                     </result> 
+                     <result objidentifier="doi_________::b7e9e49fe698a0c63a8527cdd4d557af">
+            	           <instance>
+            	              <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Proceedings of the AAAI Conference on Artificial Intelligence"
+                                     id="issn___print::c3eeaf213793b1a8aa96af199fd54aa4"/> 
+                           <dateofacceptance>2021-05-18</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1609/aaai.v35i3.16350</url> 
+            		             <webresource>
+            		                <url>https://doi.org/10.1609/aaai.v35i3.16350</url>
+            		             </webresource> 
+            	           </instance> 
+                        <description>&lt;jats:p&gt;Existing fine-tuning methods use a single learning rate over all layers. In this paper, first, we discuss that trends of layer-wise weight variations by fine-tuning using a single learning rate do not match the well-known notion that lower-level layers extract general features and higher-level layers extract specific features. Based on our discussion, we propose an algorithm that improves fine-tuning performance and reduces network complexity through layer-wise pruning and auto-tuning of</description> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">AutoLR: Layer-wise Pruning and Auto-tuning of Learning Rates in Fine-tuning of Deep Networks</title> 
+                        <creator>Jin Young Choi</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1609/aaai.v35i3.16350</pid> 
+                        <creator>Youngmin Ro</creator> 
+                        <publisher>Association for the Advancement of Artificial Intelligence (AAAI)</publisher> 
+                        <dateofacceptance>2021-05-18</dateofacceptance> 
+                     </result> 
+                     <result objidentifier="doi_________::0fa0c7fc4dc397bb01b2597aa37d07d3">
+            	           <creator>Ro, Youngmin</creator> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">AutoLR: Layer-wise Pruning and Auto-tuning of Learning Rates in Fine-tuning of Deep Networks</title> 
+                        <creator>Choi, Jin Young</creator> 
+                        <instance>
+            	              <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>arXiv Non-Exclusive Distribution</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.2002.06048</url> 
+            		             <webresource>
+            		                <url>https://dx.doi.org/10.48550/arxiv.2002.06048</url>
+            		             </webresource> 
+            	           </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.2002.06048</pid> 
+                        <description>Existing fine-tuning methods use a single learning rate over all layers. In this paper, first, we discuss that trends of layer-wise weight variations by fine-tuning using a single learning rate do not match the well-known notion that lower-level layers extract general features and higher-level layers extract specific features. Based on our discussion, we propose an algorithm that improves fine-tuning performance and reduces network complexity through layer-wise pruning and auto-tuning of layer-w</description> 
+                     </result> 
+                     <instance>
+                        <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <instancetype classid="0004" classname="Conference object"
+                                      schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1609/aaai.v35i3.16350</alternateidentifier> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://dblp.org/rec/conf/aaai/RoC21.html</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.2002.06048</pid> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>arXiv Non-Exclusive Distribution</license> 
+            	           <webresource>
+            	              <url>https://doi.org/10.48550/arxiv.2002.06048</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <hostedby name="Proceedings of the AAAI Conference on Artificial Intelligence"
+                                  id="issn___print::c3eeaf213793b1a8aa96af199fd54aa4"/> 
+                        <dateofacceptance>2021-05-18</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1609/aaai.v35i3.16350</pid> 
+                        <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://doi.org/10.1609/aaai.v35i3.16350</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <hostedby name="arXiv.org e-Print Archive"
+                                  id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <dateofacceptance>2020-02-14</dateofacceptance> 
+                        <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">2002.06048</pid> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>http://arxiv.org/abs/2002.06048</url>
+            	           </webresource> 
+                     </instance> 
+                  </children>
+               </oaf:result>
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] Hossein Azizpour, Ali Sharif Razavian, Josephine Sullivan, Atsuto Maki, and Stefan Carlsson. Factors of transferability for a generic convnet representation. IEEE transactions on pattern analysis and machine intelligence, 38(9):1790-1802, 2015. 1, 2</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] Yin Cui, Yang Song, Chen Sun, Andrew Howard, and Serge Belongie. Large scale fine-grained categorization and domain-specific transfer learning. In Proceedings of the IEEE conference on computer vision and pattern recognition, pages 4109-4118, 2018. 1, 2</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] Zuozhuo Dai, Mingqiang Chen, Xiaodong Gu, Siyu Zhu, and Ping Tan. Batch dropblock network for person reidentification and beyond. In The IEEE International Conference on Computer Vision (ICCV), October 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In CVPR. Ieee, 2009. 1, 2, 6</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] Jianlong Fu, Heliang Zheng, and Tao Mei. Look closer to see better: Recurrent attention convolutional neural network for fine-grained image recognition. In CVPR, volume 2, page 3, 2017. 1, 8</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] Yunhui Guo, Honghui Shi, Abhishek Kumar, Kristen Grauman, Tajana Rosing, and Rogerio Feris. Spottune: transfer learning through adaptive fine-tuning. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 4805-4814, 2019. 1, 2, 8</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In CVPR, 2016. 2, 6</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] Wonsik Kim, Bhavya Goyal, Kunal Chawla, Jungmin Lee, and Keunjoo Kwon. Attention-based ensemble for deep metric learning. In The European Conference on Computer Vision (ECCV), September 2018. 8</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] Simon Kornblith, Jonathon Shlens, and Quoc V Le. Do better imagenet models transfer better? arXiv preprint arXiv:1805.08974, 2018. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] Jonathan Krause, Michael Stark, Jia Deng, and Li Fei-Fei. 3d object representations for fine-grained categorization. In Proceedings of the IEEE International Conference on Computer Vision Workshops, pages 554-561, 2013. 5</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] Peihua Li, Jiangtao Xie, Qilong Wang, and Zilin Gao. Towards faster training of global covariance pooling networks by iterative matrix square root normalization. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 947-955, 2018. 8</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] Zhichao Li, Yi Yang, Xiao Liu, Feng Zhou, Shilei Wen, and Wei Xu. Dynamic computational time for visual attention. In Proceedings of the IEEE International Conference on Computer Vision, pages 1199-1209, 2017. 8</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] Ziwei Liu, Ping Luo, Shi Qiu, Xiaogang Wang, and Xiaoou Tang. Deepfashion: Powering robust clothes recognition and retrieval with rich annotations. In CVPR, 2016. 5</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] Ilya Loshchilov and Frank Hutter. Sgdr: Stochastic gradient descent with warm restarts. arXiv preprint arXiv:1608.03983, 2016. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] Subhransu Maji, Esa Rahtu, Juho Kannala, Matthew Blaschko, and Andrea Vedaldi. Fine-grained visual classification of aircraft. arXiv preprint arXiv:1306.5151, 2013. 5</rawText>
+                        <id value="doi_________::c9c6617be91663418128f65d8c751d3e" type="openaire"
+                            trustLevel="0.59839684"/>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] Yurii Nesterov. A method for unconstrained convex minimization problem with the rate of convergence o (1/kˆ 2). In Doklady AN USSR, 1983. 6</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] Hyun Oh Song, Yu Xiang, Stefanie Jegelka, and Silvio Savarese. Deep metric learning via lifted structured feature embedding. In CVPR, 2016. 5</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] Michael Opitz, Georg Waltner, Horst Possegger, and Horst Bischof. Bier-boosting independent embeddings robustly. In ICCV, pages 5189-5198, 2017. 8</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] Youngmin Ro, Jongwon Choi, Dae Ung Jo, Byeongho Heo, Jongin Lim, and Jin Young Choi. Backbone can not be trained at once: Rolling back to pre-trained network for person re-identification. In AAAI, 2019. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] Ramprasaath R Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam, Devi Parikh, and Dhruv Batra. Grad-cam: Visual explanations from deep networks via gradient-based localization. In Proceedings of the IEEE International Conference on Computer Vision, pages 618-626, 2017. 7</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] Leslie N Smith. Cyclical learning rates for training neural networks. In WACV, 2017. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] Yumin Suh, Bohyung Han, Wonsik Kim, and Kyoung Mu Lee. Stochastic class-based hard example mining for deep metric learning. In CVPR, June 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] Yifan Sun, Liang Zheng, Yi Yang, Qi Tian, and Shengjin Wang. Beyond part models: Person retrieval with refined part pooling (and a strong convolutional baseline). In The European Conference on Computer Vision (ECCV), September 2018. 7</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] Nima Tajbakhsh, Jae Y Shin, Suryakanth R Gurudu, R Todd Hurst, Christopher B Kendall, Michael B Gotway, and Jianming Liang. Convolutional neural networks for medical image analysis: Full training or fine tuning? IEEE transactions on medical imaging, 35(5):1299-1312, 2016. 1, 2</rawText>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] Catherine Wah, Steve Branson, Peter Welinder, Pietro Perona, and Serge Belongie. The caltech-ucsd birds-200-2011 dataset. 2011. 2, 5</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] Xun Wang, Xintong Han, Weilin Huang, Dengke Dong, and Matthew R. Scott. Multi-similarity loss with general pair weighting for deep metric learning. In CVPR, June 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] Yaming Wang, Vlad I Morariu, and Larry S Davis. Learning a discriminative filter bank within a cnn for fine-grained recognition. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 4148-4157, 2018. 8</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] Chao-Yuan Wu, R Manmatha, Alexander J Smola, and Philipp Krahenbuhl. Sampling matters in deep embedding learning. In Proceedings of the IEEE International Conference on Computer Vision, pages 2840-2848, 2017. 8</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] Hong Xuan, Richard Souvenir, and Robert Pless. Deep randomized ensembles for metric learning. In Proceedings of the European Conference on Computer Vision (ECCV), pages 723-734, 2018. 8</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] Ze Yang, Tiange Luo, Dong Wang, Zhiqiang Hu, Jun Gao, and Liwei Wang. Learning to navigate for fine-grained classification. In Proceedings of the European Conference on Computer Vision (ECCV), pages 420-435, 2018. 8</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] Jason Yosinski, Jeff Clune, Yoshua Bengio, and Hod Lipson. How transferable are features in deep neural networks? In Advances in neural information processing systems, pages 3320-3328, 2014. 1, 2</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] Matthew D Zeiler and Rob Fergus. Visualizing and understanding convolutional networks. In European conference on computer vision, pages 818-833. Springer, 2014. 1, 2</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] Andrew Zhai and Hao-Yu Wu. Making classification competitive for deep metric learning. arXiv preprint arXiv:1811.12649, 2018. 8</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] Heliang Zheng, Jianlong Fu, Tao Mei, and Jiebo Luo. Learning multi-attention convolutional neural network for finegrained image recognition. In Int. Conf. on Computer Vision, volume 6, 2017. 1, 8</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] Hossein Azizpour, Ali Sharif Razavian, Josephine Sullivan, Atsuto Maki, and Stefan Carlsson. Factors of transferability for a generic convnet representation. IEEE transactions on pattern analysis and machine intelligence, 38(9):1790-1802, 2015. 1, 2</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] Yin Cui, Yang Song, Chen Sun, Andrew Howard, and Serge Belongie. Large scale fine-grained categorization and domain-specific transfer learning. In Proceedings of the IEEE conference on computer vision and pattern recognition, pages 4109-4118, 2018. 1, 2</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] Zuozhuo Dai, Mingqiang Chen, Xiaodong Gu, Siyu Zhu, and Ping Tan. Batch dropblock network for person reidentification and beyond. In The IEEE International Conference on Computer Vision (ICCV), October 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In CVPR. Ieee, 2009. 1, 2, 6</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] Jianlong Fu, Heliang Zheng, and Tao Mei. Look closer to see better: Recurrent attention convolutional neural network for fine-grained image recognition. In CVPR, volume 2, page 3, 2017. 1, 8</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] Yunhui Guo, Honghui Shi, Abhishek Kumar, Kristen Grauman, Tajana Rosing, and Rogerio Feris. Spottune: transfer learning through adaptive fine-tuning. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 4805-4814, 2019. 1, 2, 8</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In CVPR, 2016. 2, 6</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] Wonsik Kim, Bhavya Goyal, Kunal Chawla, Jungmin Lee, and Keunjoo Kwon. Attention-based ensemble for deep metric learning. In The European Conference on Computer Vision (ECCV), September 2018. 8</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] Simon Kornblith, Jonathon Shlens, and Quoc V Le. Do better imagenet models transfer better? arXiv preprint arXiv:1805.08974, 2018. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] Jonathan Krause, Michael Stark, Jia Deng, and Li Fei-Fei. 3d object representations for fine-grained categorization. In Proceedings of the IEEE International Conference on Computer Vision Workshops, pages 554-561, 2013. 5</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] Peihua Li, Jiangtao Xie, Qilong Wang, and Zilin Gao. Towards faster training of global covariance pooling networks by iterative matrix square root normalization. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 947-955, 2018. 8</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] Zhichao Li, Yi Yang, Xiao Liu, Feng Zhou, Shilei Wen, and Wei Xu. Dynamic computational time for visual attention. In Proceedings of the IEEE International Conference on Computer Vision, pages 1199-1209, 2017. 8</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] Ziwei Liu, Ping Luo, Shi Qiu, Xiaogang Wang, and Xiaoou Tang. Deepfashion: Powering robust clothes recognition and retrieval with rich annotations. In CVPR, 2016. 5</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] Ilya Loshchilov and Frank Hutter. Sgdr: Stochastic gradient descent with warm restarts. arXiv preprint arXiv:1608.03983, 2016. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] Subhransu Maji, Esa Rahtu, Juho Kannala, Matthew Blaschko, and Andrea Vedaldi. Fine-grained visual classification of aircraft. arXiv preprint arXiv:1306.5151, 2013. 5</rawText>
+                        <id value="doi_________::c9c6617be91663418128f65d8c751d3e" type="openaire"
+                            trustLevel="0.59839684"/>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] Yurii Nesterov. A method for unconstrained convex minimization problem with the rate of convergence o (1/kˆ 2). In Doklady AN USSR, 1983. 6</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] Hyun Oh Song, Yu Xiang, Stefanie Jegelka, and Silvio Savarese. Deep metric learning via lifted structured feature embedding. In CVPR, 2016. 5</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] Michael Opitz, Georg Waltner, Horst Possegger, and Horst Bischof. Bier-boosting independent embeddings robustly. In ICCV, pages 5189-5198, 2017. 8</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] Youngmin Ro, Jongwon Choi, Dae Ung Jo, Byeongho Heo, Jongin Lim, and Jin Young Choi. Backbone can not be trained at once: Rolling back to pre-trained network for person re-identification. In AAAI, 2019. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] Ramprasaath R Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam, Devi Parikh, and Dhruv Batra. Grad-cam: Visual explanations from deep networks via gradient-based localization. In Proceedings of the IEEE International Conference on Computer Vision, pages 618-626, 2017. 7</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] Leslie N Smith. Cyclical learning rates for training neural networks. In WACV, 2017. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] Yumin Suh, Bohyung Han, Wonsik Kim, and Kyoung Mu Lee. Stochastic class-based hard example mining for deep metric learning. In CVPR, June 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] Yifan Sun, Liang Zheng, Yi Yang, Qi Tian, and Shengjin Wang. Beyond part models: Person retrieval with refined part pooling (and a strong convolutional baseline). In The European Conference on Computer Vision (ECCV), September 2018. 7</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] Nima Tajbakhsh, Jae Y Shin, Suryakanth R Gurudu, R Todd Hurst, Christopher B Kendall, Michael B Gotway, and Jianming Liang. Convolutional neural networks for medical image analysis: Full training or fine tuning? IEEE transactions on medical imaging, 35(5):1299-1312, 2016. 1, 2</rawText>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] Catherine Wah, Steve Branson, Peter Welinder, Pietro Perona, and Serge Belongie. The caltech-ucsd birds-200-2011 dataset. 2011. 2, 5</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] Xun Wang, Xintong Han, Weilin Huang, Dengke Dong, and Matthew R. Scott. Multi-similarity loss with general pair weighting for deep metric learning. In CVPR, June 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] Yaming Wang, Vlad I Morariu, and Larry S Davis. Learning a discriminative filter bank within a cnn for fine-grained recognition. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 4148-4157, 2018. 8</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] Chao-Yuan Wu, R Manmatha, Alexander J Smola, and Philipp Krahenbuhl. Sampling matters in deep embedding learning. In Proceedings of the IEEE International Conference on Computer Vision, pages 2840-2848, 2017. 8</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] Hong Xuan, Richard Souvenir, and Robert Pless. Deep randomized ensembles for metric learning. In Proceedings of the European Conference on Computer Vision (ECCV), pages 723-734, 2018. 8</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] Ze Yang, Tiange Luo, Dong Wang, Zhiqiang Hu, Jun Gao, and Liwei Wang. Learning to navigate for fine-grained classification. In Proceedings of the European Conference on Computer Vision (ECCV), pages 420-435, 2018. 8</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] Jason Yosinski, Jeff Clune, Yoshua Bengio, and Hod Lipson. How transferable are features in deep neural networks? In Advances in neural information processing systems, pages 3320-3328, 2014. 1, 2</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] Matthew D Zeiler and Rob Fergus. Visualizing and understanding convolutional networks. In European conference on computer vision, pages 818-833. Springer, 2014. 1, 2</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] Andrew Zhai and Hao-Yu Wu. Making classification competitive for deep metric learning. arXiv preprint arXiv:1811.12649, 2018. 8</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] Heliang Zheng, Jianlong Fu, Tao Mei, and Jiebo Luo. Learning multi-attention convolutional neural network for finegrained image recognition. In Int. Conf. on Computer Vision, volume 6, 2017. 1, 8</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] Hossein Azizpour, Ali Sharif Razavian, Josephine Sullivan, Atsuto Maki, and Stefan Carlsson. Factors of transferability for a generic convnet representation. IEEE transactions on pattern analysis and machine intelligence, 38(9):1790-1802, 2015. 1, 2</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] Yin Cui, Yang Song, Chen Sun, Andrew Howard, and Serge Belongie. Large scale fine-grained categorization and domain-specific transfer learning. In Proceedings of the IEEE conference on computer vision and pattern recognition, pages 4109-4118, 2018. 1, 2</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] Zuozhuo Dai, Mingqiang Chen, Xiaodong Gu, Siyu Zhu, and Ping Tan. Batch dropblock network for person reidentification and beyond. In The IEEE International Conference on Computer Vision (ICCV), October 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In CVPR. Ieee, 2009. 1, 2, 6</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] Jianlong Fu, Heliang Zheng, and Tao Mei. Look closer to see better: Recurrent attention convolutional neural network for fine-grained image recognition. In CVPR, volume 2, page 3, 2017. 1, 8</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] Yunhui Guo, Honghui Shi, Abhishek Kumar, Kristen Grauman, Tajana Rosing, and Rogerio Feris. Spottune: transfer learning through adaptive fine-tuning. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 4805-4814, 2019. 1, 2, 8</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In CVPR, 2016. 2, 6</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] Wonsik Kim, Bhavya Goyal, Kunal Chawla, Jungmin Lee, and Keunjoo Kwon. Attention-based ensemble for deep metric learning. In The European Conference on Computer Vision (ECCV), September 2018. 8</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] Simon Kornblith, Jonathon Shlens, and Quoc V Le. Do better imagenet models transfer better? arXiv preprint arXiv:1805.08974, 2018. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] Jonathan Krause, Michael Stark, Jia Deng, and Li Fei-Fei. 3d object representations for fine-grained categorization. In Proceedings of the IEEE International Conference on Computer Vision Workshops, pages 554-561, 2013. 5</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] Peihua Li, Jiangtao Xie, Qilong Wang, and Zilin Gao. Towards faster training of global covariance pooling networks by iterative matrix square root normalization. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 947-955, 2018. 8</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] Zhichao Li, Yi Yang, Xiao Liu, Feng Zhou, Shilei Wen, and Wei Xu. Dynamic computational time for visual attention. In Proceedings of the IEEE International Conference on Computer Vision, pages 1199-1209, 2017. 8</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] Ziwei Liu, Ping Luo, Shi Qiu, Xiaogang Wang, and Xiaoou Tang. Deepfashion: Powering robust clothes recognition and retrieval with rich annotations. In CVPR, 2016. 5</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] Ilya Loshchilov and Frank Hutter. Sgdr: Stochastic gradient descent with warm restarts. arXiv preprint arXiv:1608.03983, 2016. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] Subhransu Maji, Esa Rahtu, Juho Kannala, Matthew Blaschko, and Andrea Vedaldi. Fine-grained visual classification of aircraft. arXiv preprint arXiv:1306.5151, 2013. 5</rawText>
+                        <id value="doi_________::c9c6617be91663418128f65d8c751d3e" type="openaire"
+                            trustLevel="0.59839684"/>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] Yurii Nesterov. A method for unconstrained convex minimization problem with the rate of convergence o (1/kˆ 2). In Doklady AN USSR, 1983. 6</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] Hyun Oh Song, Yu Xiang, Stefanie Jegelka, and Silvio Savarese. Deep metric learning via lifted structured feature embedding. In CVPR, 2016. 5</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] Michael Opitz, Georg Waltner, Horst Possegger, and Horst Bischof. Bier-boosting independent embeddings robustly. In ICCV, pages 5189-5198, 2017. 8</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] Youngmin Ro, Jongwon Choi, Dae Ung Jo, Byeongho Heo, Jongin Lim, and Jin Young Choi. Backbone can not be trained at once: Rolling back to pre-trained network for person re-identification. In AAAI, 2019. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] Ramprasaath R Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam, Devi Parikh, and Dhruv Batra. Grad-cam: Visual explanations from deep networks via gradient-based localization. In Proceedings of the IEEE International Conference on Computer Vision, pages 618-626, 2017. 7</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] Leslie N Smith. Cyclical learning rates for training neural networks. In WACV, 2017. 1, 2, 7</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] Yumin Suh, Bohyung Han, Wonsik Kim, and Kyoung Mu Lee. Stochastic class-based hard example mining for deep metric learning. In CVPR, June 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] Yifan Sun, Liang Zheng, Yi Yang, Qi Tian, and Shengjin Wang. Beyond part models: Person retrieval with refined part pooling (and a strong convolutional baseline). In The European Conference on Computer Vision (ECCV), September 2018. 7</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] Nima Tajbakhsh, Jae Y Shin, Suryakanth R Gurudu, R Todd Hurst, Christopher B Kendall, Michael B Gotway, and Jianming Liang. Convolutional neural networks for medical image analysis: Full training or fine tuning? IEEE transactions on medical imaging, 35(5):1299-1312, 2016. 1, 2</rawText>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] Catherine Wah, Steve Branson, Peter Welinder, Pietro Perona, and Serge Belongie. The caltech-ucsd birds-200-2011 dataset. 2011. 2, 5</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] Xun Wang, Xintong Han, Weilin Huang, Dengke Dong, and Matthew R. Scott. Multi-similarity loss with general pair weighting for deep metric learning. In CVPR, June 2019. 1, 8</rawText>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] Yaming Wang, Vlad I Morariu, and Larry S Davis. Learning a discriminative filter bank within a cnn for fine-grained recognition. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 4148-4157, 2018. 8</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] Chao-Yuan Wu, R Manmatha, Alexander J Smola, and Philipp Krahenbuhl. Sampling matters in deep embedding learning. In Proceedings of the IEEE International Conference on Computer Vision, pages 2840-2848, 2017. 8</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] Hong Xuan, Richard Souvenir, and Robert Pless. Deep randomized ensembles for metric learning. In Proceedings of the European Conference on Computer Vision (ECCV), pages 723-734, 2018. 8</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] Ze Yang, Tiange Luo, Dong Wang, Zhiqiang Hu, Jun Gao, and Liwei Wang. Learning to navigate for fine-grained classification. In Proceedings of the European Conference on Computer Vision (ECCV), pages 420-435, 2018. 8</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] Jason Yosinski, Jeff Clune, Yoshua Bengio, and Hod Lipson. How transferable are features in deep neural networks? In Advances in neural information processing systems, pages 3320-3328, 2014. 1, 2</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] Matthew D Zeiler and Rob Fergus. Visualizing and understanding convolutional networks. In European conference on computer vision, pages 818-833. Springer, 2014. 1, 2</rawText>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] Andrew Zhai and Hao-Yu Wu. Making classification competitive for deep metric learning. arXiv preprint arXiv:1811.12649, 2018. 8</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] Heliang Zheng, Jianlong Fu, Tao Mei, and Jiebo Luo. Learning multi-attention convolutional neural network for finegrained image recognition. In Int. Conf. on Computer Vision, volume 6, 2017. 1, 8</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+            </oaf:entity>
+         </metadata>
+      </result>
+						</results>
+	  <browseResults>
+								</browseResults>
+</response>

@@ -20,6 +20,9 @@ r"""The acceptance instrument for the litkb work plan: a session's "done" is a C
         --fire <kill|lease|cap|probe|scan|book|quarantine> [--manifest <manifest.json>]
     PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_acceptance.py hardening --freeze \
         --workstream ladder-1 --out <manifest.json> [--date YYYY-MM-DD]
+    PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_acceptance.py hardening --freeze \
+        --rows-from <earlier manifest.json> --run-label <token> --cassette <new index.jsonl> \
+        --workstream ladder-1 --out <manifest.json> [--date YYYY-MM-DD]
     PYTHONUTF8=1 PYTHONPATH=pipeline py -3.12 qc/instruments/litkb_acceptance.py hardening --manifest <m>
     PYTHONUTF8=1 PYTHONPATH=pipeline LITKB_TEST_DB=litkb_test_wN py -3.12 qc/instruments/litkb_acceptance.py \
         hardening --fire <name|all> --db litkb_test_wN
@@ -232,6 +235,7 @@ filter an injected `-f` argument (CLAUDE.md 3.10 applies to the Colab entry poin
 """
 import argparse
 import csv
+import dataclasses
 import datetime as dt
 import hashlib
 import importlib.util
@@ -2420,7 +2424,8 @@ def cmd_readability(args):
 #   --freeze   the manifest BEFORE the run: the database's clock and identity, the repo head, the
 #              workstream, every probe file the counters read (path + content hash), the promised
 #              report and referee paths, the cassette index's identity, the gated and reported lists
-#              with bounds, and THE RUN ROWS (S4.5 decision D9) chosen by NAMED selectors.
+#              with bounds, and THE RUN ROWS (S4.5 decision D9) chosen by NAMED selectors — or, with
+#              `--rows-from`, an earlier manifest's OWN rows, each mode re-read (S4.5 decision D49).
 #   --manifest grade: one line, exit 0 iff every gated counter meets its bound.
 #   --fire     one (or every) module FIRE on a worker database: reset, control, reset, known-bad.
 #   --replay   the register replayed through the recorded cassette inside a socket guard that allows
@@ -2745,6 +2750,210 @@ def _rel(repo, p):
         return str(p)
 
 
+# -- --freeze --rows-from: a re-run of an earlier manifest's OWN rows (S4.5 decision D49) -----------
+#
+# hardening-2 is hardening-1's OWN 198 row definitions under a new freeze, never a fresh selector freeze: a trial
+# re-freeze during the live pass picked a DIFFERENT population (S4.5 decision D40: 109 of 198 row ids changed, because
+# pass 1's own attempts feed the bad-file/blocked selectors and the works it bound flip hunt -> measure). So a
+# rows-from freeze copies every row of the source manifest WHOLE and recomputes ONE field, `mode`, from the file state
+# at this freeze; everything else (frozen_at, head, db tip, cassette identity, shadow tier OFF, probe hashes) is a
+# normal freeze's. The register rows whose source take is the register's recorded truth are named `kept_takes`: the
+# run driver carries each take into the new run CSV and re-runs one only when the operator names it (D49: E03's
+# outcome is changed by a fix, so it is re-run; the others keep their hardening-1 hunt-mode takes).
+
+#: Why a rows-from row changed mode, by (to, whether a main work holds the reference now).
+_MODE_WHY = {("measure", True): "the work holds an active file now",
+             ("hunt", True): "the work holds no active file now",
+             ("hunt", False): "no main work holds the reference now"}
+
+#: The run files a rows-from freeze must NOT share with its source: the source's run CSV would be RESUMED (every
+#: source row read as done, nothing re-run), and its recording report, replay files and cassette index are the
+#: finished run's evidence (a second pass appending to the index changes the sha its recording report pins).
+_ROWS_FROM_OWN_FILES = ("run_csv", "recording_report", "replay_csv", "replay_report")
+
+#: A `--run-label`: one path-safe token, inserted into the derived run file names.
+_RUN_LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+
+
+def load_rows_source(path):
+    """The manifest a `--rows-from` freeze copies its rows from. REFUSED (SystemExit, nothing written) when it is
+    not a hardening manifest, was edited after its own freeze (its `manifest_sha256`), or holds no rows. Its gated
+    list is NOT held to this code's (`load_hardening_manifest`'s third refusal): only its ROW DEFINITIONS are read,
+    and a row definition does not depend on a bound."""
+    src = json.loads(read_text(path))
+    # BEGIN guard: a rows-from source edited after its freeze is refused
+    if src.get("kind") != HARDENING_MANIFEST_KIND:
+        raise SystemExit(f"hardening --freeze --rows-from: {path} is not a {HARDENING_MANIFEST_KIND!r} manifest "
+                         f"(kind {src.get('kind')!r}). Nothing was frozen.")
+    if src.get("manifest_sha256") != _canonical_sha(src):
+        raise SystemExit(f"hardening --freeze --rows-from: {path} was edited after its freeze (manifest_sha256 "
+                         "does not match its content): its rows are not the rows it froze. Nothing was frozen.")
+    # END guard: a rows-from source edited after its freeze is refused
+    if not src.get("rows"):
+        raise SystemExit(f"hardening --freeze --rows-from: {path} holds no rows. Nothing was frozen.")
+    return src
+
+
+def rows_from_source(src, ledger):
+    """-> (rows, mode_changes). Every row of the source manifest `src` EXACTLY as it was defined there — a deep copy
+    of the whole row (id, ref, ref_scheme, source, why, work_id, key), in the source's order — with its `mode` alone
+    recomputed from the file state `ledger` reads NOW, by `select_run_rows`' rule: `measure` when the row's work
+    holds an active file, else `hunt`. A row the source froze with no work (its reference was in no main work then)
+    is resolved by its reference now (`ledger.work_of`); its `work_id` stays the source's, and the resolution is in
+    its mode change (the run driver's measure path resolves such a row by the same rule).
+    `mode_changes`: [{id, ref, from, to, work_id, why}] for every row whose mode is not the source's."""
+    import copy
+
+    rows, changes = [], []
+    for src_row in src.get("rows") or []:
+        row = copy.deepcopy(src_row)
+        wid = src_row.get("work_id")
+        if not wid:
+            hit = ledger.work_of(src_row.get("ref_scheme"), src_row.get("ref"))
+            wid = hit[0] if hit else None
+        # BEGIN guard: a rows-from row's mode is recomputed from the file state now
+        row["mode"] = "measure" if (wid and ledger.has_file(wid)) else "hunt"
+        # END guard: a rows-from row's mode is recomputed from the file state now
+        if row["mode"] != src_row.get("mode"):
+            changes.append({"id": row.get("id"), "ref": row.get("ref"), "from": src_row.get("mode"),
+                            "to": row["mode"], "work_id": wid, "why": _MODE_WHY[(row["mode"], bool(wid))]})
+        rows.append(row)
+    return rows, changes
+
+
+def kept_register_takes(rows, register, source_run):
+    """The rows whose take in the SOURCE run is KEPT as the register's recorded truth (S4.5 decision D49): a row
+    whose reference is a register row graded from the live recording (`litkb_edge_run.graded_by_hardening_replay`:
+    a `ladder` row with no cassette of its own — E03 E07 E13 E20 after the ladder-1 pass) AND whose take is in the
+    source run CSV (`source_run`: {row_id: csv row}). -> (kept, missing): kept = [{id, ref, register_row, take}]
+    (`take` = the source run CSV row, every column); missing = [{id, ref, register_row, why}] for a register row
+    the source run never took (it is then an ordinary row of the new run) and, after those, with `id` null, for a
+    register row whose reference NO source row holds (it is not a row of the new run at all) — named, never
+    silently absent (auditor-FX-R round 1, N5)."""
+    E = _edge_run()
+    recorded, spelled = {}, {}
+    for r in register.get("rows") or []:
+        # BEGIN guard: only a register row graded from the live recording keeps its take
+        if E.graded_by_hardening_replay(r) and r.get("ref"):
+            recorded.setdefault(str(r["ref"]).strip().lower(), r["id"])
+            spelled.setdefault(str(r["ref"]).strip().lower(), r["ref"])
+        # END guard: only a register row graded from the live recording keeps its take
+    kept, missing, matched = [], [], set()
+    for row in rows:
+        ref_key = str(row.get("ref") or "").strip().lower()
+        reg_id = recorded.get(ref_key)
+        if not reg_id:
+            continue
+        matched.add(ref_key)
+        take = source_run.get(row["id"])
+        if take is None:
+            missing.append({"id": row["id"], "ref": row.get("ref"), "register_row": reg_id,
+                            "why": "no take in the source run CSV: an ordinary row of this run"})
+            continue
+        kept.append({"id": row["id"], "ref": row.get("ref"), "register_row": reg_id, "take": dict(take)})
+    # BEGIN guard: a recording-graded register row no source row holds is named in kept_missing
+    for ref_key, reg_id in recorded.items():
+        if ref_key not in matched:
+            missing.append({"id": None, "ref": spelled.get(ref_key), "register_row": reg_id,
+                            "why": "no row of the source manifest holds this reference: not a row of this run"})
+    # END guard: a recording-graded register row no source row holds is named in kept_missing
+    return kept, missing
+
+
+#: S4.5 decision D57: why a register row's source take is NOT kept.
+D57_REDO_WHY = ("its work holds no active file now, so the row is a HUNT row the fixed code reproduces: re-run live, "
+                "its source take replaced (S4.5 decision D57)")
+
+
+def split_kept_by_mode(kept, rows):
+    """S4.5 decision D57 (2026-09-24 ~19:45; FX-R N4, FX-E F4, FX-B N-C): of the recording-graded register takes
+    `kept_register_takes` found, KEEP only those whose row is a `measure` row now — its work was bound (by that take,
+    E13's fresh-bound in hardening-1), so a re-run is a measure row and cannot reproduce a fresh-bound take — and
+    RE-RUN every one whose row is `hunt` (E03 E07 E20: their works hold no active file, so the fixed code's hunt is
+    their honest take). -> (kept, redo): redo entries are the kept entries plus `why`, their source take kept beside
+    them as history, never carried."""
+    mode = {r.get("id"): r.get("mode") for r in rows}
+    keep, redo = [], []
+    for k in kept:
+        # BEGIN guard: a register take whose work holds no active file is re-run, never kept
+        if mode.get(k.get("id")) != "measure":
+            redo.append(dict(k, why=D57_REDO_WHY))
+            continue
+        # END guard: a register take whose work holds no active file is re-run, never kept
+        keep.append(k)
+    return keep, redo
+
+
+def take_cassettes(manifest, register, repo):
+    """S4.5 decision D57: `hardening --replay` grades a KEPT-take row against the cassette index of the manifest its
+    take came from, every other row against this manifest's own. The take's origin is the run CSV's `take_from`
+    column (the run driver writes the SOURCE manifest's sha256 on a carried take, `litkb_ladder_run.carried_row`):
+    for every register row graded from the live recording (`litkb_edge_run.graded_by_hardening_replay`) whose run-CSV
+    row carries a `take_from`, its index is the one the freeze pinned in `rows_from.take_cassette`.
+    -> {register row id: {cassette, index, index_sha256, bodies, from_manifest_sha256, run_row}}.
+    REFUSED (SystemExit, nothing replayed) when a `take_from` names a manifest this one was not frozen from, when the
+    freeze pinned no source index, or when that index is not the one the freeze pinned (its sha256)."""
+    from litkb import cassette as CAS
+
+    def at(p):
+        q = Path(p)
+        return q if q.is_absolute() else Path(repo) / q
+    rf = manifest.get("rows_from") or {}
+    run_csv = at(manifest["run_csv"]) if manifest.get("run_csv") else None
+    takes = _csv_rows(run_csv) if run_csv is not None and run_csv.is_file() else []
+    by_ref = {str(r.get("ref") or "").strip().lower(): r for r in takes if r.get("ref")}
+    E = _edge_run()
+    out = {}
+    for reg in register.get("rows") or []:
+        if not E.graded_by_hardening_replay(reg):
+            continue
+        take = by_ref.get(str(reg.get("ref") or "").strip().lower())
+        origin = (take or {}).get("take_from") or ""
+        if not origin:
+            continue                    # a take THIS manifest's run made: its own index
+        src = rf.get("take_cassette") or {}
+        if origin != rf.get("manifest_sha256") or not src.get("path"):
+            raise SystemExit(f"hardening --replay: register row {reg['id']}'s take (run row {take.get('row_id')}) "
+                             f"came from manifest {origin[:12]}, and this manifest pins no index for it (rows_from "
+                             f"{str(rf.get('manifest_sha256'))[:12]}, take_cassette {src.get('path')!r}). Nothing "
+                             "was replayed.")
+        index = Path(src["path"])
+        # BEGIN guard: a kept take replays only against the source index the freeze pinned, byte for byte
+        if not src.get("sha256") or CAS.index_sha256(index) != src.get("sha256"):
+            raise SystemExit(f"hardening --replay: the index {index} register row {reg['id']}'s kept take was recorded "
+                             f"in is not the one the freeze pinned ({str(src.get('sha256'))[:12]}). Nothing was "
+                             "replayed.")
+        # END guard: a kept take replays only against the source index the freeze pinned, byte for byte
+        # BEGIN guard: a kept take replays against the index of the manifest its take came from
+        out[reg["id"]] = {"cassette": CAS.Cassette(index, "replay", bodies=src.get("bodies") or None),
+                          "index": index, "index_sha256": src.get("sha256"), "bodies": src.get("bodies"),
+                          "from_manifest_sha256": origin, "run_row": take.get("row_id")}
+        # END guard: a kept take replays against the index of the manifest its take came from
+    return out
+
+
+def _abs_path(repo, p):
+    q = Path(p)
+    q = q if q.is_absolute() else Path(repo) / q
+    return os.path.normcase(os.path.abspath(q))
+
+
+def rows_from_clashes(src, src_path, manifest, out):
+    """Every file of the new manifest a rows-from freeze would share with its source: [(field, path)]. `out` over
+    the source manifest itself; each of `_ROWS_FROM_OWN_FILES`; the cassette index."""
+    got = []
+    if _abs_path(".", out) == _abs_path(".", src_path):
+        got.append(("out", str(out)))
+    src_repo, repo = src.get("repo") or ".", manifest["repo"]
+    for field in _ROWS_FROM_OWN_FILES:
+        if src.get(field) and _abs_path(src_repo, src[field]) == _abs_path(repo, manifest[field]):
+            got.append((field, manifest[field]))
+    sidx = (src.get("cassette_index") or {}).get("path")
+    if sidx and _abs_path(src_repo, sidx) == _abs_path(repo, manifest["cassette_index"]["path"]):
+        got.append(("cassette_index", manifest["cassette_index"]["path"]))
+    return got
+
+
 def _frozen_ladder_budget():
     """{"seconds", "attempts"} of the ladder budget the run will declare (`litkb.acquire.policy.LadderBudget()`),
     written into the manifest at freeze so `budget_exceeded_silently` reads a threshold held OUTSIDE the ladder
@@ -2764,17 +2973,83 @@ def _frozen_shadow_tier():
                       "tier switched OFF"}
 
 
+def _frozen_prefetch_policy():
+    """{"lines_off", "routes_off", "lines", "table_sha256", "ruling"}: the pre-fetch policy table the live pass runs
+    with (S4.5 decision D53: Common Crawl back ON for hardening-2, "The freeze records the policy state"). `lines_off`
+    names every line switched off ({route, host, off_why}); the table's hash (every line, in order, sorted keys) lets
+    a grade see that the table changed after the freeze. `litkb.acquire.run` is imported first: its rungs append their
+    own lines to the table at import."""
+    from litkb.acquire import policy as P
+    from litkb.acquire import run  # noqa: F401 — the registry's own lines first
+
+    lines = [dataclasses.asdict(p) for p in P.POLICY]
+    off = [{"route": p.route, "host": p.host, "off_why": p.off_why} for p in P.POLICY if p.off_why]
+    return {"lines_off": off, "routes_off": sorted({o["route"] for o in off}), "lines": len(lines),
+            "table_sha256": hashlib.sha256(json.dumps(lines, sort_keys=True, ensure_ascii=False)
+                                           .encode("utf-8")).hexdigest(),
+            "ruling": "S4.5 decision D53: Common Crawl (E5) back ON for hardening-2 (the index measured serving again "
+                      "2026-09-24 ~14:40); D39's hardening-1 switch-off is history (policy.COMMONCRAWL_OFF_WHY). If the "
+                      "index fails again the orchestrator switches it off by the same mechanism, with the new "
+                      "measurement"}
+
+
+def _frozen_pdftotext():
+    """{"path", "version", "encoding"} of the `pdftotext` the binder finds from the freezing process's PATH (S4.5
+    decision D59: binding must not depend on the launching shell; `binding.first_page_text` asks for UTF-8, and the
+    freeze records which binary it will be — the run driver records the same beside it in its recording report)."""
+    from litkb.admit import binding
+
+    return binding.pdftotext_version()
+
+
+def _source_take_cassette(src):
+    """{"path", "sha256", "bodies"} of the rows-from SOURCE's recorded index, the path resolved under the SOURCE's own
+    repo (S4.5 decision D57: a kept take replays against it). `sha256` null when the index is not on this machine."""
+    from litkb import cassette as CAS
+
+    ci = src.get("cassette_index") or {}
+    if not ci.get("path"):
+        return {"path": None, "sha256": None, "bodies": None}
+    p = Path(ci["path"])
+    p = p if p.is_absolute() else Path(src.get("repo") or ".") / p
+    return {"path": str(p), "sha256": CAS.index_sha256(p), "bodies": ci.get("bodies")}
+
+
 def _hardening_freeze(args):
     for required in ("workstream", "out"):
         if not getattr(args, required):
             print(f"hardening --freeze needs --{required}", file=sys.stderr)
             return 2
+    label = getattr(args, "run_label", None)
+    if label is not None and not _RUN_LABEL.fullmatch(label):
+        print(f"hardening --freeze: --run-label {label!r} is not one path-safe token ([A-Za-z0-9._-], "
+              "starting with a letter or digit)", file=sys.stderr)
+        return 2
     from litkb import cassette as CAS
     from litkb.acquire.store import LITERATURE_ROOT
 
     HA = _load_instrument("litkb_hardening_a")
     repo = Path(args.repo or _repo_root())
     db = args.db or "litkb"
+    # S4.5 decision D49: the rows of an earlier manifest, refused before anything is read when it was edited
+    src_path = Path(args.rows_from) if getattr(args, "rows_from", None) else None
+    src = load_rows_source(src_path) if src_path is not None else None
+    src_run_path = None
+    if src is not None:
+        # the source's run CSV (its takes), under the source's own repo; `--rows-from-run-csv` names a copy
+        own = Path(src.get("run_csv") or "")
+        src_run_path = Path(args.rows_from_run_csv) if getattr(args, "rows_from_run_csv", None) else \
+            (own if own.is_absolute() else Path(src.get("repo") or ".") / own)
+    # BEGIN guard: a rows-from freeze refuses a source run CSV that does not exist
+    if src_run_path is not None and not src_run_path.is_file():
+        # a missing CSV read as "no takes" would put every recording-graded register row in `kept_missing` and the
+        # driver would HUNT E07/E13/E20 again — against D49's "keep their hardening-1 hunt-mode takes as recorded
+        # truth" — with only a printed count to show it (auditor-FX-R round 1, F1)
+        print(f"hardening --freeze --rows-from: the source run CSV {src_run_path} does not exist, so the source's "
+              "takes (the kept register rows' recorded truth, S4.5 decision D49) cannot be read. Name the source's "
+              "run CSV with --rows-from-run-csv. Nothing was frozen.", file=sys.stderr)
+        return 2
+    # END guard: a rows-from freeze refuses a source run CSV that does not exist
     ws_id = resolve_workstream(db, args.role, args.workstream)
     if ws_id is None:
         print(f"hardening --freeze: no open workstream {args.workstream!r} on {db}", file=sys.stderr)
@@ -2784,6 +3059,7 @@ def _hardening_freeze(args):
     register_path = Path(args.fixture) if args.fixture else SCRIPTS / "qc" / "fixtures" / "litkb_hunt_edge_cases.json"
     constructed_path = Path(args.constructed) if args.constructed else HARDENING_CONSTRUCTED_REGISTER
     ruled_path = repo / RULED_HUNTS
+    changes, kept, kept_missing, redo = [], [], [], []
     conn = _connect(db, args.role, autocommit=False)
     try:
         from psycopg import IsolationLevel
@@ -2797,7 +3073,16 @@ def _hardening_freeze(args):
                    "register": json.loads(read_text(register_path)),
                    "ruled": _csv_rows(ruled_path),
                    "probe": lambda base: _csv_rows(probe_dir / base)}
-            rows, unhuntable, counts = select_run_rows(ctx)
+            if src is not None:
+                # the SOURCE's rows, each mode re-read in this snapshot; nothing is re-selected (D40, D49)
+                rows, changes = rows_from_source(src, ctx["ledger"])
+                unhuntable, counts = list(src.get("unhuntable") or []), dict(src.get("selectors") or {})
+                source_run = {r.get("row_id"): r for r in _csv_rows(src_run_path) if r.get("row_id")}
+                kept, kept_missing = kept_register_takes(rows, ctx["register"], source_run)
+                # S4.5 decision D57: only a take whose row is `measure` now is kept (E13); a hunt row is re-run
+                kept, redo = split_kept_by_mode(kept, rows)
+            else:
+                rows, unhuntable, counts = select_run_rows(ctx)
     finally:
         conn.close()
     # THE ONE ADMIN READ. `litkb_meta` is readable by `litkb_owner` alone (db_migration_tip), so the
@@ -2810,6 +3095,9 @@ def _hardening_freeze(args):
         db_tip, db_tip_note = db_migration_tip(db, args.passfile)
     date = args.date or frozen_at.astimezone().strftime("%Y-%m-%d")
     stem = f"LITKB_LADDER1_{date}"
+    # the run's own files carry the label (a rows-from freeze shares the report's date with its source, and must
+    # never share its run files: `rows_from_clashes`); the promised report and referee paths do not
+    run_stem = f"{stem}_{label}" if label else stem
     index = Path(args.cassette) if args.cassette else SCRIPTS / "qc" / "fixtures" / "litkb_cassettes" / args.workstream / "index.jsonl"
     derived = repo / "_derived" / "hardening"
     manifest = {
@@ -2835,6 +3123,11 @@ def _hardening_freeze(args):
         # built). The run driver (litkb_ladder_run.shadow_switch) refuses a manifest that does not record it off
         # unless explicitly overridden; the code default (policy.SHADOW_TIER_ENABLED) stays as merged. integrator-w3
         "shadow_tier": _frozen_shadow_tier(),
+        # the pre-fetch policy the live pass runs with (S4.5 decision D53: "The freeze records the policy state"):
+        # every line switched off, with its reason — none since D53 put Common Crawl back on — and the table's hash
+        "prefetch_policy": _frozen_prefetch_policy(),
+        # the pdftotext the binder will run from this PATH (S4.5 decision D59): path, its `-v` line, the encoding asked
+        "pdftotext": _frozen_pdftotext(),
         # CONTRACTS' shape: {basename: path}; the content hash of each beside it (brief-A asked for
         # {path, sha256} under one key — the other builders' counters read the CONTRACTS shape)
         "probe_csvs": {p.name: _rel(repo, p) for p in probes},
@@ -2852,29 +3145,80 @@ def _hardening_freeze(args):
         "cassette_index": {"path": _rel(repo, index), "sha256": CAS.index_sha256(index),
                            "bodies": str(args.bodies or CAS.default_bodies()),
                            "inline_max_bytes": CAS.INLINE_MAX_BYTES},
-        "run_csv": _rel(repo, derived / f"{stem}_run.csv"),
+        "run_csv": _rel(repo, derived / f"{run_stem}_run.csv"),
         # the run driver's last word on the recording: the index's sha256 when the live pass finished
         # (litkb_ladder_run.write_recording_report); the replay counters refuse an index that is not it
-        "recording_report": _rel(repo, derived / f"{stem}_recording.json"),
-        "replay_csv": _rel(repo, derived / f"{stem}_replay.csv"),
-        "replay_report": _rel(repo, derived / f"{stem}_replay.json"),
+        "recording_report": _rel(repo, derived / f"{run_stem}_recording.json"),
+        "replay_csv": _rel(repo, derived / f"{run_stem}_replay.csv"),
+        "replay_report": _rel(repo, derived / f"{run_stem}_replay.json"),
         "gated": [{"name": n, "bound": b} for n, b in HARDENING_GATED],
         "reported": list(HARDENING_REPORTED),
         "selectors": counts,
         "rows": rows,
         "unhuntable": unhuntable,
     }
-    manifest["manifest_sha256"] = _canonical_sha(manifest)
+    # a normal freeze carries neither key: its manifest is the shape it always was
+    if label:
+        manifest["run_label"] = label
+    if src is not None:
+        manifest["rows_from"] = {
+            "path": _rel(repo, src_path), "manifest_sha256": src.get("manifest_sha256"),
+            "file_sha256": _register_sha256(src_path),
+            "frozen_at": src.get("frozen_at"), "repo_head": src.get("repo_head"),
+            "db_name": src.get("db_name"), "db_oid": src.get("db_oid"),
+            "same_database": (src.get("db_name"), src.get("db_oid")) == (name, oid),
+            "workstream_slug": src.get("workstream_slug"), "workstream_id": src.get("workstream_id"),
+            "rows": len(rows),
+            "run_csv": {"path": str(src_run_path),
+                        "sha256": _register_sha256(src_run_path) if src_run_path.is_file() else None},
+            "cassette_index": (src.get("cassette_index") or {}).get("path"),
+            # S4.5 decision D57: the index a KEPT take was recorded in, pinned (resolved under the source's repo, its
+            # sha256 now, its body store), so `hardening --replay` grades that row against it (`take_cassettes`)
+            "take_cassette": _source_take_cassette(src),
+            "recording_report": src.get("recording_report"),
+            "mode_changes": changes,
+            "kept_takes": kept,
+            "redo_takes": redo,
+            "kept_missing": kept_missing,
+            "ruling": "S4.5 decisions D49 + D57: the source's OWN row definitions under a new freeze (never a fresh "
+                      "selector freeze, D40); each mode from the file state at this freeze; a register row's source "
+                      "take is kept as its recorded truth only when its row is a measure row now (its work was bound "
+                      "by that take, which a re-run cannot reproduce: E13), and re-run live when it is a hunt row "
+                      "(redo_takes: E03 E07 E20); a kept take is re-run only when the run driver is told to "
+                      "(--rerun-kept)",
+        }
     out = Path(args.out)
+    clashes = rows_from_clashes(src, src_path, manifest, out) if src is not None else []
+    # BEGIN guard: a rows-from freeze never writes over its source's manifest or run files
+    if clashes:
+        print("hardening --freeze --rows-from: the new manifest would share "
+              + ", ".join(f"{f} ({p})" for f, p in clashes)
+              + f" with its source {src_path}: its run CSV would be RESUMED (no row re-run) and its recording "
+                "evidence overwritten. Pass --run-label <token> (the run files) and a new --cassette / --out. "
+                "Nothing was frozen.", file=sys.stderr)
+        return 2
+    # END guard: a rows-from freeze never writes over its source's manifest or run files
+    manifest["manifest_sha256"] = _canonical_sha(manifest)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(manifest, indent=1, default=str), encoding="utf-8")
     modes = {}
     for r in rows:
         modes[r["mode"]] = modes.get(r["mode"], 0) + 1
+    tail = ""
+    if src is not None:
+        flips = {}
+        for c in changes:
+            flips[f"{c['from']}->{c['to']}"] = flips.get(f"{c['from']}->{c['to']}", 0) + 1
+        tail = (f" rows_from={src_path.name} source_sha={str(src.get('manifest_sha256'))[:12]} "
+                f"same_database={manifest['rows_from']['same_database']} mode_changes={len(changes)}"
+                + "".join(f" {k}={v}" for k, v in sorted(flips.items()))
+                + f" kept={','.join(k['id'] for k in kept) or 'none'}"
+                + f" redo={','.join(k['id'] for k in redo) or 'none'} kept_missing={len(kept_missing)}")
     print(f"frozen {out} db={name} workstream={args.workstream} rows={len(rows)} "
           + " ".join(f"{k}={v}" for k, v in sorted(modes.items()))
           + f" unhuntable={len(unhuntable)} head={manifest['repo_head'][:12]} db_tip={db_tip} "
-          f"cassette_sha={str(manifest['cassette_index']['sha256'])[:12]}")
+          f"cassette_sha={str(manifest['cassette_index']['sha256'])[:12]}" + tail
+          + f" pdftotext={((manifest.get('pdftotext') or {}).get('version') or 'none').replace(' ', '_')}")
     return 0
 
 
@@ -3117,6 +3461,8 @@ def hardening_replay(manifest, *, db, conn=None, bodies=None):
     index = at(manifest["cassette_index"]["path"])
     cas = CAS.Cassette(index, "replay", bodies=bodies or manifest["cassette_index"].get("bodies")) \
         if index.is_file() else None
+    # S4.5 decision D57: a kept take (the run CSV's `take_from`) replays against its own manifest's index
+    takes = take_cassettes(manifest, register, repo)
     guard = CAS.SocketGuard(allow_hosts=(), label="hardening --replay guard")
     from litkb.db import connect as c
 
@@ -3131,7 +3477,7 @@ def hardening_replay(manifest, *, db, conn=None, bodies=None):
             summary = HA.build_replay_summary(
                 conn, register=register, register_path=register_path, db=db, workdir=wd, cassette=cas,
                 guard=guard, index_path=index, out_csv=at(manifest["replay_csv"]),
-                constructed_path=constructed_path)
+                constructed_path=constructed_path, take_cassettes=takes)
         _reset(conn)
     finally:
         if own:
@@ -3188,6 +3534,9 @@ def cmd_hardening(args):
         for w in s.get("world_seeds") or []:
             print(f"world seeded for the replay: row={w['row']} {w['rel_path']} sha256={w['sha256'][:12]} "
                   f"({w['bytes']} B, from the row's recording)", file=sys.stderr)
+        for t in s.get("take_indexes") or []:
+            print(f"kept take replayed from the index its take was recorded in: row={t['row']} run_row={t['run_row']} "
+                  f"{t['index']} (manifest {str(t['from_manifest_sha256'])[:12]}; S4.5 decision D57)", file=sys.stderr)
         try:
             not_replayed_n = HA.count_rows_not_replayed(s)
         except HA.Unread:
@@ -3318,6 +3667,16 @@ def build_parser():
                    help="with --manifest: replay the register through the recorded cassette on --db, "
                         "inside a socket guard, and write the replay summary the manifest promised")
     h.add_argument("--workstream", help="the workstream slug the run works in (freeze)")
+    h.add_argument("--rows-from", dest="rows_from",
+                   help="freeze: the rows are EXACTLY this earlier hardening manifest's row definitions (refused if "
+                        "it was edited), each mode recomputed from the file state now, its register takes kept "
+                        "(S4.5 decision D49) — never a fresh selector freeze")
+    h.add_argument("--rows-from-run-csv", dest="rows_from_run_csv",
+                   help="freeze with --rows-from: the source's run CSV (default: the source manifest's own run_csv "
+                        "under its repo), read for the register takes the new run keeps")
+    h.add_argument("--run-label", dest="run_label",
+                   help="freeze: a token inserted into the run's own file names (run CSV, recording report, replay "
+                        "CSV and summary), so a re-run never shares its source's; the report paths do not change")
     h.add_argument("--out", help="where to write the frozen manifest (freeze)")
     h.add_argument("--fixture", help="the edge register (freeze; default qc/fixtures/litkb_hunt_edge_cases.json)")
     h.add_argument("--constructed", help="the CONSTRUCTED register replayed beside it (freeze; default "

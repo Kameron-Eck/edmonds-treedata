@@ -319,7 +319,7 @@ def _nine(tmp_path, HA):
     reports = {}
     for cls in HA.REFEREE_CLASSES:
         p = tmp_path / f"LITKB_REFEREE_S45_{cls.upper()}_CONSTRUCTED.md"
-        p.write_text(f"# {cls}\n\nfired: c=1 on a constructed input\n", encoding="utf-8")
+        p.write_text(f"# {cls}\n\n## Verdict: ACCEPT\n\nfired: c=1 on a constructed input\n", encoding="utf-8")
         reports[cls] = str(p)
     return reports
 
@@ -327,11 +327,56 @@ def _nine(tmp_path, HA):
 def test_unvalidated_items_names_every_failing_class(HA, tmp_path):
     reports = _nine(tmp_path, HA)
     Path(reports["stage-a"]).unlink()
-    Path(reports["stage-e"]).write_text("# no evidence line here\nfired:not-the-grammar\n", encoding="utf-8")
+    Path(reports["stage-e"]).write_text("# no evidence line here\n## Verdict: ACCEPT\nfired:not-the-grammar\n",
+                                        encoding="utf-8")
     reports.pop("replay")
     m = {"repo": str(tmp_path), "referee_reports": reports}
     assert HA.unvalidated_items(None, m) == 3
     assert [c for c, _w in HA.unvalidated_detail(m)] == ["stage-a", "stage-e", "replay"]
+
+
+REFEREE_R1 = SCRIPTS.parent / "Reports"
+
+
+def test_d52_a_rejecting_referee_report_leaves_its_class_unvalidated(HA, tmp_path):
+    """S4.5 decision D52, on the REAL R1 referee reports of ladder-1 (tracked since main 36f4a47): substrate, stage-a
+    and badfile-read state ACCEPT-WITH-NOTES with fired lines (validated); vocabulary, stage-b, stage-c and stage-e
+    state REJECT WITH fired lines — the counter as first built called those four validated (D52's own words); scihub-1
+    and replay have no report. Then CONSTRUCTED reports (named so) pin each branch of the rule: a
+    REJECT with a fired line counts 1 (the D52 mutation row's input), no verdict counts 1, an ACCEPT counts 0,
+    verdicts that disagree count 1, and a word that is not the grammar's (`ACCEPTED`, a mid-line verdict) is no
+    verdict."""
+    real = {cls: REFEREE_R1 / f"LITKB_REFEREE_S45_{cls.upper()}_2026-09-24.md"
+            for cls in ("substrate", "vocabulary", "stage-a", "stage-b", "stage-c", "stage-e", "badfile-read")}
+    assert all(p.is_file() for p in real.values()), [str(p) for p in real.values() if not p.is_file()]
+    words = {cls: HA.report_verdicts(p.read_text(encoding="utf-8")) for cls, p in real.items()}
+    assert words == {"substrate": ["ACCEPT-WITH-NOTES"], "vocabulary": ["REJECT"], "stage-a": ["ACCEPT-WITH-NOTES"],
+                     "stage-b": ["REJECT"], "stage-c": ["REJECT"], "stage-e": ["REJECT"],
+                     "badfile-read": ["ACCEPT-WITH-NOTES"]}, words
+    m = {"repo": str(SCRIPTS.parent), "referee_reports": {cls: str(p) for cls, p in real.items()}}
+    detail = dict(HA.unvalidated_detail(m))
+    assert sorted(detail) == ["replay", "scihub-1", "stage-b", "stage-c", "stage-e", "vocabulary"], detail
+    for cls in ("vocabulary", "stage-b", "stage-c", "stage-e"):
+        assert "not an ACCEPT" in detail[cls], detail   # a fired line AND a REJECT: unvalidated by D52 alone
+    assert HA.unvalidated_items(None, m) == 6
+
+    reports = _nine(tmp_path, HA)
+    base = {"repo": str(tmp_path), "referee_reports": reports}
+    assert HA.unvalidated_items(None, base) == 0
+    fired = "fired: c=1 on a constructed input\n"
+    cases = {
+        "**Verdict: REJECT** — CONSTRUCTED\n\n" + fired: 1,
+        "## Verdict: REJECT, scoped\n\n" + fired: 1,
+        "# CONSTRUCTED, no verdict\n\n" + fired: 1,
+        "## Verdict: ACCEPT-WITH-NOTES\n\n" + fired: 0,
+        "**Verdict:** ACCEPT\n\n" + fired: 0,
+        "## Verdict: ACCEPT\n\n## Verdict: REJECT\n\n" + fired: 1,
+        "## Verdict: ACCEPTED\n\n" + fired: 1,
+        "a line that says the Verdict: ACCEPT mid-sentence\n\n" + fired: 1,
+    }
+    for text, want in cases.items():
+        Path(reports["stage-c"]).write_text(text, encoding="utf-8")
+        assert HA.unvalidated_items(None, base) == want, (text, HA.unvalidated_detail(base))
 
 
 def test_a_measured_zero_is_measured_and_a_malformed_yield_is_not(HA, tmp_path):

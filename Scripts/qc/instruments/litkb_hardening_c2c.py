@@ -12,7 +12,8 @@ fires"). It defines:
   REPORTED  rung_conversions_<route> / rung_asked_<route> for wayback, ia, commoncrawl (from ATTEMPT rows, CONTRACTS
             D1: "a rung's yield is never read from a work's file state alone"); wayback_rows_unconverted;
             wayback_negatives_mistyped; wayback_wrong_work_counted.
-  FIRES     three (below), each also a pytest test in qc/test_litkb_stage_e.py.
+  FIRES     five (below), each also a pytest test in qc/test_litkb_stage_e.py (the S4.5 fix wave FX-E's two
+            also in qc/test_litkb_fx_stage_e.py).
 
 THE PLAN'S TWO E1 ROWS, RE-GRADED AGAINST THE RECORDED TRUTH (the rule of S4.5 decision D10: a row whose prediction
 the recording contradicts is re-graded against what was recorded, never hand-edited to pass). `WAYBACK_ROWS` below
@@ -23,7 +24,10 @@ is the ONE home of the grades; the orchestrator confirms or overrides them there
     citation later than 1993. 10.1002/wics.1317 is his 2014 WIREs overview of the same name, which live already holds
     (13 pages). Same title, same author: the binder's title-and-author check cannot tell the two apart, and MEASURE
     mode checks no identity at all. Graded `wrong-work`: E1 hitting it is a FALSE conversion, counted by
-    `wayback_wrong_work_counted` and never by `wayback_rows_unconverted`.
+    `wayback_wrong_work_counted` and never by `wayback_rows_unconverted`. Hardening-1 counted it (referee-stage-e
+    L022); since the S4.5 fix wave FX-E the Stage E rungs' identity rule books it `hash-mismatch` (the capture prints
+    no year after 1993, the record's is 2014: `litkb.acquire.recovery.capture_identity`), fire
+    `stage_e_wrong_work_capture_credited`.
   * The plan's NEGATIVE, the IIASA copy of 10.5067/doc/ceoswgcv/lpv/lc.001 ("never archived", survey §M), IS archived
     and IS the work (auditor-C2c-r2 F2): availability names capture 20251206182454, whose id_ fetch is the 188-page
     CEOS LPV "Land Cover and Change Map Accuracy Assessment and Area Estimation Good Practices Protocol", whose own
@@ -240,9 +244,10 @@ SELECT d.doi FROM unnest(%s::text[]) AS d(doi)
 def wayback_wrong_work_list(conn, manifest):
     """The WRONG-WORK rows (the manifest's `wayback_wrong_work_dois`, else `WAYBACK_WRONG_WORK_DOIS`) that hold a
     `wayback` attempt that hit (`ok` or `measured`), all time: E1 counted an archived copy of ANOTHER work as this
-    one's. MEASURE mode judges the bytes and no identity, and the bind checks title and first author only, so the
-    census capture passes both for 10.1002/wics.1317 (module docstring). Each is a false conversion that
-    `rung_conversions_wayback` also counts."""
+    one's. MEASURE mode judges the bytes, and the bind checks title and first author only, so the census capture
+    passes both for 10.1002/wics.1317 (module docstring); the Stage E rungs' own identity rule
+    (`litkb.acquire.recovery.capture_identity`, S4.5 fix wave FX-E) is what now books it `hash-mismatch`. Each is a
+    false conversion that `rung_conversions_wayback` also counts."""
     dois = _dois(manifest, "wayback_wrong_work_dois", WAYBACK_WRONG_WORK_DOIS)
     if not dois:
         return []
@@ -466,6 +471,31 @@ def route_switched_on(route):
         yield
 
 
+# ── S4.5 decision D53 (integrator-w4): Common Crawl is back ON; a test of D39's switch installs hardening-1's table ──
+def policy_with_route_off(route, why):
+    """-> a COPY of `litkb.acquire.policy.POLICY` in which `route`'s lines carry `off_why=why` (CONSTRUCTED: the table
+    as it stood in hardening-1 after D39 switched E5's two hosts off with `policy.COMMONCRAWL_OFF_WHY`; D53 switched
+    them back on, so the switch's own mechanics — the refusal, the recorded skip, D42's per-row replay switch — are
+    tested against this copy, never by editing the module table). `litkb.acquire.run` is imported first, as in
+    :func:`policy_with_route_on`."""
+    import dataclasses
+
+    from litkb.acquire import policy as P
+    from litkb.acquire import run  # noqa: F401 — the registry's own lines first (policy_with_route_on's docstring)
+
+    return tuple(dataclasses.replace(p, off_why=why) if p.route == route else p for p in P.POLICY)
+
+
+@contextlib.contextmanager
+def route_switched_off(route, why):
+    """`policy_with_route_off(route, why)` as the module POLICY for the with-block ONLY, and the table as it was after
+    it (the mirror of :func:`route_switched_on`). It lives here, in the instrument, and in no pipeline module."""
+    from litkb.acquire import policy as P
+
+    with mock.patch.object(P, "POLICY", policy_with_route_off(route, why)):
+        yield
+
+
 # ── the fires ───────────────────────────────────────────────────────────────────────────────
 def fire_wayback_rung_disabled(conn, arm, workdir):
     """(brief item 6) "the E1 rung disabled -> the positive row's Wayback attempt disappears (the counter moves)".
@@ -540,7 +570,91 @@ def fire_not_found_typing_removed(conn, arm, workdir):
         w.close()
 
 
+# ── S4.5 fix wave FX-E (referee-stage-e REJECT, brief-FIXWAVE.md "FX-E"): two fires on the seams it fixed ─────────
+#: CONSTRUCTED: a location page that refuses this client with a plain 403 (no challenge signature) — the shape of
+#: L054's ScienceDirect accepted-manuscript page, which Unpaywall listed FIRST, so its body is the one the open-access
+#: route kept and the dead location after it survived only as a `host:code` token.
+CONSTRUCTED_PAGE_URL = "https://publisher.constructed.invalid/article/accepted-manuscript"
+CONSTRUCTED_403_PAGE = (b"<!DOCTYPE html><html><head><title>Forbidden</title></head><body>CONSTRUCTED 403 page "
+                        b"(litkb S4.5 builder-FX-E): not a recording.</body></html>")
+
+
+class SplitClient:
+    """Answers a request whose URL carries `frag` from `first` (a replay), every other from `rest` (a stub)."""
+    base = ""
+
+    def __init__(self, frag, first, rest):
+        self.frag, self.first, self.rest = frag, first, rest
+
+    def get(self, url, accept="text/html", timeout=120, follow=True, data=None, headers=None):
+        c = self.first if self.frag in url else self.rest
+        return c.get(url, accept=accept, timeout=timeout, follow=follow, data=data, headers=headers)
+
+
+def constructed_open_access_client():
+    """CONSTRUCTED Unpaywall answer and location answers (L054's shape): the refusing page first, the census.gov URL
+    second, answering 404."""
+    return StubClient({
+        "api.unpaywall.org": (200, {"Content-Type": "application/json"}, json.dumps(
+            {"is_oa": True, "oa_status": "green",
+             "oa_locations": [{"url": CONSTRUCTED_PAGE_URL}, {"url": CENSUS_URL}]}).encode()),
+        CONSTRUCTED_PAGE_URL: (403, {"Content-Type": "text/html; charset=utf-8"}, CONSTRUCTED_403_PAGE),
+        "www.census.gov": (404, {"Content-Type": "text/html"}, b"<html>CONSTRUCTED 404 page</html>")})
+
+
+def fire_dead_location_behind_a_kept_page(conn, arm, workdir):
+    """(FX-E item 1; referee-stage-e N1, rows L007 and L054) "pass every dead candidate's FULL URL". A CONSTRUCTED
+    admission (the census capture's own identity); the open-access route (CONSTRUCTED answers, L054's shape) keeps
+    the refusing page and meets the census.gov URL dead after it; E1 answers the page as never archived (CONSTRUCTED)
+    and the census.gov URL from the REAL recording. Control: the ladder reads every URL the rung asked from the
+    request gate (`recovery.asked_urls`) -> E1 is asked about the census.gov URL -> `measured` -> 0. Known-bad: the
+    gate record unread (411c3ce's seam: the rung dict's own fields only) -> E1 asks the page alone -> 1."""
+    from litkb.acquire import open_access, recovery
+
+    w = World(conn, workdir)
+    try:
+        ws = w.ws("dead-location")
+        work = w.work(ws)
+        census, _cas = replay_client(ROW_CENSUS)
+        clients = {"open_access": constructed_open_access_client(),
+                   "wayback": SplitClient("www.census.gov", census, constructed_never_archived())}
+        patch = (contextlib.nullcontext() if arm == "control"
+                 else mock.patch.object(recovery, "asked_urls", lambda r: []))
+        with patch, mock.patch.object(open_access, "unpaywall_email", lambda: "c2c-fire@example.invalid"):
+            w.ladder(ws, work, clients, routes=("open_access", "wayback"))
+        return wayback_rows_unconverted(conn, {"wayback_positive_dois": [work["doi"]]})
+    finally:
+        w.close()
+
+
+def fire_wrong_work_capture_credited(conn, arm, workdir):
+    """(FX-E item 3; referee-stage-e L022) "a capture credited as a MEASURED conversion must be the work". The REAL
+    recorded census.gov capture (Winkler's 1993 Census chapter) for a CONSTRUCTED admission carrying 10.1002/wics.1317's
+    author and YEAR (`CENSUS_ROW_WORK`: 2014; a salted DOI and title), graded wrong-work through the manifest key.
+    Control: the Stage E identity rule (`recovery.capture_identity`) books it `hash-mismatch` -> 0. Known-bad: the rule
+    answering "no contradiction" (411c3ce's identity-blind MEASURE) -> `measured` -> 1."""
+    from litkb.acquire import recovery
+
+    w = World(conn, workdir)
+    try:
+        ws = w.ws("wrong-work")
+        work = w.work(ws, year=CENSUS_ROW_WORK["year"])
+        w.dead_link(ws, work, CENSUS_URL)
+        client, _cas = replay_client(ROW_CENSUS)
+        patch = (contextlib.nullcontext() if arm == "control"
+                 else mock.patch.object(recovery, "capture_identity", lambda *a, **k: ""))
+        with patch:
+            w.ladder(ws, work, {"wayback": client}, routes=("wayback",))
+        return wayback_wrong_work_counted(conn, {"wayback_wrong_work_dois": [work["doi"]]})
+    finally:
+        w.close()
+
+
 FIRES = {
+    "stage_e_dead_location_behind_a_kept_page": {"counter": "wayback_rows_unconverted", "bound": "=0",
+                                                 "run": fire_dead_location_behind_a_kept_page},
+    "stage_e_wrong_work_capture_credited": {"counter": "wayback_wrong_work_counted", "bound": "=0",
+                                            "run": fire_wrong_work_capture_credited},
     "stage_e_wayback_rung_disabled": {"counter": "wayback_rows_unconverted", "bound": "=0",
                                       "run": fire_wayback_rung_disabled},
     "stage_e_raw_modifier_removed_constructed": {"counter": "wayback_rows_unconverted", "bound": "=0",

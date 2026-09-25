@@ -2215,6 +2215,13 @@ _EXPECTED_EXECUTE["litkb_ingest"] |= {"backfill_attempt_sub_status", "backfill_f
 # ==== S4.5 builder C2B role-matrix additions (Stage C + Stage E + Sci-Hub part 1 rungs) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
 # ==== end S4.5 builder C2B role-matrix additions ====
 
+# ==== S4.5 builder FX-S role-matrix additions (the route_backoff backfill, migration 0036) — `_EXPECTED_EXECUTE[role] |= {...}` statements ONLY between these markers ====
+# backfill_route_backoff: the reviewed backfill that seeds litkb.route_backoff from the ledger's history (0036; the
+# S4.5 fix wave, referee-substrate N1). A system operation on history in 0033's reviewed-backfill family — no token,
+# one litkb.acquisition_backfills row per applied run — so it belongs to the ingest login alone.
+_EXPECTED_EXECUTE["litkb_ingest"] |= {"backfill_route_backoff"}
+# ==== end S4.5 builder FX-S role-matrix additions ====
+
 _EXPECTED_WRITES = {role: set() for role in _EXPECTED_EXECUTE}
 _EXPECTED_WRITES["litkb_ingest"] = {(t, "INSERT") for t in _EXTRACTION_TABLES}
 

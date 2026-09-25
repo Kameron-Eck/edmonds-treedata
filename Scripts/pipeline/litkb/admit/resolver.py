@@ -14,6 +14,8 @@ import difflib
 import json
 import re
 import string
+import threading
+import time
 import unicodedata
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -130,17 +132,73 @@ def judge_candidate(cand, title, surname, year):
 
 # ---------------------------------------------------------------- registry HTTP
 
+#: THE process's one arXiv pacer (S4.5 decision D51; referee-substrate N3): created on first use, shared by every
+#: registry pacer on the process clock (`arxiv_pacer_for`). MEASURED why (referee-substrate §3, the ladder-1
+#: cassette): `front.admit_registry` builds a FRESH registry pacer per call, so each hunt got a fresh arXiv pacer
+#: whose first wait waits for nothing, and the run's 8 export.arxiv.org requests (L010-L017) went 0.41-0.62 s apart
+#: against ARXIV_MIN_INTERVAL (arXiv's API terms: one request every 3 s).
+_PROCESS_ARXIV = []
+_PROCESS_ARXIV_LOCK = threading.Lock()
+
+
+class _SharedPacer:
+    """A netutil.Pacer shared across threads: one wait (or back-off) at a time, so two callers never both read the
+    gap as clear and both go."""
+
+    def __init__(self, pacer):
+        self._p, self._lock = pacer, threading.Lock()
+
+    def __getattr__(self, name):
+        return getattr(self._p, name)
+
+    def wait(self):
+        with self._lock:
+            self._p.wait()
+
+    def backoff(self, seconds=None):
+        with self._lock:
+            self._p.backoff(seconds)
+
+
+def process_arxiv_pacer():
+    """-> the process's ONE arXiv pacer (3 s, back-off 15 s: ARXIV_MIN_INTERVAL, ARXIV_BACKOFFS), on the process
+    clock (`time.sleep`, `time.monotonic`)."""
+    from litkb.netutil import Pacer
+
+    with _PROCESS_ARXIV_LOCK:
+        if not _PROCESS_ARXIV:
+            _PROCESS_ARXIV.append(_SharedPacer(Pacer(interval=ARXIV_MIN_INTERVAL, sleep=time.sleep,
+                                                     backoff=ARXIV_BACKOFFS[0], clock=time.monotonic)))
+        return _PROCESS_ARXIV[0]
+
+
+def _on_process_clock(pacer):
+    """Does this registry pacer pace on the process's own clock — a production pacer (`time.sleep`,
+    `time.monotonic`, an interval above 0)? A pacer a caller injects with its own clock (a test's) or one that paces
+    nothing (interval 0 — `stage_b.pacer_for`'s convention) keeps an arXiv pacer of its own. Only where it reaches the
+    registry: `hunt` passes its pacer to title resolution, not to `front.admit_registry`, so a replay's arXiv admissions
+    meet the process gate (auditor-FX-S F4; the answers are unchanged, the wall time is not)."""
+    return (getattr(pacer, "sleep", None) is time.sleep and getattr(pacer, "clock", None) is time.monotonic
+            and (getattr(pacer, "interval", 0) or 0) > 0)
+
+
 def arxiv_pacer_for(pacer):
-    """arXiv's own 3 s pacer, attached once to the shared registry pacer (same sleep/clock), so
-    Crossref/Semantic Scholar keep their 1 s pace and every arXiv call shares one 3 s gate."""
+    """arXiv's own 3 s pacer for this registry pacer, so Crossref/Semantic Scholar keep their 1 s pace and every
+    arXiv call meets a 3 s gate. On the process clock that gate is the PROCESS's (`process_arxiv_pacer`): every
+    registry pacer shares it, however many were built (one per admission, one per hunt)."""
     from litkb.netutil import Pacer
 
     if pacer is None:
         return None
     ap = getattr(pacer, "arxiv", None)
     if ap is None:
-        ap = pacer.arxiv = Pacer(interval=ARXIV_MIN_INTERVAL, sleep=pacer.sleep,
-                                 backoff=ARXIV_BACKOFFS[0], clock=pacer.clock)
+        # the unguarded default: an arXiv pacer of this registry pacer's own (same sleep/clock)
+        ap = Pacer(interval=ARXIV_MIN_INTERVAL, sleep=pacer.sleep, backoff=ARXIV_BACKOFFS[0], clock=pacer.clock)
+        # BEGIN guard: every registry pacer on the process clock shares the process's one arXiv pacer
+        if _on_process_clock(pacer):
+            ap = process_arxiv_pacer()
+        # END guard: every registry pacer on the process clock shares the process's one arXiv pacer
+        pacer.arxiv = ap
     return ap
 
 

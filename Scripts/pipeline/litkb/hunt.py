@@ -1253,7 +1253,11 @@ def _hunt(ref, out, timing, refusals, *, db, worktree, agent, session, title, au
                                    "a registry answered transiently; nothing was admitted",
                                    registry_calls=res.get("registry_calls") or [],
                                    identifier=res.get("identifier") or lookup_ref,
-                                   retryable=True)
+                                   # S4.5 decision D51 (builder FX-S): the admission's own booking — False, with
+                                   # the evidence, for a registry host refusing this client (arXiv's 406)
+                                   retryable=res.get("retryable", True),
+                                   **({"client_refusal": res["client_refusal"]} if res.get("client_refusal")
+                                      else {}))
             # END guard: a registry that answered transiently is api-error, never admission-refused
             if res.get("outcome") != "admitted":
                 raise HuntRefused("admission-refused",

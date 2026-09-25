@@ -48,9 +48,9 @@
       "candidates": [
         {"name": "cdn", "technique": "template", "on": "urls",
          "match": "^https?://(?:www\\.)?mdpi\\.com/(?P<issn>\\d{4}-\\d{3}[\\dXx])/(?P<vol>\\d+)/(?P<issue>\\d+)/(?P<art>\\d+)",
-         "template": "https://mdpi-res.com/d_attachment/{journal}/{journal}-{vol}-{art:0>5}/article_deploy/{journal}-{vol}-{art:0>5}.pdf",
+         "template": "https://mdpi-res.com/d_attachment/{journal}/{journal}-{vol:0>2}-{art:0>5}/article_deploy/{journal}-{vol:0>2}-{art:0>5}.pdf",
          "bonus": 120, "version": "publishedVersion",
-         "why": "survey A6 (MEASURED: mdpi-res.com/d_attachment/remotesensing/remotesensing-14-05081/... -> 200 application/pdf 2,366,188 B for 10.3390/rs14205081, the DOI www.mdpi.com refused; article 99999 -> 404 text/html). The slug is tried as the de-spaced journal title and as the DOI code (A6: the source's journal map lacked `rs`)"},
+         "why": "survey A6 (MEASURED: mdpi-res.com/d_attachment/remotesensing/remotesensing-14-05081/... -> 200 application/pdf 2,366,188 B for 10.3390/rs14205081, the DOI www.mdpi.com refused; article 99999 -> 404 text/html). The slug is tried as the de-spaced journal title and as the DOI code (A6: the source's journal map lacked `rs`). The VOLUME is zero-padded to two digits as the article is to five (S4.5 fix wave, builder-FX-C, 2026-09-24), MEASURED: the live run ladder-1 converted 12 of 12 two-digit-volume rows and 0 of 5 one-digit-volume rows (L071 L074 L147 L155 L156, each unpadded CDN URL a real 404; referee-stage-c); the Wayback captures of www.mdpi.com's /pdf answers in that recording carry MDPI's own origin file names sensors-08-02161.pdf (10.3390/s8042161), remotesensing-02-02369.pdf (10.3390/rs2102369) and remotesensing-02-02240-v2.pdf (10.3390/rs2092240); ONE live GET under the FX-C grant of mdpi-res.com/d_attachment/sensors/sensors-08-02161/article_deploy/sensors-08-02161.pdf with the rung's Range probe answered 206 application/pdf %PDF-1.4, content-range total 370175 and etag 53a4c969-5a5ff - the length and etag the 2017 capture recorded for MDPI's origin file (qc/fixtures/litkb_fxc_rows/L074_coulter_mdpi). UNMEASURED: whether the CDN serves the unsuffixed name for an article MDPI versioned (-v2: rs2092240)"},
         {"name": "landing-pdf", "technique": "template", "on": "urls",
          "match": "^https?://(?:www\\.)?mdpi\\.com/(?P<issn>\\d{4}-\\d{3}[\\dXx])/(?P<vol>\\d+)/(?P<issue>\\d+)/(?P<art>\\d+)",
          "template": "https://www.mdpi.com/{issn}/{vol}/{issue}/{art}/pdf", "bonus": 80, "version": "publishedVersion",
@@ -98,7 +98,7 @@
                  "note": "the only true access detector in the translator corpus (.accessContent / .access-options-link-text / #check-access-popover); not ported as a short-circuit: the Range probe types the refusal"},
       "example": {"doi": "10.1016/j.rse.2021.112806", "work_key": "Stehman_2022_incorporating-interpreter-variability", "fixture": "elsevier",
                   "why": "the one bronze landing row of phase4/qc/litkb_acq_probe_no_oa_copy.csv still without a file (survey-data 2.3)",
-                  "expect": {"page": "challenge_or_bot_check", "page_cause": "elsevier:cpe00001", "candidates": ["https://www.sciencedirect.com/science/article/pii/S0034425721005265/pdfft?isDTMRedir=true&download=true"], "work": {"venue": "Remote Sensing of Environment"}}}
+                  "expect": {"page": "challenge_or_bot_check", "page_cause": "cloudflare", "candidates": ["https://www.sciencedirect.com/science/article/pii/S0034425721005265/pdfft?isDTMRedir=true&download=true"], "work": {"venue": "Remote Sensing of Environment"}}}
     },
     {
       "id": "springer",
@@ -185,7 +185,7 @@
                  "survey": "section 2.1 IEEE row; C12 (Rimagination/instsci@836cd6b6, CitationClaw@88a8d3d0, InfoLab-SKKU@ba8c08d0)"},
       "example": {"doi": "10.1109/tpami.2024.3498346", "work_key": "Wang_2025_comprehensive-survey-forgetting-deep", "fixture": "ieee",
                   "why": "a paywalled no-oa-copy row without a file (survey-data 2.4)",
-                  "expect": {"page": "challenge_or_bot_check", "page_cause": "waf-202", "candidates": ["https://ieeexplore.ieee.org/stampPDF/getPDF.jsp?tp=&isnumber=&arnumber=10752992", "https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10752992"], "work": {"venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence"}}}
+                  "expect": {"page": "challenge_or_bot_check", "page_cause": "header:x-amzn-waf-action", "candidates": ["https://ieeexplore.ieee.org/stampPDF/getPDF.jsp?tp=&isnumber=&arnumber=10752992", "https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10752992"], "work": {"venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence"}}}
     },
     {
       "id": "iop",

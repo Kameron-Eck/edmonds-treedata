@@ -3,7 +3,8 @@ and 4; S4.5 builder C2a). The shared plumbing, the wave order and the closure ru
 
   doaj       B8   DOAJ's article API (never the article page: it 403s with `cf-mitigated: challenge` a second after
                   the API answers — survey B8), `bibjson.link[type=fulltext]`
-  openaire   B9   OpenAIRE `search/publications?doi=` (XML), every instance URL that names a PDF
+  openaire   B9   OpenAIRE `search/publications?doi=` (XML), every instance URL OF THE ASKED RESULT that names a PDF
+                  (never the answer's `<rels>` subtree: other works — `openaire_urls`, S4.5 fix wave FX-B)
   hal        B14  HAL's search API, `fileMain_s` (survey B14 guard: paper-search-mcp's HAL client accepted any 200
                   as a PDF — the bytes decide here, through the acceptance test)
   osf        B11  OSF APIv2 two-hop: `/v2/preprints/{id}/` -> `primary_file` -> `links.download` (Zotero
@@ -92,20 +93,38 @@ def _local(tag):
 
 
 def openaire_urls(xml_bytes):
-    """OpenAIRE's XML answer -> (pdf_urls, other_urls): every `url` / `webresource` text that is an http URL
-    (paper-search-mcp 0.1.4 `OpenAIRESearcher._extract_rel_data`'s walk), split by whether it names a PDF
-    (`.pdf` or `/pdf` in it — the same test that client uses). Unparseable XML -> ([], [])."""
+    """OpenAIRE's XML answer -> (pdf_urls, other_urls) of the ASKED result: every `url` / `webresource` text that is an
+    http URL (paper-search-mcp 0.1.4 `OpenAIRESearcher._extract_rel_data`'s walk), split by whether it names a PDF
+    (`.pdf` or `/pdf` in it — the same test that client uses), in document order — NEVER from the `rels` subtree:
+    OpenAIRE lists OTHER results there (`IsAmongTopNSimilarDocuments`, `hasAuthorInstitution`, ...), each with instances
+    of its own, and `<rels>` precedes `<children>` in the answer, so the relayed walk asked another work's PDF FIRST.
+    MEASURED on the ladder-1 run (referee-stage-b N1; S4.5 fix wave FX-B): 8 of the 187 recorded answers put another
+    work's PDF among the rung's candidates, 7 attempts ended on one (two credited as `measured` conversions, one
+    quarantined by the binder, four booked `blocked` by another work's host), and one answer's `<rels>` arXiv URL became
+    the work's arXiv id in the run. Outside `<rels>`, every URL element of the run's 193 recorded OpenAIRE answers (187
+    rows) sits under the asked result's own `children/result/instance` or `children/instance` (builder-FX-B's walk of
+    every entry of the run's cassette index; round 1 said 191 — auditor-FX-B N6).
+    Unparseable XML -> ([], [])."""
     try:
         root = ET.fromstring(xml_bytes or b"")
     except ET.ParseError:
         return [], []
     pdf, other = [], []
-    for el in root.iter():
-        if _local(el.tag) in ("url", "webresource") and el.text and el.text.strip().startswith("http"):
+
+    def walk(el):
+        tag = _local(el.tag)
+        # BEGIN guard: an OpenAIRE answer's <rels> subtree names other works and is never walked
+        if tag == "rels":
+            return
+        # END guard: an OpenAIRE answer's <rels> subtree names other works and is never walked
+        if tag in ("url", "webresource") and el.text and el.text.strip().startswith("http"):
             u = el.text.strip()
             bucket = pdf if (u.lower().endswith(".pdf") or "/pdf" in u.lower()) else other
             if u not in bucket:
                 bucket.append(u)
+        for ch in el:
+            walk(ch)
+    walk(root)
     return pdf, other
 
 

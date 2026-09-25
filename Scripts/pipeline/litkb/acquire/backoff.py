@@ -40,11 +40,28 @@ scratch calib.py over the live ledger as litkb_reader, 2026-09-23, 278 attempts)
   * AIMD: the ledger holds no 429 and no 503 at all (codes seen: 0 x1, 200 x136, 202 x2, 403 x47,
     404 x1, 500 x1, 522 x1), so the multiplier, decay and ceiling have nothing to be fitted to.
 They are the survey's STARTING values, each with its source.
+
+THE REVIEWED BACKFILL (S4.5 fix wave, builder FX-S item 1; referee-substrate N1; migration 0036): the persisted
+ladder was never seeded from the refusals the ledger holds from BEFORE 0033, so for such a pair the in-run skip rule
+(`load`) and the gated counter `rehunt_route_spends` (`BackoffPolicy().replay` over the whole ledger) disagree —
+MEASURED on live, 2026-09-24: 10 open_access pairs stored 1 refusal / 15 min where the replay gives 2 / 6 h, and 21
+scihub pairs have no row although the replay holds refusals. `backfill_plan` states every disagreement and its
+cause; the CLI (dry run unless `--apply`) applies a REVIEWED plan through `litkb.backfill_route_backoff`:
+
+    py -3.12 -m litkb.acquire.backoff backfill --session <label> --out <plan.csv>            (dry run: the plan)
+    py -3.12 -m litkb.acquire.backoff backfill --session <label> --csv <plan.csv>            (dry run: what would apply)
+    py -3.12 -m litkb.acquire.backoff backfill --session <label> --csv <plan.csv> --apply    (the ingest login writes)
 """
+import argparse
+import csv
 import datetime
 import email.utils
+import hashlib
+import json
+import sys
 import urllib.parse
 from dataclasses import dataclass, field
+from pathlib import Path
 
 #: guard 2 (round 1, `http_client.py`-shaped ladders): 15 min -> 6 h -> 48 h. UNCALIBRATED (see above).
 REFUSAL_LADDER_S = (15 * 60, 6 * 3600, 48 * 3600)
@@ -203,6 +220,24 @@ class BackoffPolicy:
                 continue
             state = self.step(state, status, codes, at)
         return state
+
+    def last_mover(self, rows):
+        """The id of the attempt that last MOVED the persisted row in a replay of `rows` (`replay`'s input), by the
+        ladder's own writer rule (`litkb.acquire.run._move_backoff`: a chain's FINAL row — never a skip, never an
+        original its retry superseded — is written when the state before it or after it holds a refusal), or None.
+        S4.5 decision D56 (integrator-w4; auditor-FX-S F2): the backfill writes `route_backoff.last_*` from THIS
+        attempt, never from the pair's latest attempt when that is a skip (SCHEMAS: "the attempt that last moved the
+        row"; 13 of the 21 no_row pairs on live cite a `skipped/policy_refused` latest attempt)."""
+        retried = {r[4] for r in rows if r[4] is not None}
+        state, mover = None, None
+        for rid, status, codes, at, _retry_of in rows:
+            if status in NON_SPEND_STATUSES or rid in retried:
+                continue
+            after = self.step(state, status, codes, at)
+            if (state or {}).get("refusals", 0) or after.get("refusals"):
+                mover = rid
+            state = after
+        return mover
 
 
 def host_of(url):
@@ -372,8 +407,20 @@ class Gate:
         challenge = False
         if st and is_transient_code(st):
             challenge = bool(netutil.Client.challenge_cause(st, answered, body, headers))
+        # `challenge_2xx`: THE one detector's word on a 2xx answer (S4.5 decision D62, integrator-w4 r2b) — read by
+        # Stage E's candidate rule only (`litkb.acquire.recovery.live_urls`: a challenge served at 2xx is not a live
+        # location), never by the cool-down (`challenge` above keeps its transient-only meaning).
+        challenge_2xx = False    # the unguarded default: a 2xx answer is never read as a challenge
+        # BEGIN guard: a 2xx answer carries the one detector's word for Stage E's candidate rule
+        if 200 <= st < 300:
+            challenge_2xx = bool(netutil.Client.challenge_cause(st, answered, body, headers))
+        # END guard: a 2xx answer carries the one detector's word for Stage E's candidate rule
+        # `asked_url`: the URL as the rung asked it, query included — Stage E's input (S4.5 fix wave FX-E item 1:
+        # `litkb.acquire.recovery.asked_urls`, whose `eligible` refuses a credential or a signed URL before any archive
+        # is asked). This record lives on the route dict only; the ladder persists nothing of `observed`.
         self.observed.append({"host": host_of(answered), "url": _bare(answered), "asked": _bare(url), "status": st,
-                              "retry_after_s": retry_after_s(headers), "challenge": challenge})
+                              "retry_after_s": retry_after_s(headers), "challenge": challenge, "asked_url": url})
+        self.observed[-1]["challenge_2xx"] = challenge_2xx
 
     def summary(self):
         return {"refused": list(self.refused), "observed": list(self.observed)}
@@ -422,3 +469,207 @@ def db_now(conn):
     """The database clock (clock_timestamp, not the transaction's start): the ladder compares against
     the same clock the ledger's `at` was written with."""
     return conn.execute("SELECT clock_timestamp()").fetchone()[0]
+
+
+# ── the reviewed backfill: the persisted ladder seeded from the ledger's history (migration 0036) ────────────────
+#: The plan CSV (`--out`; the reviewed file `--apply` takes). The first seven columns are what is applied; the rest is
+#: for the reviewer: why the pair disagrees, what the table holds now, and whether the replayed window is still open.
+#: `attempt_id` is the pair's LATEST attempt (0036's staleness check); `moved_attempt_id` the attempt that last MOVED
+#: the replayed row (`BackoffPolicy.last_mover`), whose facts 0036 writes into `route_backoff.last_*` (S4.5 D56).
+BACKFILL_COLUMNS = ("route", "work_id", "attempt_id", "moved_attempt_id", "refusals", "window_started_at",
+                    "next_allowed_at", "cause", "unseen_attempts", "stored_refusals", "stored_window_started_at",
+                    "stored_next_allowed_at", "open_now")
+#: The pair has no row and its history holds a refusal the table never saw (every one of its refusals predates the
+#: table, or came from a writer that does not move the ladder).
+CAUSE_NO_ROW = "no_row"
+#: The row is EXACTLY the ladder of a suffix of the pair's history: its writer started from nothing part-way through
+#: (the pair's first `unseen_attempts` attempts predate the table) — the 10 open_access pairs of referee-substrate N1.
+CAUSE_BLIND = "blind_to_history"
+#: Neither: a disagreement this backfill cannot explain (or a replay that has RESET while a row stands). Never
+#: offered — a human reads it.
+CAUSE_UNEXPLAINED = "unexplained"
+
+_HISTORY_SQL = ("SELECT route, work_id::text, id::text, status, coalesce(http_codes, '{{}}'), at, retry_of::text "
+                "FROM litkb.acquisition_attempts WHERE work_id IS NOT NULL AND route <> ALL(%s){only} "
+                "ORDER BY route, work_id, at, id")
+_STORED_SQL = ("SELECT route, work_id::text, refusals, window_started_at, next_allowed_at "
+               "FROM litkb.route_backoff{only}")
+
+
+def _state_key(state):
+    """A ladder state as the enforcement reads it: (refusals, window start, next allowed) — no row, None and a
+    reset are all (0, None, None)."""
+    s = state or {}
+    k = int(s.get("refusals") or 0)
+    return (k, s.get("window_started_at") if k else None, s.get("next_allowed_at") if k else None)
+
+
+def _iso(v):
+    return v.astimezone(datetime.timezone.utc).isoformat() if isinstance(v, datetime.datetime) else ("" if v is None
+                                                                                                    else str(v))
+
+
+def _cause(policy, history, ref, stored):
+    """-> (cause, unseen_attempts) for a pair whose persisted state disagrees with the reference replay."""
+    if not _state_key(ref)[0]:
+        return CAUSE_UNEXPLAINED, None       # the replay has reset: a backfill writes refusal states only
+    cause = CAUSE_UNEXPLAINED                # the unguarded default: a pair with no row is not explained
+    # BEGIN guard: a pair the table holds no row for is offered
+    cause = CAUSE_NO_ROW
+    # END guard: a pair the table holds no row for is offered
+    if stored is None:
+        return cause, len(history)
+    for k in range(1, len(history)):
+        if _state_key(policy.replay(history[k:])) == _state_key(stored):
+            return CAUSE_BLIND, k
+    return CAUSE_UNEXPLAINED, None
+
+
+def backfill_plan(reader, policy=None, work_ids=None):
+    """Every (route, work) pair of the ledger whose PERSISTED ladder state (what `run._skip_reason` reads) is not
+    the REFERENCE replay of the pair's whole history (what `rehunt_route_spends` replays: every attempt, every
+    workstream, `BackoffPolicy.replay`). Reads only. -> {"now", "pairs", "agree", "rows", "unexplained"}: `rows` are
+    offered (the replayed state, cited to the pair's LATEST attempt — 0036 refuses any other), `unexplained` never
+    are. `work_ids` limits the plan to those works (a test's own, a single pair's dry run)."""
+    policy = policy or BackoffPolicy()
+    only = [str(w) for w in work_ids] if work_ids is not None else None
+    hist = reader.execute(_HISTORY_SQL.format(only=" AND work_id::text = ANY(%s)" if only is not None else ""),
+                          (sorted(NON_RUNG_ROUTES),) + ((only,) if only is not None else ())).fetchall()
+    stored = {(r[0], r[1]): {"refusals": r[2], "window_started_at": r[3], "next_allowed_at": r[4]}
+              for r in reader.execute(_STORED_SQL.format(only=" WHERE work_id::text = ANY(%s)" if only is not None
+                                                          else ""), ((only,) if only is not None else ())).fetchall()}
+    pairs = {}
+    for route, wid, aid, status, codes, at, retry_of in hist:
+        pairs.setdefault((route, wid), []).append((aid, status, list(codes or []), at, retry_of))
+    now = db_now(reader)
+    out = {"now": now, "pairs": len(pairs), "agree": 0, "rows": [], "unexplained": []}
+    for (route, wid), history in sorted(pairs.items()):
+        seen = history[-1:]     # the unguarded default: the newest attempt alone, what a live writer saw of the pair
+        # BEGIN guard: the plan replays the pair's whole ledger history
+        seen = history
+        # END guard: the plan replays the pair's whole ledger history
+        ref = policy.replay(seen)
+        st = stored.get((route, wid))
+        if _state_key(ref) == _state_key(st):
+            out["agree"] += 1
+            continue
+        cause, unseen = _cause(policy, history, ref, st)
+        k, start, nxt = _state_key(ref)
+        row = {"route": route, "work_id": wid, "attempt_id": history[-1][0],
+               "moved_attempt_id": policy.last_mover(seen) or "", "refusals": k,
+               "window_started_at": _iso(start), "next_allowed_at": _iso(nxt), "cause": cause,
+               "unseen_attempts": "" if unseen is None else unseen,
+               "stored_refusals": "" if st is None else st["refusals"],
+               "stored_window_started_at": _iso((st or {}).get("window_started_at")),
+               "stored_next_allowed_at": _iso((st or {}).get("next_allowed_at")),
+               "open_now": bool(nxt is not None and now < nxt)}
+        offer = True            # the unguarded default: every disagreement is offered
+        # BEGIN guard: an unexplained disagreement is never offered
+        offer = cause != CAUSE_UNEXPLAINED
+        # END guard: an unexplained disagreement is never offered
+        (out["rows"] if offer else out["unexplained"]).append(row)
+    return out
+
+
+def write_plan_csv(rows, path):
+    """The plan as the reviewer reads it (BACKFILL_COLUMNS). Never overwrites a file."""
+    with open(path, "x", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(BACKFILL_COLUMNS), extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+
+
+def _applied_key(r):
+    """What `--apply` writes of a plan row, comparable across a CSV round trip (instants, not their spelling)."""
+    def ts(v):
+        return datetime.datetime.fromisoformat(v) if v else None
+    return (str(r["attempt_id"]), str(r.get("moved_attempt_id") or ""), int(r["refusals"]), ts(r["window_started_at"]),
+            ts(r["next_allowed_at"]))
+
+
+def reviewed_rows(reader, csv_path, policy=None):
+    """A reviewed plan CSV against the ledger NOW: -> (rows still true, refused [{route, work_id, why}]). A row is
+    applied only while a fresh plan gives it exactly — the same pair, the same latest attempt, the same state — so a
+    plan the ledger has moved past, or an edited CSV, never writes."""
+    with open(csv_path, encoding="utf-8-sig", newline="") as fh:
+        reviewed = list(csv.DictReader(fh))
+    fresh = {(r["route"], r["work_id"]): r
+             for r in backfill_plan(reader, policy, work_ids=sorted({r["work_id"] for r in reviewed}))["rows"]}
+    keep, refused = list(reviewed), []
+    # BEGIN guard: a reviewed plan row is applied only while the ledger still gives it
+    keep = []
+    for r in reviewed:
+        now = fresh.get((r.get("route"), r.get("work_id")))
+        if now is None:
+            refused.append({"route": r.get("route"), "work_id": r.get("work_id"), "why": "no longer in the plan"})
+        elif _applied_key(now) != _applied_key(r):
+            refused.append({"route": r.get("route"), "work_id": r.get("work_id"), "why": "the plan has changed"})
+        else:
+            keep.append(r)
+    # END guard: a reviewed plan row is applied only while the ledger still gives it
+    return keep, refused
+
+
+def backfill(reader, *, session, out=None, csv_path=None, apply=False, recorder=None, policy=None):
+    """The op. DRY RUN unless `apply`: the fresh plan (written to `out` when given) and, with a reviewed `csv_path`,
+    which of its rows would apply. `apply` (needs `csv_path`) calls `litkb.backfill_route_backoff` once on `recorder`
+    (the ingest login), which writes every row and one `acquisition_backfills` row atomically."""
+    plan = backfill_plan(reader, policy)
+    res = {"mode": "apply" if apply else "dry-run", "now": _iso(plan["now"]), "pairs": plan["pairs"],
+           "agree": plan["agree"], "offered": len(plan["rows"]),
+           "by_cause": {c: sum(1 for r in plan["rows"] if r["cause"] == c) for c in (CAUSE_NO_ROW, CAUSE_BLIND)},
+           "open_now": sum(1 for r in plan["rows"] if r["open_now"]),
+           "unexplained": [{k: r[k] for k in ("route", "work_id", "refusals", "stored_refusals")}
+                           for r in plan["unexplained"]]}
+    if out:
+        write_plan_csv(plan["rows"], out)
+        res["plan_csv"] = str(out)
+    if csv_path:
+        keep, refused = reviewed_rows(reader, csv_path, policy)
+        res["source"] = f"{Path(csv_path).as_posix()} sha256={hashlib.sha256(Path(csv_path).read_bytes()).hexdigest()}"
+        res["would_apply"], res["refused"] = len(keep), refused
+        if apply:
+            from psycopg.types.json import Jsonb
+
+            rows = [{k: r[k] for k in ("attempt_id", "moved_attempt_id", "refusals", "window_started_at",
+                                       "next_allowed_at")} for r in keep]
+            for r in rows:
+                r["refusals"] = int(r["refusals"])
+            res["applied"] = recorder.execute("SELECT litkb.backfill_route_backoff(%s, %s, %s)",
+                                              (session, res["source"], Jsonb(rows))).fetchone()[0]
+    elif apply:
+        raise ValueError("--apply takes the REVIEWED plan: --csv <plan.csv> (write one with --out first)")
+    return res
+
+
+def main(argv=None):
+    from litkb import quarantine as Q
+    from litkb.db import connect as c
+
+    ap = argparse.ArgumentParser(prog="python -m litkb.acquire.backoff",
+                                 description="the reviewed route_backoff backfill (dry run unless --apply)")
+    ap.add_argument("--db", default=None, help="database (default litkb)")
+    ap.add_argument("--role", default="litkb_reader", help="the login the plan reads on")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    bf = sub.add_parser("backfill", help="seed route_backoff from the ledger's history (dry run unless --apply)")
+    bf.add_argument("--session", required=True)
+    bf.add_argument("--out", default=None, help="write the fresh plan here (never overwrites)")
+    bf.add_argument("--csv", default=None, help="the REVIEWED plan: what --apply writes")
+    bf.add_argument("--apply", action="store_true")
+    args = ap.parse_args(sys.argv[1:] if argv is None else argv)
+    reader = c.connect(args.db or c.DB_MAIN, args.role)
+    recorder = Q.ingest_connect(args.db) if args.apply else None
+    try:
+        res = backfill(reader, session=args.session, out=args.out, csv_path=args.csv, apply=args.apply,
+                       recorder=recorder)
+    finally:
+        reader.close()
+        if recorder is not None:
+            recorder.close()
+    sys.stdout.write(json.dumps(res, indent=1, default=str, ensure_ascii=False) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

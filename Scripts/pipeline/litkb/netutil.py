@@ -5,6 +5,7 @@ Ported from D:\\tools\\annas-mcp\\aa_fetch.py (2026-09-13, its verified gates; d
 returns for an error, and every log line built from it, goes through redact().
 """
 import contextvars
+import html as _html
 import http.cookiejar
 import json
 import os
@@ -42,12 +43,91 @@ CHALLENGE_MARKERS = (
     ("incapsula", b"_incapsula_resource"), ("perimeterx", b"px-captcha"),
     ("perfdrive", b"validate.perfdrive.com"), ("f5", b"_fs-ch-"), ("generic", b"client challenge"),
 )
-#: guard 3: response headers that ARE the challenge signature
-CHALLENGE_HEADERS = (("cf-mitigated", "challenge"), ("x-datadome", "protected"))
+#: guard 3: response headers that ARE the challenge signature. `x-amzn-waf-action: challenge` added by builder-FX-V
+#: (S4.5 fix wave; referee-vocabulary class A2): AWS WAF's challenge answers with an EMPTY 202 whose only signature is
+#: this header — MEASURED: every one of the 15 202s the ladder-1 run recorded carries it and `Server: CloudFront`
+#: (ieeexplore.ieee.org 7 with a 2,055 B script page, doi.org 3 for IEEE DOIs, journals.ametsoc.org 4 — 3 empty, 1 with
+#: a 2,228 B script page — and infoscience.epfl.ch 1: 7 of the 15 with an empty body, 8 with a ~2 KB script page;
+#: re-measured by builder-FX-V round 2, auditor-FX-V F7), which open access and Stage B booked `bad-file/html_response`
+#: or `api-error` while the landing rung's own `waf_statuses` rule called them challenges.
+CHALLENGE_HEADERS = (("cf-mitigated", "challenge"), ("x-datadome", "protected"), ("x-amzn-waf-action", "challenge"))
 #: The statuses at which the whole refusal page is read for a signature (the pre-S4.5 rule's two). At any
 #: other status only the page TITLE is read — survey G0d (VERIFIED): "never detect the challenge by
 #: searching the body for 'ddos-guard': a solved record page mentions it in its own scripts".
 REFUSAL_STATUSES = (403, 503)
+#: Block-page TOKENS read in the WHOLE of a refusal page (REFUSAL_STATUSES, or a kept page of status None;
+#: REFUSAL_WINDOW) — a token only a server's own error / block page template prints, never a script a solved page
+#: also carries. Builder-FX-V
+#: (S4.5 fix wave; referee-vocabulary class B, whose M2 showed nothing held the window): ScienceDirect's Cloudflare
+#: block page is 832,805 bytes — the largest 403/503 body of the ladder-1 run, 114 answers, MEASURED over the cassette
+#: — and its `::CLOUDFLARE_ERROR_1000S_BOX::` sits at byte 773,838, past guard 3's first MARKER_WINDOW bytes, so the
+#: Stage B rungs typed it `identity_required` while the landing rung, which read its own rule's signature over the whole
+#: body, typed the same page a challenge. WHY NOT every marker over the whole page (MEASURED, builder-FX-V, the same
+#: census): Wiley's two 227 KB 403 answers of the ladder-1 run are the ARTICLE's own page (its title, "institution",
+#: "log in") with Cloudflare's injected `/cdn-cgi/challenge-platform/scripts/precursor/main.js` at byte ~226,960 and a
+#: login form's `captcha` at ~214,130 — a whole-page read of CHALLENGE_MARKERS calls them challenges, the 64 KB read
+#: rightly does not. So the CHALLENGE_MARKERS keep guard 3's window and only these tokens are read whole.
+REFUSAL_PAGE_MARKERS = (("cloudflare", b"cloudflare_error"),)
+#: How much of a refusal page REFUSAL_PAGE_MARKERS are read in: all of it (None = no bound — the page the client already
+#: holds, the reach CHALLENGE_RE has always had at these statuses).
+REFUSAL_WINDOW = None
+#: Challenge-page TITLES that name the check in WORDS (never a vendor script or resource name — survey G0d's reason
+#: for reading only the title at a non-refusal status stands), matched against the title's text with its HTML
+#: entities decoded, at ANY status. Builder-FX-V (S4.5 fix wave; referee-vocabulary classes A1 and A4), each MEASURED
+#: on a page the ladder-1 run recorded (qc/fixtures/litkb_cassettes/typing_fx_v/provenance.json names the rows):
+CHALLENGE_TITLES = (
+    # Anubis's proof-of-work page, served at HTTP 200: 16 recorded answers — hal.science, inria.hal.science and
+    # hal.inrae.fr (11; the referee's 8 mistyped attempts, 5 works), mediatum.ub.tum.de, www.ssoar.info,
+    # macau.uni-kiel.de, www.zora.uzh.ch and one behind hdl.handle.net: `<title>Making sure you&#39;re not a bot!</title>`
+    ("anubis", "making sure you're not a bot"),
+    # a reCAPTCHA gate served at HTTP 404 behind hdl.handle.net/10810/59883: `<title>Verificación de seguridad` (its
+    # body is a form holding only a `g-recaptcha` widget)
+    ("captcha", "verificación de seguridad"),
+)
+#: A vendor BLOCK page's own sentence — words only the block page prints, never a script or resource name (a solved
+#: page names its guard in its SCRIPTS, survey G0d; nothing here is one) — read in the first MARKER_WINDOW bytes with
+#: HTML entities decoded, at ANY status. Builder-FX-V (referee-vocabulary class A3), MEASURED: Imperva Incapsula's
+#: block page, served at HTTP 200 by projecteuclid.org, has no title at all; its one sentence is "Request
+#: unsuccessful. Incapsula incident ID: <id>". (Its `/_Incapsula_Resource` script, which a SOLVED Incapsula page also
+#: carries, stays a marker read only on a refusal page or in a title.)
+CHALLENGE_BLOCK_TEXT = (("incapsula", "incapsula incident id"),)
+#: S4.5 fix wave (brief FX-V item 4): a 429 whose page STATES a rate limit is that rate limit — the host cool-down's
+#: business (S4.5 decision D45), never a bot challenge, whatever its title says; a challenge page served at 429 that
+#: states no rate limit stays a challenge (auditor-fix7 AM1). Read in the first MARKER_WINDOW bytes, lower-cased.
+#: MEASURED on bioRxiv's recorded 429 (ladder-1; Cloudflare-branded, titled "Attention Required | Cloudflare", which
+#: the marker list calls a challenge): "We have received a high number of requests from this session" and the page's
+#: own name for itself, "Cloudflare rate limit screen"; plus 429's reason phrase in RFC 6585 section 4.
+RATE_LIMIT_TEXT = (b"high number of requests", b"rate limit", b"too many requests")
+_TITLE_RE = re.compile(rb"<title[^>]*>(.*?)</title", re.I | re.S)
+
+
+def _decoded(raw):
+    """HTML text as a reader sees it: entities decoded, lower-cased, whitespace runs folded, the typographic apostrophe
+    folded to ASCII (builder-FX-V's choice: the same title in either spelling is one title)."""
+    text = _html.unescape((raw or b"").decode("utf-8", "replace")).lower().replace("\u2019", "'")
+    return " ".join(text.split())
+
+
+def challenge_words(head):
+    """-> the challenge family whose page WORDS (CHALLENGE_TITLES in the title, CHALLENGE_BLOCK_TEXT in the window)
+    these bytes carry, or ''. Read at any status by `Client.challenge_cause`."""
+    title = _TITLE_RE.search(head or b"")
+    if title:
+        text = _decoded(title.group(1))
+        for cause, words in CHALLENGE_TITLES:
+            if words in text:
+                return cause
+    text = _decoded(head)
+    for cause, words in CHALLENGE_BLOCK_TEXT:
+        if words in text:
+            return cause
+    return ""
+
+
+def states_rate_limit(head):
+    """Does this page (its first MARKER_WINDOW bytes) state a rate limit (RATE_LIMIT_TEXT)?"""
+    low = (head or b"").lower()
+    return any(t in low for t in RATE_LIMIT_TEXT)
 
 SCIDB_MIN_INTERVAL = 5.0
 RATE_BACKOFF = 60.0
@@ -240,28 +320,43 @@ class Client:
         one of them calls a challenge the others do too). Evidence, strongest first:
 
           a header signature (CHALLENGE_HEADERS), at any status             -> header:<name>
+          a 429 whose page states a rate limit (RATE_LIMIT_TEXT)            -> '' (the rate limit, never a
+            challenge: the host cool-down's business, S4.5 decision D45 — builder-FX-V). AFTER the header
+            signatures (builder-FX-V round 2, auditor-FX-V F5): a 429 that carries a challenge header is a
+            challenge whatever its page says, so it never starts a cool-down (S4.5 decision D46 F2)
           a 403 on a `check=1` URL (Sci-Hub's challenge redirect)            -> check=1
           PDF magic at the head of the body                                  -> '' (a PDF is never a challenge)
           status 403 / 503 (REFUSAL_STATUSES): a CHALLENGE_MARKERS marker in the first MARKER_WINDOW bytes,
-            or CHALLENGE_RE anywhere in the page (the pre-S4.5 rule)         -> the family / `challenge-re`
+            a REFUSAL_PAGE_MARKERS block-page token anywhere in the page (REFUSAL_WINDOW; builder-FX-V:
+            ScienceDirect's 832 KB block page), the page's challenge WORDS (`challenge_words`), or
+            CHALLENGE_RE anywhere in the page (the pre-S4.5 rule)            -> the family / `challenge-re`
           status None — a KEPT payload whose answer's status the caller does not hold (the ledger's typing
-            of a row already booked, litkb.acquire.ledger.challenge_cause): the markers in the window
+            of a row already booked, litkb.acquire.ledger.challenge_cause): the markers in the window, a
+            block-page token anywhere in it (builder-FX-V), then the page's challenge words
           any other status — a bot challenge at ANY status (S4.5 item 2; the 2026-09-22 Sci-Hub diagnosis
             D1 measured `sci-hub.wf` answering its Cloudflare "Checking your browser" page at HTTP 200):
             the page TITLE only, matched against the markers and CHALLENGE_RE (survey G0d, REFUSAL_STATUSES:
-            a solved page names its guard in its own scripts, never in its title)
+            a solved page names its guard in its own scripts, never in its title); then the page's challenge
+            WORDS — a title naming the check (CHALLENGE_TITLES: Anubis at 200, a reCAPTCHA gate at 404) or a
+            vendor block page's own sentence (CHALLENGE_BLOCK_TEXT: Incapsula at 200) — builder-FX-V
 
         MDPI's Akamai "Access Denied" page is served at 403 (qc/fixtures/litkb_mdpi_pdf_akamai_a3b93f589df6.html):
         its `edgesuite` marker makes it a challenge here. The pre-D24 `is_challenge` read CHALLENGE_RE only,
         so the open-access route booked that page `bad-file/html_response` (auditor-C2b F12)."""
         body = body or b""
+        head = body[:MARKER_WINDOW]
         for k, v in (headers or {}).items():
             for hk, hv in CHALLENGE_HEADERS:
                 if str(k).lower() == hk and hv in str(v).lower():
                     return f"header:{hk}"
+        # BEGIN guard: a 429 whose page states a rate limit is the rate limit, never a challenge
+        # (after the header signatures: a challenge header outranks the page's words — auditor-FX-V F5; bioRxiv's
+        # recorded 429 carries no challenge header, so its answer is unchanged by the order)
+        if status == 429 and states_rate_limit(head):
+            return ""
+        # END guard: a 429 whose page states a rate limit is the rate limit, never a challenge
         if status == 403 and "check=1" in (url or ""):
             return "check=1"
-        head = body[:MARKER_WINDOW]
         if head.lstrip()[:5] == b"%PDF-":
             return ""
         if status is None or status in REFUSAL_STATUSES:
@@ -271,6 +366,17 @@ class Client:
                 if marker in low:
                     return cause
             # END guard: a refusal page is read for every challenge marker, not only CHALLENGE_RE's three
+            # (a KEPT payload, status None, too: this branch already reads it as a refusal page, and the ledger's typing
+            # of a kept ScienceDirect page then agrees with the rung that was served it — D24's one detector)
+            # BEGIN guard: a refusal page is read whole for a block-page token, never only its first MARKER_WINDOW bytes
+            whole = body[:REFUSAL_WINDOW].lower()
+            for cause, marker in REFUSAL_PAGE_MARKERS:
+                if marker in whole:
+                    return cause
+            # END guard: a refusal page is read whole for a block-page token, never only its first MARKER_WINDOW bytes
+            words = challenge_words(head)
+            if words:
+                return words
             if status is not None and CHALLENGE_RE.search(body):
                 return "challenge-re"
             return ""
@@ -283,6 +389,13 @@ class Client:
             low = head.lower()
             return next((cause for cause, marker in CHALLENGE_MARKERS if marker in low), "challenge-re")
         # END guard: a challenge page is a challenge at ANY status
+        # BEGIN guard: a page whose own words name the check is a challenge at ANY status
+        # (builder-FX-V: Anubis's title at 200, a reCAPTCHA gate's title at 404, Incapsula's untitled block page at 200
+        # — each read as `bad-file/html_response` by the title-marker rule above, which knows script names only)
+        words = challenge_words(head)
+        if words:
+            return words
+        # END guard: a page whose own words name the check is a challenge at ANY status
         return ""
 
     @staticmethod

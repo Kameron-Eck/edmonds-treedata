@@ -11,7 +11,8 @@ For every downloaded byte string, in this order (a rung's bytes meet the ACCEPTA
 litkb.acquire.accept.offer_to_bind, which refuses into _quarantine with its sub-status and hands on what it accepts):
   0. shape: %PDF- header, %%EOF near the end   -> neither: straight to _quarantine with a .reason.json (`bad-file`)
   1. sha256 against the database's files      -> `duplicate-held`, nothing written
-  2. sha256 against every PDF on disk         -> `duplicate-held`, nothing written
+  2. sha256 against every PDF on disk         -> a copy NO files row holds is not a duplicate: named on the
+                                                 attempt (`unowned_on_disk`), left where it lies (FX-B)
   3. land in _litkb_staging/incoming + .txt extract at once
   4. bind against the work's registry title and first author (check 3)
        fails -> moved to _quarantine (`binding-failed` / `binding-pending`)
@@ -283,11 +284,22 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
         return "duplicate-held", {"sha256": sha, "held_as_file": str(row[0]), "held_for_work": str(row[1]),
                                   "rel_path": row[2], "note": "already in the database; nothing written"}
     # END guard: acquisition sha256 dedupe against the database
-    # BEGIN guard: acquisition sha256 dedupe against the disk
-    if sha in index["sha256"]:
-        return "duplicate-held", {"sha256": sha, "on_disk": index["sha256"][sha],
-                                  "note": "already on disk; nothing written"}
-    # END guard: acquisition sha256 dedupe against the disk
+    # the unguarded default: a copy anywhere on disk is a duplicate — the rule that refused Kats_2019's own arXiv bytes
+    on_disk = list(index["sha256"].get(sha) or [])
+    unowned = []
+    # BEGIN guard: bytes on disk that no files row holds are not a duplicate
+    # (S4.5 fix wave FX-B; referee-stage-b N3.) ONLY BYTES A `files` ROW HOLDS MAKE A DUPLICATE, and the database
+    # dedupe above has already answered for every one of them. A copy the disk index still finds here is one no `files`
+    # row holds — a hand-placed file in a topic folder, a legacy manifest's copy, an orphan in filed/ — and it made the
+    # ladder answer `duplicate-held`, which STOPS the ladder, while the work stayed without a file: on the ladder-1 run
+    # the arXiv rung reached Kats_2019's own PDF (L005, register E03) and refused it against
+    # `Validation/Kats_2019b_soft-staple-algorithm-combined.pdf`, a copy the database does not own. The bytes now land
+    # and bind like any others; the unowned copy is named on the attempt (`unowned_on_disk`) and left exactly where it
+    # lies (acquisition never moves or deletes a file it did not create).
+    unowned, on_disk = on_disk, []
+    # END guard: bytes on disk that no files row holds are not a duplicate
+    if on_disk:
+        return "duplicate-held", {"sha256": sha, "on_disk": on_disk, "note": "already on disk; nothing written"}
     pdf, txt = store.land(data, work["key"], sha)
     # The default is the unguarded one, so removing the guard below leaves code that RUNS and binds
     # with `pages` NULL — the mutation the S4 known-bad `fire_probe` makes — rather than a NameError
@@ -308,13 +320,16 @@ def land_and_attach(conn, ws, token, work, data, *, route, source_url, store, in
             source_url=source_url, sha=sha, nbytes=facts["bytes"], probe_error=str(e)[:300]))
         return "bad-file", {"sha256": sha, "md5": facts["md5"], "bytes": facts["bytes"],
                             "source_url": source_url, "probe_error": str(e)[:300], "note": why,
-                            "quarantined": store.rel(qpdf), "quarantine_reason": store.rel(reason_path(qpdf))}
+                            "quarantined": store.rel(qpdf), "quarantine_reason": store.rel(reason_path(qpdf)),
+                            **({"unowned_on_disk": unowned} if unowned else {})}
     # END guard: a landed file whose page count cannot be read is never bound
     info = _binding.pdf_info(pdf)
     # every title form, not only the work's stored one (_title_forms): the page prints the publisher's choice
     # ... and, where the landed page has no text layer at all, again on Docling's OCR of it
     b = _binding.bind_any_with_ocr(pdf, _forms(work), work["first_author"], info=info)
     detail = {"sha256": sha, "md5": facts["md5"], "bytes": facts["bytes"], "binding": b, "source_url": source_url}
+    if unowned:
+        detail["unowned_on_disk"] = unowned         # S4.5 fix wave FX-B: the copy no files row holds, left where it lies
     # BEGIN guard: a file that does not bind is quarantined
     if b["verdict"] != "bound":
         qpdf, _qtxt = store.to_quarantine(pdf, txt, work["key"], b["verdict"], sha, reason=_reason(
@@ -385,8 +400,9 @@ def index_of_held(store, index):
         and files it, and the quarantined copy and its .reason.json stay exactly where they are as the record of
         what happened - acquisition still deletes nothing.
 
-    The guards that protect the corpus are untouched: the same sha256 held in the DATABASE, or filed anywhere
-    else under the literature root, is still `duplicate-held`. So is the archive's own quota short-circuit, which
+    The guard that protects the corpus is untouched: the same sha256 held in the DATABASE is still `duplicate-held`
+    (a copy filed elsewhere under the literature root that no files row holds is named, not a duplicate: S4.5 fix
+    wave FX-B, `land_and_attach`). So is the archive's own quota short-circuit, which
     asks the FULL index a different question - do we have these bytes at all - and so still refuses to spend a
     download for bytes that are sitting in quarantine."""
     skip = (f"{STAGING}/incoming/", f"{QUARANTINE}/")
@@ -520,6 +536,10 @@ class Rung:
     #: held PMCID ...; litkb.acquire.stage_b.ASK_CONDITIONS); skipped by it on every row it reached, its report line
     #: is `not-asked: <route> <works> <condition>` (auditor-C2a round 2 F3). '' = asks every row that reaches it
     ask_condition: str = ""
+    #: S4.5 fix wave FX-B: a rung whose answer carries a harvest (litkb.acquire.stage_b.HARVESTS) — after the ladder has
+    #: landed the file it is still asked, in HARVEST-ONLY mode (`RungContext.harvest_only`), if the ladder had not
+    #: reached it: the identifier waves complete (referee-stage-b N2), the file rungs stop at the first landing
+    harvests: bool = False
 
     @property
     def stage(self):
@@ -548,6 +568,9 @@ class RungContext:
     #: seam builder-C2b: every non-PDF page a rung of THIS ladder run was served ({route, url, status, headers,
     #: body}), in the order met — Stage C's leads (litkb.acquire.landing follows the pointers they carry)
     leads: list = field(default_factory=list)
+    #: S4.5 fix wave FX-B: the ladder's post-landing identifier pass is running — a rung makes its identifier call and
+    #: asks no file candidate (litkb.acquire.stage_b.fetch_candidates)
+    harvest_only: bool = False
 
     def decide(self, route, host="*"):
         # seam builder-C2a: the work-class router refuses a shadow line for a preprint / book / HTML-only work
@@ -891,7 +914,20 @@ DETAIL_KEYS = ("detail", "tried", "via", "md5", "record_doi", "title_best", "dow
                # seam builder-C2b: Stage C's evidence (landing page, rules and their freshness, every candidate)
                "landing",
                # S4.5 decision D44: the host cool-down that stopped the rung (`_cooled_answer`)
-               "cooldown")
+               "cooldown",
+               # S4.5 fix wave FX-B: a post-landing identifier call's file candidates it did not ask
+               "harvest_only")
+
+
+def _pass_stamp(ctx, detail):
+    """S4.5 fix wave FX-B: `detail`, stamped `harvest_only` when the ladder's post-landing identifier pass wrote it
+    (`RungContext.harvest_only`) — an answer, a skip or a budget-stop (auditor-FX-B N7: a budget-stop of the pass could
+    not be told from the loop's own). A rung's own `harvest_only` (its unasked candidates) is kept. -> `detail`."""
+    # BEGIN guard: every row of the post-landing identifier pass says so
+    if ctx.harvest_only:
+        detail.setdefault("harvest_only", {"not_asked": [], "why": _stage_b.HARVEST_ONLY_WHY})
+    # END guard: every row of the post-landing identifier pass says so
+    return detail
 
 
 def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, agent, session, retry_of=None,
@@ -911,6 +947,7 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
         detail = {k: r.get(k) for k in DETAIL_KEYS if r.get(k) not in (None, "", [])}
     if "policy" not in detail and route in ctx.decisions:
         detail["policy"] = [ctx.decisions[route]]
+    _pass_stamp(ctx, detail)        # S4.5 fix wave FX-B: a row of the post-landing pass says so, whatever it answered
     # S4.5 decision D44: every URL this rung call did not ask because its host was cooling down is on its row
     untried = (r.get("cooldown_gate") or {}).get("refused") or []
     # BEGIN guard: a URL the request gate did not ask is recorded on the row
@@ -1069,7 +1106,7 @@ def _record_result(conn, ws, token, work, rung, r, exc, ctx, *, store, dedupe, a
     kind = r.get("kind") or ("pdf" if served and _accept.quick_magic(served) else None)
     # seam builder-C2c: a URL this answer asked and did not succeed on is a Stage E candidate
     # BEGIN guard: a dead URL a rung met in this run reaches Stage E
-    ctx.recovery_urls.extend(_recovery.urls_of(route, r, status))
+    ctx.recovery_urls.extend(_recovery.urls_of(route, r, status, sub_status=sub))
     # END guard: a dead URL a rung met in this run reaches Stage E
     aid = record_attempt(conn, ws, token, wid, route, ident, status, detail, codes, sub_status=sub,
                          served_sha256=sha, terminal=terminal, retriable=retriable, kind=kind, retry_of=retry_of)
@@ -1262,6 +1299,7 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
 
     def skip(route, sub, detail, ident=None):
         detail = _stage_a.onto_first_row(work, dict(detail or {}))      # seam builder-C2a (auditor-C2a F1)
+        _pass_stamp(ctx, detail)                                         # S4.5 fix wave FX-B: the post-landing pass
         # BEGIN guard: a skip is an attempt with a reason, never silence
         aid = record_attempt(conn, ws, token, wid, route, ident, "skipped", detail, sub_status=sub)
         note(route, {"id": aid, "status": "skipped", "sub_status": sub, "codes": []})
@@ -1270,8 +1308,9 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
 
     def stop_for_budget(why, not_asked):
         aid = record_attempt(conn, ws, token, wid, "ladder", None, "budget-stop", _stage_a.onto_first_row(
-                             work, {"budget": lb.spec(), "spent": spent, "elapsed_s": round(lb.clock() - started, 3),
-                                    "not_asked": not_asked}), sub_status=why)      # seam builder-C2a (F1)
+                             work, _pass_stamp(ctx, {"budget": lb.spec(), "spent": spent,     # FX-B: the pass's stamp
+                                                     "elapsed_s": round(lb.clock() - started, 3),
+                                                     "not_asked": not_asked})), sub_status=why)  # seam builder-C2a (F1)
         note("ladder", {"id": aid, "status": "budget-stop", "sub_status": why, "codes": []})
         printer(f"  ladder: budget-stop ({why})")
 
@@ -1369,60 +1408,95 @@ def acquire(conn, ws, token, work, *, store=None, routes=ROUTES, agent, session,
         elif row["status"] == "duplicate-held" and outcome is None and ctx.mode == "acquire":
             outcome = ("duplicate-held", row["detail"])
 
-    for stage in _policy.STAGES:
-        stage_rungs = [g for g in chosen if g.stage == stage]
-        if not stage_rungs or outcome is not None:
-            continue
-        # the budget, between stages (its guard is LadderBudget.exhausted's own block, policy.py)
-        why = lb.exhausted(started, spent)
-        if why:
-            here = _policy.STAGES.index(stage)
-            stop_for_budget(why, [g.route for g in chosen if _policy.STAGES.index(g.stage) >= here])
-            break
-        together = [g for g in stage_rungs if g.concurrent]
-        alone = [g for g in stage_rungs if not g.concurrent]
-        askable = []
-        for g in together:
-            s = _skip_reason(conn, g, work, prior, ws, retry_dead, ctx, bo)
-            if s:
-                skip(g.route, s[0], s[1], _identifier(g, work))
-            else:
-                askable.append(g)
-        if askable:
-            room = max(0, (lb.attempts or len(askable)) - spent)
-            asked, left = askable[:room], askable[room:]
-            for g in asked:
-                _pace(pacing, g.route, pacer, bo)
-            launches = [launch(i) for i in range(len(asked))]
-            if len(asked) > 1:
-                with ThreadPoolExecutor(max_workers=max(1, min(lb.concurrency or 1, len(asked)))) as ex:
-                    gates = {g.route: gate_for(g.route) for g in asked}
-                    answers = list(ex.map(lambda g: _call_rung(g, work, ctx, gates[g.route]), asked))
-            else:
-                answers = [_call_rung(g, work, ctx, gate_for(g.route)) for g in asked]
-            for i, (g, (r, exc), at_launch) in enumerate(zip(asked, answers, launches)):
-                settle(g, r, exc, at_launch, answers[i + 1:])
-            if left and outcome is None:
-                stop_for_budget("budget_attempts", [g.route for g in left])
-                break
-        for g in alone:
-            if outcome is not None:
-                break
+    def refused(g):
+        """True when a skip reason stops rung `g` now (`_skip_reason`: no identifier, a dead route, `blocked` earlier
+        in this run, the back-off window, the pre-fetch policy) — its `skipped` row is written; else False."""
+        s = None                # the unguarded default: every rung is asked, whatever stands against asking it
+        # BEGIN guard: a rung a skip reason stops is recorded and never asked
+        s = _skip_reason(conn, g, work, prior, ws, retry_dead, ctx, bo)
+        # END guard: a rung a skip reason stops is recorded and never asked
+        if s:
+            skip(g.route, s[0], s[1], _identifier(g, work))
+        return bool(s)
+
+    def run_stages(rungs, stop_at_outcome):
+        """THE STAGE LOOP: ONE code path for the ladder and for its post-landing identifier pass (S4.5 fix wave FX-B;
+        auditor-FX-B F2 — the pass was first a ~50-line copy of this loop, and no test reached its skip, budget or
+        stop branches, so a copy could drift from the loop unseen). `rungs` in stage and registry order. Per stage:
+        the budget, then the concurrent rungs asked together, then the sequential ones one by one — each under its
+        skip reasons (`refused`), the budget, pacing and the request gate, and settled (`settle`: one scheduled
+        retry, the back-off, the landing). `stop_at_outcome`: the ladder stops at its first landing (or its
+        `duplicate-held` stop); the post-landing pass runs with that outcome already set and does not stop on it."""
+        def stopped():
+            return stop_at_outcome and outcome is not None
+
+        for stage in _policy.STAGES:
+            stage_rungs = [g for g in rungs if g.stage == stage]
+            if not stage_rungs or stopped():
+                continue
+            # the budget, between stages (its guard is LadderBudget.exhausted's own block, policy.py)
             why = lb.exhausted(started, spent)
             if why:
-                stop_for_budget(why, [x.route for x in alone[alone.index(g):]])
-                break
-            s = _skip_reason(conn, g, work, prior, ws, retry_dead, ctx, bo)
-            if s:
-                skip(g.route, s[0], s[1], _identifier(g, work))
-                continue
-            _pace(pacing, g.route, pacer, bo)
-            at_launch = launch()
-            r, exc = _call_rung(g, work, ctx, gate_for(g.route))
-            settle(g, r, exc, at_launch)
-        else:
-            continue
-        break
+                here = _policy.STAGES.index(stage)
+                stop_for_budget(why, [g.route for g in rungs if _policy.STAGES.index(g.stage) >= here])
+                return
+            together = [g for g in stage_rungs if g.concurrent]
+            alone = [g for g in stage_rungs if not g.concurrent]
+            askable = [g for g in together if not refused(g)]
+            if askable:
+                room = max(0, (lb.attempts or len(askable)) - spent)
+                asked, left = askable[:room], askable[room:]
+                for g in asked:
+                    _pace(pacing, g.route, pacer, bo)
+                launches = [launch(i) for i in range(len(asked))]
+                if len(asked) > 1:
+                    with ThreadPoolExecutor(max_workers=max(1, min(lb.concurrency or 1, len(asked)))) as ex:
+                        gates = {g.route: gate_for(g.route) for g in asked}
+                        answers = list(ex.map(lambda g: _call_rung(g, work, ctx, gates[g.route]), asked))
+                else:
+                    answers = [_call_rung(g, work, ctx, gate_for(g.route)) for g in asked]
+                for i, (g, (r, exc), at_launch) in enumerate(zip(asked, answers, launches)):
+                    settle(g, r, exc, at_launch, answers[i + 1:])
+                if left and not stopped():
+                    stop_for_budget("budget_attempts", [g.route for g in left])
+                    return
+            for g in alone:
+                if stopped():
+                    return
+                why = lb.exhausted(started, spent)
+                if why:
+                    stop_for_budget(why, [x.route for x in alone[alone.index(g):]])
+                    return
+                if refused(g):
+                    continue
+                _pace(pacing, g.route, pacer, bo)
+                at_launch = launch()
+                r, exc = _call_rung(g, work, ctx, gate_for(g.route))
+                settle(g, r, exc, at_launch)
+
+    run_stages(chosen, stop_at_outcome=True)
+
+    # S4.5 fix wave FX-B (referee-stage-b N2): THE POST-LANDING IDENTIFIER PASS. The loop above stops at the first
+    # landing (and at a `duplicate-held` stop): right for every rung that fetches a file — "PDF-fetching rungs still stop
+    # at the first landing" — and wrong for the identifier waves, which the plan's closure rule pursues until a pass
+    # adds nothing (LINKAGE §2.3). MEASURED on the ladder-1 run: all 17 crosswalk rows still without their arXiv sibling
+    # had landed at Wave 1 and never asked Semantic Scholar. So every `Rung.harvests` rung the loop had not reached is
+    # asked now, through the SAME stage loop (`run_stages`: the concurrent ones together, then the sequential ones,
+    # under the same budget, skip reasons, pacing and scheduled retry), with `ctx.harvest_only` set: its identifier
+    # call is made and its harvest written; its file candidates are named on the row and never asked
+    # (litkb.acquire.stage_b.fetch_candidates); every row it writes says so (`_pass_stamp`). A rung the loop reached —
+    # asked or skipped — is never asked twice. The `duplicate-held` stop starts the pass too: the bytes another work
+    # holds are exactly the case whose identifiers the adjudication needs (builder-FX-B's choice, disclosed; N3).
+    post = []                   # the unguarded default: the first landing stops the identifier waves too
+    # BEGIN guard: identifier harvesting completes its waves after a landing
+    if outcome is not None and mode == "acquire":
+        reached = {route for route, _status in attempts}
+        post = [g for g in chosen if g.harvests and g.route not in reached]
+    # END guard: identifier harvesting completes its waves after a landing
+    if post:
+        ctx.harvest_only = True
+        run_stages(post, stop_at_outcome=False)
+        ctx.harvest_only = False
 
     if outcome is not None:
         kind, detail = outcome

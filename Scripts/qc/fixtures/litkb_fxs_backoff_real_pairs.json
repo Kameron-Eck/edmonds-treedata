@@ -1,0 +1,1254 @@
+{
+ "read_at": "2026-09-24T17:11:27.397436-07:00",
+ "source": "live litkb as litkb_reader",
+ "pairs": [
+  {
+   "route": "scihub",
+   "work_id": "01a0a079-56e9-7f24-b8ce-de9e4469b64d",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-14T08:12:28.216950-07:00",
+    "next_allowed_at": "2026-09-14T08:27:28.216950-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0a07a-0c39-74f1-b576-e355e2b6e53d",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200
+     ],
+     "at": "2026-09-14T08:12:28.216950-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "litkb-p2-gate",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d2f3-0a49-7dce-af06-8926f0968a1a",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T03:25:38.377758-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0adc7-eab1-75c0-ad81-ba8a9569a467",
+   "stored": null,
+   "reference": {
+    "refusals": 3,
+    "window_started_at": "2026-09-16T22:21:06.479495-07:00",
+    "next_allowed_at": "2026-09-23T03:18:54.614258-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0adcf-b7af-7c47-afbd-fccf1166e18b",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200
+     ],
+     "at": "2026-09-16T22:21:06.479495-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "improve-review-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0add7-31b0-7347-9689-5781e8500cec",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200
+     ],
+     "at": "2026-09-16T22:29:16.463936-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "improve-review-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0c379-cd16-7866-a4df-cd0ba65fa16e",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T03:18:54.614258-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "edges-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0add7-76b5-7a1d-8fdf-d45494c5fda4",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-16T22:30:44.338582-07:00",
+    "next_allowed_at": "2026-09-16T22:45:44.338582-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0add8-88f2-7d8f-b2ac-27b13e67572a",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200
+     ],
+     "at": "2026-09-16T22:30:44.338582-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "improve-review-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d461-5ec2-7de8-9fcb-3b03b024d315",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T10:05:46.178783-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0a865-18e9-7b8a-9e9d-949739a51508",
+   "stored": null,
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T03:09:46.535274-07:00",
+    "next_allowed_at": "2026-09-21T09:23:11.670583-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c371-702a-79de-928d-abbb9dc06f4e",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T03:09:46.535274-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "edges-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0c37d-b93e-70a4-a45d-83f2f314e7ee",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T03:23:11.670583-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "edges-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0a85a-18f5-7ea2-9961-e86409875ef4",
+   "stored": null,
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T03:10:26.915262-07:00",
+    "next_allowed_at": "2026-09-21T09:23:22.486504-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c372-0de6-71bf-9d9e-e3b501d72872",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T03:10:26.915262-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "edges-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0c37d-e379-72f0-b8c1-f2e9f11a9f93",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T03:23:22.486504-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "edges-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d293-1236-7239-a609-dd1e4eec41c7",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T01:40:48.950067-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0a4db-0697-7b50-b00f-e00ce008a385",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T18:35:44.234075-07:00",
+    "next_allowed_at": "2026-09-21T18:50:44.234075-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c6c1-2e6a-7665-8759-60fa947df723",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T18:35:44.234075-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "title-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d28f-5a33-74da-ab94-93b619cbb480",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T01:36:45.235221-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c714-db79-7a4f-b67f-78b0c00fe5cc",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:07:57.928255-07:00",
+    "next_allowed_at": "2026-09-21T20:22:57.928255-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c715-9e68-78b4-852b-eb486da673d4",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:07:57.928255-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c716-f0db-78b6-9d71-3c1674d7ba3e",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T10:01:37.442248-07:00",
+    "next_allowed_at": "2026-09-24T10:16:37.442248-07:00",
+    "last_attempt_id": "01a0d45d-9322-79f2-8719-3fbc96f0ddd5",
+    "last_at": "2026-09-24T10:01:37.442248-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:09:28.688979-07:00",
+    "next_allowed_at": "2026-09-24T16:01:37.442248-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c717-00f1-7651-871c-e61136a72099",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-21T20:09:28.688979-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45d-9322-79f2-8719-3fbc96f0ddd5",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-24T10:01:37.442248-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c716-f0db-78b6-9d71-3c1674d7ba3e",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:09:52.166601-07:00",
+    "next_allowed_at": "2026-09-21T20:24:52.166601-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c717-5ca6-7e52-b32d-06f1d55fb6b2",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:09:52.166601-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d45e-26d6-7af9-ab9c-4c6583672836",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T10:02:15.254605-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c717-6674-732a-8066-1424b54bed25",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:10:16.326820-07:00",
+    "next_allowed_at": "2026-09-21T20:25:16.326820-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c717-bb07-7198-8ada-ec586d7d6c4f",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:10:16.326820-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d31a-93eb-71e5-96bb-622a17b07913",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T04:08:49.515022-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c717-c5be-7edb-b67f-675422b98244",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T09:53:10.395522-07:00",
+    "next_allowed_at": "2026-09-24T10:08:10.395522-07:00",
+    "last_attempt_id": "01a0d455-d67c-70e9-b208-4957ba0dd06c",
+    "last_at": "2026-09-24T09:53:10.395522-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:10:20.124198-07:00",
+    "next_allowed_at": "2026-09-24T15:53:10.395522-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c717-c9dc-7979-a092-870ca7a308c4",
+     "status": "bad-file",
+     "sub_status": null,
+     "http_codes": [
+      202
+     ],
+     "at": "2026-09-21T20:10:20.124198-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": null
+    },
+    {
+     "id": "01a0d455-d67c-70e9-b208-4957ba0dd06c",
+     "status": "bad-file",
+     "sub_status": "html_response",
+     "http_codes": [
+      202
+     ],
+     "at": "2026-09-24T09:53:10.395522-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c717-c5be-7edb-b67f-675422b98244",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:11:08.024764-07:00",
+    "next_allowed_at": "2026-09-21T20:26:08.024764-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c718-84f9-71b9-9312-9754720f6e98",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:11:08.024764-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c718-8eb0-7b9a-9883-7852e6e8465d",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T09:57:59.982724-07:00",
+    "next_allowed_at": "2026-09-24T10:12:59.982724-07:00",
+    "last_attempt_id": "01a0d45a-41ae-7f3c-bfa1-3e0687c2de79",
+    "last_at": "2026-09-24T09:57:59.982724-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:11:11.580986-07:00",
+    "next_allowed_at": "2026-09-24T15:57:59.982724-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c718-92dd-762f-a3bf-7ffab898c9ee",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403
+     ],
+     "at": "2026-09-21T20:11:11.580986-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45a-41ae-7f3c-bfa1-3e0687c2de79",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403
+     ],
+     "at": "2026-09-24T09:57:59.982724-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c718-ebe7-7f13-b982-064433182068",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:12:23.709142-07:00",
+    "next_allowed_at": "2026-09-21T20:27:23.709142-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c719-ac9d-7794-951e-e8827c297a57",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:12:23.709142-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c71a-5e16-7b79-90b7-aa3eb519bbb1",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T01:25:23.919259-07:00",
+    "next_allowed_at": "2026-09-24T01:40:23.919259-07:00",
+    "last_attempt_id": "01a0d284-f4cf-7a30-9f2f-455de87ac24a",
+    "last_at": "2026-09-24T01:25:23.919259-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:13:16.974150-07:00",
+    "next_allowed_at": "2026-09-24T07:25:23.919259-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71a-7cae-7907-87d6-4f48e00912c7",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:13:16.974150-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d284-f4cf-7a30-9f2f-455de87ac24a",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403,
+      200
+     ],
+     "at": "2026-09-24T01:25:23.919259-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c71a-5e16-7b79-90b7-aa3eb519bbb1",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:14:09.376118-07:00",
+    "next_allowed_at": "2026-09-21T20:29:09.376118-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71b-4960-75f4-bc43-abb350c1ddec",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:14:09.376118-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c71b-52a4-787a-9c01-0c8eddb602d7",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T10:01:02.139669-07:00",
+    "next_allowed_at": "2026-09-24T10:16:02.139669-07:00",
+    "last_attempt_id": "01a0d45d-093c-7089-beb1-bf399c9968a6",
+    "last_at": "2026-09-24T10:01:02.139669-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:14:13.088189-07:00",
+    "next_allowed_at": "2026-09-24T16:01:02.139669-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71b-57e0-7b79-8fdd-14063275b31f",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403
+     ],
+     "at": "2026-09-21T20:14:13.088189-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45d-093c-7089-beb1-bf399c9968a6",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403
+     ],
+     "at": "2026-09-24T10:01:02.139669-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c71b-52a4-787a-9c01-0c8eddb602d7",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:14:36.802697-07:00",
+    "next_allowed_at": "2026-09-21T20:29:36.802697-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71b-b482-7f43-9fec-7e27fade5c00",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:14:36.802697-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d45d-8225-7d52-a998-9600ae01c5fb",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T10:01:33.093752-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c71b-bdcf-787f-ace6-46c6f7a2c46e",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T09:59:49.324722-07:00",
+    "next_allowed_at": "2026-09-24T10:14:49.324722-07:00",
+    "last_attempt_id": "01a0d45b-eccd-7237-9171-c83d8e42eaca",
+    "last_at": "2026-09-24T09:59:49.324722-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:14:43.287676-07:00",
+    "next_allowed_at": "2026-09-24T15:59:49.324722-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71b-cdd8-7139-9144-172e0a251550",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-21T20:14:43.287676-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45b-eccd-7237-9171-c83d8e42eaca",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-24T09:59:49.324722-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c71b-bdcf-787f-ace6-46c6f7a2c46e",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:15:34.994522-07:00",
+    "next_allowed_at": "2026-09-21T20:30:34.994522-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71c-97d2-7cc7-bbd6-5a1bf1229a6e",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:15:34.994522-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d45c-6d4f-79c2-9d21-6ab10c4cd35c",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T10:00:22.223527-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c71d-873b-7b12-92d7-40fff9513442",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:17:31.175714-07:00",
+    "next_allowed_at": "2026-09-21T20:32:31.175714-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71e-5da7-7faf-be6d-422d8b844532",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:17:31.175714-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d44f-7332-7acd-af7f-a42950d97107",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T09:46:11.762595-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c101-b227-7417-a60d-d932fb1b118d",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T10:02:45.357635-07:00",
+    "next_allowed_at": "2026-09-24T10:17:45.357635-07:00",
+    "last_attempt_id": "01a0d45e-9c6d-7fbd-9190-297a4edec8fa",
+    "last_at": "2026-09-24T10:02:45.357635-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:17:37.270164-07:00",
+    "next_allowed_at": "2026-09-24T16:02:45.357635-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71e-7579-757c-a342-18692ecf3c3e",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-21T20:17:37.270164-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45e-9c6d-7fbd-9190-297a4edec8fa",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-24T10:02:45.357635-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c101-b227-7417-a60d-d932fb1b118d",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:18:01.982451-07:00",
+    "next_allowed_at": "2026-09-21T20:33:01.982451-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71e-d5fe-7bbc-8884-adc28bc7129c",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:18:01.982451-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c71e-e089-7ed6-b55f-399c6da02e31",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T10:00:27.043982-07:00",
+    "next_allowed_at": "2026-09-24T10:15:27.043982-07:00",
+    "last_attempt_id": "01a0d45c-8024-74c6-ac62-2e6fbf9086e4",
+    "last_at": "2026-09-24T10:00:27.043982-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:18:08.737734-07:00",
+    "next_allowed_at": "2026-09-24T16:00:27.043982-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71e-f062-72c4-bdc2-00112f1634da",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-21T20:18:08.737734-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45c-8024-74c6-ac62-2e6fbf9086e4",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      403
+     ],
+     "at": "2026-09-24T10:00:27.043982-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c71e-e089-7ed6-b55f-399c6da02e31",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:19:05.870640-07:00",
+    "next_allowed_at": "2026-09-21T20:34:05.870640-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c71f-cf8e-7e72-9fc1-581a780a8e8c",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:19:05.870640-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d45d-01bd-7892-b215-9bb8f3e2a8f7",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T10:01:00.221461-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c71f-fc9c-7611-9549-131d1889de48",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T10:02:22.597849-07:00",
+    "next_allowed_at": "2026-09-24T10:17:22.597849-07:00",
+    "last_attempt_id": "01a0d45e-4386-73bf-b048-0a99346816ea",
+    "last_at": "2026-09-24T10:02:22.597849-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:19:24.349314-07:00",
+    "next_allowed_at": "2026-09-24T16:02:22.597849-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c720-17bd-7b75-8fdb-a24786c6def8",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      200,
+      403
+     ],
+     "at": "2026-09-21T20:19:24.349314-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45e-4386-73bf-b048-0a99346816ea",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      200,
+      403
+     ],
+     "at": "2026-09-24T10:02:22.597849-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c71f-fc9c-7611-9549-131d1889de48",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:19:50.343538-07:00",
+    "next_allowed_at": "2026-09-21T20:34:50.343538-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c720-7d47-7d77-a37f-8333918a2802",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:19:50.343538-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c720-878a-75d7-b346-2766504c81e9",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:20:48.788942-07:00",
+    "next_allowed_at": "2026-09-21T20:35:48.788942-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c721-6195-7409-be32-9701219bb51f",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:20:48.788942-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d2f6-f279-7ef5-8829-39973833c15d",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T03:29:54.425858-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "open_access",
+   "work_id": "01a0c722-b25d-75aa-a158-80ec90f89e69",
+   "stored": {
+    "refusals": 1,
+    "window_started_at": "2026-09-24T10:03:08.452966-07:00",
+    "next_allowed_at": "2026-09-24T10:18:08.452966-07:00",
+    "last_attempt_id": "01a0d45e-f6a5-7466-9c1c-7327834ba590",
+    "last_at": "2026-09-24T10:03:08.452966-07:00"
+   },
+   "reference": {
+    "refusals": 2,
+    "window_started_at": "2026-09-21T20:22:22.058983-07:00",
+    "next_allowed_at": "2026-09-24T16:03:08.452966-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c722-cdeb-77bb-8022-0c9c557ab911",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      200,
+      403
+     ],
+     "at": "2026-09-21T20:22:22.058983-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "bytes"
+    },
+    {
+     "id": "01a0d45e-f6a5-7466-9c1c-7327834ba590",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      403,
+      200,
+      403
+     ],
+     "at": "2026-09-24T10:03:08.452966-07:00",
+     "retriable": false,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c723-2fca-7082-aa10-ad10e4488f6b",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:23:41.630964-07:00",
+    "next_allowed_at": "2026-09-21T20:38:41.630964-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c724-04bf-744f-9fc7-c4708213b1d8",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:23:41.630964-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d2fa-1dce-7d0a-8ee9-3a08114ea585",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T03:33:22.126711-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  },
+  {
+   "route": "scihub",
+   "work_id": "01a0c72c-42bd-7c3d-b93e-7c6ace8ff514",
+   "stored": null,
+   "reference": {
+    "refusals": 1,
+    "window_started_at": "2026-09-21T20:33:32.107993-07:00",
+    "next_allowed_at": "2026-09-21T20:48:32.107993-07:00"
+   },
+   "attempts": [
+    {
+     "id": "01a0c72d-074c-7445-8e06-f674a5e17622",
+     "status": "blocked",
+     "sub_status": "challenge_or_bot_check",
+     "http_codes": [
+      200,
+      200,
+      403,
+      200
+     ],
+     "at": "2026-09-21T20:33:32.107993-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ruled-hunts-1",
+     "sub_status_basis": "inferred"
+    },
+    {
+     "id": "01a0d297-7c7d-7d14-b0a3-87f81882e38d",
+     "status": "skipped",
+     "sub_status": "policy_refused",
+     "http_codes": [],
+     "at": "2026-09-24T01:45:38.301739-07:00",
+     "retriable": null,
+     "retry_of": null,
+     "workstream": "ladder-1",
+     "sub_status_basis": "live"
+    }
+   ]
+  }
+ ],
+ "what": "The 31 live (route, work) pairs whose PERSISTED litkb.route_backoff state disagreed with the REFERENCE replay of their ledger history (BackoffPolicy().replay, what rehunt_route_spends replays) \u2014 10 open_access rows stored 1 refusal / 15 min where the replay gives 2 / 6 h (referee-substrate N1), 21 scihub pairs with no row though the replay holds refusals. Every attempt as the ledger recorded it (id, status, sub_status, http_codes, at, retriable, retry_of, workstream slug); `stored` = the route_backoff row, `reference` = the replay. Read by builder FX-S (S4.5 fix wave) with scratch dump_pairs.py."
+}

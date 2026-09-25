@@ -46,6 +46,17 @@ RESUMABLE, the scout and edge drivers' rule: the run CSV is the ledger; a row al
 run again unless `--redo` names it. The CSV is rewritten whole after every row. Its columns are
 :data:`RUN_CSV_COLUMNS` (docs/SCHEMAS.md, "S4.5 builder A").
 
+A RE-RUN OF AN EARLIER MANIFEST'S ROWS (S4.5 decision D49; `hardening --freeze --rows-from`). Such a manifest names
+`rows_from.kept_takes`: the register rows whose take in the SOURCE run is kept as the register's recorded truth — on
+ladder-1's rows E13 ALONE (L002: S4.5 decision D57 keeps a register take only when its row is a `measure` row at the
+freeze; E03 E07 E20 are `redo_takes`, hunt rows RE-RUN live as ordinary rows, their source takes history only). Each
+kept row is NOT re-run: its source take is CARRIED into this run's CSV as it was (every column; `take_from` = the
+source manifest's sha256), whatever `--only` or `--redo` says. hardening-2 names NO `--rerun-kept` (its only kept row
+is E13, which D57 keeps). `--rerun-kept <id>` stays for the case D49 wrote it for — a kept row whose outcome a later
+fix changes — and a name that is not a kept row (E03 E07 E20 included, since D57) is refused before anything runs. A take THIS manifest made (a kept row re-run by name in an earlier pass) is resumed like
+any row, never overwritten by the carried one. The recording report names the carried and re-run rows (`kept_takes`).
+A run CSV row's `take_from` is empty for every take made under this manifest.
+
 `attempts_written` is measured, not reported: the workstream's `acquisition_attempts` count, read on
 the reader login before and after the row. A row the run does not own (another session writing in
 the same workstream at the same moment) would inflate it; the run is one session's.
@@ -65,7 +76,10 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 RUN_CSV_COLUMNS = ("row_id", "ref", "ref_scheme", "mode", "source", "state", "reason",
-                   "attempts_written", "wall_seconds", "traceback", "started_at", "message")
+                   "attempts_written", "wall_seconds", "traceback", "started_at", "message",
+                   # S4.5 decision D49 (builder FX-R): empty = taken under THIS manifest; else the sha256 of the
+                   # manifest whose run took it (a kept register take carried from `rows_from`)
+                   "take_from")
 
 #: The ladder's measure entry point, by dotted name (`litkb.acquire.run.measure`, builder C1a's module;
 #: this driver never defines it).
@@ -181,12 +195,14 @@ def start_recording(index, bodies=None):
 RECORDING_REPORT_KIND = "litkb-hardening-recording"
 
 
-def write_recording_report(manifest, repo, cas, *, rows_run, shadow=None):
+def write_recording_report(manifest, repo, cas, *, rows_run, shadow=None, kept=None):
     """The run driver's last word on the recording, written at the end of every pass (a resumed pass
     rewrites it): the recorded index's path and the sha256 of its BYTES now, its live entries and row
     tags, the recordings that could not be written, and a self-hash. `hardening --manifest` refuses a
     replay of an index that is not this one (auditor-A round 1, F6: nothing tied the replayed index to
     the live recording, because the manifest is frozen before the run records anything).
+    `kept` (a rows-from manifest only, S4.5 decision D49): {carried, rerun} row ids — written as `kept_takes`
+    with the source's manifest sha, index and recording report, where the carried rows' recordings live.
     -> the report path, or None when the manifest promises none (a manifest frozen before this field)."""
     from litkb import cassette as C
 
@@ -206,11 +222,29 @@ def write_recording_report(manifest, repo, cas, *, rows_run, shadow=None):
               # the shadow tier switch the pass ran with, and whether the operator overrode D27's refusal
               "shadow_tier": shadow,
               "record_errors": list(cas.record_errors) if cas is not None else [],
+              # the pdftotext the pass's binder ran (path, `-v` line, the encoding asked for): S4.5 decision D59 —
+              # a binding outcome depends on the binary PATH finds, so the run records it beside the freeze's
+              "pdftotext": _binding_pdftotext(),
               "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    if kept is not None:
+        # the carried takes were recorded by the SOURCE run, into the source's index: named, never re-recorded here
+        rf = manifest.get("rows_from") or {}
+        report["kept_takes"] = {"from_manifest_sha256": rf.get("manifest_sha256"),
+                                "from_cassette_index": rf.get("cassette_index"),
+                                "from_recording_report": rf.get("recording_report"),
+                                "carried": sorted(kept.get("carried") or []),
+                                "rerun": sorted(kept.get("rerun") or [])}
     report["recording_sha256"] = HA.summary_sha(report, "recording_sha256")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1), encoding="utf-8")
     return out
+
+
+def _binding_pdftotext():
+    """`litkb.admit.binding.pdftotext_version()` of THIS process (S4.5 decision D59)."""
+    from litkb.admit import binding
+
+    return binding.pdftotext_version()
 
 
 def _tag_row(ref):
@@ -235,6 +269,30 @@ def _default_attempts_counter(db, role, ws_id):
     return count
 
 
+def kept_takes(manifest):
+    """{row id: kept entry} of a rows-from manifest (`rows_from.kept_takes`, S4.5 decision D49); {} otherwise."""
+    return {k["id"]: k for k in ((manifest.get("rows_from") or {}).get("kept_takes") or []) if k.get("id")}
+
+
+def carried_row(entry, manifest):
+    """The run CSV row of a kept register take: the SOURCE run's row, every column as it was, `take_from` = the
+    source manifest's sha256 (so no reader mistakes it for a take made under this manifest)."""
+    take = entry.get("take") or {}
+    out = {k: take.get(k, "") for k in RUN_CSV_COLUMNS}
+    out["take_from"] = str((manifest.get("rows_from") or {}).get("manifest_sha256") or "")
+    return out
+
+
+def work_id_of_row(conn, row):
+    """The main work a manifest row names: its `work_id`, else its reference resolved by the freeze's own rule
+    (`litkb_acceptance._LedgerReader.work_of`: a DOI or an arXiv id held by a main work) — so a `--rows-from` row the
+    source froze with no work, which the freeze found a work for now, is measured on that work (S4.5 decision D49)."""
+    if row.get("work_id"):
+        return row["work_id"]
+    hit = _load("litkb_acceptance")._LedgerReader(conn).work_of(row.get("ref_scheme") or "doi", row.get("ref"))
+    return hit[0] if hit else None
+
+
 def _default_measure(row, ctx):
     """-> (state, reason, message). The measure hook, or the named skip while it is absent."""
     hook = measure_hook()
@@ -248,8 +306,13 @@ def _default_measure(row, ctx):
     ws, token = workstream.load(ctx["worktree"])
     conn = c.connect(ctx["db"], ctx["writer_role"], autocommit=True)
     try:
-        work = work_record(conn, work_id=row.get("work_id")) if row.get("work_id") else \
-            work_record(conn, doi=row["ref"])
+        # a DOI row with no work_id keeps work_record's DOI path (it acquires by THAT DOI); any other resolves by
+        # the freeze's rule (an arXiv row's reference is not a DOI)
+        if row.get("work_id") or (row.get("ref_scheme") or "doi") != "doi":
+            wid = work_id_of_row(conn, row)
+            work = work_record(conn, work_id=wid) if wid else None
+        else:
+            work = work_record(conn, doi=row["ref"])
         if work is None:
             return "skipped", "work-not-in-main", "the manifest's work is not in main on this database"
         res = hook(conn, ws, token, work, store=ctx.get("store") or Store(), agent=ctx["agent"],
@@ -259,16 +322,36 @@ def _default_measure(row, ctx):
     return "measured", str(res.get("outcome") or ""), json.dumps(res.get("attempts") or [])[:400]
 
 
+class UnknownKeptRow(ValueError):
+    """`--rerun-kept` named a row that is not one of the manifest's kept register takes (a typo would re-run nothing
+    and say nothing)."""
+
+
+def check_rerun_kept(manifest, rerun_kept):
+    """Refuse (UnknownKeptRow) a `--rerun-kept` id the manifest does not keep, before anything runs."""
+    kept = kept_takes(manifest)
+    # BEGIN guard: --rerun-kept names only a kept register row
+    unknown = sorted(set(rerun_kept or ()) - set(kept))
+    if unknown:
+        raise UnknownKeptRow(f"--rerun-kept {', '.join(unknown)}: not a kept register take of this manifest "
+                             f"(kept: {', '.join(sorted(kept)) or 'none — the manifest was not frozen --rows-from'}). "
+                             "Nothing was run.")
+    # END guard: --rerun-kept names only a kept register row
+
+
 def run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt=None, measure=None,
              attempts_counter=None, only=(), redo=(), reader_role="litkb_reader",
-             writer_role="litkb_writer", hunt_kwargs=None, record=True, bodies=None, allow_shadow=False):
+             writer_role="litkb_writer", hunt_kwargs=None, record=True, bodies=None, allow_shadow=False,
+             rerun_kept=()):
     """Every manifest row, one at a time. -> (ran, resumed, rows).
 
     `hunt`, `measure` (fn(row, ctx) -> (state, reason, message)) and `attempts_counter` are injected
     by the tests; the defaults are the real `litkb.hunt.hunt`, the ladder's measure hook and a reader
     count. `hunt_kwargs` are passed through to every hunt (the tests' registry stub and acquirer).
     `allow_shadow`: the explicit override of D27's refusal (:func:`shadow_switch`), decided BEFORE anything
-    is recorded or run."""
+    is recorded or run. `rerun_kept`: the kept register takes (a `--rows-from` manifest, S4.5 decision D49) to
+    run again under this manifest; every other kept take is carried, never run (:func:`check_rerun_kept` first)."""
+    check_rerun_kept(manifest, rerun_kept)
     from litkb.acquire import policy as P
 
     shadow_on = shadow_switch(manifest, allow_shadow=allow_shadow)
@@ -281,13 +364,14 @@ def run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt=None, meas
                          measure=measure, attempts_counter=attempts_counter, only=only, redo=redo,
                          reader_role=reader_role, writer_role=writer_role, hunt_kwargs=hunt_kwargs, record=record,
                          bodies=bodies, shadow={"enabled": P.SHADOW_TIER_ENABLED, "overridden": bool(allow_shadow),
-                                                "manifest": manifest.get("shadow_tier")})
+                                                "manifest": manifest.get("shadow_tier")},
+                         rerun_kept=rerun_kept)
     finally:
         P.SHADOW_TIER_ENABLED = saved
 
 
 def _run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt, measure, attempts_counter, only, redo,
-              reader_role, writer_role, hunt_kwargs, record, bodies, shadow):
+              reader_role, writer_role, hunt_kwargs, record, bodies, shadow, rerun_kept=()):
     E = _load("litkb_edge_run")
     if hunt is None:
         import litkb.hunt as H
@@ -305,21 +389,43 @@ def _run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt, measure,
     ctx = {"db": db, "worktree": worktree, "agent": agent, "session": session,
            "reader_role": reader_role, "writer_role": writer_role}
     done = read_run_csv(out_csv)
-    only, redo = set(only or ()), set(redo or ())
+    only, redo, rerun_kept = set(only or ()), set(redo or ()), set(rerun_kept or ())
+    kept = kept_takes(manifest)
     written, ran, resumed = [], 0, 0
     for row in manifest.get("rows") or []:
         rid = row["id"]
-        if only and rid not in only:
-            if rid in done:
-                written.append(done[rid])
+        prev = done.get(rid)
+        # a take made under THIS manifest (a carried take is the source run's, never this manifest's)
+        own = prev if prev is not None and not prev.get("take_from") else None
+        entry = kept.get(rid)
+        # BEGIN guard: a kept register take is carried, never re-run unless named
+        if entry is not None and rid not in rerun_kept:
+            # BEGIN guard: a take this manifest made is resumed, never overwritten by the carried take
+            if own is not None:
+                written.append(own)
+                resumed += 1
+                continue
+            # END guard: a take this manifest made is resumed, never overwritten by the carried take
+            written.append(carried_row(entry, manifest))
             continue
-        if rid in done and rid not in redo:
-            written.append(done[rid])
+        # END guard: a kept register take is carried, never re-run unless named
+        if only and rid not in only:
+            if own is not None:
+                written.append(own)
+            # BEGIN guard: a kept row named in --rerun-kept but outside this pass's --only keeps its source take
+            elif entry is not None:
+                written.append(carried_row(entry, manifest))
+            # END guard: a kept row named in --rerun-kept but outside this pass's --only keeps its source take
+            elif prev is not None:
+                written.append(prev)
+            continue
+        if own is not None and rid not in redo:
+            written.append(own)
             resumed += 1
             continue
         out = {"row_id": rid, "ref": row.get("ref") or "", "ref_scheme": row.get("ref_scheme") or "",
                "mode": row.get("mode") or "", "source": ";".join(row.get("source") or []),
-               "traceback": "0", "started_at": E._utc_now_text()}
+               "traceback": "0", "started_at": E._utc_now_text(), "take_from": ""}
         if record:
             _tag_row(row.get("ref"))
         before = attempts_counter()
@@ -349,7 +455,13 @@ def _run_rows(manifest, out_csv, *, db, worktree, agent, session, hunt, measure,
         write_run_csv(out_csv, written)       # after EVERY row: the ledger is the resume
     write_run_csv(out_csv, written)
     if record:
-        write_recording_report(manifest, repo, cas, rows_run=ran, shadow=shadow)
+        state = None
+        if "rows_from" in manifest:
+            # what the CSV now holds for each kept row: the source's take (carried) or this manifest's (re-run)
+            ids = {r.get("row_id"): r for r in written}
+            state = {"carried": [k for k in kept if k in ids and ids[k].get("take_from")],
+                     "rerun": [k for k in kept if k in ids and not ids[k].get("take_from")]}
+        write_recording_report(manifest, repo, cas, rows_run=ran, shadow=shadow, kept=state)
     return ran, resumed, written
 
 
@@ -358,6 +470,9 @@ def main(argv=None):
     ap.add_argument("--manifest", required=True, help="the hardening manifest frozen before the run")
     ap.add_argument("--only", action="append", default=[], help="run only this row id (repeatable)")
     ap.add_argument("--redo", action="append", default=[], help="run this row again (repeatable)")
+    ap.add_argument("--rerun-kept", dest="rerun_kept", action="append", default=[],
+                    help="a --rows-from manifest only: run this KEPT register row again under this manifest instead "
+                         "of carrying its source take (S4.5 decision D49; repeatable; a non-kept id is refused)")
     ap.add_argument("--out", default=None, help="the run CSV (default: the manifest's run_csv)")
     ap.add_argument("--agent", default="ladder-run")
     ap.add_argument("--session", default=None)
@@ -377,12 +492,14 @@ def main(argv=None):
     out = Path(a.out or manifest["run_csv"])
     out = out if out.is_absolute() else repo / out
     try:
+        check_rerun_kept(manifest, a.rerun_kept)       # before anything is recorded or run
         n, resumed, rows = run_rows(
             manifest, out, db=manifest["db"], worktree=manifest.get("worktree") or str(repo),
             agent=a.agent, session=a.session or f"ladder-run-{manifest['frozen_at']}", only=a.only,
             redo=a.redo, reader_role=manifest.get("reader_role") or "litkb_reader", record=a.record,
-            hunt_kwargs=None if a.extract else {"extract": False}, allow_shadow=a.allow_shadow)
-    except ShadowTierRefused as e:
+            hunt_kwargs=None if a.extract else {"extract": False}, allow_shadow=a.allow_shadow,
+            rerun_kept=a.rerun_kept)
+    except (ShadowTierRefused, UnknownKeptRow) as e:
         print(f"litkb_ladder_run: {e}", file=sys.stderr)
         return 2
     pairs = {}

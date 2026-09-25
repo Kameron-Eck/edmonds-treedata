@@ -43,6 +43,54 @@ def is_transient(status):
     return st in TRANSIENT_STATUSES or 500 <= st <= 599
     # END guard: a registry status that means 'ask again later' is never read as a refusal
 
+
+#: S4.5 decision D51 (referee-substrate N2; builder FX-S's live A/B): a registry answer that is the registry's HOST
+#: REFUSING THIS CLIENT — not an answer about the record, so it stays `is_transient` (check 1 writes no refused
+#: admission for it), and not one an immediate re-ask changes, so `retriable` is False and the answer carries the
+#: evidence. (registry, status) -> the host and what was measured. arXiv's 406, MEASURED:
+#:   * 2026-09-20: two 406s for 2412.05728 (workstream scout-1, admissions 01a0c101…, 01a0c102…), then 200 for the
+#:     same id 4 min 17 s later;
+#:   * 2026-09-21 to 2026-09-24T08:45Z: 406 to every request (24 of 24 in the ruled run, 8 of 8 in hardening-1 —
+#:     rows L010-L017, one request each), an empty body, no Content-Type, no Retry-After (referee-substrate §3);
+#:   * 2026-09-24T23:56Z: 200 and the Atom record for litkb's UNCHANGED request (the same User-Agent, Accept and
+#:     http:// URL; builder FX-S's live A/B, its request a): the refusal ended with nothing changed on litkb's side,
+#:     so neither the User-Agent nor the address was refused for good; which one the episode keyed on is
+#:     UNDETERMINED (nothing was refusing when the A/B could ask).
+#: A refusal that lasted minutes once and days once, and that no in-run re-ask ever changed: re-hunt after a
+#: back-off, never at once.
+CLIENT_REFUSALS = {
+    ("arxiv", 406): {
+        "host": "export.arxiv.org",
+        "measured": ("406 to every request 2026-09-21..2026-09-24T08:45Z (32 of 32); 200 again for the unchanged "
+                     "request at 2026-09-24T23:56Z; on 2026-09-20 a 406 lifted after 4 min 17 s"),
+        "rule": ("the host refusing this client, not a verdict on the record; an immediate re-ask has never changed "
+                 "it: re-hunt after a back-off"),
+    },
+}
+
+
+def client_refusal(registry, status):
+    """-> the facts (host, what was measured, the rule, registry, status) when `registry` answering `status` is its
+    host refusing this client (CLIENT_REFUSALS), else None."""
+    try:
+        st = int(status)
+    except (TypeError, ValueError):
+        return None
+    facts = CLIENT_REFUSALS.get((str(registry), st))
+    return dict(facts, registry=str(registry), status=st) if facts else None
+
+
+def retriable(registry, status):
+    """Would asking `registry` again NOW plausibly change this answer? (guard 15's per-attempt fact, for a registry
+    call.) A transient status (`is_transient`) is — unless it is the host refusing this client (`client_refusal`),
+    which no immediate re-ask has ever changed."""
+    again = is_transient(status)
+    # BEGIN guard: a registry host refusing this client is never retriable at once
+    if client_refusal(registry, status):
+        again = False
+    # END guard: a registry host refusing this client is never retriable at once
+    return again
+
 _CROSSREF_TYPES = {"journal-article": "article", "proceedings-article": "proceedings", "book": "book",
                    "monograph": "book", "edited-book": "book", "reference-book": "book", "book-chapter": "chapter",
                    "book-section": "chapter", "book-part": "chapter", "report": "report", "dissertation": "thesis",

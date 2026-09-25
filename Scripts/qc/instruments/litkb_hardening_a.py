@@ -17,7 +17,9 @@ WHAT THIS MODULE COUNTS (docs/SCHEMAS.md, "S4.5 builder A", is the one home of e
   unvalidated_items       of the nine rung classes of S4.5 decision D13 (:data:`REFEREE_CLASSES`,
                           the classes' one home), those whose referee report the manifest does not
                           name, or names but is not on disk, or is on disk with no line matching
-                          :data:`FIRED_LINE` (`fired: <counter>=<value> on <input>`).
+                          :data:`FIRED_LINE` (`fired: <counter>=<value> on <input>`), or states no
+                          :data:`VERDICT_LINE` of ACCEPT / ACCEPT-WITH-NOTES — a REJECT, no verdict, or
+                          verdicts that disagree (S4.5 decision D52).
   stage_b_rungs_unmeasured  of the Stage B routes (`litkb.acquire.policy.STAGE_OF`), a rung the
                           ladder's registry holds (`litkb.acquire.run.RUNGS`) with no :data:`YIELD_LINE`
                           (`yield: <route>=<converted>/<asked>`), and a route no rung registers with
@@ -70,6 +72,18 @@ REFEREE_CLASSES = ("substrate", "vocabulary", "stage-a", "stage-b", "stage-c", "
 
 #: A referee report's evidence line (the plan's (b), `unvalidated_items`).
 FIRED_LINE = re.compile(r"^fired: \S+=\S+ on .+", re.M)
+
+#: A referee report's VERDICT line (S4.5 decision D52: "counts a rung class as validated ONLY when its report is
+#: named, exists, carries a `^fired: \S+=\S+ on .+` line AND states a verdict of ACCEPT or ACCEPT-WITH-NOTES; a
+#: REJECT (or no verdict) is unvalidated"). The grammar is the one every R1 referee report of ladder-1 wrote
+#: (`## Verdict: ACCEPT-WITH-NOTES`, `**Verdict: REJECT** — …`, `## Verdict: REJECT, scoped …`): at the start of a
+#: line, an optional markdown heading or bold marker, `Verdict:`, then the word in capitals. Integrator-w4.
+VERDICT_LINE = re.compile(
+    r"^(?:#+[ \t]*|\*\*)?Verdict:(?:\*\*)?[ \t]*(?P<verdict>ACCEPT-WITH-NOTES|ACCEPT|REJECT)\b", re.M)
+
+#: The verdicts that validate a rung class (S4.5 decision D52). Every other word, and a report whose verdict lines
+#: disagree, leaves the class unvalidated (fail closed).
+VALIDATING_VERDICTS = frozenset({"ACCEPT", "ACCEPT-WITH-NOTES"})
 
 #: A Stage B rung's measured yield in the LITKB_LADDER1 report: `yield: <route>=<converted>/<asked>`,
 #: whole line, integers, converted <= asked. docs/SCHEMAS.md holds the grammar.
@@ -167,20 +181,39 @@ def _content_sha(path):
 
 # ── unvalidated_items ────────────────────────────────────────────────────────────────────────
 
+def report_verdicts(text):
+    """The verdict words of every :data:`VERDICT_LINE` in a referee report, in order (S4.5 decision D52)."""
+    return [m["verdict"] for m in VERDICT_LINE.finditer(text or "")]
+
+
 def unvalidated_detail(manifest):
     """[(class, why)] for every rung class that is not validated."""
     reports = manifest.get("referee_reports") or {}
     out = []
     for cls in REFEREE_CLASSES:
         p = _resolve(manifest, reports.get(cls))
+        text = p.read_text(encoding="utf-8", errors="replace") if p is not None and p.is_file() else None
+        why = None
         # BEGIN guard: a rung class with no named, present, fired referee report is unvalidated
         if p is None:
-            out.append((cls, "the manifest names no referee report"))
+            why = "the manifest names no referee report"
         elif not p.is_file():
-            out.append((cls, f"{p} is not on disk"))
-        elif not FIRED_LINE.search(p.read_text(encoding="utf-8", errors="replace")):
-            out.append((cls, f"{p} has no `fired: <counter>=<value> on <input>` line"))
+            why = f"{p} is not on disk"
+        elif not FIRED_LINE.search(text):
+            why = f"{p} has no `fired: <counter>=<value> on <input>` line"
         # END guard: a rung class with no named, present, fired referee report is unvalidated
+        # BEGIN guard: a referee report that does not ACCEPT leaves its rung class unvalidated
+        # (S4.5 decision D52: a fired line proves a gate was exercised, not that the referee accepted the rung — the
+        # counter as first built called the four REJECTed classes of ladder-1's R1 round validated)
+        if why is None and text is not None:
+            verdicts = report_verdicts(text)
+            if not verdicts:
+                why = f"{p} states no verdict (`Verdict: ACCEPT|ACCEPT-WITH-NOTES|REJECT`)"
+            elif not set(verdicts) <= VALIDATING_VERDICTS:
+                why = f"{p} states the verdict {'/'.join(dict.fromkeys(verdicts))}, not an ACCEPT"
+        # END guard: a referee report that does not ACCEPT leaves its rung class unvalidated
+        if why is not None:
+            out.append((cls, why))
     return out
 
 
@@ -292,7 +325,7 @@ def stage_b_rungs_unmeasured(conn, manifest):
 # ── the replay summary, and the four counters read from it ───────────────────────────────────
 
 def build_replay_summary(conn, *, register, register_path, db, workdir, cassette=None, guard=None,
-                         index_path=None, out_csv=None, constructed_path=None):
+                         index_path=None, out_csv=None, constructed_path=None, take_cassettes=None):
     """Replay every graded row of `register` on the worker database `conn` is on, inside `guard`,
     with `cassette` (replay mode) behind every `ladder` row, grade it with the `edges` grader, and
     return the summary the replay counters read. ONE function for `hardening --replay` and for the
@@ -303,15 +336,21 @@ def build_replay_summary(conn, *, register, register_path, db, workdir, cassette
     round 1, F1: the live pass records every manifest row into one index, the replay grades the
     register, so an entry of a row nobody replayed is listed in `rows_not_replayed`, a REPORTED
     count, never in `stale`). `constructed_path` names the CONSTRUCTED register whose rows
-    `register` carries beside the edge register's (`hardening --replay`), hashed like the register."""
+    `register` carries beside the edge register's (`hardening --replay`), hashed like the register.
+    `take_cassettes` ({register row id: {cassette, index, index_sha256, from_manifest_sha256, run_row}},
+    `litkb_acceptance.take_cassettes`; S4.5 decision D57): a row whose KEPT take another manifest's run recorded
+    replays from THAT manifest's index; the summary names each (`take_indexes`), and its staleness is read like
+    every other cassette the replay used."""
     E = _edge_run()
     A = _acceptance()
     workdir = Path(workdir)
     out_csv = Path(out_csv or workdir / "replay.csv")
     used = [cassette] if cassette is not None else []
     switches, seeds = [], []
+    takes = take_cassettes or {}
     E.run_replay(register, out_csv, db=db, tmp=str(workdir), conn=conn, cassette=cassette, guard=guard,
-                 cassettes_used=used, policy_switches=switches, world_seeds=seeds)
+                 cassettes_used=used, policy_switches=switches, world_seeds=seeds,
+                 row_cassettes={rid: t["cassette"] for rid, t in takes.items()})
     rows = E.rows_of(register)
     manifest = {"kind": "litkb-edges", "db": db, "db_migration_tip": None,
                 "rows": [{"id": r["id"], "mode": E.resolve_mode(r, None)} for r in rows],
@@ -357,6 +396,11 @@ def build_replay_summary(conn, *, register, register_path, db, workdir, cassette
         # register-editor Q1 (builder-fix8): every file a row's `replay.world` put on the replay's disk before it
         # was replayed ({row, rel_path, sha256, bytes}), from the recording's own bytes
         "world_seeds": seeds,
+        # S4.5 decision D57: every register row whose KEPT take was replayed from the index of the manifest that
+        # took it ({row, run_row, index, index_sha256, from_manifest_sha256}) — `load_summary` re-checks each index
+        "take_indexes": [{"row": rid, "run_row": t.get("run_row"), "index": str(t["index"]),
+                          "index_sha256": t.get("index_sha256"), "from_manifest_sha256": t.get("from_manifest_sha256")}
+                         for rid, t in sorted(takes.items())],
     }
     summary["summary_sha256"] = summary_sha(summary)
     return summary
@@ -486,6 +530,11 @@ def load_summary(manifest):
                          f"recorded ({rec} says {str(r.get('index_sha256'))[:12]}): it was changed after "
                          "the recording")
     # END guard: the replayed index is the one the live pass finished recording
+    # S4.5 decision D57: a kept take's own index (another manifest's recording) is held to the same rule
+    for t in s.get("take_indexes") or []:
+        if _index_sha(t.get("index")) != t.get("index_sha256"):
+            raise Unread(f"{p} replayed row {t.get('row')}'s kept take from {t.get('index')}, which is not that "
+                         "index as it is on disk now; replay again")
     return s
 
 
@@ -609,8 +658,8 @@ def _report_files(workdir, drop=None):
     reports = {}
     for cls in REFEREE_CLASSES:
         p = workdir / f"LITKB_REFEREE_S45_{cls.upper()}_CONSTRUCTED.md"
-        p.write_text(f"# CONSTRUCTED referee report ({cls})\n\nfired: some_counter=1 on a constructed input\n",
-                     encoding="utf-8")
+        p.write_text(f"# CONSTRUCTED referee report ({cls})\n\n## Verdict: ACCEPT\n\n"
+                     "fired: some_counter=1 on a constructed input\n", encoding="utf-8")
         reports[cls] = str(p)
     if drop:
         reports.pop(drop)

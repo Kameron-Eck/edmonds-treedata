@@ -2590,6 +2590,78 @@ block("FX8k", EDGERUN, "guard: a seeded file is bytes this row's recording serve
 replace("FX8l", HARDA, '        "world_seeds": seeds,\n', '        "world_seeds": [],\n',
         "the replay summary stops naming the files a row's world put on the replay's disk (register-editor Q1)",
         tests=TESTS_FIX8)
+# -- builder FX-R (the re-run machinery, S4.5 decisions D49/D40: `hardening --freeze --rows-from` and the run driver's
+#    kept register takes). Reds in qc/test_litkb_s45_rerun.py; the freeze rows need LITKB_TEST_DB --
+TESTS_FXR = ["qc/test_litkb_s45_rerun.py"]
+LADDERRUN = "qc/instruments/litkb_ladder_run.py"
+block("FXR1", ACCEPT, "guard: a rows-from row's mode is recomputed from the file state now",
+      "a rows-from row keeps the SOURCE's mode: the 76 works hardening-1 bound are hunted again in hardening-2 instead "
+      "of measured (D49: 'each row's mode set from CURRENT file state')", tests=TESTS_FXR)
+replace("FXR2", ACCEPT, "            if src is not None:\n                # the SOURCE's rows,",
+        "            if False:\n                # the SOURCE's rows,",
+        "the rows-from freeze falls back to a fresh selector freeze (D40's trial: 109 of 198 row ids changed): "
+        "hardening-2 grades a population the run itself contaminated", tests=TESTS_FXR)
+block("FXR3", ACCEPT, "guard: a rows-from freeze never writes over its source's manifest or run files",
+      "a rows-from freeze on the source's date writes the source's run CSV name: the driver reads every hardening-1 "
+      "take as DONE and re-runs nothing, and the recording report / index of the finished run are overwritten",
+      tests=TESTS_FXR)
+block("FXR8", ACCEPT, "guard: a rows-from source edited after its freeze is refused",
+      "an edited source (or another kind of manifest) is copied: hardening-2 re-runs rows hardening-1 never froze",
+      tests=TESTS_FXR)
+replace("FXR9", ACCEPT, "        if E.graded_by_hardening_replay(r) and r.get(\"ref\"):\n",
+        "        if r.get(\"ref\"):\n",
+        "every register row with a reference keeps its take: E21's measured take (L001) is carried and never re-run "
+        "under the fixed code", tests=TESTS_FXR)
+block("FXR4", LADDERRUN, "guard: a kept register take is carried, never re-run unless named",
+      "the kept register takes are re-run although nobody named them: E13/E20/E07's hardening-1 takes, the register's "
+      "recorded truth (D49), are replaced by new takes", tests=TESTS_FXR)
+replace("FXR5", LADDERRUN, "        if entry is not None and rid not in rerun_kept:\n",
+        "        if entry is not None:\n",
+        "--rerun-kept is ignored: E03 (whose outcome the dedupe fix changes) is carried as duplicate-held and never "
+        "re-run under the fix", tests=TESTS_FXR)
+block("FXR6", LADDERRUN, "guard: a take this manifest made is resumed, never overwritten by the carried take",
+      "a resumed pass that no longer names E03 writes hardening-1's duplicate-held over E03's hardening-2 take",
+      tests=TESTS_FXR)
+block("FXR7", LADDERRUN, "guard: --rerun-kept names only a kept register row",
+      "--rerun-kept accepts any id: a typo (or a row that is not a register take) re-runs nothing and says nothing",
+      tests=TESTS_FXR)
+# FX-R round 2 (auditor-FX-R round 1: F1, AUD8, N3, AUD1, N2, N5)
+block("FXR10", ACCEPT, "guard: a rows-from freeze refuses a source run CSV that does not exist",
+      "a missing source run CSV is read as 'no takes': every recording-graded register row lands in kept_missing, "
+      "the freeze exits 0, and the driver hunts E07/E13/E20 again against D49 (F1)", tests=TESTS_FXR)
+replace("FXR11", ACCEPT, "            (own if own.is_absolute() else Path(src.get(\"repo\") or \".\") / own)\n",
+        "            (own if own.is_absolute() else own)\n",
+        "the default source run CSV is resolved against the working directory, not the source's repo: the source's "
+        "takes are not found where the live freeze looks (AUD8)", tests=TESTS_FXR)
+block("FXR12", LADDERRUN, "guard: a kept row named in --rerun-kept but outside this pass's --only keeps its source take",
+      "E03 named in --rerun-kept but outside this pass's --only drops out of the run CSV: the one CSV the counters "
+      "read holds no take for it (N3)", tests=TESTS_FXR)
+replace("FXR13", LADDERRUN, "        own = prev if prev is not None and not prev.get(\"take_from\") else None\n",
+        "        own = prev\n",
+        "a carried take is treated as this manifest's own: E03, carried on a pass that forgot --rerun-kept, is resumed "
+        "as done on the pass that names it and never re-run under the fix (AUD1)", tests=TESTS_FXR)
+replace("FXR14", LADDERRUN, "        if row.get(\"work_id\") or (row.get(\"ref_scheme\") or \"doi\") != \"doi\":\n",
+        "        if row.get(\"work_id\"):\n",
+        "a null-work arXiv measure row is looked up as a DOI: skipped/work-not-in-main, the work the freeze found "
+        "is never measured (N2)", tests=TESTS_FXR)
+block("FXR15", ACCEPT, "guard: a recording-graded register row no source row holds is named in kept_missing",
+      "a recording-graded register row whose reference no source row holds is silently absent from the freeze (N5)",
+      tests=TESTS_FXR)
+# -- integrator-w4 (the orchestrator's rulings S4.5 D52-D58 on the post-fix-wave candidate), rows on builder A's files
+block("I4W1", HARDA, "guard: a referee report that does not ACCEPT leaves its rung class unvalidated",
+      "S4.5 decision D52: a REJECT report WITH a fired line validates its rung class — the four REJECTed classes of "
+      "ladder-1's R1 round (vocabulary, stage-b, stage-c, stage-e — each carries fired lines) read validated",
+      tests=TESTS_HARD)
+block("I4W3", ACCEPT, "guard: a register take whose work holds no active file is re-run, never kept",
+      "S4.5 decision D57: every recording-graded register take is kept — E03 E07 E20, hunt rows whose works hold no "
+      "file, are carried with their hardening-1 takes and never re-run under the fixed code", tests=TESTS_FXR)
+block("I4W4", ACCEPT, "guard: a kept take replays against the index of the manifest its take came from",
+      "S4.5 decision D57: `hardening --replay` grades E13's kept hardening-1 take against hardening-2's own index, "
+      "which never recorded it: E13 is a no-cassette traceback instead of its recorded pair", tests=TESTS_FXR)
+replace("I4W18", ACCEPT, "    if src_run_path is not None and not src_run_path.is_file():\n",
+        "    if src_run_path is not None and not src_run_path.exists():\n",
+        "auditor-FX-R r2 N1 (S4.5 decision D58): a DIRECTORY at the source run-CSV path passes the refusal and is read "
+        "as 'no takes' — every recording-graded register row lands in kept_missing, exit 0", tests=TESTS_FXR)
 # ==== end S4.5 builder A rows ====
 
 
@@ -3672,6 +3744,84 @@ replace("PR17", "qc/instruments/litkb_hardening_a.py",
 replace("PR18", "qc/instruments/litkb_hardening_a.py", 'm["condition"])', 'm["condition"].strip())',
         "N5: the parsed condition stripped — the registry's words padded with whitespace (a no-break space too) "
         "measure the rung", tests=TESTS_D32)
+# -- S4.5 fix wave, builder FX-B (referee-stage-b N1 N2 N3; brief-FIXWAVE.md "FX-B"). Each answers WORSE when mutated
+#    (never an import or syntax error); the reds are on the ladder-1 run's RECORDED bytes (qc/fixtures/litkb_cassettes/
+#    stage_b_fx). Set: qc/test_litkb_s45_fx_stage_b.py (the DB-backed rows need LITKB_TEST_DB).
+TESTS_FXB = ["qc/test_litkb_s45_fx_stage_b.py"]
+block("FXB1", f"{PKG}/acquire/stage_b_repos.py",
+      "guard: an OpenAIRE answer's <rels> subtree names other works and is never walked",
+      "B9 walks OpenAIRE's <rels> again: another work's PDF is asked FIRST on L074 L090 L150 L080 L102 L168 L170 (two "
+      "credited as conversions in MEASURE mode) and L161's <rels> arXiv URL becomes the work's arXiv id",
+      tests=TESTS_FXB)
+block("FXB2", f"{PKG}/acquire/run.py", "guard: identifier harvesting completes its waves after a landing",
+      "the first landing stops the identifier waves again: L082's Semantic Scholar is never asked after its Wave-1 "
+      "landing and the crosswalk's arXiv 1109.2938 never arrives (crosswalk_rows_without_identifier=17 on the run)",
+      tests=TESTS_FXB)
+block("FXB3", f"{PKG}/acquire/stage_b.py", "guard: a harvest-only call asks no file candidate",
+      "a post-landing identifier call asks its file candidates: S2's openAccessPdf is fetched after the ladder landed "
+      "the file ('PDF-fetching rungs still stop at the first landing' broken)", tests=TESTS_FXB)
+block("FXB4", f"{PKG}/acquire/run.py", "guard: bytes on disk that no files row holds are not a duplicate",
+      "a copy on disk no files row holds is a duplicate again: Kats_2019's own arXiv bytes (L005, register E03) are "
+      "refused duplicate-held and the work stays without a file", tests=TESTS_FXB)
+block("FXB5", C2A_H, "guard: a harvest-only row that left file candidates unasked is no ask of the rung's file",
+      "a post-landing S2 row that asked no file counts as an ask of S2's file: its yield line books a miss for every "
+      "work another rung landed", tests=TESTS_FXB)
+# B7 (P2) mutated the disk dedupe FX-B replaced (its block is gone): RE-TARGETED to the replacement guard, its P2 set
+# kept — qc/test_litkb_p2.py::test_acquire_lands_bytes_whose_only_copy_on_disk_no_files_row_holds is its red. A statement
+# in THIS block, not an edit of the row above (the retarget pattern of builder B1's block).
+for _row in M:
+    if _row["id"] == "B7":
+        assert _row["marker"] == "guard: acquisition sha256 dedupe against the disk", _row
+        _row["marker"] = "guard: bytes on disk that no files row holds are not a duplicate"
+        _row["what"] = ("acquire: a copy on disk no files row holds answers duplicate-held again (B7 re-targeted by "
+                        "S4.5 fix wave FX-B: the disk lookup it removed was replaced by this rule)")
+# -- FX-B fix round 2 (auditor-FX-B F1 F2 N2). The post-landing pass runs through the ladder's own stage loop
+#    (`run_stages` in run.acquire; round 1's copy of the loop is gone), so its skip and budget checks ARE the loop's:
+#    FXB7 / FXB8 remove them for both, and their set here is the pass's own tests (the loop's are C1A8's and the
+#    ledger's). Each answers worse, never an error.
+replace("FXB6", f"{PKG}/acquire/run.py",
+        '    if outcome is not None and mode == "acquire":\n        reached = {route for route, _status in attempts}\n',
+        '    if ctx.landed and mode == "acquire":\n        reached = {route for route, _status in attempts}\n',
+        "the post-landing pass follows a landing only: a `duplicate-held` stop leaves the identifier waves cut short "
+        "(L082 offered bytes another work holds: S2 never asked, the crosswalk's arXiv id never arrives; N3)",
+        tests=TESTS_FXB)
+block("FXB7", f"{PKG}/acquire/run.py", "guard: a rung a skip reason stops is recorded and never asked",
+      "a rung whose skip reason stands is asked anyway — the post-landing pass asks S2 though S2 was `blocked` earlier "
+      "in the run (and the loop asks every dead, blocked, backed-off, identifier-less or policy-refused rung)",
+      tests=TESTS_FXB)
+block("FXB8", f"{PKG}/acquire/policy.py", "guard: the ladder budget is checked between every stage and rung",
+      "the ladder budget never runs out for the post-landing pass: with the attempts spent at the landing it still "
+      "asks NCBI, S2 and Europe PMC (C1A8's block; this row's set is the pass's tests)", tests=TESTS_FXB)
+block("FXB9", f"{PKG}/acquire/run.py", "guard: every row of the post-landing identifier pass says so",
+      "the pass's `skipped` and `budget-stop` rows carry no `harvest_only`: they cannot be told from the loop's own "
+      "(auditor-FX-B N7)", tests=TESTS_FXB)
+for _row in M:
+    # F5d (P2) went DEAD under FX-B item 3 (auditor-FX-B F1): no disk copy decides an outcome any more, so its guard
+    # (`index_of_held` asked by acquire) decides only which copies `unowned_on_disk` names. Its red is now
+    # qc/test_litkb_s45_fx_stage_b.py::test_a_copy_in_staging_or_quarantine_is_never_named_an_unowned_copy; its P2 set
+    # is kept. (F5g, the same function's quarantine entry, still fires on its own pure test.)
+    if _row["id"] == "F5d":
+        assert _row["marker"] == ("guard: the dedupe asks what the corpus HOLDS, and staging and quarantine hold "
+                                  "nothing"), _row
+        _row["tests"] = TESTS + TESTS_FXB
+        _row["what"] = ("acquire: incoming/ and _quarantine/ count as holdings again - since S4.5 fix wave FX-B no "
+                        "longer a `duplicate-held` lockout, but the landing names the file being bound (a hand-fetched "
+                        "file in incoming) or a quarantined copy as an unowned copy on disk")
+    # FX8i's text named a consequence FX-B removed (auditor-FX-B N2): E03's disk seed no longer changes its outcome
+    if _row["id"] == "FX8i":
+        assert _row["marker"] == "guard: a recorded row's world is in place before it is replayed", _row
+        _row["what"] = ("the replay's store stays empty: a recorded row's world (E03's `replay.world.disk` copy) is "
+                        "never placed and `world_seeds` stays empty (register-editor Q1), and a seed the recording "
+                        "does not hold is never refused (since S4.5 fix wave FX-B that copy no longer changes E03's "
+                        "outcome: auditor-FX-B N2)")
+# -- integrator-w4 (S4.5 decision D58: auditor-FX-B r2 N-A — the SKIPPED half of "a rung the loop reached is never
+#    asked twice", their R5; held by qc/test_litkb_s45_fx_stage_b.py's Kats wave-2 skip test)
+replace("I4W15", f"{PKG}/acquire/run.py",
+        "        reached = {route for route, _status in attempts}\n",
+        "        reached = {route for route, _status in attempts if _status != \"skipped\"}\n",
+        "the post-landing pass reaches again a harvest rung the loop SKIPPED: Kats' DataCite and Europe PMC skips "
+        "(no_identifier) are written twice, the second stamped harvest_only (auditor-FX-B r2 N-A)",
+        tests=["qc/test_litkb_s45_fx_stage_b.py"])
 # ==== end S4.5 builder C2A rows ====
 
 
@@ -3824,6 +3974,39 @@ replace("C2B40", LANDING,
         "    if not doi:\n",
         "an arXiv-only work whose lead WAS read and followed is booked 'nothing to follow' (auditor-C2b round 2 N6)",
         tests=TESTS_C2B)
+# -- builder-FX-C (S4.5 fix wave, decision D48: referee-stage-c's MDPI yield finding; the counter ruling D50). Each
+#    row's set is qc/test_litkb_s45_fx_stage_c.py (the real rows' recorded bytes) + qc/test_litkb_landing.py. --
+TESTS_FXC = ["qc/test_litkb_s45_fx_stage_c.py", *TESTS_C2B]
+replace("FXC1", f"{PKG}/acquire/landing_rules.json",
+        '{journal}-{vol:0>2}-{art:0>5}/article_deploy/{journal}-{vol:0>2}-{art:0>5}.pdf"',
+        '{journal}-{vol}-{art:0>5}/article_deploy/{journal}-{vol}-{art:0>5}.pdf"',
+        "the MDPI CDN template's volume padding gone: a one-digit-volume article (the run's L071 L074 L147 L155 L156) "
+        "is asked at the URL the CDN answered 404, and the REAL Coulter row ends blocked instead of converted",
+        tests=TESTS_FXC)
+block("FXC2", HARD_C2B, "guard: a page of a work bound in the same run is excused, never counted (S4.5 decision D50)",
+      "a page beside a binding in the same wave (the ruling's L062 L139 L146) is counted: the gate reads red for a "
+      "work that lost nothing", tests=TESTS_FXC)
+replace("FXC3", HARD_C2B,
+        "                WHERE fv.work_id = a.work_id\n",
+        "                WHERE true\n",
+        "ANY binding in the run excuses EVERY page: a page of a work nothing bound is excused because another work was "
+        "bound (the gate vacuous in any run that binds once)", tests=TESTS_FXC)
+replace("FXC4", HARD_C2B,
+        "                  AND fv.created_at > %(frozen)s AND fv.workstream_id::text = ANY(%(ws)s)) AS bound_in_run\n",
+        "                  ) AS bound_in_run\n",
+        "a file the work held BEFORE the run excuses a page the run lost (D50 excuses a binding IN the run only)",
+        tests=TESTS_FXC)
+# -- integrator-w4 (S4.5 decision D58: auditor-FX-C F1 — the D50 exclusion's two unpinned clauses, their AUD4 / AUD5)
+replace("I4W16", HARD_C2B,
+        "                  AND fv.created_at > %(frozen)s AND fv.workstream_id::text = ANY(%(ws)s)) AS bound_in_run\n",
+        "                  AND fv.created_at > %(frozen)s) AS bound_in_run\n",
+        "D50's workstream clause alone dropped: ANOTHER workstream's binding after the freeze excuses the run's lost "
+        "page (auditor-FX-C AUD4)", tests=TESTS_FXC)
+replace("I4W17", HARD_C2B,
+        "                  AND fv.status = 'active' AND fv.state IN ('proposed', 'prepared', 'promoted')\n",
+        "                  AND true\n",
+        "D50's state/status filter dropped: a `rejected` or quarantined in-run version excuses the page as if it bound "
+        "the work (auditor-FX-C AUD5)", tests=TESTS_FXC)
 # ==== end S4.5 builder C2B rows ====
 
 # ==== S4.5 builder C2C mutation rows (Stage E rungs: Wayback E1, Internet Archive E3, Common Crawl E5; this marker pair
@@ -3962,13 +4145,329 @@ TESTS_CC_OFF = ["qc/test_litkb_s45_cc_off.py"]
 block("C2C33", f"{PKG}/acquire/policy.py", "guard: a line switched off is refused with its measured reason",
       "a policy line switched off (`off_why`, S4.5 decision D39) is decided as if it were on: E5 asks the unavailable "
       "Common Crawl hosts and no skip carries the measured reason", tests=TESTS_CC_OFF)
-replace("C2C34", f"{PKG}/acquire/policy.py",
-        '"Stage E5: the Common Crawl crawl list and index (plan item 6)", off_why=COMMONCRAWL_OFF_WHY),\n',
+# C2C34 (the index line alone losing its `off_why`) is RETIRED by S4.5 decision D53 (integrator-w4): the module table
+# carries no `off_why` on either E5 line any more, so its target text no longer exists; the switch's mechanics are held
+# on hardening-1's table by qc/test_litkb_s45_cc_off.py (`litkb_hardening_c2c.route_switched_off`) and C2C33 above.
+# I4W2 is D53's own known-bad: the index line switched back off with D39's reason -> E5 unmeasured in hardening-2.
+replace("I4W2", f"{PKG}/acquire/policy.py",
         '"Stage E5: the Common Crawl crawl list and index (plan item 6)"),\n',
-        "the index host's line loses its `off_why` while the data host's keeps it: the ladder's host-less pre-check "
-        "reads the index line, lets E5 run, and the rung requests the crawl list (S4.5 decision D39)",
+        '"Stage E5: the Common Crawl crawl list and index (plan item 6)", off_why=COMMONCRAWL_OFF_WHY),\n',
+        "S4.5 decision D53: the Common Crawl index line is switched back OFF with hardening-1's reason — the ladder's "
+        "host-less pre-check refuses E5 and hardening-2 records it skipped/policy_refused, its yield UNDETERMINED again",
         tests=TESTS_CC_OFF)
+# -- S4.5 fix wave FX-E (referee-stage-e / referee-vocabulary REJECT; brief-FIXWAVE.md "FX-E"): every guard it added,
+# each fired by a worse answer on hardening-1's recorded rows (qc/fixtures/litkb_cassettes/stage_e_fx/)
+TESTS_FX_E = ["qc/test_litkb_fx_stage_e.py"]
+block("FXE1", f"{PKG}/acquire/recovery.py", "guard: every URL a service named and a rung asked reaches Stage E in full",
+      "a dead location a rung recorded only as a `host:code` token never reaches E1: L007's IIASA 404 (OpenAlex) and "
+      "L054's handle 404 (Unpaywall) are dropped again (referee-stage-e N1)", tests=TESTS_FX_E)
+replace("FXE2", f"{PKG}/acquire/recovery.py",
+        "    hit = bool(API_HOST_LABEL.match(first)) or seg in API_PATH_FIRST_SEGMENTS\n",
+        "    hit = host.startswith(\"api.\")\n",
+        "the API rule falls back to builder-C2c's `api.` host prefix: 143 of the 292 URLs E1/E5 were asked about in "
+        "hardening-1 (the OpenReview and DOAJ searches, a Zenodo record) are Wayback candidates again (referee-stage-e N2)",
+        tests=TESTS_FX_E)
+block("FXE3", f"{PKG}/acquire/recovery.py",
+      "guard: a recovered PDF whose printed years all fall long before the record's year is another work",
+      "the census.gov capture (no printed year after 1993) is credited to 10.1002/wics.1317 (2014): `measured` in "
+      "MEASURE mode, landed in acquire mode (referee-stage-e L022)", tests=TESTS_FX_E)
+block("FXE4", f"{PKG}/acquire/wayback.py",
+      "guard: a recovered capture whose own dates contradict the record is never a conversion",
+      "E1 hands the census.gov capture on as `downloaded` for 10.1002/wics.1317: MEASURE mode books it `measured`",
+      tests=TESTS_FX_E)
+block("FXE5", f"{PKG}/acquire/ia.py",
+      "guard: an Internet Archive PDF whose own dates contradict the record is never a conversion",
+      "E3 hands an identified item's PDF of another work (the census bytes, for a 2014 record) on as `downloaded`",
+      tests=TESTS_FX_E)
+block("FXE6", f"{PKG}/acquire/ia.py", "guard: an item search that answered no answer is an api-error, never \"no item\"",
+      "L007's recorded 200 `{\"error\": \"a structure was opened but not closed ...\"}` reads as 0 hits and is booked "
+      "not-in-archive/not_in_corpus (referee-vocabulary)", tests=TESTS_FX_E)
+block("FXE7", f"{PKG}/acquire/ia.py", "guard: an identified item whose metadata answer is no answer is never read as dark",
+      "an identified item whose metadata answered 403 / a non-JSON 200 is read as dark and the row books "
+      "not-in-archive/not_in_corpus", tests=TESTS_FX_E)
+block("FXE8", f"{PKG}/acquire/ia.py",
+      "guard: a name that carries a Lucene grouping character never unbalances the item search",
+      "L007's corporate first author (its closing parenthesis lost in the record) builds the unbalanced query "
+      "hardening-1 sent again", tests=TESTS_FX_E)
+replace("FXE9", f"{PKG}/acquire/backoff.py", ', "challenge": challenge, "asked_url": url})\n',
+        ', "challenge": challenge})\n',
+        "the request gate stops recording the URL a rung asked in full: Stage E's input is the rung's own fields again "
+        "(L007, L054)", tests=TESTS_FX_E)
+replace("FXE10", f"{PKG}/acquire/recovery.py",
+        "    if route not in CONSTRUCTING_ROUTES:\n        found += asked_urls(r)\n",
+        "    if True:\n        found += asked_urls(r)\n",
+        "Stage C's and Stage A's CONSTRUCTED guesses (an MDPI CDN 404) are read from the gate as dead documents and "
+        "crowd E1's MAX_URLS", tests=TESTS_FX_E)
+# -- FX-E round 2 (auditor-FX-E F1-F4): the document route under an API-shaped path, and three properties the round-1
+# tests read through the constant they were meant to hold (each SURVIVED the auditor's own mutation)
+block("FXE11", f"{PKG}/acquire/recovery.py",
+      "guard: an API-shaped path that serves a document's bytes is a document, never an API",
+      "InvenioRDM's file-content URL reads as an API: every file Zenodo's recorded answer names for L006 and the "
+      "Rogue Scholar PDF crossref-link landed for L063 can never reach E1 when dead (auditor-FX-E F1)",
+      tests=TESTS_FX_E)
+# integrator-w4: FXE12's target line moved when S4.5 decision D54 put the live-location filter into `asked_urls`
+# (the loop now reads the pre-filtered `observed`); the mutation is the same — the URL handed on without its query
+replace("FXE12", f"{PKG}/acquire/recovery.py",
+        '        u = o.get("asked_url")\n        if u and u not in live and u not in out:\n',
+        '        u = (o.get("asked_url") or "").split("?", 1)[0]\n        if u and u not in live and u not in out:\n',
+        "the gate's URL is handed to E1 WITHOUT its query: L054's ScienceDirect page becomes a second, query-bare "
+        "candidate (auditor-FX-E F2)",
+        tests=TESTS_FX_E)
+replace("I4W6", f"{PKG}/acquire/wayback.py",
+        "                    another_work = True\n                    break\n",
+        "                    return _result(ask, status=\"hash-mismatch\", pdf=body, source_url=cap, kind=\"pdf\", "
+        "reason=why, detail=why)\n",
+        "S4.5 decision D55: the first wrong-work capture ENDS E1 (as before D55, when the identity rule ran after "
+        "`fetch_wayback` returned): a later candidate's right copy is never asked", tests=TESTS_FX_E)
+block("I4W5", f"{PKG}/acquire/recovery.py",
+      "guard: a location the rung observed answering 2xx is live, never a recovery candidate",
+      "S4.5 decision D54: every URL a failing rung asked is handed to Stage E, live or dead — L007's OpenAlex query "
+      "and L054's Unpaywall request (both 200) are handed as candidates, and 44 of ~110 locations handed in "
+      "hardening-1 answered 2xx", tests=TESTS_FX_E)
+replace("FXE13", f"{PKG}/acquire/recovery.py", 'CONSTRUCTING_ROUTES = ("publisher-url", "landing")\n',
+        'CONSTRUCTING_ROUTES = ("publisher-url",)\n',
+        "Stage C (`landing`) is no longer a constructing route: its CONSTRUCTED guesses (the MDPI CDN 404s) are read "
+        "from the gate as dead documents again (auditor-FX-E F3)", tests=TESTS_FX_E)
+replace("FXE14", f"{PKG}/acquire/recovery.py", "IDENTITY_YEAR_LEAD = 10\n", "IDENTITY_YEAR_LEAD = 0\n",
+        "a recovered copy printing its latest year ONE year before its record's (6 real hardening-1 pairs, each bound) "
+        "is refused as another work (auditor-FX-E F4)", tests=TESTS_FX_E)
 # ==== end S4.5 builder C2C rows ====
+
+# ==== S4.5 builder FX-V rows (the fix wave's typing: referee-vocabulary REJECT, referee-stage-c C6-RG) ====
+# Each row makes the one challenge detector, the landing rung's page rule or the acceptance test answer the WORD the
+# live ladder-1 run wrote on a named real row (qc/fixtures/litkb_cassettes/typing_fx_v/, replayed through the REAL
+# rung and the ladder by qc/test_litkb_s45_typing.py) — a worse answer, never an import or a syntax error.
+TESTS_FXV = ["qc/test_litkb_s45_typing.py"]
+NETUTIL = f"{PKG}/netutil.py"
+block("FXV1", NETUTIL, "guard: a 429 whose page states a rate limit is the rate limit, never a challenge",
+      "bioRxiv's recorded 429 rate-limit page is a bot challenge again: openaire books L136 blocked/challenge_or_bot_check "
+      "and the D45 gate never cools the host that asked this client to slow down", tests=TESTS_FXV)
+replace("FXV2", NETUTIL,
+        'CHALLENGE_HEADERS = (("cf-mitigated", "challenge"), ("x-datadome", "protected"), ("x-amzn-waf-action", '
+        '"challenge"))\n',
+        'CHALLENGE_HEADERS = (("cf-mitigated", "challenge"), ("x-datadome", "protected"))\n',
+        "AWS WAF's header no longer a signature: the empty 202s of L059 L060 L134 L135 are booked bad-file/html_response "
+        "(open access) and api-error (crossref-link, openalex) again", tests=TESTS_FXV)
+block("FXV3", NETUTIL,
+      "guard: a refusal page is read whole for a block-page token, never only its first MARKER_WINDOW bytes",
+      "ScienceDirect's 832 KB block page is no challenge to the one detector: openalex and doaj book L052 L054 L065 "
+      "blocked/identity_required while the landing rung calls the same page a challenge (D24 broken)", tests=TESTS_FXV)
+replace("FXV4", NETUTIL, "REFUSAL_WINDOW = None\n", "REFUSAL_WINDOW = MARKER_WINDOW\n",
+        "the whole-page read shrunk back to guard 3's 64 KB window (referee-vocabulary's M2, which fired nothing then): "
+        "ScienceDirect's token at byte ~773 K is unseen again", tests=TESTS_FXV)
+block("FXV5", NETUTIL, "guard: a page whose own words name the check is a challenge at ANY status",
+      "Anubis at 200 (L019 L066 L090 L108 L136), Incapsula at 200 (L193) and the reCAPTCHA gate at 404 (L054) are "
+      "booked bad-file/html_response again", tests=TESTS_FXV)
+replace("FXV6", NETUTIL, "        text = _decoded(title.group(1))\n",
+        "        text = title.group(1).decode(\"utf-8\", \"replace\").lower()\n",
+        "a challenge title read without decoding its HTML entities: Anubis writes `you&#39;re`, so its title no longer "
+        "names the check and HAL's bot check is a bad file again", tests=TESTS_FXV)
+replace("FXV7", LANDING,
+        '        return self.verdict in ("landing", "plain_page", "html_or_reader") and bool(self.body)\n',
+        '        return self.verdict in ("landing", "html_or_reader") and bool(self.body)\n',
+        "a plain page (no citation metadata, no challenge signature) is never read: the five C6-RG rows end "
+        "blocked/html_or_reader ('no landing page could be read') instead of not-in-archive/no_pdf_link",
+        tests=TESTS_C2B + TESTS_FXV)
+block("FXV8", f"{PKG}/acquire/accept.py",
+      "guard: a body under a declared HTTP content-coding is decoded before it is typed",
+      "a Wayback capture served `Content-Encoding: gzip` is C18's wrapper again: L037 L040 L044 L045 L061 L113 L114 are "
+      "booked compressed_or_archived_payload", tests=TESTS_FXV)
+replace("FXV9", f"{PKG}/acquire/stage_b.py",
+        "        if Client.is_challenge(st, url, body, hd):     # the headers too: AWS WAF's empty 202 (builder-FX-V)\n",
+        "        if Client.is_challenge(st, url, body):\n",
+        "Stage B asks the one detector without the headers: AWS WAF's empty 202 (a header-only signature) is api-error "
+        "again on crossref-link and openalex (L060)", tests=TESTS_FXV)
+# THE RETARGET (C6-RG removed): builder-C2b's C2B8 names the guard FX-V rewrote — the marker-free page is a plain page
+# now, never an interstitial. A statement in THIS block, not an edit of C2B8's row above (the precedent: B1_RETARGETED).
+_C2B8 = next(r for r in M if r["id"] == "C2B8")
+assert _C2B8["file"] == LANDING, _C2B8
+_C2B8.update(marker="guard: an HTML page with no citation metadata is a plain page, never a challenge and never the "
+                    "landing page",
+             what="C6-RG's surviving half gone: a page with no citation metadata and no challenge signature is typed "
+                  "html_or_reader — a refusal — so the five C6-RG rows end blocked/html_or_reader, never no_pdf_link",
+             tests=TESTS_C2B + TESTS_FXV)
+# round 2 (auditor-FX-V F1, F2, F4, F5: four guards no test held — its own mutations MD, MJ, ME and MG stayed green)
+replace("FXV10", LANDING,
+        '        if verdict == "landing":\n',
+        '        if verdict in ("landing", "plain_page"):\n',
+        "a plain DOI page is recorded as THE article's landing page (`detail.landing.landing_page`): the five C6-RG rows "
+        "(L007 L061 L064 L166 L167) name NASA's index, three Crossref blog posts and OSF's app shell as their landing "
+        "page — C6-RG's surviving half gone (auditor-FX-V MD)", tests=TESTS_FXV)
+replace("FXV11", NETUTIL,
+        "        if status == 429 and states_rate_limit(head):\n",
+        "        if states_rate_limit(head):\n",
+        "the rate-limit rule loses its 429 key: a challenge page at 403 / 503 / 200 that mentions a rate limit is "
+        "no challenge (auditor-FX-V MG)", tests=TESTS_FXV)
+replace("FXV12", NETUTIL,
+        "        head = body[:MARKER_WINDOW]\n        for k, v in (headers or {}).items():\n",
+        "        head = body[:MARKER_WINDOW]\n        if status == 429 and states_rate_limit(head):\n"
+        "            return \"\"\n        for k, v in (headers or {}).items():\n",
+        "the rate-limit rule read BEFORE the header signatures: a 429 carrying `cf-mitigated: challenge` whose page "
+        "states a rate limit is no challenge and the D45 gate may cool its host (D46 F2 broken; auditor-FX-V F5)",
+        tests=TESTS_FXV)
+replace("FXV13", f"{PKG}/acquire/stage_b.py",
+        '        own = "blocked" if st and Client.is_challenge(st, url, body, hd) else "api-error"\n',
+        '        own = "blocked" if st and Client.is_challenge(st, url, body) else "api-error"\n',
+        "Stage B's transient decision asks the one detector without the headers: a 503 whose only challenge signature "
+        "is its header is read as a transient 503 and its URL released for a retry (auditor-FX-V ME)", tests=TESTS_FXV)
+replace("FXV14", LANDING,
+        "    for rule in rules:\n        sig = rule.get(\"challenge_signature\") or {}\n",
+        "    for rule in ():\n        sig = rule.get(\"challenge_signature\") or {}\n",
+        "every rule's own challenge signature is dead: a ScienceDirect 403 page carrying only the Elsevier rule's "
+        "CPE00001 wording is identity_required (auditor-FX-V MJ; the recorded pages are named first by the one "
+        "detector's block-page token, so only a CONSTRUCTED page reaches the loop)", tests=TESTS_FXV)
+# -- integrator-w4 (S4.5 decision D58: auditor-FX-V r2 N-1..N-3, each a guard no recorded answer reaches, now held by
+#    qc/test_litkb_s45_typing.py's CONSTRUCTED edges test and the F2 test's padded page)
+replace("I4W10", NETUTIL,
+        "    text = _html.unescape((raw or b\"\").decode(\"utf-8\", \"replace\")).lower().replace(\"\\u2019\", \"'\")\n",
+        '    text = _html.unescape((raw or b"").decode("utf-8", "replace")).lower()\n',
+        "the title reader stops folding the typographic apostrophe: Anubis's title spelled with U+2019 is no challenge "
+        "(auditor-FX-V r2 N-1, their N3)", tests=TESTS_FXV)
+replace("I4W11", NETUTIL, "        text = _decoded(title.group(1))\n", "        text = _decoded(head)\n",
+        "CHALLENGE_TITLES are matched anywhere in the first window, not in the title: a solved page QUOTING Anubis's "
+        "words in its body is booked a challenge (auditor-FX-V r2 N-3, their N8; survey G0d)", tests=TESTS_FXV)
+replace("I4W12", f"{PKG}/acquire/accept.py", "    if len(inner) > UNWRAP_MAX_BYTES:\n        return data, None\n", "",
+        "step 0's inflation cap is gone: a gzip-coded body inflating past UNWRAP_MAX_BYTES is typed on its TRUNCATED "
+        "inflation (auditor-FX-V r2 N-1, their N4)", tests=TESTS_FXV)
+replace("I4W13", f"{PKG}/acquire/accept.py", 'TRANSPORT_GZIP = ("gzip", "x-gzip")\n', 'TRANSPORT_GZIP = ("gzip",)\n',
+        "the `x-gzip` alias is dropped: an `x-gzip`-coded body is judged as the compressed bytes it came as "
+        "(auditor-FX-V r2 N-1, their N5)", tests=TESTS_FXV)
+replace("I4W14", LANDING, '    whole = (body or b"").lower()\n', '    whole = (body or b"")[:65536].lower()\n',
+        "a rule's own challenge signature is read in the first 64 KB only: ScienceDirect's wording (~770 KB in) is "
+        "never found by the Elsevier rule (auditor-FX-V r2 N-2, their N7)", tests=TESTS_FXV)
+# ==== end S4.5 builder FX-V rows ====
+
+
+# ==== S4.5 builder FX-S mutation rows (the fix wave's substrate: the route_backoff backfill + migration 0036, ONE
+#      arXiv pacer per process, export.arxiv.org's 406 booked not retriable; S4.5 decision D51) — append ONLY between
+#      these two markers ====
+# Each row turns qc/test_litkb_s45_fx_substrate.py red by a WORSE ANSWER on the real rows it reads (the 31 live pairs,
+# the recorded L010-L017 answers) or on its CONSTRUCTED refusals — never by an error.
+TESTS_FXS = ["qc/test_litkb_s45_fx_substrate.py"]
+FXS_BACKOFF = f"{PKG}/acquire/backoff.py"
+MIG36 = f"{MIG}/0036_route_backoff_backfill.sql"
+block("FXS1", FXS_BACKOFF, "guard: the plan replays the pair's whole ledger history",
+      "the plan replays only each pair's newest attempt (what the live writer saw): the 10 real open_access pairs "
+      "read as agreeing, stay 1 refusal / 15 min, and the re-hunt inside the replayed 6 h window is asked and counted",
+      tests=TESTS_FXS)
+block("FXS2", FXS_BACKOFF, "guard: a pair the table holds no row for is offered",
+      "a pair with no row is called unexplained: the 21 real scihub pairs are never seeded", tests=TESTS_FXS)
+block("FXS3", FXS_BACKOFF, "guard: an unexplained disagreement is never offered",
+      "a stored state the history does not explain (3 refusals over one) is offered and overwritten", tests=TESTS_FXS)
+block("FXS4", FXS_BACKOFF, "guard: a reviewed plan row is applied only while the ledger still gives it",
+      "a reviewed row the ledger has moved past, and an edited one, are applied as they stand", tests=TESTS_FXS)
+replace("FXS5", FXS_BACKOFF, "        if apply:\n            from psycopg.types.json import Jsonb\n",
+        "        if True:\n            from psycopg.types.json import Jsonb\n",
+        "a dry run handed the ingest login writes the reviewed rows", tests=TESTS_FXS)
+block("FXS6", MIG36, "guard: a backfilled state is the state as of the pair's latest attempt",
+      "0036 writes a state cited to an attempt that is not the pair's latest (a plan the ledger has moved past)",
+      tests=TESTS_FXS)
+block("FXS7", MIG36, "guard: a backfill writes a refusal state only",
+      "0036 writes a reset state (refusals 0) and a window that starts after its own attempt", tests=TESTS_FXS)
+block("FXS8", f"{PKG}/admit/resolver.py",
+      "guard: every registry pacer on the process clock shares the process's one arXiv pacer",
+      "each admission's fresh registry pacer gets a fresh arXiv pacer: the real L010-L012 requests go 0 s apart "
+      "(the run's 0.41-0.62 s against arXiv's 3 s rule)", tests=TESTS_FXS)
+block("FXS9", f"{PKG}/admit/registry.py", "guard: a registry host refusing this client is never retriable at once",
+      "export.arxiv.org's 406 is retriable again: the recorded L010-L017 answers are booked `retryable` True",
+      tests=TESTS_FXS)
+block("FXS10", f"{PKG}/admit/front.py",
+      "guard: a registry host refusing this client is booked not retriable, with its evidence",
+      "the admission books every transient answer `retryable` True, the recorded 406s included", tests=TESTS_FXS)
+replace("FXS11", f"{PKG}/hunt.py", '                                   retryable=res.get("retryable", True),\n',
+        "                                   retryable=True,\n",
+        "the hunt books the recorded L010 406 `retryable` True whatever the admission said", tests=TESTS_FXS)
+# -- integrator-w4 (S4.5 decision D56, before 0036 is applied live; D58's FX-S test gaps are held by tests, F3's here)
+block("I4W7", MIG36,
+      "guard: a backfilled row's last facts are the attempt that last moved it, never a skip",
+      "S4.5 decision D56: 0036 writes `route_backoff.last_*` from the pair's LATEST attempt — a skipped/policy_refused "
+      "row for 13 of the 21 real no_row pairs — against SCHEMAS' \"the attempt that last moved the row\"",
+      tests=TESTS_FXS)
+replace("I4W8", f"{PKG}/admit/front.py",
+        "            retryable = any(_registry.retriable(c[\"registry\"], c[\"status\"]) for c in transient)\n",
+        "            retryable = all(_registry.retriable(c[\"registry\"], c[\"status\"]) for c in transient)\n",
+        "S4.5 decision D56: a mixed DOI+arXiv admission (Crossref 503, arXiv 406) is booked NOT retriable although an "
+        "immediate re-ask could confirm the DOI through Crossref (auditor-FX-S F1)", tests=TESTS_FXS)
+replace("I4W9", f"{PKG}/acquire/backoff.py", '    with open(path, "x", encoding="utf-8", newline="") as fh:\n',
+        '    with open(path, "w", encoding="utf-8", newline="") as fh:\n',
+        "auditor-FX-S F3 (S4.5 decision D58): the plan CSV is written over an existing file — a reviewed plan at the "
+        "`--out` path is overwritten by a fresh one", tests=TESTS_FXS)
+# ==== end S4.5 builder FX-S rows ====
+
+# ==== S4.5 integrator-w4 fix round 2 rows (rulings D59, D60, D61) ====
+# D59: binding reads page 1 in the encoding it asked for, and the freeze records the binary; D60: a rung's own 2xx
+# location (in-run and in the ledger) is not a recovery candidate; D61: auditor-cand4's N1-N3 test gaps.
+TESTS_D59 = ["qc/test_litkb_s45_d59_pdftotext.py"]
+block("I4R1", f"{PKG}/admit/binding.py",
+      "guard: binding reads page 1 in the encoding it asked pdftotext for, whichever binary PATH finds",
+      "S4.5 decision D59: `first_page_text` runs pdftotext at its own default encoding — under Git for Windows' xpdf "
+      "4.00 (Latin-1) the REAL L145 page reads `Gr\\ufffdler` and the file is `binding-failed` on check 3",
+      tests=TESTS_D59)
+replace("I4R2", ACCEPT, '        "pdftotext": _frozen_pdftotext(),\n', "",
+        "S4.5 decision D59: the freeze no longer records which pdftotext the binder will run, so a binding outcome "
+        "cannot be read against the binary that produced it", tests=TESTS_FXR)
+block("I4R3", f"{PKG}/acquire/recovery.py",
+      "guard: a rung's own location that answered 2xx is live, never a recovery candidate",
+      "S4.5 decision D60: a rung's own rejected / terminal URL that answered 200 reaches E1 — L094's open.bu.edu page, "
+      "L108's nature.com page and L125's journals.lww.com page are asked of the Wayback Machine (auditor-cand4 N5)",
+      tests=TESTS_FX_E)
+block("I4R4", f"{PKG}/acquire/recovery.py",
+      "guard: an earlier attempt's location recorded answering 2xx is live, never a recovery candidate",
+      "S4.5 decision D60: the ledger hands E1 a page an earlier attempt RECORDED answering 200 — hardening-1's own L094 "
+      "s2 row hands the open.bu.edu page to hardening-2's E1", tests=TESTS_FX_E)
+block("I4R5", ACCEPT, "guard: a kept take replays only against the source index the freeze pinned, byte for byte",
+      "S4.5 decision D61 (auditor-cand4 N1): a kept take replays against a source index edited after the freeze (or "
+      "one the freeze pinned no sha for)", tests=TESTS_FXR)
+replace("I4R6", MIG36, " AND m.route = a.route AND m.work_id = a.work_id\n", " AND m.work_id = a.work_id\n",
+        "S4.5 decision D61 (auditor-cand4 N2): 0036 accepts a mover of the same work on ANOTHER route — the backfilled "
+        "open_access row's `last_*` become a hal attempt's", tests=TESTS_FXS)
+replace("I4R7", BACKOFF,
+        "            if status in NON_SPEND_STATUSES or rid in retried:\n                continue\n"
+        "            after = self.step(state, status, codes, at)\n",
+        "            if status in NON_SPEND_STATUSES:\n                continue\n"
+        "            after = self.step(state, status, codes, at)\n",
+        "S4.5 decision D61 (auditor-cand4 N3): `last_mover` counts an original its in-run retry superseded — a blocked "
+        "original healed by an ok retry makes the retry the 'mover' of a row the ladder never wrote", tests=TESTS_FXS)
+# S4.5 decision D62 (integrator-w4 r2b): a challenge served at 2xx is not live; its location stays a Stage E candidate
+block("I4R8", f"{PKG}/acquire/recovery.py",
+      "guard: a challenge served at 2xx is not a live location; it stays a Stage E candidate",
+      "S4.5 decision D62: a gate answer THE one detector called a challenge at 200 is read as live — the REAL Springer "
+      "Client Challenge URL is never handed to E1 (the L050 / L051 Wayback conversions are lost again)",
+      tests=TESTS_FX_E)
+block("I4R9", f"{PKG}/acquire/recovery.py",
+      "guard: a rung answer typed a challenge leaves its 2xx terminal a Stage E candidate",
+      "S4.5 decision D62: a rung row the ladder typed `challenge_or_bot_check` at 200 has its terminal read as live — "
+      "L050's Springer PDF (crossref-link, 200 challenge) is not handed to E1", tests=TESTS_FX_E)
+block("I4R10", f"{PKG}/acquire/recovery.py",
+      "guard: an earlier attempt typed a challenge leaves its 2xx terminal a Stage E candidate",
+      "S4.5 decision D62: the ledger reads a challenge-typed 200 terminal as live — L050's and L108's REAL recorded "
+      "challenge pages (Springer PDF, nature.com PDF and article page) are not handed to hardening-2's E1",
+      tests=TESTS_FX_E)
+block("I4R11", BACKOFF, "guard: a 2xx answer carries the one detector's word for Stage E's candidate rule",
+      "S4.5 decision D62: the request gate never asks the one detector about a 2xx answer, so the REAL Springer Client "
+      "Challenge page at 200 is recorded `challenge_2xx` False and read as a live location", tests=TESTS_FX_E)
+# S4.5 fix round 2c (auditor-cand4-r2 F2, N1): the D62 boundaries and the typing seam
+replace("I4R12", BACKOFF, "        if 200 <= st < 300:\n            challenge_2xx = ",
+        "        if st == 200:\n            challenge_2xx = ",
+        "S4.5 decision D62 (auditor-cand4-r2 F2): the gate asks the one detector about a 200 only, so L060's REAL AMS "
+        "202 WAF challenge is read as a live page and its URL never reaches E1 (L060's hunt take lost)",
+        tests=TESTS_FX_E)
+replace("I4R13", f"{PKG}/acquire/recovery.py",
+        "    terminal_live = terminal_live and typed != CHALLENGE_SUB and terminal.get(\"url\") not in challenged\n",
+        "    terminal_live = terminal_live and typed != CHALLENGE_SUB\n",
+        "S4.5 decision D62 (auditor-cand4-r2 N1, R2M2): a 200 terminal the gate's detector called a challenge is read "
+        "as live when the row is not typed one", tests=TESTS_FX_E)
+replace("I4R14", f"{PKG}/acquire/run.py", "_recovery.urls_of(route, r, status, sub_status=sub)",
+        "_recovery.urls_of(route, r, status)",
+        "S4.5 decision D62 (auditor-cand4-r2 N1, R2M1): the ladder's challenge typing never reaches the candidate rule "
+        "— a crossref-link row typed blocked/challenge_or_bot_check at 200 has its URL dropped as live",
+        tests=TESTS_STAGE_E)
+replace("I4R15", f"{PKG}/acquire/recovery.py",
+        "row[2] and _is_2xx(row[6]) and _ledger_live_type(row[7])",
+        "row[2] and row[6] == 200 and _ledger_live_type(row[7])",
+        "S4.5 decisions D60/D62 (auditor-cand4-r2 N1, R2M4): the ledger reads only a recorded 200 as live — a real "
+        "page recorded at 202 is handed to E1", tests=TESTS_FX_E)
+# ==== end S4.5 integrator-w4 fix round 2 rows ====
 
 
 def call_sites(root=None):
@@ -4156,6 +4655,16 @@ SINK_ALLOW["litkb/acquire/ledger.py::main::sys.stdout.write"] = (1,
 
 # ==== S4.5 builder C2B SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
 # ==== end S4.5 builder C2B SINK_ALLOW / EQUIVALENT ====
+
+# ==== S4.5 builder FX-S SINK_ALLOW / EQUIVALENT entries — SINK_ALLOW[...] = (n, why) and EQUIVALENT[...] = why statements ONLY between these markers ====
+SINK_ALLOW["litkb/acquire/backoff.py::main::sys.stdout.write"] = (1,
+    "`python -m litkb.acquire.backoff backfill` (S4.5 FX-S, migration 0036): one json.dumps of the report `backfill` "
+    "built — the mode, the database clock, integer counts (pairs, agree, offered, by cause, open now, would apply), the "
+    "unexplained pairs' route / work id / refusal counts, the plan and reviewed CSV paths the caller typed with the "
+    "reviewed CSV's sha256, the refused rows' route / work id with a fixed reason phrase, and the database function's "
+    "own counts. No attempt detail, no served byte and no credential reaches it: the reader's and the ingest login's "
+    "passwords are read by libpq from their passfiles, and no token file is read by this module.")
+# ==== end S4.5 builder FX-S SINK_ALLOW / EQUIVALENT ====
 
 
 

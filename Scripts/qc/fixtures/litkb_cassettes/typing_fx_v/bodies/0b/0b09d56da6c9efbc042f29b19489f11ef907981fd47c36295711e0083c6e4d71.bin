@@ -1,0 +1,886 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	  <header>
+		    <query>(oaftype exact result) and (resulttypeid exact publication) and ((pidclassid exact "doi" and pid exact "10.1111/2041-210x.13472"))</query>
+				  <locale>en_US</locale>	
+					<size>10</size>
+			   <page>1</page>
+			   <total>1</total>
+							<fields>
+							</fields>
+			</header>
+	  <results>
+										<result xmlns:dri="http://www.driver-repository.eu/namespace/dri"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+         <header>
+            <dri:objIdentifier>doi_dedup___::18d0825313346593838302f3cef6c21a</dri:objIdentifier>
+            <dri:dateOfCollection>2026-08-19T07:00:25.153634337</dri:dateOfCollection>
+            <dri:dateOfTransformation/>
+         </header>
+         <metadata>
+            <oaf:entity xmlns:oaf="http://namespace.openaire.eu/oaf"
+                        xsi:schemaLocation="http://namespace.openaire.eu/oaf https://www.openaire.eu/schema/1.0/oaf-1.0.xsd">
+               <oaf:result>
+                  <collectedfrom name="HAL INRAE" id="opendoar____::c7a9f13a6c0940277d46706c7ca32601"/> 
+                  <collectedfrom name="Bielefeld Academic Search Engine (BASE)"
+                                 id="openaire____::df45502607927471ecf8a6ae83683ff5"/> 
+                  <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                  <collectedfrom name="HAL-IRD" id="opendoar____::71560ce98c8250ce57a6a970c9991a5f"/> 
+                  <collectedfrom name="Horizon / Pleins textes"
+                                 id="opendoar____::d2ed45a52bc0edfa11c2064e9edee8bf"/> 
+                  <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                  <collectedfrom name="Microsoft Academic Graph"
+                                 id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                  <originalId>10.1101/2020.07.07.191551</originalId> 
+                  <originalId>50|doiboost____|18d0825313346593838302f3cef6c21a</originalId> 
+                  <originalId>10.1111/2041-210X.13472</originalId> 
+                  <originalId>10.1111/2041-210x.13472</originalId> 
+                  <originalId>50|doiboost____|1d0e4423935429bac6457898dd639d86</originalId> 
+                  <originalId>3082919689</originalId> 
+                  <originalId>3041580646</originalId> 
+                  <originalId>oai:HAL:hal-03073497v1</originalId> 
+                  <originalId>50|od______2191::0e755c6549b938af63c3a57322ae5ae1</originalId> 
+                  <originalId>50|od______9730::0e755c6549b938af63c3a57322ae5ae1</originalId> 
+                  <originalId>50|od_______932::aa2e585be8df69ea7ab2ad4eee76b880</originalId> 
+                  <originalId>oai:ird.fr:fdi:010079836</originalId> 
+                  <originalId>ftciradhal:oai:HAL:hal-03073497v1</originalId> 
+                  <originalId>50|base_oa_____::1ee357310341dcb6e482d12fd582e5e9</originalId> 
+                  <originalId>50|base_oa_____::670579f9397176acc9fdec7a9a5e68d1</originalId> 
+                  <originalId>ftird:oai:ird.fr:fdi:010079836</originalId> 
+                  <originalId>50|base_oa_____::be9e5904657b7f4283c598d8baad0389</originalId> 
+                  <originalId>ftinraparis:oai:HAL:hal-03073497v1</originalId> 
+                  <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types">10.1101/2020.07.07.191551</pid> 
+                  <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types">10.1111/2041-210x.13472</pid> 
+                  <measure id="influence" score="6.288669E-9" class="C4"/> 
+                  <measure id="popularity" score="5.8591027E-8" class="C3"/> 
+                  <measure id="influence_alt" score="86" class="C4"/> 
+                  <measure id="citationCount" score="90" class="C4"/> 
+                  <measure id="popularity_alt" score="28.797953" class="C3"/> 
+                  <measure id="impulse" score="44" class="C3"/> 
+                  <fulltext>https://hal.inrae.fr/hal-03073497v1/file/2041-210X.13472.pdf</fulltext> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">DeepForest: A Python package for RGB deep learning tree crown delineation</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">DeepForest: A                     &lt;scp&gt;Python&lt;/scp&gt;                     package for RGB deep learning tree crown delineation</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">deepforest a python package for rgb deep learning tree crown delineation</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title"
+                         inferred="false"
+                         provenanceaction="sysimport:crosswalk:repository"
+                         trust="0.9">DeepForest : A Python package for RGB deep learning tree crown delineation</title> 
+                  <bestaccessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                   schemename="dnet:access_modes"/> 
+                  <creator rank="1" name="Ben G." surname="Weinstein" orcid="0000-0002-2176-7935">Ben G. Weinstein</creator> 
+                  <creator rank="2" name="Sergio" surname="Marconi" orcid="0000-0002-8096-754x">Sergio Marconi</creator> 
+                  <creator rank="3" name="Mélaine" surname="Aubry‐Kientz"
+                           orcid_pending="0000-0002-4439-8626">Mélaine Aubry‐Kientz</creator> 
+                  <creator rank="4" name="Gregoire" surname="Vincent">Gregoire Vincent</creator> 
+                  <creator rank="5" name="Henry" surname="Senyondo">Henry Senyondo</creator> 
+                  <creator rank="6" name="Ethan P." surname="White" orcid="0000-0001-6728-7745">Ethan P. White</creator> 
+                  <contributor>HABLOT, Roxanne</contributor> 
+                  <contributor>University of Florida Gainesville (UF)</contributor> 
+                  <contributor>Botanique et Modélisation de l'Architecture des Plantes et des Végétations (UMR AMAP)</contributor> 
+                  <contributor>Centre de Coopération Internationale en Recherche Agronomique pour le Développement (Cirad)-Université de Montpellier (UM)-Centre National de la Recherche Scientifique (CNRS)-Institut de Recherche pour le Développement (IRD Occitanie )-Institut National de Recherche pour l’Agriculture, l’Alimentation et l’Environnement (INRAE)</contributor> 
+                  <contributor>This research was supported by the Gordon and Betty Moore Foundation’s Data-Driven Discovery Initiative through grant GBMF4563 to E.P. White and by the National Science Foundation through grant 1926542 to E.P. White, S.A. Bohlman, A. Zare, D.Z. Wang, and A. Singh.</contributor> 
+                  <country classid="FR" classname="France" schemeid="dnet:countries"
+                           schemename="dnet:countries"/> 
+                  <dateofacceptance>2020-07-08</dateofacceptance> 
+                  <description>&lt;jats:title&gt;Abstract&lt;/jats:title&gt;                 &lt;jats:p&gt;                   &lt;jats:list list-type="order"&gt;                     &lt;jats:list-item&gt;                       &lt;jats:p&gt;Remote sensing of forested landscapes can transform the speed, scale, and cost of forest research. The delineation of individual trees in remote sensing images is an essential task in forest analysis. Here we introduce a new Python package, DeepForest, that detects individual trees in high resolution RGB imagery using deep learning.&lt;/jats:p&gt;                     &lt;/jats:list-item&gt;                     &lt;jats:list-item&gt;                       &lt;jats:p&gt;While deep learning has proven highly effective in a range of computer vision tasks, it requires large amounts of training data that are typically difficult to obtain in ecological studies. DeepForest overcomes this limitation by including a model pre-trained on over 30 million algorithmically generated crowns from 22 forests and fine-tuned using 10,000 hand-labeled crowns from 6 forests.&lt;/jats:p&gt;                     &lt;/jats:list-item&gt;                     &lt;jats:list-item&gt;                       &lt;jats:p&gt;The package supports the application of this general model to new data, fine tuning the model to new datasets with user labeled crowns, training new models, and evaluating model predictions. This simplifies the process of using and retraining deep learning models for a range of forests, sensors, and spatial resolutions.&lt;/jats:p&gt;                     &lt;/jats:list-item&gt;                     &lt;jats:list-item&gt;                       &lt;jats:p&gt;We illustrate the workflow of DeepForest using data from the National Ecological Observatory Network, a tropical forest in French Guiana, and street trees from Portland, Oregon.&lt;/jats:p&gt;                     &lt;/jats:list-item&gt;                   &lt;/jats:list&gt;                 &lt;/jats:p&gt;</description> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">[SDV.BID.SPT]Life Sciences [q-bio]/Biodiversity/Systematics</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Forests</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">[SDV.BV.BOT] Life Sciences [q-bio]/Vegetal Biology/Botanics</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">remote sensing</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">[SDV.BID.SPT] Life Sciences [q-bio]/Biodiversity/Systematics, Phylogenetics and taxonomy</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">[SDV.EE.ECO] Life Sciences [q-bio]/Ecology, environment/Ecosystems</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Crown delineation</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">forests</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">RGB</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">tree crowns</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">deep learning</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Tree crowns</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Deep learning</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">NEON</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">04 agricultural and veterinary sciences</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">Phylogenetics and taxonomy</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">[SDV.BV.BOT]Life Sciences [q-bio]/Vegetal Biology/Botanics</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Remote sensing</subject> 
+                  <subject classid="SDG" classname="Sustainable Development Goals"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:sdg">15. Life on land</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">004</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">[SDE.BE] Environmental Sciences/Biodiversity and Ecology</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">[SDV.EE.ECO]Life Sciences [q-bio]/Ecology</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">0401 agriculture, forestry, and fisheries</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">[SDE.BE]Environmental Sciences/Biodiversity and Ecology</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">environment/Ecosystems</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:aggregator"
+                           trust="0.89">crown delineation</subject> 
+                  <language classid="und" classname="Undetermined" schemeid="dnet:languages"
+                            schemename="dnet:languages"/> 
+                  <relevantdate classid="created" classname="created" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-07-09</relevantdate> 
+                  <relevantdate classid="available" classname="available" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-07-08</relevantdate> 
+                  <relevantdate classid="accepted" classname="accepted" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-07-08</relevantdate> 
+                  <relevantdate classid="created" classname="created" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-08-28</relevantdate> 
+                  <relevantdate classid="published-online" classname="published-online"
+                                schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-10-16</relevantdate> 
+                  <relevantdate classid="published-print" classname="published-print"
+                                schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-12-01</relevantdate> 
+                  <relevantdate classid="UNKNOWN" classname="UNKNOWN" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date"
+                                inferred="false"
+                                provenanceaction="sysimport:crosswalk:repository"
+                                trust="0.9">2024-09-27</relevantdate> 
+                  <relevantdate classid="updated" classname="updated" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date"
+                                inferred="false"
+                                provenanceaction="sysimport:crosswalk:repository"
+                                trust="0.9">2026-05-12</relevantdate> 
+                  <relevantdate classid="available" classname="available" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date"
+                                inferred="false"
+                                provenanceaction="sysimport:crosswalk:repository"
+                                trust="0.9">2024-09-30</relevantdate> 
+                  <relevantdate classid="issued" classname="issued" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date"
+                                inferred="false"
+                                provenanceaction="sysimport:crosswalk:repository"
+                                trust="0.9">2020-01-01</relevantdate> 
+                  <publisher>openRxiv</publisher> 
+                  <source>Crossref</source> 
+                  <format>application/pdf</format> 
+                  <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                              schemename="dnet:result_typologies"/> 
+                  <resourcetype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                schemename="dnet:result_typologies"/> 
+                  <isgreen>true</isgreen> 
+                  <openaccesscolor>gold</openaccesscolor> 
+                  <isindiamondjournal>false</isindiamondjournal> 
+                  <publiclyfunded>false</publiclyfunded> 
+                  <journal issn="2041-210X" eissn="2041-210X" ep="1751" sp="1743" vol="11">Methods in Ecology and Evolution</journal> 
+                  <context id="inrae" label="INRAE" type="community"/> 
+                  <datainfo>
+                     <inferred>true</inferred>
+                     <deletedbyinference>false</deletedbyinference>
+                     <trust>0.8</trust>
+                     <inferenceprovenance>dedup-result-decisiontree-v4</inferenceprovenance>
+                     <provenanceaction classid="sysimport:dedup" classname="Inferred by OpenAIRE"
+                                       schemeid="dnet:provenanceActions"
+                                       schemename="dnet:provenanceActions"/>
+                  </datainfo> 
+                  <rels>
+                     <rel inferred="false" trust="0.89" inferenceprovenance=""
+                          provenanceaction="sysimport:crosswalk:aggregator">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::b334ddf0944feceefdbd8127beecc429</to>
+                        <legalshortname>Département Sciences sociales, agriculture et alimentation, espace et environnement</legalshortname> 
+                        <legalname>Département Sciences sociales, agriculture et alimentation, espace et environnement</legalname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <websiteurl>https://www.inrae.fr/actualites?inrae_prod%5bsortBy%5d=inrae_prod_created_date_desc&amp;inrae_prod%5brefinementList%5d%5bname_department%5d%5b0%5d=ECO-SOCIO</websiteurl> 
+                     </rel> 
+                     <rel inferred="false" trust="0.9" inferenceprovenance=""
+                          provenanceaction="sysimport:crosswalk:repository">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::64386464f878a0038b50700e335f6b1b</to>
+                        <legalname>Institut de Recherche pour le Développement</legalname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalshortname>IRD</legalshortname> 
+                        <websiteurl>https://en.ird.fr/</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:iis"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::bf8d03413d836e6d5d05846bc5581147</to>
+                        <legalname>University of Montpellier</legalname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalshortname>UM</legalshortname> 
+                        <websiteurl>http://www.umontpellier.fr/en/</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:graph"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::7fbdf9cd4423c4604745a16afe728bc7</to>
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalshortname>CNRS</legalshortname> 
+                        <legalname>French National Centre for Scientific Research</legalname> 
+                        <websiteurl>http://www.cnrs.fr/index.php</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="0.85" inferenceprovenance="propagation"
+                          provenanceaction="result:organization:instrepo">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">pending_org_::5e7e8b9acddc3a9a7fe0afcf229ce8d0</to>
+                        <legalname>Institut de Recherche pour le Développement</legalname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalshortname>IRD</legalshortname> 
+                        <websiteurl>http://www.ird.fr/</websiteurl> 
+                     </rel> 
+                     <rel inferred="false" trust="0.9" inferenceprovenance=""
+                          provenanceaction="sysimport:crosswalk:repository">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::44eed79a807fe461561e8ecc687fa708</to>
+                        <websiteurl>http://amap.cirad.fr/en/index.php</websiteurl> 
+                        <legalshortname>AMAP</legalshortname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalname>Botany and Modelling of Plant Architecture and Vegetation</legalname> 
+                     </rel> 
+                     <rel inferred="false" trust="0.9" inferenceprovenance=""
+                          provenanceaction="sysimport:actionset">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">pending_org_::4cff8511d26db99b3210fcc92ec4dfba</to>
+                        <legalshortname>Centre national de la recherche scientifique</legalshortname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalname>Centre national de la recherche scientifique</legalname> 
+                        <websiteurl>http://www.cnrs.fr/</websiteurl> 
+                     </rel> 
+                     <rel inferred="false" trust="0.9" inferenceprovenance=""
+                          provenanceaction="sysimport:crosswalk:repository">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::c2dfb90e797a2dc52f0084c549289d0c</to>
+                        <legalname>National Research Institute for Agriculture, Food and Environment</legalname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalshortname>INRAE</legalshortname> 
+                        <websiteurl>https://www.inrae.fr/</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9" inferenceprovenance="iis::document_affiliations"
+                          provenanceaction="iis">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::9071c5ef89ede7bfe11a9b300cb7a550</to>
+                        <legalname>Florida State University</legalname> 
+                        <legalshortname>FSU</legalshortname> 
+                        <country classid="US" classname="United States" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <websiteurl>https://www.fsu.edu/</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:graph"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::5d533e777b01164a8ba47bd9fea45486</to>
+                        <legalname>Centre de Coopération Internationale en Recherche Agronomique pour le Développement</legalname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <websiteurl>http://www.cirad.fr/en/home-page</websiteurl> 
+                        <legalshortname>CIRAD</legalshortname> 
+                     </rel> 
+                     <rel inferred="true" trust="0.85" inferenceprovenance="propagation"
+                          provenanceaction="result:organization:instrepo">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">pending_org_::f0297c6f4f55f0e82ab342848058f174</to>
+                        <legalname>CENTRE DE COOPERATION INTERNATIONAL EN RECHERCHE AGRONOMIQUE POUR LE DEVELOPPEMENT</legalname> 
+                        <country classid="FR" classname="France" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <websiteurl>http://www.cirad.fr</websiteurl> 
+                        <legalshortname>CIRAD</legalshortname> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:rawaff"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::75a9815f2347754cb00a2e00133b2091</to>
+                        <legalshortname>UF</legalshortname> 
+                        <websiteurl>http://www.ufl.edu/</websiteurl> 
+                        <country classid="US" classname="United States" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalname>University of Florida</legalname> 
+                     </rel> 
+                     <rel inferred="false" trust="0.91" inferenceprovenance=""
+                          provenanceaction="sysimport:actionset">
+                        <to class="isProducedBy" scheme="dnet:result_project_relations" type="project">nsf_________::b17b14b85e38e7bd0722716aa390b6fd</to>
+                        <title>MRA:  Disentangling cross-scale influences on tree species, traits, and diversity from individual trees to continental scales</title> 
+                        <code>1926542</code> 
+                        <funding>
+                           <funder id="nsf_________::NSF" shortname="NSF" name="National Science Foundation"
+                                   jurisdiction="US"/>
+                           <funding_level_0 name="Directorate for Biological Sciences">nsf_________::NSF::BIO/OAD</funding_level_0>
+                           <funding_level_1 name="Division of Environmental Biology">nsf_________::NSF::BIO/OAD::BIO/DEB</funding_level_1>
+                        </funding> 
+                     </rel> 
+                  </rels>
+                  <children>
+                     <result objidentifier="doi_________::1d0e4423935429bac6457898dd639d86">
+            	           <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1111/2041-210x.13472</pid> 
+                        <publisher>Wiley</publisher> 
+                        <dateofacceptance>2020-10-16</dateofacceptance> 
+                        <description>&lt;jats:title&gt;Abstract&lt;/jats:title&gt;                   &lt;jats:p&gt;                     &lt;jats:list&gt;                       &lt;jats:list-item&gt;                         &lt;jats:p&gt;                           Remote sensing of forested landscapes can transform the speed, scale and cost of forest research. The delineation of individual trees in remote sensing images is an essential task in forest analysis. Here we introduce a new                           &lt;jats:sc&gt;Python&lt;/jats:sc&gt;                           package</description> 
+                        <creator>Gregoire Vincent</creator> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Methods in Ecology and Evolution"
+                                     id="doajarticles::d1a164398d8d564ca3e4870423a63516"/> 
+                           <dateofacceptance>2020-10-16</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>Wiley Online Library User Agreement</license> 
+                           <url>https://doi.org/10.1111/2041-210x.13472</url> 
+            		             <webresource>
+            		                <url>https://doi.org/10.1111/2041-210x.13472</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>Ethan P. White</creator> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Methods in Ecology and Evolution"
+                                     id="doajarticles::d1a164398d8d564ca3e4870423a63516"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>publisher-specific, author manuscript</license> 
+                           <url>https://rss.onlinelibrary.wiley.com/doi/am-pdf/10.1111/2041-210x.13472</url> 
+            		             <webresource>
+            		                <url>https://rss.onlinelibrary.wiley.com/doi/am-pdf/10.1111/2041-210x.13472</url>
+            		             </webresource> 
+            	           </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <creator>Mélaine Aubry‐Kientz</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">DeepForest: A                     &lt;scp&gt;Python&lt;/scp&gt;                     package for RGB deep learning tree crown delineation</title> 
+                        <creator>Sergio Marconi</creator> 
+                        <creator>Henry Senyondo</creator> 
+                        <creator>Ben G. Weinstein</creator> 
+                     </result> 
+                     <result objidentifier="doi_________::18d0825313346593838302f3cef6c21a">
+            	           <creator>Ethan White</creator> 
+                        <publisher>openRxiv</publisher> 
+                        <creator>Gregoire Vincent</creator> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1101/2020.07.07.191551</pid> 
+                        <dateofacceptance>2020-07-08</dateofacceptance> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">DeepForest: A Python package for RGB deep learning tree crown delineation</title> 
+                        <creator>Ben. G. Weinstein</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2020-07-08</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY ND</license> 
+                           <url>https://doi.org/10.1101/2020.07.07.191551</url> 
+            		             <webresource>
+            		                <url>https://doi.org/10.1101/2020.07.07.191551</url>
+            		             </webresource> 
+            	           </instance> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY ND</license> 
+                           <url>https://www.biorxiv.org/content/biorxiv/early/2020/07/08/2020.07.07.191551.full.pdf</url> 
+            		             <webresource>
+            		                <url>https://www.biorxiv.org/content/biorxiv/early/2020/07/08/2020.07.07.191551.full.pdf</url>
+            		             </webresource> 
+            	           </instance> 
+                        <description>&lt;jats:title&gt;Abstract&lt;/jats:title&gt;                 &lt;jats:p&gt;                   &lt;jats:list list-type="order"&gt;                     &lt;jats:list-item&gt;                       &lt;jats:p&gt;Remote sensing of forested landscapes can transform the speed, scale, and cost of forest research. The delineation of individual trees in remote sensing images is an essential task in forest analysis. Here we introduce a new Python package, DeepForest, that detects individual trees in high resolution RGB imagery using deep l</description> 
+                        <creator>Mélaine Aubry-Kientz</creator> 
+                        <creator>Sergio Marconi</creator> 
+                        <creator>Henry Senyondo</creator> 
+                     </result> 
+                     <result objidentifier="od______9730::0e755c6549b938af63c3a57322ae5ae1">
+            	           <creator>Weinstein, Ben</creator> 
+                        <creator>Senyondo, Henry</creator> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="HAL INRAE" id="opendoar____::c7a9f13a6c0940277d46706c7ca32601"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <fulltext>https://hal.inrae.fr/hal-03073497v1/file/2041-210X.13472.pdf</fulltext> 
+                           <url>https://hal.inrae.fr/hal-03073497v1/document</url> 
+                           <url>https://hal.inrae.fr/hal-03073497v1</url> 
+                           <url>https://doi.org/10.1111/2041-210x.13472</url> 
+            		             <webresource>
+            		                <url>https://hal.inrae.fr/hal-03073497v1/document</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://hal.inrae.fr/hal-03073497v1</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://doi.org/10.1111/2041-210x.13472</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>White, Ethan</creator> 
+                        <collectedfrom name="HAL INRAE" id="opendoar____::c7a9f13a6c0940277d46706c7ca32601"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">DeepForest: A Python package for RGB deep learning tree crown delineation</title> 
+                        <description>Remote sensing of forested landscapes can transform the speed, scale and cost of forest research. The delineation of individual trees in remote sensing images is an essential task in forest analysis. Here we introduce a new Python package, DeepForest that detects individual trees in high resolution RGB imagery using deep learning. While deep learning has proven highly effective in a range of computer vision tasks, it requires large amounts of training data that are typically difficult to obtain </description> 
+                        <creator>Marconi, Sergio</creator> 
+                        <creator>Aubry-Kientz, Mélaine</creator> 
+                        <creator>Vincent, Gregoire</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                     </result> 
+                     <result objidentifier="od______2191::0e755c6549b938af63c3a57322ae5ae1">
+            	           <creator>Weinstein, Ben</creator> 
+                        <creator>Senyondo, Henry</creator> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <creator>White, Ethan</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">DeepForest: A Python package for RGB deep learning tree crown delineation</title> 
+                        <description>Remote sensing of forested landscapes can transform the speed, scale and cost of forest research. The delineation of individual trees in remote sensing images is an essential task in forest analysis. Here we introduce a new Python package, DeepForest that detects individual trees in high resolution RGB imagery using deep learning. While deep learning has proven highly effective in a range of computer vision tasks, it requires large amounts of training data that are typically difficult to obtain </description> 
+                        <creator>Marconi, Sergio</creator> 
+                        <creator>Aubry-Kientz, Mélaine</creator> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="HAL-IRD" id="opendoar____::71560ce98c8250ce57a6a970c9991a5f"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <fulltext>https://hal.inrae.fr/hal-03073497v1/file/2041-210X.13472.pdf</fulltext> 
+                           <url>https://hal.inrae.fr/hal-03073497v1/document</url> 
+                           <url>https://hal.inrae.fr/hal-03073497v1</url> 
+                           <url>https://doi.org/10.1111/2041-210x.13472</url> 
+            		             <webresource>
+            		                <url>https://hal.inrae.fr/hal-03073497v1/document</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://hal.inrae.fr/hal-03073497v1</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://doi.org/10.1111/2041-210x.13472</url>
+            		             </webresource> 
+            	           </instance> 
+                        <collectedfrom name="HAL-IRD" id="opendoar____::71560ce98c8250ce57a6a970c9991a5f"/> 
+                        <creator>Vincent, Gregoire</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                     </result> 
+                     <result objidentifier="od_______932::aa2e585be8df69ea7ab2ad4eee76b880">
+            	           <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">DeepForest : A Python package for RGB deep learning tree crown delineation</title> 
+                        <creator>Senyondo, H.</creator> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Horizon / Pleins textes"
+                                     id="opendoar____::d2ed45a52bc0edfa11c2064e9edee8bf"/> 
+                           <dateofacceptance>2020-01-01</dateofacceptance> 
+                           <instancetype classid="0038" classname="Other literature type"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://www.documentation.ird.fr/hor/fdi:010079836</url> 
+            		             <webresource>
+            		                <url>http://www.documentation.ird.fr/hor/fdi:010079836</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>White, E. P.</creator> 
+                        <creator>Weinstein, B.</creator> 
+                        <description>Remote sensing of forested landscapes can transform the speed, scale and cost of forest research. The delineation of individual trees in remote sensing images is an essential task in forest analysis. Here we introduce a new Python package, DeepForest that detects individual trees in high resolution RGB imagery using deep learning. While deep learning has proven highly effective in a range of computer vision tasks, it requires large amounts of training data that are typically difficult to obtain </description> 
+                        <creator>Vincent, Grégoire</creator> 
+                        <creator>Marconi, S.</creator> 
+                        <collectedfrom name="Horizon / Pleins textes"
+                                       id="opendoar____::d2ed45a52bc0edfa11c2064e9edee8bf"/> 
+                        <creator>Aubry-Kientz, M.</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                     </result> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1101/2020.07.07.191551</pid> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>CC BY ND</license> 
+            	           <webresource>
+            	              <url>https://www.biorxiv.org/content/biorxiv/early/2020/07/08/2020.07.07.191551.full.pdf</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <dateofacceptance>2020-07-08</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <instancetype classid="0038" classname="Other literature type"
+                                      schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1101/2020.07.07.191551</pid> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">3041580646</alternateidentifier> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">3041580646</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1101/2020.07.07.191551</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1101/2020.07.07.191551</alternateidentifier> 
+                        <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>CC BY ND</license> 
+            	           <webresource>
+            	              <url>https://doi.org/10.1101/2020.07.07.191551</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="HAL INRAE" id="opendoar____::c7a9f13a6c0940277d46706c7ca32601"/> 
+                        <collectedfrom name="HAL-IRD" id="opendoar____::71560ce98c8250ce57a6a970c9991a5f"/> 
+                        <hostedby name="HAL-IRD" id="opendoar____::71560ce98c8250ce57a6a970c9991a5f"/> 
+                        <hostedby name="HAL INRAE" id="opendoar____::c7a9f13a6c0940277d46706c7ca32601"/> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1111/2041-210x.13472</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1111/2041-210x.13472</alternateidentifier> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>CC BY</license> 
+                        <fulltext>https://hal.inrae.fr/hal-03073497v1/file/2041-210X.13472.pdf</fulltext> 
+            	           <webresource>
+            	              <url>https://hal.inrae.fr/hal-03073497v1/document</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Bielefeld Academic Search Engine (BASE)"
+                                       id="openaire____::df45502607927471ecf8a6ae83683ff5"/> 
+                        <collectedfrom name="Bielefeld Academic Search Engine (BASE)"
+                                       id="openaire____::df45502607927471ecf8a6ae83683ff5"/> 
+                        <hostedby name="Institut National de la Recherche Agronomique: ProdINRA"
+                                  id="opendoar____::b710915795b9e9c02cf10d6d2bdb688c"/> 
+                        <hostedby name="CIRAD: HAL (Agricultural Research for Development)"
+                                  id="opendoar____::0dbb3fb9a5cd1d5f8a9075b5bb8070aa"/> 
+                        <dateofacceptance>2020-12-01</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1111/2041-210x.13472</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1111/2041-210x.13472</alternateidentifier> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://doi.org/https://doi.org/10.1111/2041-210X.13472</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Horizon / Pleins textes"
+                                       id="opendoar____::d2ed45a52bc0edfa11c2064e9edee8bf"/> 
+                        <hostedby name="Horizon / Pleins textes"
+                                  id="opendoar____::d2ed45a52bc0edfa11c2064e9edee8bf"/> 
+                        <dateofacceptance>2020-01-01</dateofacceptance> 
+                        <instancetype classid="0038" classname="Other literature type"
+                                      schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>http://www.documentation.ird.fr/hor/fdi:010079836</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <hostedby name="Methods in Ecology and Evolution"
+                                  id="doajarticles::d1a164398d8d564ca3e4870423a63516"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <dateofacceptance>2020-10-16</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1111/2041-210x.13472</pid> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1111/2041-210x.13472</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.1111/2041-210x.13472</alternateidentifier> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">3082919689</alternateidentifier> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">3082919689</alternateidentifier> 
+                        <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>Wiley Online Library User Agreement</license> 
+            	           <webresource>
+            	              <url>https://doi.org/10.1111/2041-210x.13472</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <hostedby name="Methods in Ecology and Evolution"
+                                  id="doajarticles::d1a164398d8d564ca3e4870423a63516"/> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1111/2041-210x.13472</pid> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>publisher-specific, author manuscript</license> 
+            	           <webresource>
+            	              <url>https://rss.onlinelibrary.wiley.com/doi/am-pdf/10.1111/2041-210x.13472</url>
+            	           </webresource> 
+                     </instance> 
+                  </children>
+               </oaf:result>
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Weinstein, B. (2020, March 21). weecology/NeonTreeEvaluation: Zenodo Release (Version 1.1). eZenodo. http://doi.org/10.5281/zenodo.3723357 Zhu, cX.X., Tuia, D., Mou, L., Xia, G.-S., Zhang, L., Xu, F., Fraundorfer, F., 2017. Deep Learning in Remote Sensing: A Comprehensive Review and List of Resources. IEEE Geoscci.Remote Sens. Mag. 5, 8-36. https://doi.org/10.1109/MGRS.2017.2762307</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Weinstein, B. (2020, March 21). weecology/NeonTreeEvaluation: Zenodo Release (Version 1.1). eZenodo. http://doi.org/10.5281/zenodo.3723357 Zhu, cX.X., Tuia, D., Mou, L., Xia, G.-S., Zhang, L., Xu, F., Fraundorfer, F., 2017. Deep Learning in Remote Sensing: A Comprehensive Review and List of Resources. IEEE Geoscci.Remote Sens. Mag. 5, 8-36. https://doi.org/10.1109/MGRS.2017.2762307</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Weinstein, B. (2020, March 21). weecology/NeonTreeEvaluation: Zenodo Release (Version 1.1). eZenodo. http://doi.org/10.5281/zenodo.3723357 Zhu, cX.X., Tuia, D., Mou, L., Xia, G.-S., Zhang, L., Xu, F., Fraundorfer, F., 2017. Deep Learning in Remote Sensing: A Comprehensive Review and List of Resources. IEEE Geoscci.Remote Sens. Mag. 5, 8-36. https://doi.org/10.1109/MGRS.2017.2762307</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Weinstein, B. (2020, March 21). weecology/NeonTreeEvaluation: Zenodo Release (Version 1.1). eZenodo. http://doi.org/10.5281/zenodo.3723357 Zhu, cX.X., Tuia, D., Mou, L., Xia, G.-S., Zhang, L., Xu, F., Fraundorfer, F., 2017. Deep Learning in Remote Sensing: A Comprehensive Review and List of Resources. IEEE Geoscci.Remote Sens. Mag. 5, 8-36. https://doi.org/10.1109/MGRS.2017.2762307</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Weinstein, B. (2020, March 21). weecology/NeonTreeEvaluation: Zenodo Release (Version 1.1). eZenodo. http://doi.org/10.5281/zenodo.3723357 Zhu, cX.X., Tuia, D., Mou, L., Xia, G.-S., Zhang, L., Xu, F., Fraundorfer, F., 2017. Deep Learning in Remote Sensing: A Comprehensive Review and List of Resources. IEEE Geoscci.Remote Sens. Mag. 5, 8-36. https://doi.org/10.1109/MGRS.2017.2762307</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Weinstein, B. (2020, March 21). weecology/NeonTreeEvaluation: Zenodo Release (Version 1.1). eZenodo. http://doi.org/10.5281/zenodo.3723357 Zhu, cX.X., Tuia, D., Mou, L., Xia, G.-S., Zhang, L., Xu, F., Fraundorfer, F., 2017. Deep Learning in Remote Sensing: A Comprehensive Review and List of Resources. IEEE Geoscci.Remote Sens. Mag. 5, 8-36. https://doi.org/10.1109/MGRS.2017.2762307</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+            </oaf:entity>
+         </metadata>
+      </result>
+						</results>
+	  <browseResults>
+								</browseResults>
+</response>

@@ -86,9 +86,9 @@ def test_the_stage_e_rungs_are_registered_in_order_whatever_is_imported_first(fi
 
 
 def test_every_stage_e_host_has_a_policy_line_and_an_unnamed_host_is_refused():
-    """Every Stage E host has its legitimate line. E5's two are switched OFF by S4.5 decision D39 (`off_why`), so
-    they are read here under the test's explicit override (`C2C.route_switched_on`); the switch itself is
-    qc/test_litkb_s45_cc_off.py's."""
+    """Every Stage E host has its legitimate line. E5's two were switched OFF by S4.5 decision D39 (`off_why`) and
+    back ON by D53, so they are read here under the test's explicit override (`C2C.route_switched_on`, a no-op on
+    the D53 table) whichever table is in force; the switch itself is qc/test_litkb_s45_cc_off.py's."""
     from litkb.acquire import policy as P
 
     with C2C.route_switched_on("commoncrawl"):
@@ -100,6 +100,26 @@ def test_every_stage_e_host_has_a_policy_line_and_an_unnamed_host_is_refused():
         assert not P.decide(route, "evil.example").allowed
         assert not P.decide(route, "sci.bban.top").allowed
     assert not any(p.host == "*" for p in P.POLICY if p.route in ("wayback", "ia", "commoncrawl"))
+
+
+def test_no_tracked_cassette_carries_the_clients_own_address_in_an_x_ip_header():
+    """S4.5 decision D58 (integrator-w4; auditor-FX-V F10, auditor-FX-E F6): archive.org echoes the CLIENT'S own public
+    address in an `X-IP` response header, and cassettes are TRACKED. Every `X-IP` header of every tracked cassette index
+    under qc/fixtures/litkb_cassettes/ is the mask `<CLIENT-IP>` — the three in this module's stage_e recording were
+    masked by integrator-w4 (its provenance.json says so); the ladder-1 copies (stage_e_fx, typing_fx_v, ...) were
+    masked when copied."""
+    root = SCRIPTS / "qc" / "fixtures" / "litkb_cassettes"
+    seen = 0
+    for idx in sorted(root.glob("*/index.jsonl")):
+        for n, ln in enumerate(idx.read_bytes().splitlines()[1:], 2):
+            if not ln.strip():
+                continue
+            headers = (json.loads(ln).get("response") or {}).get("headers") or {}
+            for k, v in (headers.items() if isinstance(headers, dict) else headers):
+                if str(k).lower() == "x-ip":
+                    seen += 1
+                    assert v == "<CLIENT-IP>", f"{idx.parent.name}/index.jsonl line {n}: an unmasked X-IP header"
+    assert seen >= 4, seen          # stage_e's three and stage_e_fx's one, at least
 
 
 # ── the recovery candidates ─────────────────────────────────────────────────────────────────
@@ -618,6 +638,46 @@ def test_a_dead_link_met_in_this_run_reaches_stage_e(world, monkeypatch):
 
 
 @pg_only
+def test_d62_the_ladders_challenge_typing_reaches_the_candidate_rule(world, monkeypatch):
+    """S4.5 decision D62, auditor-cand4-r2 N1 (R2M1): the seam `run._record_result` -> `recovery.urls_of(...,
+    sub_status=sub)`. Crossref (a CONSTRUCTED stub answer) links a PDF URL; that URL answers 200 with the REAL
+    Springer "Client Challenge" page (qc/fixtures/litkb_landing_pages/springer/hop2.body, served here at a
+    CONSTRUCTED location), so the ladder types the crossref-link row `blocked/challenge_or_bot_check`. The request
+    gate is made BLIND to that host (CONSTRUCTED: its answer is dropped from the gate's record), so only the ladder's
+    typing can say the 200 was a challenge — and E1 must be asked about the URL in the same pass (a CONSTRUCTED
+    availability answer with no capture)."""
+    import urllib.parse
+
+    from litkb.acquire import backoff, open_access
+
+    monkeypatch.setattr(open_access, "unpaywall_email", lambda: "c2c-test@example.invalid")
+    pdf_url = "https://link.springer.com/content/pdf/10.5555/d62-seam.pdf"
+    body = (SCRIPTS / "qc" / "fixtures" / "litkb_landing_pages" / "springer" / "hop2.body").read_bytes()
+    orig_after = backoff.Gate.after
+
+    def blind_after(self, url, status, headers, body_):
+        orig_after(self, url, status, headers, body_)
+        if "link.springer.com" in url:
+            self.observed.pop()
+    monkeypatch.setattr(backoff.Gate, "after", blind_after)
+    ws = world.ws("d62-seam")
+    work = world.work(ws)
+    xref = C2C.StubClient({
+        "api.crossref.org": _json({"status": "ok", "message": {
+            "DOI": work["doi"], "type": "journal-article",
+            "link": [{"URL": pdf_url, "content-type": "application/pdf", "content-version": "vor"}]}}),
+        "link.springer.com": (200, {"content-type": "text/html; charset=utf-8"}, body)})
+    wb = C2C.StubClient({"archive.org/wayback/available": _json({"url": pdf_url, "archived_snapshots": {}}),
+                         "/cdx/search/cdx": (200, {"Content-Type": "application/json"}, b"[]")})
+    world.ladder(ws, work, {"crossref-link": xref, "wayback": wb}, routes=("crossref-link", "wayback"))
+    (status, sub, _detail), = C2C._rows(world.owner, work["work_id"], "crossref-link")
+    assert (status, sub) == ("blocked", "challenge_or_bot_check"), (status, sub)
+    asked = [urllib.parse.parse_qs(urllib.parse.urlsplit(u).query).get("url", [""])[0]
+             for u in wb.calls if "/wayback/available" in u]
+    assert asked == [pdf_url], wb.calls
+
+
+@pg_only
 def test_a_stage_e_rung_with_no_dead_url_is_a_named_skip(world):
     """The rung's own no-candidate skip, so E5 is ACTIVE here under the test's explicit override (S4.5 decision
     D39 switched its hosts off: without it the ladder would record `policy_refused` before the rung is reached)."""
@@ -666,11 +726,14 @@ def test_the_recorded_census_capture_lands_and_binds_as_its_own_work_in_acquire_
 @pytest.mark.parametrize("name", sorted(C2C.FIRES))
 def test_every_c2c_fire_holds_its_bound_on_control_and_breaks_it_on_the_known_bad(world, name, tmp_path):
     """The FIRES the harness re-fires cold (`litkb_acceptance.py hardening --fire`), run as tests: control inside the
-    bound, known-bad outside it."""
+    bound, known-bad outside it. Through the harness's own runner (`hardening_fire`: the database reset before each
+    arm, as the cold re-fire does it) — an arm must not read the rows the other arm wrote (S4.5 fix wave FX-E: the
+    wrong-work fire's control refuses the census bytes, which the rejected-hash lookup would then name `known-bad`
+    in a known-bad arm run on the same database)."""
     A = _load("_litkb_acceptance_for_c2c", INSTR / "litkb_acceptance.py")
-    spec = C2C.FIRES[name]
-    got = {arm: int(spec["run"](world.owner, arm, tmp_path / arm)) for arm in ("control", "known_bad")}
-    assert A._bound_ok(got["control"], spec["bound"]) and not A._bound_ok(got["known_bad"], spec["bound"]), got
+    assert name in C2C.FIRES
+    res = A.hardening_fire(name, db=world.owner.info.dbname, conn=world.owner, workroot=tmp_path)
+    assert res["fired"], res["lines"]
 
 
 def test_hardening_loads_the_c2c_module_and_every_fire_has_a_bound():
@@ -841,10 +904,12 @@ def test_the_ledger_offers_only_urls_an_earlier_attempt_did_not_succeed_on():
     re-asked of the archives. A CONSTRUCTED ledger, read through a stand-in connection."""
     from litkb.acquire import recovery as R
 
-    rows = [("open_access", "ok", "https://ok.example/p.pdf", None, None, None),
-            ("open_access", "measured", None, "https://measured.example/p.pdf", None, None),
-            ("open_access", "no-oa-copy", "https://dead.example/p.pdf", None, None, ["h:404"]),
-            ("scihub", "blocked", "https://sci-hub.ru/10.1/x", None, None, None)]
+    # the 7th column is `terminal_status_code` (S4.5 decision D60 reads it; these rows' codes are the dead ones), the
+    # 8th `sub_status` (S4.5 decision D62 reads it)
+    rows = [("open_access", "ok", "https://ok.example/p.pdf", None, None, None, 200, None),
+            ("open_access", "measured", None, "https://measured.example/p.pdf", None, None, None, None),
+            ("open_access", "no-oa-copy", "https://dead.example/p.pdf", None, None, ["h:404"], 404, None),
+            ("scihub", "blocked", "https://sci-hub.ru/10.1/x", None, None, None, 403, "challenge_or_bot_check")]
 
     class _Cur:
         def fetchall(self):

@@ -22,7 +22,12 @@ THE ANSWER: a PDF -> `downloaded`; a 200 download that is not a PDF -> `bad-file
 own rule on that one response (`litkb.acquire.ledger.type_blocked`: a 401 is `identity_required`, a 403 is checked
 for a challenge signature first — CONTRACTS X7 "do not treat 401 like 403"); items identified but none holding a
 PDF it would serve (no PDF listed, or the listed PDF answered 404/410) -> `not-in-archive`/`no_pdf_link`; no item
-identified (or only dark ones) -> `not-in-archive`/`not_in_corpus`.
+identified (or only dark ones) -> `not-in-archive`/`not_in_corpus`. Only the search's own ANSWER can say "no item"
+(S4.5 fix wave FX-E item 4): a 200 that is not its answer (`search_error`: the search's `error` object, not JSON, no
+`response`), or an identified item whose metadata answer is not one, -> `api-error`, not retriable (the same query
+fails the same way), never `not_in_corpus`. A first author carrying a Lucene grouping character is searched with it
+made a space (`GROUP_CHARS`), so the query stays balanced. A PDF the item serves is then checked against the record's
+dates (`litkb.acquire.recovery.checked_capture`, as E1's).
 
 NOT BUILT here: the `{identifier}_djvu.txt` OCR text the survey lists (ASSERTED there; a text kind, not a PDF),
 the full-text search API (`be-api.us.archive.org/ia-pub-fts-api`), and borrowing.
@@ -66,6 +71,26 @@ def _phrase(s):
     return " ".join(str(s or "").replace('"', " ").replace("\\", " ").split())
 
 
+#: The characters that open or close a Lucene group, a range, or a field inside the `creator:( ... )` group
+#: (Lucene's classic query syntax: `( )` grouping, `[ ] { }` ranges, `:` a field — builder-FX-E's reading of Lucene's
+#: documented special characters, not checked against the Internet Archive's parser this session). A first author
+#: that carries one broke the whole query: hardening-1's 10.5067/doc/ceoswgcv/lpv/lc.001 (L007) sent
+#: `creator:(Land Product Validation Subgroup (Working Group on Calibration and Validation)` — the record's corporate
+#: name lost its closing parenthesis — and the search answered 200 `{"error": "a structure was opened but not closed
+#: (group open at position 1)"}` (referee-vocabulary; S4.5 fix wave FX-E item 4). A name without them builds the
+#: byte-identical query it always did.
+GROUP_CHARS = "()[]{}:"
+
+
+def _group_body(s):
+    """A Lucene group body for a name: `_phrase`'s characters and every `GROUP_CHARS` character made a space."""
+    out = _phrase(s)
+    # BEGIN guard: a name that carries a Lucene grouping character never unbalances the item search
+    out = " ".join(out.translate({ord(c): " " for c in GROUP_CHARS}).split())
+    # END guard: a name that carries a Lucene grouping character never unbalances the item search
+    return out
+
+
 def query(work):
     """The advancedsearch query for a work (step 1). '' when the work gives nothing to search by."""
     parts = []
@@ -74,7 +99,7 @@ def query(work):
     titles = [t for t in (work.get("title_forms") or [work.get("title")]) if t]
     if titles:
         t = " OR ".join(f'title:"{_phrase(x)}"' for x in titles)
-        surname = _phrase(work.get("first_author"))
+        surname = _group_body(work.get("first_author"))
         parts.append(f"(({t}) AND creator:({surname}))" if surname else f"({t})")
     if not parts:
         return ""
@@ -93,6 +118,28 @@ def _list(v):
     if v is None:
         return []
     return [str(x) for x in v] if isinstance(v, list) else [str(v)]
+
+
+def search_error(body):
+    """-> "" when `body` is the item search's own ANSWER — a JSON object carrying a `response` object and no `error`
+    (the shape of every one of hardening-1's 98 answered searches: `responseHeader.status` 0, `response.docs`) — else
+    why it is not one: not JSON, the search's `error` object (hardening-1's L007: `{"error": "a structure was opened
+    but not closed ..."}` at HTTP 200), or no `response`. Only an answer can say "no item" (S4.5 fix wave FX-E item 4:
+    an IA query error is `api-error`, never `not_in_corpus`)."""
+    try:
+        data = json.loads((body or b"").decode("utf-8", "replace"))
+    except ValueError:
+        return "the body is not JSON"
+    if not isinstance(data, dict):
+        return "the body is not a JSON object"
+    if data.get("error"):
+        return f"the search answered an error: {str(data['error'])[:200]}"
+    if not isinstance(data.get("response"), dict):
+        return "the body carries no `response` object"
+    status = (data.get("responseHeader") or {}).get("status") if isinstance(data.get("responseHeader"), dict) else 0
+    if status not in (0, None):
+        return f"the search's responseHeader.status is {status!r}"
+    return ""
 
 
 def parse_search(body):
@@ -210,10 +257,18 @@ def fetch_ia(work, client, *, pacer=None, decide=None):
         return _result(ask, status="api-error", retriable=True, detail=f"the item search answered {st}")
     if st != 200:
         return _result(ask, status="api-error", retriable=False, detail=f"the item search answered {st}")
+    # BEGIN guard: an item search that answered no answer is an api-error, never "no item"
+    err = search_error(body)
+    if err:
+        return _result(ask, status="api-error", retriable=False,
+                       detail=f"the item search answered 200 without its answer ({err}): nothing is known about "
+                              f"the archive's holdings")
+    # END guard: an item search that answered no answer is an api-error, never "no item"
     hits = parse_search(body)
     chosen = [(h, why) for h in hits for why in [identified(h, work)] if why][:ITEMS_OPENED]
     notes = [f"{len(hits)} hit(s), {len(chosen)} identified"]
     restricted, refused, served_html, no_pdf = [], [], None, 0
+    unread = []                 # identified items whose metadata answer was no answer (FX-E item 4)
     for hit, why in chosen:
         ident = str(hit["identifier"])
         got = ask.get(METADATA.format(identifier=urllib.parse.quote(ident, safe="")), "application/json",
@@ -224,9 +279,15 @@ def fetch_ia(work, client, *, pacer=None, decide=None):
         if _transient(st):
             return _result(ask, status="api-error", retriable=True, detail=f"the metadata API answered {st}")
         try:
-            meta = json.loads(body.decode("utf-8", "replace")) if st == 200 else {}
+            meta = json.loads(body.decode("utf-8", "replace")) if st == 200 else None
         except ValueError:
-            meta = {}
+            meta = None
+        # BEGIN guard: an identified item whose metadata answer is no answer is never read as dark
+        if not isinstance(meta, dict):
+            unread.append(ident)
+            notes.append(f"{ident} ({why}): the metadata API answered {st} without its answer")
+            continue
+        # END guard: an identified item whose metadata answer is no answer is never read as dark
         why_not = restriction(meta)
         if why_not:
             notes.append(f"{ident} ({why}): {why_not}")
@@ -274,13 +335,21 @@ def fetch_ia(work, client, *, pacer=None, decide=None):
                        detail="; ".join(notes))
     if ask.refused and not chosen:
         return _result(ask, status="skipped", sub_status="policy_refused", detail="; ".join(notes))
+    if unread:
+        # an identified item was never read: whether it holds the work's PDF is unknown, so never "no item"
+        return _result(ask, status="api-error", retriable=False, detail="; ".join(notes))
     sub = "no_pdf_link" if no_pdf else "not_in_corpus"
     return _result(ask, status="not-in-archive", sub_status=sub, retriable=False, detail="; ".join(notes))
 
 
 def _rung(work, ctx):
-    return fetch_ia(work, ctx.clients.get(ROUTE) or _client(), pacer=ctx.pacer,
-                    decide=lambda host: ctx.decide(ROUTE, host))
+    r = fetch_ia(work, ctx.clients.get(ROUTE) or _client(), pacer=ctx.pacer,
+                 decide=lambda host: ctx.decide(ROUTE, host))
+    # S4.5 fix wave FX-E item 3: the Stage E identity rule on an item's PDF too (`recovery.checked_capture`)
+    # BEGIN guard: an Internet Archive PDF whose own dates contradict the record is never a conversion
+    r = _recovery.checked_capture(work, r)
+    # END guard: an Internet Archive PDF whose own dates contradict the record is never a conversion
+    return r
 
 
 def _client():

@@ -133,8 +133,13 @@ SHADOW_CORPUS_FROZEN_AT = "2022-02-12"
 #: switch rather than a code path). True under `litkb-shadow-hosts` (a)-(d), all granted.
 SHADOW_TIER_ENABLED = True
 
-#: S4.5 decision D39 (builder-fix6): Stage E5's two hosts are switched OFF with this reason, the orchestrator's
-#: measurement during the live run; every skip the ladder records for them carries it.
+#: S4.5 decision D39 (builder-fix6): Stage E5's two hosts were switched OFF with this reason, the orchestrator's
+#: measurement during the live run hardening-1; every skip the ladder recorded for them from the switch on carries it.
+#: HISTORY since S4.5 decision D53 (2026-09-24 ~14:40, integrator-w4): no line of the table carries it any more — the
+#: orchestrator measured the index serving again (`collinfo.json` 200 in 0.40 s; one index query of CC-MAIN-2025-33 200
+#: in 0.72 s with real records) and Kam's goal ("maximum coverage of literature ... testing all our established
+#: sources") puts E5 back ON so hardening-2 MEASURES its yield. It stays the hardening-1 measurement the D39 mechanism
+#: switched on (`PolicyLine.off_why`), which is how the orchestrator switches E5 off again if the index fails again.
 COMMONCRAWL_OFF_WHY = ("switched off 2026-09-24 (S4.5 decision D39): in the live run hardening-1 every Common "
                        "Crawl attempt that was not an ordinary 404 ended on the index answering 502/504 (13 of "
                        "14 attempts; one transport failure), attempts took up to ~300 s, and a direct probe at "
@@ -151,10 +156,11 @@ POLICY = (
                "Stage E1: the CDX index and a capture's raw bytes (the id_/if_ modifiers)"),
     PolicyLine("ia", "archive.org", "legitimate",
                "Stage E3: Internet Archive item search, item metadata and an item's file (plan item 6)"),
+    # S4.5 decision D53: E5's two lines are ON again (D39's `off_why=COMMONCRAWL_OFF_WHY` removed from both)
     PolicyLine("commoncrawl", "index.commoncrawl.org", "legitimate",
-               "Stage E5: the Common Crawl crawl list and index (plan item 6)", off_why=COMMONCRAWL_OFF_WHY),
+               "Stage E5: the Common Crawl crawl list and index (plan item 6)"),
     PolicyLine("commoncrawl", "data.commoncrawl.org", "legitimate",
-               "Stage E5: one WARC record by byte range (survey §1 E5-RG)", off_why=COMMONCRAWL_OFF_WHY),
+               "Stage E5: one WARC record by byte range (survey §1 E5-RG)"),
     PolicyLine("annas", "annas-archive.gl", "shadow", "litkb-shadow-hosts (a)", SHADOW_CORPUS_FROZEN_AT),
     PolicyLine("scihub", "sci-hub.ru", "shadow", "litkb-shadow-hosts (a)", SHADOW_CORPUS_FROZEN_AT),
     PolicyLine("scihub", "sci-hub.ren", "shadow", "litkb-shadow-hosts (a)", SHADOW_CORPUS_FROZEN_AT),

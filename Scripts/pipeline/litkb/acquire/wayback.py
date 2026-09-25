@@ -17,7 +17,14 @@ For each candidate URL (`litkb.acquire.recovery`, the ladder's `recovery_urls`),
      fetched; at most `CAPTURES_PER_URL` captures per URL in all.
 
 THE ANSWER (the rung dict; the ladder records, types, lands or measures it):
-  * a PDF                      -> `downloaded` (the bytes go through THE acceptance test, `run._land`)
+  * a PDF                      -> `downloaded` (the bytes go through THE acceptance test, `run._land`) — unless the
+                                  PDF's own printed dates contradict the work's record (`identity`,
+                                  `recovery.capture_identity`; S4.5 fix wave FX-E item 3, referee-stage-e L022's
+                                  census capture): that capture is checked WHERE IT IS FOUND and E1 moves on to the
+                                  next candidate URL (S4.5 decision D55, integrator-w4) — a wrong-work capture never
+                                  ends E1 before a later candidate's right copy is tried. Only when no candidate
+                                  gives the work: `hash-mismatch`, the first wrong-work bytes kept, never landed and
+                                  never `measured`
   * a 200 capture that is not a PDF, and no PDF anywhere
                                -> `bad-file`, the first such body KEPT in `rejected` (the ladder quarantines and
                                   the acceptance test types it — the wrapper page is `html_response`)
@@ -193,14 +200,18 @@ def _result(ask, **kw):
     return out
 
 
-def fetch_wayback(urls, client, *, pacer=None, decide=None):
+def fetch_wayback(urls, client, *, pacer=None, decide=None, identity=None):
     """-> the rung dict for these candidate URLs (module docstring). `decide(host)` is the pre-fetch policy
-    (`RungContext.decide("wayback", host)`); None asks without one (a unit test's stub client)."""
+    (`RungContext.decide("wayback", host)`); None asks without one (a unit test's stub client). `identity(pdf)` ->
+    "" or the contradiction (`recovery.capture_identity` for the work, S4.5 decision D55): applied to EVERY captured
+    PDF where it is found; None judges nothing (a unit test's)."""
     ask = _Ask(client, pacer, decide)
     served_html = None          # (body, capture url, terminal) of the first 200 capture that was not a PDF
+    wrong_work = None           # (body, capture url, detail, why, terminal): the first captured PDF of ANOTHER work (D55)
     captures_seen = 0
     unproven = []               # (url, why) for every URL whose answers do not PROVE it was never archived
     for url in urls:
+        another_work = False    # this candidate URL's capture was a PDF of another work: move on (D55)
         tried_here = set()
         indexed = set()         # captures the availability API or the CDX index named for this URL
         order = []
@@ -251,16 +262,37 @@ def fetch_wayback(urls, client, *, pacer=None, decide=None):
                     return _result(ask, status="api-error", retriable=True,
                                    detail=f"the capture answered {st}: backing off (Retry-After honoured)")
                 if st == 200 and _accept.quick_magic(body):
-                    return _result(ask, status="downloaded", pdf=body, source_url=cap, kind="pdf",
-                                   detail=f"archived copy of {url} captured {ts}")
+                    why = ""
+                    # BEGIN guard: a recovered capture whose own dates contradict the record is never a conversion
+                    # (S4.5 fix wave FX-E item 3; decision D55: judged per candidate, where the capture is found)
+                    why = identity(body) if identity is not None else ""
+                    # END guard: a recovered capture whose own dates contradict the record is never a conversion
+                    if not why:
+                        return _result(ask, status="downloaded", pdf=body, source_url=cap, kind="pdf",
+                                       detail=f"archived copy of {url} captured {ts}")
+                    if wrong_work is None:
+                        wrong_work = (body, cap, f"archived copy of {url} captured {ts}: {why}", why,
+                                      dict(ask.terminal))
+                    another_work = True
+                    break
                 if st == 200 and body and served_html is None:
                     served_html = (body, cap, dict(ask.terminal))
+            if another_work:        # this URL's capture is another work's: its other captures are not asked
+                break
+        if another_work:
+            continue
         if not cdx_asked:
             missing.append("the CDX index was never asked")
         if indexed:
             missing.append(f"{len(indexed)} capture(s) indexed, none served a file")
         if missing:
             unproven.append((url, "; ".join(missing)))
+    if wrong_work is not None:
+        # no candidate gave the work: the first wrong-work PDF, its bytes kept (the ladder quarantines them in acquire
+        # mode and names their sha in MEASURE mode) — "a real PDF that is not the record's" (`run.Rung`)
+        body, cap, detail, why, terminal = wrong_work
+        return _result(ask, status="hash-mismatch", pdf=body, source_url=cap, kind="pdf", reason=why, detail=detail,
+                       terminal=terminal)
     if served_html is not None:
         body, cap, terminal = served_html
         return _result(ask, status="bad-file", rejected=body, rejected_url=cap, terminal=terminal,
@@ -289,8 +321,11 @@ def _rung(work, ctx):
     urls, refused = _recovery.candidates(ctx.recovery_urls)
     if not urls:
         return _recovery.no_candidates(ROUTE, refused)
+    # S4.5 fix wave FX-E item 3 (referee-stage-e L022): a capture of ANOTHER work is neither landed nor measured —
+    # judged per candidate inside `fetch_wayback` (S4.5 decision D55), so a later candidate's right copy is still tried
     r = fetch_wayback(urls, ctx.clients.get(ROUTE) or _client(), pacer=ctx.pacer,
-                      decide=lambda host: ctx.decide(ROUTE, host))
+                      decide=lambda host: ctx.decide(ROUTE, host),
+                      identity=lambda pdf: _recovery.capture_identity(work, pdf))
     return _recovery.with_candidates(r, urls, refused)
 
 

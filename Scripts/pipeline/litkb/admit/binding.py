@@ -32,6 +32,7 @@ database re-checks it (litkb._check_binding, migrations 0013 and 0014).
 Reads only. The PDF is never moved, renamed or written: the first-page text goes to a temporary directory.
 """
 import re
+import shutil
 import subprocess
 import tempfile
 import unicodedata
@@ -118,16 +119,52 @@ def _window_text(scored, start, n):
     return " ".join(s for s in scored[start:start + n] if s)
 
 
+#: The text encoding `first_page_text` asks pdftotext for, and reads the page back in (S4.5 decision D59). The binder
+#: runs whichever `pdftotext` PATH finds, and this machine holds two: Git for Windows' xpdf 4.00 (`/mingw64/bin`,
+#: first on Git Bash's PATH), whose DEFAULT output is Latin-1, and Poppler 25.07 (first on PowerShell's), whose default
+#: is UTF-8. Read as UTF-8, xpdf's Latin-1 letter is U+FFFD, so a first author with a non-ASCII letter (Gräler, L145;
+#: Delgado-Quirós, L167) failed check 3 when a run was launched from Git Bash and bound when it was launched from
+#: PowerShell (integrator-w4 Q3, auditor-cand4 N6, MEASURED on the whole-run replay). Both binaries accept `-enc
+#: UTF-8`; Poppler's output is unchanged by it. What it does NOT remove, MEASURED (integrator-w4 r2 on hardening-1's
+#: binding attempts): the two binaries' LAYOUT still differs where a PDF composes a letter from a base and a separate
+#: diacritic (L191, "Przewięźlikowski": xpdf spells "Przewie˛z´likowski" and so finds the registry's token
+#: "likowski"; Poppler does not) — which is why the freeze and the run record `pdftotext_version()`.
+PDFTOTEXT_ENCODING = "UTF-8"
+
+
 def first_page_text(pdf_path):
-    """pdftotext -f 1 -l 1 -layout into a temporary directory. '' when pdftotext is missing or fails."""
+    """pdftotext -f 1 -l 1 -layout -enc UTF-8 into a temporary directory, read back as UTF-8. '' when pdftotext is
+    missing or fails."""
+    enc = []                    # the unguarded default: the binary's own default encoding (xpdf's is Latin-1)
+    # BEGIN guard: binding reads page 1 in the encoding it asked pdftotext for, whichever binary PATH finds
+    enc = ["-enc", PDFTOTEXT_ENCODING]
+    # END guard: binding reads page 1 in the encoding it asked pdftotext for, whichever binary PATH finds
     with tempfile.TemporaryDirectory(prefix="litkb_bind_") as d:
         out = Path(d) / "p1.txt"
         try:
-            subprocess.run(["pdftotext", "-f", "1", "-l", "1", "-layout", str(pdf_path), str(out)],
+            subprocess.run(["pdftotext", "-f", "1", "-l", "1", "-layout", *enc, str(pdf_path), str(out)],
                            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return ""
         return out.read_text(encoding="utf-8", errors="replace") if out.exists() else ""
+
+
+def pdftotext_version():
+    """{"path", "version", "encoding"}: the `pdftotext` the binder would run from THIS process's PATH (`shutil.which`)
+    and the first line its `-v` prints ("pdftotext version 4.00" is xpdf's, "pdftotext version 25.07.0" Poppler's;
+    both print it on stderr), plus the encoding `first_page_text` asks for. The hardening freeze and the ladder run
+    driver record it (S4.5 decision D59), so a binding outcome can be read against the binary that produced it.
+    "path" None when no pdftotext is on PATH; "version" None when `-v` could not be run."""
+    path = shutil.which("pdftotext")
+    version = None
+    if path:
+        try:
+            r = subprocess.run([path, "-v"], capture_output=True, timeout=30)
+            lines = (r.stderr + r.stdout).decode("utf-8", "replace").splitlines()
+            version = next((ln.strip() for ln in lines if ln.strip()), None)
+        except (OSError, subprocess.TimeoutExpired):
+            version = None
+    return {"path": path, "version": version, "encoding": PDFTOTEXT_ENCODING}
 
 
 def pdf_info(pdf_path):

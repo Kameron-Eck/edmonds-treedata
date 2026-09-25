@@ -289,9 +289,17 @@ def test_a_real_landing_page_is_never_a_challenge_because_of_its_scripts():
     assert _classify(200, page) == "html_or_reader"
 
 
-def test_an_html_page_with_no_citation_metadata_is_an_interstitial_never_the_landing_page():
-    assert _classify(200, _page("", "<p>Please wait</p>"), purpose="page") == "challenge_or_bot_check"
-    assert _classify(200, _page("", "<p>Please wait</p>")) == "html_or_reader"
+def test_an_html_page_with_no_citation_metadata_is_a_plain_page_never_the_landing_page():
+    """C6-RG's marker-free rule ("no citation metadata = an interstitial") was REMOVED by builder-FX-V (S4.5 fix wave:
+    it decided 5 real DOI pages of the ladder-1 run and 0 was an interstitial — referee-stage-c, referee-vocabulary
+    class C; the recorded pages are pinned in qc/test_litkb_s45_typing.py). Such a page is a `plain_page`: read for its
+    pointers, never THE landing page, never a challenge. This test pinned the removed rule; it now pins its
+    replacement on the same CONSTRUCTED page."""
+    Lm = L()
+    page = _page("", "<p>Please wait</p>")
+    assert _classify(200, page, purpose="page") == "plain_page"
+    assert Lm.Page("https://x.example/p", 200, {}, page, "doi", "plain_page").readable
+    assert _classify(200, page) == "html_or_reader"
 
 
 def test_a_login_wall_on_the_chain_is_identity_required_even_with_a_captcha_on_it():
@@ -387,10 +395,12 @@ def test_a_supplementary_candidate_scores_below_zero_and_is_never_tried():
 
 
 def test_the_mdpi_cdn_slug_comes_from_the_venue_and_the_doi_code_and_the_article_is_padded():
+    # the volume is padded too (S4.5 fix wave, builder-FX-C): this test pinned `sensors-8-02161`, the exact URL the
+    # real L074 row saw the CDN answer 404 in the live run; qc/test_litkb_s45_fx_stage_c.py holds the evidence
     got = _cands("mdpi", "https://www.mdpi.com/1424-8220/8/4/2161", "", "10.3390/s8042161",
                  work={"venue": "Sensors"})
-    assert got[:2] == ["https://mdpi-res.com/d_attachment/sensors/sensors-8-02161/article_deploy/sensors-8-02161.pdf",
-                       "https://mdpi-res.com/d_attachment/s/s-8-02161/article_deploy/s-8-02161.pdf"]
+    assert got[:2] == ["https://mdpi-res.com/d_attachment/sensors/sensors-08-02161/article_deploy/sensors-08-02161.pdf",
+                       "https://mdpi-res.com/d_attachment/s/s-08-02161/article_deploy/s-08-02161.pdf"]
 
 
 def test_the_c3_rewrites_and_the_dedupe_key():
@@ -608,12 +618,14 @@ def test_importing_the_ladder_registers_the_landing_rung_as_stage_c_behind_a_leg
 
 def test_the_counter_module_names_only_plan_counters_and_every_fire_has_a_bound():
     """Every gated counter is a plan (b) name; every reported one is a plan name or one of the module's NAMED
-    additions, each with its reason (round 3: `landing_pages_after_stage_c`), never both."""
+    additions, each with its reason (round 3: `landing_pages_after_stage_c`; S4.5 decision D50, builder-FX-C:
+    `landing_pages_excused_bound_in_run`), never both."""
     acc = _load("litkb_acceptance")
     gated, reported = dict(acc.HARDENING_GATED), set(acc.HARDENING_REPORTED)
     beyond = set(H.REPORTED_BEYOND_PLAN)
     assert set(H.COUNTERS) <= set(gated) and set(H.REPORTED) <= reported | beyond
-    assert beyond == {"landing_pages_after_stage_c"} and not beyond & (reported | set(gated))
+    assert beyond == {"landing_pages_after_stage_c", "landing_pages_excused_bound_in_run"}
+    assert not beyond & (reported | set(gated))
     assert all(H.REPORTED_BEYOND_PLAN[n] for n in beyond) and beyond <= set(H.DETAILS)
     for name, f in H.FIRES.items():
         assert callable(f["run"]) and (f.get("bound") or gated.get(f["counter"])), name

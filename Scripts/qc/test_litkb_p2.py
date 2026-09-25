@@ -1552,19 +1552,26 @@ def test_acquire_from_file_quarantines_a_bad_file_of_its_own_and_refuses_anyone_
 
 
 @pg_only
-def test_acquire_recognises_a_file_already_on_disk(pg, tmp_path, monkeypatch):
+def test_acquire_lands_bytes_whose_only_copy_on_disk_no_files_row_holds(pg, tmp_path, monkeypatch):
+    """S4.5 fix wave FX-B (referee-stage-b N3; this test asserted the opposite until then): ONLY BYTES A `files` ROW
+    HOLDS MAKE A DUPLICATE. A copy lying in a topic folder that the database does not own used to answer
+    `duplicate-held` — and stop the ladder with the work still file-less (Kats_2019 on the ladder-1 run, L005). The
+    download now lands and binds; the unowned copy is named on the attempt and left exactly where it lies. The corpus
+    guard is the database dedupe: `test_acquire_recognises_a_file_already_in_the_database`."""
     _need_pdftotext()
     ws, w = pg.ws(), pg.session("litkb_writer")
     work, store = _admitted(pg, w, ws), _store(tmp_path)
     data = paper_pdf(work["title"], "T. Tester")
     held = store.root / "Validation" / "Tester_2020_held-copy.pdf"
     held.write_bytes(data)
+    before = _file_state(held)
     _oa(monkeypatch)
     out = _acquire(pg, w, ws, work, store, data)
-    assert out["outcome"] == "duplicate-held", out
-    assert out["detail"]["on_disk"] == ["Validation/Tester_2020_held-copy.pdf"]
-    assert _files_under(store.staging) == [] and _files_under(store.quarantine) == []
-    assert held.read_bytes() == data
+    assert out["outcome"] == "ok", out
+    assert out["detail"]["unowned_on_disk"] == ["Validation/Tester_2020_held-copy.pdf"], out["detail"]
+    rel = pg.one("SELECT rel_path FROM litkb.main_files WHERE work_id = %s", (work["work_id"],))[0]
+    assert rel == f"_litkb_staging/filed/{work['key']}.pdf" and (store.root / rel).read_bytes() == data
+    assert _files_under(store.quarantine) == [] and _file_state(held) == before
 
 
 @pg_only

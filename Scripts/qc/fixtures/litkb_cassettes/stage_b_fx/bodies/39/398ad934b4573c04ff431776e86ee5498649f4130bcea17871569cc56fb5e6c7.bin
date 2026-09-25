@@ -1,0 +1,2163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	  <header>
+		    <query>(oaftype exact result) and (resulttypeid exact publication) and ((pidclassid exact "doi" and pid exact "10.48550/arxiv.1909.10155"))</query>
+				  <locale>en_US</locale>	
+					<size>10</size>
+			   <page>1</page>
+			   <total>1</total>
+							<fields>
+							</fields>
+			</header>
+	  <results>
+										<result xmlns:dri="http://www.driver-repository.eu/namespace/dri"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+         <header>
+            <dri:objIdentifier>doi_dedup___::7649eaac8e25c4fbcb9c00c6fb72d103</dri:objIdentifier>
+            <dri:dateOfCollection>2026-08-19T06:46:14.061049071</dri:dateOfCollection>
+            <dri:dateOfTransformation/>
+         </header>
+         <metadata>
+            <oaf:entity xmlns:oaf="http://namespace.openaire.eu/oaf"
+                        xsi:schemaLocation="http://namespace.openaire.eu/oaf https://www.openaire.eu/schema/1.0/oaf-1.0.xsd">
+               <oaf:result>
+                  <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                  <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                  <collectedfrom name="arXiv.org e-Print Archive"
+                                 id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                  <originalId>50|datacite____::7649eaac8e25c4fbcb9c00c6fb72d103</originalId> 
+                  <originalId>10.48550/arxiv.1909.10155</originalId> 
+                  <originalId>oai:arXiv.org:1909.10155</originalId> 
+                  <originalId>50|od________18::24f555912cb8ae7376a7f6d6359e141f</originalId> 
+                  <originalId>50|dblp________::37d67e5adcbc86d2219283408fb915f5</originalId> 
+                  <originalId>50|dblp________::71ac5252947783f36307238f64bd0509</originalId> 
+                  <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types"
+                       inferred="false"
+                       provenanceaction="sysimport:actionset"
+                       trust="0.9">10.48550/arxiv.1909.10155</pid> 
+                  <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types"
+                       inferred="false"
+                       provenanceaction="sysimport:crosswalk:repository"
+                       trust="0.9">1909.10155</pid> 
+                  <measure id="influence" score="2.2294735E-9" class="C5"/> 
+                  <measure id="popularity" score="2.2772189E-9" class="C5"/> 
+                  <measure id="influence_alt" score="2" class="C5"/> 
+                  <measure id="citationCount" score="2" class="C5"/> 
+                  <measure id="popularity_alt" score="0.96" class="C5"/> 
+                  <measure id="impulse" score="0" class="C5"/> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">Verified Uncertainty Calibration</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title"
+                         inferred="false"
+                         provenanceaction="sysimport:crosswalk:repository"
+                         trust="0.9">Verified Uncertainty Calibration.</title> 
+                  <bestaccessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                   schemename="dnet:access_modes"/> 
+                  <creator rank="1">Ananya Kumar</creator> 
+                  <creator rank="2">Percy Liang</creator> 
+                  <creator rank="3">Tengyu Ma 0001</creator> 
+                  <dateofacceptance>2019-01-01</dateofacceptance> 
+                  <description>Applications such as weather forecasting and personalized medicine demand models that output calibrated probability estimates---those representative of the true likelihood of a prediction. Most models are not calibrated out of the box but are recalibrated by post-processing model outputs. We find in this work that popular recalibration methods like Platt scaling and temperature scaling are (i) less calibrated than reported, and (ii) current techniques cannot estimate how miscalibrated they are. An alternative method, histogram binning, has measurable calibration error but is sample inefficient---it requires $O(B/ε^2)$ samples, compared to $O(1/ε^2)$ for scaling methods, where $B$ is the number of distinct probabilities the model can output. To get the best of both worlds, we introduce the scaling-binning calibrator, which first fits a parametric function to reduce variance and then bins the function values to actually ensure calibration. This requires only $O(1/ε^2 + B)$ samples. Next, we show that we can estimate a model's calibration error more accurately using an estimator from the meteorological community---or equivalently measure its calibration error with fewer samples ($O(\sqrt{B})$ instead of $O(B)$). We validate our approach with multiclass calibration experiments on CIFAR-10 and ImageNet, where we obtain a 35% lower calibration error than histogram binning and, unlike scaling methods, guarantees on true calibration. In these experiments, we also estimate the calibration error and ECE more accurately than the commonly used plugin estimators. We implement all these methods in a Python library: https://pypi.org/project/uncertainty-calibration</description> 
+                  <description>Accepted as a spotlight to NeurIPS 2019, updated to include experiments for ECE</description> 
+                  <embargoenddate>2019-09-01</embargoenddate> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies">FOS: Computer and information sciences</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Computer Science - Machine Learning</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Statistics - Machine Learning</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">0202 electrical engineering, electronic engineering, information engineering</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies">Machine Learning (stat.ML)</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">02 engineering and technology</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">01 natural sciences</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">0105 earth and related environmental sciences</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies">Machine Learning (cs.LG)</subject> 
+                  <language classid="und" classname="Undetermined" schemeid="dnet:languages"
+                            schemename="dnet:languages"/> 
+                  <relevantdate classid="submitted" classname="submitted" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2019-09-23</relevantdate> 
+                  <relevantdate classid="updated" classname="updated" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2019-09-24</relevantdate> 
+                  <relevantdate classid="submitted" classname="submitted" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-01-31</relevantdate> 
+                  <relevantdate classid="updated" classname="updated" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2020-02-03</relevantdate> 
+                  <relevantdate classid="available" classname="available" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2019-09-01</relevantdate> 
+                  <relevantdate classid="issued" classname="issued" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2019-01-01</relevantdate> 
+                  <relevantdate classid="UNKNOWN" classname="UNKNOWN" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date"
+                                inferred="false"
+                                provenanceaction="sysimport:crosswalk:repository"
+                                trust="0.9">2019-01-01</relevantdate> 
+                  <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                              schemename="dnet:result_typologies"/> 
+                  <resourcetype classid="UNKNOWN" classname="UNKNOWN" schemeid="dnet:dataCite_resource"
+                                schemename="dnet:dataCite_resource"/> 
+                  <isgreen>true</isgreen> 
+                  <isindiamondjournal>false</isindiamondjournal> 
+                  <publiclyfunded>false</publiclyfunded> 
+                  <journal vol="abs/1909.10155">CoRR</journal> 
+                  <datainfo>
+                     <inferred>true</inferred>
+                     <deletedbyinference>false</deletedbyinference>
+                     <trust>0.8</trust>
+                     <inferenceprovenance>dedup-result-decisiontree-v4</inferenceprovenance>
+                     <provenanceaction classid="sysimport:dedup" classname="Inferred by OpenAIRE"
+                                       schemeid="dnet:provenanceActions"
+                                       schemename="dnet:provenanceActions"/>
+                  </datainfo> 
+                  <rels>
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::633a99f85fba33a7c82b442ea304d116</to>
+                        <dateofacceptance>2019-01-01</dateofacceptance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Stochastic Conditional Gradient++</title> 
+                        <creator>Zebang Shen</creator> 
+                        <description>In this paper, we consider the general non-oblivious stochastic optimization where the underlying stochasticity may change during the optimization procedure and depends on the point at which the function is evaluated. We develop Stochastic Frank-Wolfe++ ($\text{SFW}{++} $), an efficient variant of the conditional gradient method for minimizing a smooth non-convex function subject to a convex body constraint. We show that $\text{SFW}{++} $ converges to an $ε$-first order stationary point by using</description> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1902.06992</url> 
+                           <url>https://dblp.org/rec/journals/corr/abs-1902-06992.html</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1902.06992</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/corr/abs-1902-06992.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <creator>Hamed Hassani</creator> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1902.06992</pid> 
+                        <creator>Aryan Mokhtari</creator> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.1902.06992</pid> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2019-02-19</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1902.06992</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1902.06992</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>arXiv Non-Exclusive Distribution</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.1902.06992</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.48550/arxiv.1902.06992</url>
+                	          </webresource> 
+                        </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <creator>Amin Karbasi</creator> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::c598a5a0c9c0ef700bd2cf3f13cd076a</to>
+                        <dateofacceptance>2019-01-01</dateofacceptance> 
+                        <creator>Shanshan Wu</creator> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1909.01812</url> 
+                           <url>https://dblp.org/rec/journals/corr/abs-1909-01812.html</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1909.01812</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/corr/abs-1909-01812.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.1909.01812</pid> 
+                        <creator>Alexandros G. Dimakis</creator> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://proceedings.neurips.cc/paper/2019/hash/a4d41b834ea903526373a9a1ae2ac66e-Abstract.html</url> 
+                           <url>https://dblp.org/rec/conf/nips/WuDS19.html</url> 
+                	          <webresource>
+                	             <url>https://proceedings.neurips.cc/paper/2019/hash/a4d41b834ea903526373a9a1ae2ac66e-Abstract.html</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/conf/nips/WuDS19.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>arXiv Non-Exclusive Distribution</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.1909.01812</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.48550/arxiv.1909.01812</url>
+                	          </webresource> 
+                        </instance> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1909.01812</pid> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Learning Distributions Generated by One-Layer ReLU Networks</title> 
+                        <creator>Sujay Sanghavi</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2019-09-04</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1909.01812</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1909.01812</url>
+                	          </webresource> 
+                        </instance> 
+                        <description>We consider the problem of estimating the parameters of a $d$-dimensional rectified Gaussian distribution from i.i.d. samples. A rectified Gaussian distribution is defined by passing a standard Gaussian distribution through a one-layer ReLU neural network. We give a simple algorithm to estimate the parameters (i.e., the weight matrix and bias vector of the ReLU neural network) up to an error $ε||W||_F$ using $\tilde{O}(1/ε^2)$ samples and $\tilde{O}(d^2/ε^2)$ time (log factors are ignored for si</description> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::2b6b753d5c9708790422550df83a3101</to>
+                        <instance>
+                           <accessright classid="CLOSED" classname="Closed Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2009-01-01</dateofacceptance> 
+                           <instancetype classid="0013" classname="Part of book or chapter of book"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>Springer TDM</license> 
+                           <url>https://doi.org/10.1007/978-3-642-02927-1_47</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1007/978-3-642-02927-1_47</url>
+                	          </webresource> 
+                        </instance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">An EPTAS for Scheduling Jobs on Uniform Processors: Using an MILP Relaxation with a Constant Number of Integral Variables</title> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1007/978-3-642-02927-1_47</url> 
+                           <url>https://dblp.org/rec/conf/icalp/Jansen09.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1007/978-3-642-02927-1_47</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/conf/icalp/Jansen09.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="MACAU: Open Access Repository of Kiel University"
+                                       id="opendoar____::68264bdb65b97eeae6788aa3348e553c"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2010-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1137/090749451</url> 
+                           <url>https://dblp.org/rec/journals/siamdm/Jansen10.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1137/090749451</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/siamdm/Jansen10.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="SIAM Journal on Discrete Mathematics"
+                                     id="issn___print::f92a837f4abafb7004792ec81ea3b3c0"/> 
+                           <dateofacceptance>2010-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1137/090749451</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1137/090749451</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1137/090749451</pid> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="MACAU: Open Access Repository of Kiel University"
+                                     id="opendoar____::68264bdb65b97eeae6788aa3348e553c"/> 
+                           <dateofacceptance>2010-01-01</dateofacceptance> 
+                           <instancetype classid="0017" classname="Report" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>http://rightsstatements.org/page/InC/1.0/</license> 
+                           <url>https://macau.uni-kiel.de/servlets/MCRFileNodeServlet/macau_derivate_00003002/tr-1002-bericht.pdf</url> 
+                           <url>https://nbn-resolving.org/urn:nbn:de:101:1-201203014925</url> 
+                           <url>https://macau.uni-kiel.de/receive/macau_mods_00001835</url> 
+                	          <webresource>
+                	             <url>https://macau.uni-kiel.de/servlets/MCRFileNodeServlet/macau_derivate_00003002/tr-1002-bericht.pdf</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://nbn-resolving.org/urn:nbn:de:101:1-201203014925</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://macau.uni-kiel.de/receive/macau_mods_00001835</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="SIAM Journal on Discrete Mathematics"
+                                     id="issn___print::f92a837f4abafb7004792ec81ea3b3c0"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://macau.uni-kiel.de/servlets/MCRFileNodeServlet/macau_derivate_00003002/tr-1002-bericht.pdf</url> 
+                	          <webresource>
+                	             <url>https://macau.uni-kiel.de/servlets/MCRFileNodeServlet/macau_derivate_00003002/tr-1002-bericht.pdf</url>
+                	          </webresource> 
+                        </instance> 
+                        <description>In this paper, we present an efficient polynomial time approximation scheme (EPTAS) for scheduling on uniform processors, i.e. finding a minimum length schedule for a set of n independent jobs on m processors with different speeds (a fundamental NP-hard scheduling problem). The previous best polynomial time approximation scheme (PTAS) by Hochbaum and Shmoys has a running time of $(n/\epsilon)^{O(1/\epsilon^2)}$. Our algorithm, based on a new mixed integer linear programming (MILP) formulation wi</description> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1137/090749451</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1137/090749451</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0013" classname="Part of book or chapter of book"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://macau.uni-kiel.de/servlets/MCRFileNodeServlet/macau_derivate_00003002/tr-1002-bericht.pdf</url> 
+                	          <webresource>
+                	             <url>https://macau.uni-kiel.de/servlets/MCRFileNodeServlet/macau_derivate_00003002/tr-1002-bericht.pdf</url>
+                	          </webresource> 
+                        </instance> 
+                        <dateofacceptance>2009-01-01</dateofacceptance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1007/978-3-642-02927-1_47</pid> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <publisher>Springer Berlin Heidelberg</publisher> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1007/978-3-642-02927-1_47</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1007/978-3-642-02927-1_47</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Jansen, Klaus</creator> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9" inferenceprovenance="iis::document_affiliations"
+                          provenanceaction="iis">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">pending_org_::69dff51d4fffefd5d9f194e50a2ab824</to>
+                        <country classid="US" classname="United States" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalname>Department of Computer Science Stanford University California</legalname> 
+                        <legalshortname>Department of Computer Science Stanford University California</legalshortname> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::61fba31fa65de83535b7ef8f142bda07</to>
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.1207.1140</pid> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="SIAM Journal on Computing"
+                                     id="issn___print::367b2ce7c3604cbc53a403d9ff5bb13c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY NC</license> 
+                           <url>https://dspace.mit.edu/bitstream/1721.1/86093/2/Cheraghchi-2013-RESTRICTED%20ISOMETRY.pdf</url> 
+                	          <webresource>
+                	             <url>https://dspace.mit.edu/bitstream/1721.1/86093/2/Cheraghchi-2013-RESTRICTED%20ISOMETRY.pdf</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2012-07-04</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1207.1140</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1207.1140</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1137/120896773</pid> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1137/1.9781611973105.31</pid> 
+                        <collectedfrom name="SNSF P3 Database" id="openaire____::666894f04637d4dd1861ad117e1c4a66"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2012-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>arXiv Non-Exclusive Distribution</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.1207.1140</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.48550/arxiv.1207.1140</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="Bielefeld Academic Search Engine (BASE)"
+                                       id="openaire____::df45502607927471ecf8a6ae83683ff5"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1137/1.9781611973105.31</url> 
+                           <url>https://dblp.org/rec/conf/soda/CheraghchiGV13.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1137/1.9781611973105.31</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/conf/soda/CheraghchiGV13.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Mahdi Cheraghchi</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Restricted Isometry of Fourier Matrices and List Decodability of Random Linear Codes</title> 
+                        <description>We prove that a random linear code over F_q, with probability arbitrarily close to 1, is list decodable at radius (1-1/q-ε) with list size L=O(1/ε^2) and rate R=Ω_q(ε^2/(log^3(1/ε))). Up to the polylogarithmic factor in (1/ε) and constant factors depending on q, this matches the lower bound L=Ω_q(1/ε^2) for the list size and upper bound R=O_q(ε^2) for the rate. Previously only existence (and not abundance) of such codes was known for the special case q=2 (Guruswami, Håstad, Sudan and Zuckerman, </description> 
+                        <publisher>Society for Industrial &amp; Applied Mathematics (SIAM)</publisher> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="SIAM Journal on Computing"
+                                     id="issn___print::367b2ce7c3604cbc53a403d9ff5bb13c"/> 
+                           <dateofacceptance>2013-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1137/120896773</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1137/120896773</url>
+                	          </webresource> 
+                        </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://epubs.siam.org/doi/pdf/10.1137/1.9781611973105.31</url> 
+                	          <webresource>
+                	             <url>https://epubs.siam.org/doi/pdf/10.1137/1.9781611973105.31</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2012-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://eccc.weizmann.ac.il/report/2012/082</url> 
+                           <url>https://dblp.org/rec/journals/eccc/CheraghchiGV12.html</url> 
+                	          <webresource>
+                	             <url>https://eccc.weizmann.ac.il/report/2012/082</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/eccc/CheraghchiGV12.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2013-01-06</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1137/1.9781611973105.31</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1137/1.9781611973105.31</url>
+                	          </webresource> 
+                        </instance> 
+                        <dateofacceptance>2013-01-01</dateofacceptance> 
+                        <pid classid="handle" classname="Handle" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1721.1/86093</pid> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1207.1140</pid> 
+                        <collectedfrom name="DSpace@MIT" id="opendoar____::2a38a4a9316c49e5a833517c45d31070"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2012-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1207.1140</url> 
+                           <url>https://dblp.org/rec/journals/corr/abs-1207-1140.html</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1207.1140</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/corr/abs-1207-1140.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Ameya Velingker</creator> 
+                        <creator>Venkatesan Guruswami</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2013-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1137/120896773</url> 
+                           <url>https://dblp.org/rec/journals/siamcomp/CheraghchiGV13.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1137/120896773</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/siamcomp/CheraghchiGV13.html</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:rawaff"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::53ee3650a38fe22fbba02a4b2e0a4ed9</to>
+                        <legalshortname>SU</legalshortname> 
+                        <country classid="US" classname="United States" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalname>Stanford University</legalname> 
+                        <websiteurl>http://www.stanford.edu/</websiteurl> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::5b5f1003ce21be29745a2c7423d5ac8a</to>
+                        <publisher>Schloss Dagstuhl – Leibniz-Zentrum für Informatik</publisher> 
+                        <description>The study of adaptive data analysis examines how many statistical queries can be answered accurately using a fixed dataset while avoiding false discoveries (statistically inaccurate answers). In this paper, we tackle a question that precedes the field of study: Is data only valuable when it provides accurate answers to statistical queries? To answer this question, we use Stochastic Convex Optimization as a case study. In this model, algorithms are considered as analysts who query an estimate of </description> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DROPS - Dagstuhl Research Online Publication Server (Schloss Dagstuhl - Leibniz Center for Informatics )"
+                                     id="opendoar____::155fa09596c7e18e50b58eb7e0c6ccb4"/> 
+                           <dateofacceptance>2024-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <fulltext>https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITCS.2024.76</fulltext> 
+                           <url>https://doi.org/https://doi.org/10.4230/LIPIcs.ITCS.2024.76</url> 
+                	          <webresource>
+                	             <url>https://doi.org/https://doi.org/10.4230/LIPIcs.ITCS.2024.76</url>
+                	          </webresource> 
+                        </instance> 
+                        <dateofacceptance>2022-01-01</dateofacceptance> 
+                        <collectedfrom name="Dagstuhl Research Online Publication Server"
+                                       id="opendoar____::155fa09596c7e18e50b58eb7e0c6ccb4"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <collectedfrom name="Bielefeld Academic Search Engine (BASE)"
+                                       id="openaire____::df45502607927471ecf8a6ae83683ff5"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Dagstuhl Research Online Publication Server"
+                                     id="opendoar____::155fa09596c7e18e50b58eb7e0c6ccb4"/> 
+                           <dateofacceptance>2024-01-01</dateofacceptance> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITCS.2024.76</url> 
+                	          <webresource>
+                	             <url>https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITCS.2024.76</url>
+                	          </webresource> 
+                        </instance> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.2204.08809</pid> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">2204.08809</pid> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2022-04-19</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/2204.08809</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/2204.08809</url>
+                	          </webresource> 
+                        </instance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Making Progress Based on False Discoveries</title> 
+                        <creator>Livni, Roi</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.4230/LIPIcs.ITCS.2024.76</url> 
+                           <url>https://dblp.org/rec/conf/innovations/Livni24.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.4230/LIPIcs.ITCS.2024.76</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/conf/innovations/Livni24.html</url>
+                	          </webresource> 
+                        </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2022-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>arXiv Non-Exclusive Distribution</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.2204.08809</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.48550/arxiv.2204.08809</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2022-01-01</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.48550/arXiv.2204.08809</url> 
+                           <url>https://dblp.org/rec/journals/corr/abs-2204-08809.html</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.48550/arXiv.2204.08809</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://dblp.org/rec/journals/corr/abs-2204-08809.html</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::83fc1bc4731ff566c4922b698dd099ba</to>
+                        <creator>Kasper Green Larsen</creator> 
+                        <publisher>Schloss Dagstuhl – Leibniz-Zentrum für Informatik</publisher> 
+                        <description>It is well known that the Johnson-Lindenstrauss dimensionality reduction method is optimal for worst case distortion. While in practice many other methods and heuristics are used, not much is known in terms of bounds on their performance. The question of whether the JL method is optimal for practical measures of distortion was recently raised in BFN19 (NeurIPS'19). They provided upper bounds on its quality for a wide range of practical measures and showed that indeed these are best possible in m</description> 
+                        <dateofacceptance>2021-01-01</dateofacceptance> 
+                        <collectedfrom name="PURE Aarhus University"
+                                       id="openaire____::d76e4d42b3bd658259e8bf9c37ef448f"/> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DROPS - Dagstuhl Research Online Publication Server (Schloss Dagstuhl - Leibniz Center for Informatics )"
+                                     id="opendoar____::155fa09596c7e18e50b58eb7e0c6ccb4"/> 
+                           <dateofacceptance>2022-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <fulltext>https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.SoCG.2022.13</fulltext> 
+                           <url>https://doi.org/https://doi.org/10.4230/LIPIcs.SoCG.2022.13</url> 
+                	          <webresource>
+                	             <url>https://doi.org/https://doi.org/10.4230/LIPIcs.SoCG.2022.13</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Yair Bartal</creator> 
+                        <collectedfrom name="Dagstuhl Research Online Publication Server"
+                                       id="opendoar____::155fa09596c7e18e50b58eb7e0c6ccb4"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dblp.org/rec/conf/compgeom/BartalFL22.html</url> 
+                           <url>https://doi.org/10.4230/LIPIcs.SoCG.2022.13</url> 
+                	          <webresource>
+                	             <url>https://dblp.org/rec/conf/compgeom/BartalFL22.html</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://doi.org/10.4230/LIPIcs.SoCG.2022.13</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Dagstuhl Research Online Publication Server"
+                                     id="opendoar____::155fa09596c7e18e50b58eb7e0c6ccb4"/> 
+                           <dateofacceptance>2022-01-01</dateofacceptance> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.SoCG.2022.13</url> 
+                	          <webresource>
+                	             <url>https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.SoCG.2022.13</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.2107.06626</pid> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <collectedfrom name="Bielefeld Academic Search Engine (BASE)"
+                                       id="openaire____::df45502607927471ecf8a6ae83683ff5"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2021-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dblp.org/rec/journals/corr/abs-2107-06626.html</url> 
+                           <url>https://arxiv.org/abs/2107.06626</url> 
+                	          <webresource>
+                	             <url>https://dblp.org/rec/journals/corr/abs-2107-06626.html</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://arxiv.org/abs/2107.06626</url>
+                	          </webresource> 
+                        </instance> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">2107.06626</pid> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="PURE Aarhus University"
+                                     id="openaire____::d76e4d42b3bd658259e8bf9c37ef448f"/> 
+                           <dateofacceptance>2022-06-01</dateofacceptance> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://www.scopus.com/pages/publications/85134314072</url> 
+                           <url>https://pure.au.dk/portal/en/publications/e5e412a8-733c-44f3-a971-0fc6b83ee3fd</url> 
+                           <url>https://doi.org/10.4230/LIPIcs.SoCG.2022.13</url> 
+                	          <webresource>
+                	             <url>https://www.scopus.com/pages/publications/85134314072</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://pure.au.dk/portal/en/publications/e5e412a8-733c-44f3-a971-0fc6b83ee3fd</url>
+                	          </webresource> 
+                           <webresource>
+                	             <url>https://doi.org/10.4230/LIPIcs.SoCG.2022.13</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2021-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.2107.06626</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.48550/arxiv.2107.06626</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Ora Nova Fandina</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Optimality of the Johnson-Lindenstrauss Dimensionality Reduction for Practical Measures</title> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2021-07-14</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/2107.06626</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/2107.06626</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">arXiv_dedup_::15bb5a98be4d57047bf64cfb836a1bdc</to>
+                        <description>We consider the problem of maintaining an (approximately) minimum vertex cover in an $n$-node graph $G = (V, E)$ that is getting updated dynamically via a sequence of edge insertions/deletions. We show how to maintain a $(2+\epsilon)$-approximate minimum vertex cover, "deterministically", in this setting in $O(1/\epsilon^2)$ amortized update time. Prior to our work, the best known deterministic algorithm for maintaining a $(2+\epsilon)$-approximate minimum vertex cover was due to Bhattacharya, H</description> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2018-05-09</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1805.03498</url> 
+                	          <webresource>
+                	             <url>http://arxiv.org/abs/1805.03498</url>
+                	          </webresource> 
+                        </instance> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <creator>Kulkarni, Janardhan</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1805.03498</pid> 
+                        <creator>Bhattacharya, Sayan</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Deterministically Maintaining a $(2+\epsilon)$-Approximate Minimum Vertex Cover in $O(1/\epsilon^2)$ Amortized Update Time</title> 
+                        <dateofacceptance>2018-05-09</dateofacceptance> 
+                     </rel> 
+                  </rels>
+                  <children>
+                     <result objidentifier="doi_________::7649eaac8e25c4fbcb9c00c6fb72d103">
+            	           <creator>Kumar, Ananya</creator> 
+                        <dateofacceptance>2019-01-01</dateofacceptance> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.1909.10155</pid> 
+                        <instance>
+            	              <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>arXiv Non-Exclusive Distribution</license> 
+                           <url>https://dx.doi.org/10.48550/arxiv.1909.10155</url> 
+            		             <webresource>
+            		                <url>https://dx.doi.org/10.48550/arxiv.1909.10155</url>
+            		             </webresource> 
+            	           </instance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Verified Uncertainty Calibration</title> 
+                        <creator>Ma, Tengyu</creator> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <description>Applications such as weather forecasting and personalized medicine demand models that output calibrated probability estimates---those representative of the true likelihood of a prediction. Most models are not calibrated out of the box but are recalibrated by post-processing model outputs. We find in this work that popular recalibration methods like Platt scaling and temperature scaling are (i) less calibrated than reported, and (ii) current techniques cannot estimate how miscalibrated they are. </description> 
+                        <creator>Liang, Percy</creator> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                     </result> 
+                     <result objidentifier="dblp________::71ac5252947783f36307238f64bd0509">
+            	           <creator>Ananya Kumar</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Verified Uncertainty Calibration.</title> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <instance>
+            	              <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <instancetype classid="0004" classname="Conference object"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dblp.org/rec/conf/nips/KumarLM19.html</url> 
+                           <url>https://proceedings.neurips.cc/paper/2019/hash/f8c0c968632845cd133308b1a494967f-Abstract.html</url> 
+            		             <webresource>
+            		                <url>https://dblp.org/rec/conf/nips/KumarLM19.html</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://proceedings.neurips.cc/paper/2019/hash/f8c0c968632845cd133308b1a494967f-Abstract.html</url>
+            		             </webresource> 
+            	           </instance> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <creator>Tengyu Ma 0001</creator> 
+                        <creator>Percy Liang</creator> 
+                     </result> 
+                     <result objidentifier="arXiv_______::44faecca1394aa0a0186751d66843fcd">
+            	           <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Verified Uncertainty Calibration</title> 
+                        <creator>Kumar, Ananya</creator> 
+                        <creator>Ma, Tengyu</creator> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1909.10155</pid> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <description>Applications such as weather forecasting and personalized medicine demand models that output calibrated probability estimates---those representative of the true likelihood of a prediction. Most models are not calibrated out of the box but are recalibrated by post-processing model outputs. We find in this work that popular recalibration methods like Platt scaling and temperature scaling are (i) less calibrated than reported, and (ii) current techniques cannot estimate how miscalibrated they are. </description> 
+                        <creator>Liang, Percy</creator> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="arXiv.org e-Print Archive"
+                                     id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                           <dateofacceptance>2019-09-23</dateofacceptance> 
+                           <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1909.10155</url> 
+            		             <webresource>
+            		                <url>http://arxiv.org/abs/1909.10155</url>
+            		             </webresource> 
+            	           </instance> 
+                        <dateofacceptance>2019-09-23</dateofacceptance> 
+                     </result> 
+                     <result objidentifier="dblp________::37d67e5adcbc86d2219283408fb915f5">
+            	           <creator>Ananya Kumar</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Verified Uncertainty Calibration.</title> 
+                        <dateofacceptance>2019-01-01</dateofacceptance> 
+                        <instance>
+            	              <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                           <dateofacceptance>2019-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://arxiv.org/abs/1909.10155</url> 
+                           <url>https://dblp.org/rec/journals/corr/abs-1909-10155.html</url> 
+            		             <webresource>
+            		                <url>http://arxiv.org/abs/1909.10155</url>
+            		             </webresource> 
+                           <webresource>
+            		                <url>https://dblp.org/rec/journals/corr/abs-1909-10155.html</url>
+            		             </webresource> 
+            	           </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <creator>Tengyu Ma 0001</creator> 
+                        <creator>Percy Liang</creator> 
+                     </result> 
+                     <instance>
+                        <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <instancetype classid="0004" classname="Conference object"
+                                      schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://dblp.org/rec/conf/nips/KumarLM19.html</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="arXiv.org e-Print Archive"
+                                       id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <collectedfrom name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <hostedby name="arXiv.org e-Print Archive"
+                                  id="opendoar____::6f4922f45568161a8cdf4ad2299f6d23"/> 
+                        <hostedby name="DBLP" id="openaire____::d8b68cc0a53121f6f896883a7d60c1db"/> 
+                        <dateofacceptance>2019-01-01</dateofacceptance> 
+                        <dateofacceptance>2019-09-23</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <instancetype classid="0016" classname="Preprint" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">1909.10155</pid> 
+                        <alternateidentifier classid="arXiv" classname="arXiv" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">1909.10155</alternateidentifier> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>http://arxiv.org/abs/1909.10155</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Datacite" id="openaire____::9e3be59865b2c1c335d32dae2fe7b254"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <dateofacceptance>2019-01-01</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">10.48550/arxiv.1909.10155</pid> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>arXiv Non-Exclusive Distribution</license> 
+            	           <webresource>
+            	              <url>https://doi.org/10.48550/arxiv.1909.10155</url>
+            	           </webresource> 
+                     </instance> 
+                  </children>
+               </oaf:result>
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] X. Jiang, M. Osl, J. Kim, and L. Ohno-Machado. Calibrating predictive model estimates to support personalized medicine. Journal of the American Medical Informatics Association, 19 (2):263-274, 2012.</rawText>
+                        <id value="doi_________::a789bd49b67873f13743bffdd3aabbba" type="openaire"
+                            trustLevel="0.7659645"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] A. H. Murphy. A new vector partition of the probability score. Journal of Applied Meteorology, 12(4):595-600, 1973.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] A. H. Murphy and R. L. Winkler. Reliability of subjective probability forecasts of precipitation and temperature. Journal of the Royal Statistical Society. Series C (Applied Statistics), 26: 41-47, 1977.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] M. H. DeGroot and S. E. Fienberg. The comparison and evaluation of forecasters. Journal of the Royal Statistical Society. Series D (The Statistician), 32:12-22, 1983.</rawText>
+                        <id value="doi_________::2a3047b7152dcf118054c7b54d56b957" type="openaire"
+                            trustLevel="0.6377155"/>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] T. Gneiting and A. E. Raftery. Weather forecasting with ensemble methods. Science, 310, 2005.</rawText>
+                        <id value="pmid________::c6ea0315ff1887cdfd821aa787ba55d8" type="openaire"
+                            trustLevel="0.65861017"/>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] J. Brocker. Reliability, sufficiency, and the decomposition of proper scores. Quarterly Journal of the Royal Meteorological Society, 135(643):1512-1519, 2009.</rawText>
+                        <id value="doi_________::4566e0f7fc7e6de21c7ce85cecde2412" type="openaire"
+                            trustLevel="0.7045789"/>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] K. Nguyen and B. O'Connor. Posterior calibration and exploratory analysis for natural language processing models. In Empirical Methods in Natural Language Processing (EMNLP), pages 1587-1598, 2015.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] D. Card and N. A. Smith. The importance of calibration for estimating proportions from annotations. In Association for Computational Linguistics (ACL), 2018.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger. On calibration of modern neural networks. In International Conference on Machine Learning (ICML), pages 1321-1330, 2017.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] B. Zadrozny and C. Elkan. Obtaining calibrated probability estimates from decision trees and naive bayesian classifiers. In International Conference on Machine Learning (ICML), pages 609-616, 2001.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] V. Kuleshov, N. Fenner, and S. Ermon. Accurate uncertainties for deep learning using calibrated regression. In International Conference on Machine Learning (ICML), 2018.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] J. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods. Advances in Large Margin Classifiers, 10(3):61-74, 1999.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] B. Zadrozny and C. Elkan. Transforming classifier scores into accurate multiclass probability estimates. In International Conference on Knowledge Discovery and Data Mining (KDD), pages 694-699, 2002.</rawText>
+                        <id value="doi_________::72735632d0cf18f4a559e311c5c80a5f" type="openaire"
+                            trustLevel="0.6858903"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Binary classifier calibration: Non-parametric approach. arXiv, 2014.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] D. Hendrycks, M. Mazeika, and T. Dietterich. Deep anomaly detection with outlier exposure. In International Conference on Learning Representations (ICLR), 2019.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] V. Kuleshov and P. Liang. Calibrated structured prediction. In Advances in Neural Information Processing Systems (NeurIPS), 2015.</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] D. Hendrycks, K. Lee, and M. Mazeika. Using pre-training can improve model robustness and uncertainty. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] J. Brocker. Estimating reliability and resolution of probability forecasts through decomposition of the empirical score. Climate Dynamics, 39:655-667, 2012.</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] C. A. T. Ferro and T. E. Fricker. A bias-corrected decomposition of the brier score. Quarterly Journal of the Royal Meteorological Society, 138(668):1954-1960, 2012.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] A. Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto, 2009.</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] J. Deng, W. Dong, R. Socher, L. Li, K. Li, and L. Fei-Fei. ImageNet: A large-scale hierarchical image database. In Computer Vision and Pattern Recognition (CVPR), pages 248-255, 2009.</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] G. W. Brier. Verification of forecasts expressed in terms of probability. Monthly weather review, 78(1):1-3, 1950.</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Obtaining well calibrated probabilities using bayesian binning. In Association for the Advancement of Artificial Intelligence (AAAI), 2015.</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] J. V. Nixon, M. W. Dusenberry, L. Zhang, G. Jerfel, and D. Tran. Measuring calibration in deep learning. arXiv, 2019.</rawText>
+                        <id value="doi_________::a01cb701f591af20909a4cb5ac5867ac" type="openaire"
+                            trustLevel="0.620763"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] T. Gneiting, F. Balabdaoui, and A. E. Raftery. Probabilistic forecasts, calibration and sharpness. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 69(2):243-268, 2007.</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] L. Paninski. Estimation of entropy and mutual information. Neural Computation, 15:1191-1253, 2003.</rawText>
+                        <id value="doi_________::84eaf71d1078c43fb7c1a11e31c8cb31" type="openaire"
+                            trustLevel="0.71227634"/>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] C. S. Crowson, E. J. Atkinson, and T. M. Therneau. Assessing calibration of prognostic risk scores. Statistical Methods in Medical Research, 25:1692-1706, 2017.</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] F. E. Harrell, K. L. Lee, and D. B. Mark. Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors. Statistics in medicine, 15(4):361-387, 1996.</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] A. Malik, V. Kuleshov, J. Song, D. Nemer, H. Seymour, and S. Ermon. Calibrated model-based deep reinforcement learning. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] D. Yu, J. Li, and L. Deng. Calibration of confidence measures in speech recognition. Trans. Audio, Speech and Lang. Proc., 19(8):2461-2473, 2011.</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] S. Lichtenstein, B. Fischhoff, and L. D. Phillips. Judgement under Uncertainty: Heuristics and Biases. Cambridge University Press, 1982.</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] D. W. Hosmer and S. Lemeshow. Goodness of fit tests for the multiple logistic regression model. Communications in Statistics - Theory and Methods, 9:1043-1069, 1980.</rawText>
+                        <id value="doi_________::d87b1cb945ea7814dbffd0cb5ab52bb6" type="openaire"
+                            trustLevel="0.63179713"/>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] J. Bröcker and L. A. Smith. Increasing the reliability of reliability diagrams. Weather and Forecasting, 22(3):651-661, 2007.</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] A. Gelman, J. B. Carlin, H. S. Stern, and D. B. Rubin. Bayesian data analysis. Chapman and Hall/CRC Chapman and Hall/CRC, 1995 1995.</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>[35] G. Shafer and V. Vovk. A tutorial on conformal prediction. Journal of Machine Learning Research (JMLR), 9:371-421, 2008.</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>[36] J. Lei, M. G'Sell, A. Rinaldo, R. J. Tibshirani, and L. Wasserman. Distribution-free predictive inference for regression. Journal of the American Statistical Association, 113:1094-1111, 2016.</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>[37] Larry Wasserman. Density estimation. densityestimation.pdf, 2019.</rawText>
+                     </reference>
+                     <reference position="38">
+                        <rawText>[40] François Chollet. keras. https://github.com/fchollet/keras, 2015.</rawText>
+                     </reference>
+                     <reference position="39">
+                        <rawText>[41] Martín Abadi, Ashish Agarwal, Paul Barham, Eugene Brevdo, Zhifeng Chen, Craig Citro, Greg S. Corrado, Andy Davis, Jeffrey Dean, Matthieu Devin, Sanjay Ghemawat, Ian Goodfellow, Andrew Harp, Geoffrey Irving, Michael Isard, Yangqing Jia, Rafal Jozefowicz, Lukasz Kaiser, Manjunath Kudlur, Josh Levenberg, Dandelion Mané, Rajat Monga, Sherry Moore, Derek Murray, Chris Olah, Mike Schuster, Jonathon Shlens, Benoit Steiner, Ilya Sutskever, Kunal Talwar, Paul Tucker, Vincent Vanhoucke, Vijay Vasudevan, Fernanda Viégas, Oriol Vinyals, Pete Warden, Martin Wattenberg, Martin Wicke, Yuan Yu, and Xiaoqiang Zheng. TensorFlow: Largescale machine learning on heterogeneous systems, 2015. URL https://www.tensorflow. org/. Software available from tensorflow.org.</rawText>
+                     </reference>
+                     <reference position="40">
+                        <rawText>[42] Yonatan Geifman. cifar-vgg. https://github.com/geifmany/cifar-vgg, 2015.</rawText>
+                     </reference>
+                     <reference position="41">
+                        <rawText>[43] A. W. van der Vaart. Asymptotic statistics. Cambridge University Press, 1998.</rawText>
+                     </reference>
+                     <reference position="42">
+                        <rawText>[44] J. H. Hubbard and B. B. Hubbard. Vector Calculus, Linear Algebra, And Differential Forms. Prentice Hall, 1998.</rawText>
+                     </reference>
+                     <reference position="43">
+                        <rawText>[45] M. Kull, T. M. S. Filho, and P. Flach. Beyond sigmoids: How to obtain well-calibrated probabilities from binary classifiers with beta calibration. Electronic Journal of Statistics, 11: 5052-5080, 2017.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] X. Jiang, M. Osl, J. Kim, and L. Ohno-Machado. Calibrating predictive model estimates to support personalized medicine. Journal of the American Medical Informatics Association, 19 (2):263-274, 2012.</rawText>
+                        <id value="doi_________::a789bd49b67873f13743bffdd3aabbba" type="openaire"
+                            trustLevel="0.7659645"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] A. H. Murphy. A new vector partition of the probability score. Journal of Applied Meteorology, 12(4):595-600, 1973.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] A. H. Murphy and R. L. Winkler. Reliability of subjective probability forecasts of precipitation and temperature. Journal of the Royal Statistical Society. Series C (Applied Statistics), 26: 41-47, 1977.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] M. H. DeGroot and S. E. Fienberg. The comparison and evaluation of forecasters. Journal of the Royal Statistical Society. Series D (The Statistician), 32:12-22, 1983.</rawText>
+                        <id value="doi_________::2a3047b7152dcf118054c7b54d56b957" type="openaire"
+                            trustLevel="0.6377155"/>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] T. Gneiting and A. E. Raftery. Weather forecasting with ensemble methods. Science, 310, 2005.</rawText>
+                        <id value="pmid________::c6ea0315ff1887cdfd821aa787ba55d8" type="openaire"
+                            trustLevel="0.65861017"/>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] J. Brocker. Reliability, sufficiency, and the decomposition of proper scores. Quarterly Journal of the Royal Meteorological Society, 135(643):1512-1519, 2009.</rawText>
+                        <id value="doi_________::4566e0f7fc7e6de21c7ce85cecde2412" type="openaire"
+                            trustLevel="0.7045789"/>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] K. Nguyen and B. O'Connor. Posterior calibration and exploratory analysis for natural language processing models. In Empirical Methods in Natural Language Processing (EMNLP), pages 1587-1598, 2015.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] D. Card and N. A. Smith. The importance of calibration for estimating proportions from annotations. In Association for Computational Linguistics (ACL), 2018.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger. On calibration of modern neural networks. In International Conference on Machine Learning (ICML), pages 1321-1330, 2017.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] B. Zadrozny and C. Elkan. Obtaining calibrated probability estimates from decision trees and naive bayesian classifiers. In International Conference on Machine Learning (ICML), pages 609-616, 2001.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] V. Kuleshov, N. Fenner, and S. Ermon. Accurate uncertainties for deep learning using calibrated regression. In International Conference on Machine Learning (ICML), 2018.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] J. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods. Advances in Large Margin Classifiers, 10(3):61-74, 1999.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] B. Zadrozny and C. Elkan. Transforming classifier scores into accurate multiclass probability estimates. In International Conference on Knowledge Discovery and Data Mining (KDD), pages 694-699, 2002.</rawText>
+                        <id value="doi_________::ce2090b63cc14d4a8ac79e649e389c9b" type="openaire"
+                            trustLevel="0.68390507"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Binary classifier calibration: Non-parametric approach. arXiv, 2014.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] D. Hendrycks, M. Mazeika, and T. Dietterich. Deep anomaly detection with outlier exposure. In International Conference on Learning Representations (ICLR), 2019.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] V. Kuleshov and P. Liang. Calibrated structured prediction. In Advances in Neural Information Processing Systems (NeurIPS), 2015.</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] D. Hendrycks, K. Lee, and M. Mazeika. Using pre-training can improve model robustness and uncertainty. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] J. Brocker. Estimating reliability and resolution of probability forecasts through decomposition of the empirical score. Climate Dynamics, 39:655-667, 2012.</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] C. A. T. Ferro and T. E. Fricker. A bias-corrected decomposition of the brier score. Quarterly Journal of the Royal Meteorological Society, 138(668):1954-1960, 2012.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] A. Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto, 2009.</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] J. Deng, W. Dong, R. Socher, L. Li, K. Li, and L. Fei-Fei. ImageNet: A large-scale hierarchical image database. In Computer Vision and Pattern Recognition (CVPR), pages 248-255, 2009.</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] G. W. Brier. Verification of forecasts expressed in terms of probability. Monthly weather review, 78(1):1-3, 1950.</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Obtaining well calibrated probabilities using bayesian binning. In Association for the Advancement of Artificial Intelligence (AAAI), 2015.</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] J. V. Nixon, M. W. Dusenberry, L. Zhang, G. Jerfel, and D. Tran. Measuring calibration in deep learning. arXiv, 2019.</rawText>
+                        <id value="arXiv_______::c0add8ba807c7a07eae6a734bf2ca727" type="openaire"
+                            trustLevel="0.620763"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] T. Gneiting, F. Balabdaoui, and A. E. Raftery. Probabilistic forecasts, calibration and sharpness. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 69(2):243-268, 2007.</rawText>
+                        <id value="c2b0b933574d::659a688c9130012a17de0642a350205b" type="openaire"
+                            trustLevel="0.690935"/>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] L. Paninski. Estimation of entropy and mutual information. Neural Computation, 15:1191-1253, 2003.</rawText>
+                        <id value="doi_________::84eaf71d1078c43fb7c1a11e31c8cb31" type="openaire"
+                            trustLevel="0.71227634"/>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] C. S. Crowson, E. J. Atkinson, and T. M. Therneau. Assessing calibration of prognostic risk scores. Statistical Methods in Medical Research, 25:1692-1706, 2017.</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] F. E. Harrell, K. L. Lee, and D. B. Mark. Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors. Statistics in medicine, 15(4):361-387, 1996.</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] A. Malik, V. Kuleshov, J. Song, D. Nemer, H. Seymour, and S. Ermon. Calibrated model-based deep reinforcement learning. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] D. Yu, J. Li, and L. Deng. Calibration of confidence measures in speech recognition. Trans. Audio, Speech and Lang. Proc., 19(8):2461-2473, 2011.</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] S. Lichtenstein, B. Fischhoff, and L. D. Phillips. Judgement under Uncertainty: Heuristics and Biases. Cambridge University Press, 1982.</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] D. W. Hosmer and S. Lemeshow. Goodness of fit tests for the multiple logistic regression model. Communications in Statistics - Theory and Methods, 9:1043-1069, 1980.</rawText>
+                        <id value="doi_________::d87b1cb945ea7814dbffd0cb5ab52bb6" type="openaire"
+                            trustLevel="0.63179713"/>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] J. Bröcker and L. A. Smith. Increasing the reliability of reliability diagrams. Weather and Forecasting, 22(3):651-661, 2007.</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] A. Gelman, J. B. Carlin, H. S. Stern, and D. B. Rubin. Bayesian data analysis. Chapman and Hall/CRC Chapman and Hall/CRC, 1995 1995.</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>[35] G. Shafer and V. Vovk. A tutorial on conformal prediction. Journal of Machine Learning Research (JMLR), 9:371-421, 2008.</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>[36] J. Lei, M. G'Sell, A. Rinaldo, R. J. Tibshirani, and L. Wasserman. Distribution-free predictive inference for regression. Journal of the American Statistical Association, 113:1094-1111, 2016.</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>[37] Larry Wasserman. Density estimation. densityestimation.pdf, 2019.</rawText>
+                     </reference>
+                     <reference position="38">
+                        <rawText>[40] François Chollet. keras. https://github.com/fchollet/keras, 2015.</rawText>
+                     </reference>
+                     <reference position="39">
+                        <rawText>[41] Martín Abadi, Ashish Agarwal, Paul Barham, Eugene Brevdo, Zhifeng Chen, Craig Citro, Greg S. Corrado, Andy Davis, Jeffrey Dean, Matthieu Devin, Sanjay Ghemawat, Ian Goodfellow, Andrew Harp, Geoffrey Irving, Michael Isard, Yangqing Jia, Rafal Jozefowicz, Lukasz Kaiser, Manjunath Kudlur, Josh Levenberg, Dandelion Mané, Rajat Monga, Sherry Moore, Derek Murray, Chris Olah, Mike Schuster, Jonathon Shlens, Benoit Steiner, Ilya Sutskever, Kunal Talwar, Paul Tucker, Vincent Vanhoucke, Vijay Vasudevan, Fernanda Viégas, Oriol Vinyals, Pete Warden, Martin Wattenberg, Martin Wicke, Yuan Yu, and Xiaoqiang Zheng. TensorFlow: Largescale machine learning on heterogeneous systems, 2015. URL https://www.tensorflow. org/. Software available from tensorflow.org.</rawText>
+                     </reference>
+                     <reference position="40">
+                        <rawText>[42] Yonatan Geifman. cifar-vgg. https://github.com/geifmany/cifar-vgg, 2015.</rawText>
+                     </reference>
+                     <reference position="41">
+                        <rawText>[43] A. W. van der Vaart. Asymptotic statistics. Cambridge University Press, 1998.</rawText>
+                     </reference>
+                     <reference position="42">
+                        <rawText>[44] J. H. Hubbard and B. B. Hubbard. Vector Calculus, Linear Algebra, And Differential Forms. Prentice Hall, 1998.</rawText>
+                     </reference>
+                     <reference position="43">
+                        <rawText>[45] M. Kull, T. M. S. Filho, and P. Flach. Beyond sigmoids: How to obtain well-calibrated probabilities from binary classifiers with beta calibration. Electronic Journal of Statistics, 11: 5052-5080, 2017.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] X. Jiang, M. Osl, J. Kim, and L. Ohno-Machado. Calibrating predictive model estimates to support personalized medicine. Journal of the American Medical Informatics Association, 19 (2):263-274, 2012.</rawText>
+                        <id value="doi_________::a789bd49b67873f13743bffdd3aabbba" type="openaire"
+                            trustLevel="0.7659645"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] A. H. Murphy. A new vector partition of the probability score. Journal of Applied Meteorology, 12(4):595-600, 1973.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] A. H. Murphy and R. L. Winkler. Reliability of subjective probability forecasts of precipitation and temperature. Journal of the Royal Statistical Society. Series C (Applied Statistics), 26: 41-47, 1977.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] M. H. DeGroot and S. E. Fienberg. The comparison and evaluation of forecasters. Journal of the Royal Statistical Society. Series D (The Statistician), 32:12-22, 1983.</rawText>
+                        <id value="doi_________::2a3047b7152dcf118054c7b54d56b957" type="openaire"
+                            trustLevel="0.6377155"/>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] T. Gneiting and A. E. Raftery. Weather forecasting with ensemble methods. Science, 310, 2005.</rawText>
+                        <id value="pmid________::c6ea0315ff1887cdfd821aa787ba55d8" type="openaire"
+                            trustLevel="0.65861017"/>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] J. Brocker. Reliability, sufficiency, and the decomposition of proper scores. Quarterly Journal of the Royal Meteorological Society, 135(643):1512-1519, 2009.</rawText>
+                        <id value="doi_________::4566e0f7fc7e6de21c7ce85cecde2412" type="openaire"
+                            trustLevel="0.7045789"/>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] K. Nguyen and B. O'Connor. Posterior calibration and exploratory analysis for natural language processing models. In Empirical Methods in Natural Language Processing (EMNLP), pages 1587-1598, 2015.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] D. Card and N. A. Smith. The importance of calibration for estimating proportions from annotations. In Association for Computational Linguistics (ACL), 2018.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger. On calibration of modern neural networks. In International Conference on Machine Learning (ICML), pages 1321-1330, 2017.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] B. Zadrozny and C. Elkan. Obtaining calibrated probability estimates from decision trees and naive bayesian classifiers. In International Conference on Machine Learning (ICML), pages 609-616, 2001.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] V. Kuleshov, N. Fenner, and S. Ermon. Accurate uncertainties for deep learning using calibrated regression. In International Conference on Machine Learning (ICML), 2018.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] J. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods. Advances in Large Margin Classifiers, 10(3):61-74, 1999.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] B. Zadrozny and C. Elkan. Transforming classifier scores into accurate multiclass probability estimates. In International Conference on Knowledge Discovery and Data Mining (KDD), pages 694-699, 2002.</rawText>
+                        <id value="doi_________::72735632d0cf18f4a559e311c5c80a5f" type="openaire"
+                            trustLevel="0.6858903"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Binary classifier calibration: Non-parametric approach. arXiv, 2014.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] D. Hendrycks, M. Mazeika, and T. Dietterich. Deep anomaly detection with outlier exposure. In International Conference on Learning Representations (ICLR), 2019.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] V. Kuleshov and P. Liang. Calibrated structured prediction. In Advances in Neural Information Processing Systems (NeurIPS), 2015.</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] D. Hendrycks, K. Lee, and M. Mazeika. Using pre-training can improve model robustness and uncertainty. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] J. Brocker. Estimating reliability and resolution of probability forecasts through decomposition of the empirical score. Climate Dynamics, 39:655-667, 2012.</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] C. A. T. Ferro and T. E. Fricker. A bias-corrected decomposition of the brier score. Quarterly Journal of the Royal Meteorological Society, 138(668):1954-1960, 2012.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] A. Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto, 2009.</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] J. Deng, W. Dong, R. Socher, L. Li, K. Li, and L. Fei-Fei. ImageNet: A large-scale hierarchical image database. In Computer Vision and Pattern Recognition (CVPR), pages 248-255, 2009.</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] G. W. Brier. Verification of forecasts expressed in terms of probability. Monthly weather review, 78(1):1-3, 1950.</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Obtaining well calibrated probabilities using bayesian binning. In Association for the Advancement of Artificial Intelligence (AAAI), 2015.</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] J. V. Nixon, M. W. Dusenberry, L. Zhang, G. Jerfel, and D. Tran. Measuring calibration in deep learning. arXiv, 2019.</rawText>
+                        <id value="doi_________::a01cb701f591af20909a4cb5ac5867ac" type="openaire"
+                            trustLevel="0.620763"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] T. Gneiting, F. Balabdaoui, and A. E. Raftery. Probabilistic forecasts, calibration and sharpness. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 69(2):243-268, 2007.</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] L. Paninski. Estimation of entropy and mutual information. Neural Computation, 15:1191-1253, 2003.</rawText>
+                        <id value="doi_________::84eaf71d1078c43fb7c1a11e31c8cb31" type="openaire"
+                            trustLevel="0.71227634"/>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] C. S. Crowson, E. J. Atkinson, and T. M. Therneau. Assessing calibration of prognostic risk scores. Statistical Methods in Medical Research, 25:1692-1706, 2017.</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] F. E. Harrell, K. L. Lee, and D. B. Mark. Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors. Statistics in medicine, 15(4):361-387, 1996.</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] A. Malik, V. Kuleshov, J. Song, D. Nemer, H. Seymour, and S. Ermon. Calibrated model-based deep reinforcement learning. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] D. Yu, J. Li, and L. Deng. Calibration of confidence measures in speech recognition. Trans. Audio, Speech and Lang. Proc., 19(8):2461-2473, 2011.</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] S. Lichtenstein, B. Fischhoff, and L. D. Phillips. Judgement under Uncertainty: Heuristics and Biases. Cambridge University Press, 1982.</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] D. W. Hosmer and S. Lemeshow. Goodness of fit tests for the multiple logistic regression model. Communications in Statistics - Theory and Methods, 9:1043-1069, 1980.</rawText>
+                        <id value="doi_________::d87b1cb945ea7814dbffd0cb5ab52bb6" type="openaire"
+                            trustLevel="0.63179713"/>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] J. Bröcker and L. A. Smith. Increasing the reliability of reliability diagrams. Weather and Forecasting, 22(3):651-661, 2007.</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] A. Gelman, J. B. Carlin, H. S. Stern, and D. B. Rubin. Bayesian data analysis. Chapman and Hall/CRC Chapman and Hall/CRC, 1995 1995.</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>[35] G. Shafer and V. Vovk. A tutorial on conformal prediction. Journal of Machine Learning Research (JMLR), 9:371-421, 2008.</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>[36] J. Lei, M. G'Sell, A. Rinaldo, R. J. Tibshirani, and L. Wasserman. Distribution-free predictive inference for regression. Journal of the American Statistical Association, 113:1094-1111, 2016.</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>[37] Larry Wasserman. Density estimation. densityestimation.pdf, 2019.</rawText>
+                     </reference>
+                     <reference position="38">
+                        <rawText>[40] François Chollet. keras. https://github.com/fchollet/keras, 2015.</rawText>
+                     </reference>
+                     <reference position="39">
+                        <rawText>[41] Martín Abadi, Ashish Agarwal, Paul Barham, Eugene Brevdo, Zhifeng Chen, Craig Citro, Greg S. Corrado, Andy Davis, Jeffrey Dean, Matthieu Devin, Sanjay Ghemawat, Ian Goodfellow, Andrew Harp, Geoffrey Irving, Michael Isard, Yangqing Jia, Rafal Jozefowicz, Lukasz Kaiser, Manjunath Kudlur, Josh Levenberg, Dandelion Mané, Rajat Monga, Sherry Moore, Derek Murray, Chris Olah, Mike Schuster, Jonathon Shlens, Benoit Steiner, Ilya Sutskever, Kunal Talwar, Paul Tucker, Vincent Vanhoucke, Vijay Vasudevan, Fernanda Viégas, Oriol Vinyals, Pete Warden, Martin Wattenberg, Martin Wicke, Yuan Yu, and Xiaoqiang Zheng. TensorFlow: Largescale machine learning on heterogeneous systems, 2015. URL https://www.tensorflow. org/. Software available from tensorflow.org.</rawText>
+                     </reference>
+                     <reference position="40">
+                        <rawText>[42] Yonatan Geifman. cifar-vgg. https://github.com/geifmany/cifar-vgg, 2015.</rawText>
+                     </reference>
+                     <reference position="41">
+                        <rawText>[43] A. W. van der Vaart. Asymptotic statistics. Cambridge University Press, 1998.</rawText>
+                     </reference>
+                     <reference position="42">
+                        <rawText>[44] J. H. Hubbard and B. B. Hubbard. Vector Calculus, Linear Algebra, And Differential Forms. Prentice Hall, 1998.</rawText>
+                     </reference>
+                     <reference position="43">
+                        <rawText>[45] M. Kull, T. M. S. Filho, and P. Flach. Beyond sigmoids: How to obtain well-calibrated probabilities from binary classifiers with beta calibration. Electronic Journal of Statistics, 11: 5052-5080, 2017.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] X. Jiang, M. Osl, J. Kim, and L. Ohno-Machado. Calibrating predictive model estimates to support personalized medicine. Journal of the American Medical Informatics Association, 19 (2):263-274, 2012.</rawText>
+                        <id value="doi_________::a789bd49b67873f13743bffdd3aabbba" type="openaire"
+                            trustLevel="0.7659645"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] A. H. Murphy. A new vector partition of the probability score. Journal of Applied Meteorology, 12(4):595-600, 1973.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] A. H. Murphy and R. L. Winkler. Reliability of subjective probability forecasts of precipitation and temperature. Journal of the Royal Statistical Society. Series C (Applied Statistics), 26: 41-47, 1977.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] M. H. DeGroot and S. E. Fienberg. The comparison and evaluation of forecasters. Journal of the Royal Statistical Society. Series D (The Statistician), 32:12-22, 1983.</rawText>
+                        <id value="doi_________::2a3047b7152dcf118054c7b54d56b957" type="openaire"
+                            trustLevel="0.6377155"/>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] T. Gneiting and A. E. Raftery. Weather forecasting with ensemble methods. Science, 310, 2005.</rawText>
+                        <id value="pmid________::c6ea0315ff1887cdfd821aa787ba55d8" type="openaire"
+                            trustLevel="0.65861017"/>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] J. Brocker. Reliability, sufficiency, and the decomposition of proper scores. Quarterly Journal of the Royal Meteorological Society, 135(643):1512-1519, 2009.</rawText>
+                        <id value="doi_________::4566e0f7fc7e6de21c7ce85cecde2412" type="openaire"
+                            trustLevel="0.7045789"/>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] K. Nguyen and B. O'Connor. Posterior calibration and exploratory analysis for natural language processing models. In Empirical Methods in Natural Language Processing (EMNLP), pages 1587-1598, 2015.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] D. Card and N. A. Smith. The importance of calibration for estimating proportions from annotations. In Association for Computational Linguistics (ACL), 2018.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger. On calibration of modern neural networks. In International Conference on Machine Learning (ICML), pages 1321-1330, 2017.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] B. Zadrozny and C. Elkan. Obtaining calibrated probability estimates from decision trees and naive bayesian classifiers. In International Conference on Machine Learning (ICML), pages 609-616, 2001.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] V. Kuleshov, N. Fenner, and S. Ermon. Accurate uncertainties for deep learning using calibrated regression. In International Conference on Machine Learning (ICML), 2018.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] J. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods. Advances in Large Margin Classifiers, 10(3):61-74, 1999.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] B. Zadrozny and C. Elkan. Transforming classifier scores into accurate multiclass probability estimates. In International Conference on Knowledge Discovery and Data Mining (KDD), pages 694-699, 2002.</rawText>
+                        <id value="doi_________::ce2090b63cc14d4a8ac79e649e389c9b" type="openaire"
+                            trustLevel="0.68390507"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Binary classifier calibration: Non-parametric approach. arXiv, 2014.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] D. Hendrycks, M. Mazeika, and T. Dietterich. Deep anomaly detection with outlier exposure. In International Conference on Learning Representations (ICLR), 2019.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] V. Kuleshov and P. Liang. Calibrated structured prediction. In Advances in Neural Information Processing Systems (NeurIPS), 2015.</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] D. Hendrycks, K. Lee, and M. Mazeika. Using pre-training can improve model robustness and uncertainty. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] J. Brocker. Estimating reliability and resolution of probability forecasts through decomposition of the empirical score. Climate Dynamics, 39:655-667, 2012.</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] C. A. T. Ferro and T. E. Fricker. A bias-corrected decomposition of the brier score. Quarterly Journal of the Royal Meteorological Society, 138(668):1954-1960, 2012.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] A. Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto, 2009.</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] J. Deng, W. Dong, R. Socher, L. Li, K. Li, and L. Fei-Fei. ImageNet: A large-scale hierarchical image database. In Computer Vision and Pattern Recognition (CVPR), pages 248-255, 2009.</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] G. W. Brier. Verification of forecasts expressed in terms of probability. Monthly weather review, 78(1):1-3, 1950.</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Obtaining well calibrated probabilities using bayesian binning. In Association for the Advancement of Artificial Intelligence (AAAI), 2015.</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] J. V. Nixon, M. W. Dusenberry, L. Zhang, G. Jerfel, and D. Tran. Measuring calibration in deep learning. arXiv, 2019.</rawText>
+                        <id value="arXiv_______::c0add8ba807c7a07eae6a734bf2ca727" type="openaire"
+                            trustLevel="0.620763"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] T. Gneiting, F. Balabdaoui, and A. E. Raftery. Probabilistic forecasts, calibration and sharpness. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 69(2):243-268, 2007.</rawText>
+                        <id value="c2b0b933574d::659a688c9130012a17de0642a350205b" type="openaire"
+                            trustLevel="0.690935"/>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] L. Paninski. Estimation of entropy and mutual information. Neural Computation, 15:1191-1253, 2003.</rawText>
+                        <id value="doi_________::84eaf71d1078c43fb7c1a11e31c8cb31" type="openaire"
+                            trustLevel="0.71227634"/>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] C. S. Crowson, E. J. Atkinson, and T. M. Therneau. Assessing calibration of prognostic risk scores. Statistical Methods in Medical Research, 25:1692-1706, 2017.</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] F. E. Harrell, K. L. Lee, and D. B. Mark. Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors. Statistics in medicine, 15(4):361-387, 1996.</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] A. Malik, V. Kuleshov, J. Song, D. Nemer, H. Seymour, and S. Ermon. Calibrated model-based deep reinforcement learning. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] D. Yu, J. Li, and L. Deng. Calibration of confidence measures in speech recognition. Trans. Audio, Speech and Lang. Proc., 19(8):2461-2473, 2011.</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] S. Lichtenstein, B. Fischhoff, and L. D. Phillips. Judgement under Uncertainty: Heuristics and Biases. Cambridge University Press, 1982.</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] D. W. Hosmer and S. Lemeshow. Goodness of fit tests for the multiple logistic regression model. Communications in Statistics - Theory and Methods, 9:1043-1069, 1980.</rawText>
+                        <id value="doi_________::d87b1cb945ea7814dbffd0cb5ab52bb6" type="openaire"
+                            trustLevel="0.63179713"/>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] J. Bröcker and L. A. Smith. Increasing the reliability of reliability diagrams. Weather and Forecasting, 22(3):651-661, 2007.</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] A. Gelman, J. B. Carlin, H. S. Stern, and D. B. Rubin. Bayesian data analysis. Chapman and Hall/CRC Chapman and Hall/CRC, 1995 1995.</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>[35] G. Shafer and V. Vovk. A tutorial on conformal prediction. Journal of Machine Learning Research (JMLR), 9:371-421, 2008.</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>[36] J. Lei, M. G'Sell, A. Rinaldo, R. J. Tibshirani, and L. Wasserman. Distribution-free predictive inference for regression. Journal of the American Statistical Association, 113:1094-1111, 2016.</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>[37] Larry Wasserman. Density estimation. densityestimation.pdf, 2019.</rawText>
+                     </reference>
+                     <reference position="38">
+                        <rawText>[40] François Chollet. keras. https://github.com/fchollet/keras, 2015.</rawText>
+                     </reference>
+                     <reference position="39">
+                        <rawText>[41] Martín Abadi, Ashish Agarwal, Paul Barham, Eugene Brevdo, Zhifeng Chen, Craig Citro, Greg S. Corrado, Andy Davis, Jeffrey Dean, Matthieu Devin, Sanjay Ghemawat, Ian Goodfellow, Andrew Harp, Geoffrey Irving, Michael Isard, Yangqing Jia, Rafal Jozefowicz, Lukasz Kaiser, Manjunath Kudlur, Josh Levenberg, Dandelion Mané, Rajat Monga, Sherry Moore, Derek Murray, Chris Olah, Mike Schuster, Jonathon Shlens, Benoit Steiner, Ilya Sutskever, Kunal Talwar, Paul Tucker, Vincent Vanhoucke, Vijay Vasudevan, Fernanda Viégas, Oriol Vinyals, Pete Warden, Martin Wattenberg, Martin Wicke, Yuan Yu, and Xiaoqiang Zheng. TensorFlow: Largescale machine learning on heterogeneous systems, 2015. URL https://www.tensorflow. org/. Software available from tensorflow.org.</rawText>
+                     </reference>
+                     <reference position="40">
+                        <rawText>[42] Yonatan Geifman. cifar-vgg. https://github.com/geifmany/cifar-vgg, 2015.</rawText>
+                     </reference>
+                     <reference position="41">
+                        <rawText>[43] A. W. van der Vaart. Asymptotic statistics. Cambridge University Press, 1998.</rawText>
+                     </reference>
+                     <reference position="42">
+                        <rawText>[44] J. H. Hubbard and B. B. Hubbard. Vector Calculus, Linear Algebra, And Differential Forms. Prentice Hall, 1998.</rawText>
+                     </reference>
+                     <reference position="43">
+                        <rawText>[45] M. Kull, T. M. S. Filho, and P. Flach. Beyond sigmoids: How to obtain well-calibrated probabilities from binary classifiers with beta calibration. Electronic Journal of Statistics, 11: 5052-5080, 2017.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] X. Jiang, M. Osl, J. Kim, and L. Ohno-Machado. Calibrating predictive model estimates to support personalized medicine. Journal of the American Medical Informatics Association, 19 (2):263-274, 2012.</rawText>
+                        <id value="doi_________::a789bd49b67873f13743bffdd3aabbba" type="openaire"
+                            trustLevel="0.7659645"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] A. H. Murphy. A new vector partition of the probability score. Journal of Applied Meteorology, 12(4):595-600, 1973.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] A. H. Murphy and R. L. Winkler. Reliability of subjective probability forecasts of precipitation and temperature. Journal of the Royal Statistical Society. Series C (Applied Statistics), 26: 41-47, 1977.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] M. H. DeGroot and S. E. Fienberg. The comparison and evaluation of forecasters. Journal of the Royal Statistical Society. Series D (The Statistician), 32:12-22, 1983.</rawText>
+                        <id value="doi_________::2a3047b7152dcf118054c7b54d56b957" type="openaire"
+                            trustLevel="0.6377155"/>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] T. Gneiting and A. E. Raftery. Weather forecasting with ensemble methods. Science, 310, 2005.</rawText>
+                        <id value="pmid________::c6ea0315ff1887cdfd821aa787ba55d8" type="openaire"
+                            trustLevel="0.65861017"/>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] J. Brocker. Reliability, sufficiency, and the decomposition of proper scores. Quarterly Journal of the Royal Meteorological Society, 135(643):1512-1519, 2009.</rawText>
+                        <id value="doi_________::4566e0f7fc7e6de21c7ce85cecde2412" type="openaire"
+                            trustLevel="0.7045789"/>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] K. Nguyen and B. O'Connor. Posterior calibration and exploratory analysis for natural language processing models. In Empirical Methods in Natural Language Processing (EMNLP), pages 1587-1598, 2015.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] D. Card and N. A. Smith. The importance of calibration for estimating proportions from annotations. In Association for Computational Linguistics (ACL), 2018.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger. On calibration of modern neural networks. In International Conference on Machine Learning (ICML), pages 1321-1330, 2017.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] B. Zadrozny and C. Elkan. Obtaining calibrated probability estimates from decision trees and naive bayesian classifiers. In International Conference on Machine Learning (ICML), pages 609-616, 2001.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] V. Kuleshov, N. Fenner, and S. Ermon. Accurate uncertainties for deep learning using calibrated regression. In International Conference on Machine Learning (ICML), 2018.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] J. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods. Advances in Large Margin Classifiers, 10(3):61-74, 1999.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] B. Zadrozny and C. Elkan. Transforming classifier scores into accurate multiclass probability estimates. In International Conference on Knowledge Discovery and Data Mining (KDD), pages 694-699, 2002.</rawText>
+                        <id value="doi_________::72735632d0cf18f4a559e311c5c80a5f" type="openaire"
+                            trustLevel="0.6858903"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Binary classifier calibration: Non-parametric approach. arXiv, 2014.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] D. Hendrycks, M. Mazeika, and T. Dietterich. Deep anomaly detection with outlier exposure. In International Conference on Learning Representations (ICLR), 2019.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] V. Kuleshov and P. Liang. Calibrated structured prediction. In Advances in Neural Information Processing Systems (NeurIPS), 2015.</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] D. Hendrycks, K. Lee, and M. Mazeika. Using pre-training can improve model robustness and uncertainty. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] J. Brocker. Estimating reliability and resolution of probability forecasts through decomposition of the empirical score. Climate Dynamics, 39:655-667, 2012.</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] C. A. T. Ferro and T. E. Fricker. A bias-corrected decomposition of the brier score. Quarterly Journal of the Royal Meteorological Society, 138(668):1954-1960, 2012.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] A. Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto, 2009.</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] J. Deng, W. Dong, R. Socher, L. Li, K. Li, and L. Fei-Fei. ImageNet: A large-scale hierarchical image database. In Computer Vision and Pattern Recognition (CVPR), pages 248-255, 2009.</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] G. W. Brier. Verification of forecasts expressed in terms of probability. Monthly weather review, 78(1):1-3, 1950.</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Obtaining well calibrated probabilities using bayesian binning. In Association for the Advancement of Artificial Intelligence (AAAI), 2015.</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] J. V. Nixon, M. W. Dusenberry, L. Zhang, G. Jerfel, and D. Tran. Measuring calibration in deep learning. arXiv, 2019.</rawText>
+                        <id value="doi_________::a01cb701f591af20909a4cb5ac5867ac" type="openaire"
+                            trustLevel="0.620763"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] T. Gneiting, F. Balabdaoui, and A. E. Raftery. Probabilistic forecasts, calibration and sharpness. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 69(2):243-268, 2007.</rawText>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] L. Paninski. Estimation of entropy and mutual information. Neural Computation, 15:1191-1253, 2003.</rawText>
+                        <id value="doi_________::84eaf71d1078c43fb7c1a11e31c8cb31" type="openaire"
+                            trustLevel="0.71227634"/>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] C. S. Crowson, E. J. Atkinson, and T. M. Therneau. Assessing calibration of prognostic risk scores. Statistical Methods in Medical Research, 25:1692-1706, 2017.</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] F. E. Harrell, K. L. Lee, and D. B. Mark. Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors. Statistics in medicine, 15(4):361-387, 1996.</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] A. Malik, V. Kuleshov, J. Song, D. Nemer, H. Seymour, and S. Ermon. Calibrated model-based deep reinforcement learning. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] D. Yu, J. Li, and L. Deng. Calibration of confidence measures in speech recognition. Trans. Audio, Speech and Lang. Proc., 19(8):2461-2473, 2011.</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] S. Lichtenstein, B. Fischhoff, and L. D. Phillips. Judgement under Uncertainty: Heuristics and Biases. Cambridge University Press, 1982.</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] D. W. Hosmer and S. Lemeshow. Goodness of fit tests for the multiple logistic regression model. Communications in Statistics - Theory and Methods, 9:1043-1069, 1980.</rawText>
+                        <id value="doi_________::d87b1cb945ea7814dbffd0cb5ab52bb6" type="openaire"
+                            trustLevel="0.63179713"/>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] J. Bröcker and L. A. Smith. Increasing the reliability of reliability diagrams. Weather and Forecasting, 22(3):651-661, 2007.</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] A. Gelman, J. B. Carlin, H. S. Stern, and D. B. Rubin. Bayesian data analysis. Chapman and Hall/CRC Chapman and Hall/CRC, 1995 1995.</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>[35] G. Shafer and V. Vovk. A tutorial on conformal prediction. Journal of Machine Learning Research (JMLR), 9:371-421, 2008.</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>[36] J. Lei, M. G'Sell, A. Rinaldo, R. J. Tibshirani, and L. Wasserman. Distribution-free predictive inference for regression. Journal of the American Statistical Association, 113:1094-1111, 2016.</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>[37] Larry Wasserman. Density estimation. densityestimation.pdf, 2019.</rawText>
+                     </reference>
+                     <reference position="38">
+                        <rawText>[40] François Chollet. keras. https://github.com/fchollet/keras, 2015.</rawText>
+                     </reference>
+                     <reference position="39">
+                        <rawText>[41] Martín Abadi, Ashish Agarwal, Paul Barham, Eugene Brevdo, Zhifeng Chen, Craig Citro, Greg S. Corrado, Andy Davis, Jeffrey Dean, Matthieu Devin, Sanjay Ghemawat, Ian Goodfellow, Andrew Harp, Geoffrey Irving, Michael Isard, Yangqing Jia, Rafal Jozefowicz, Lukasz Kaiser, Manjunath Kudlur, Josh Levenberg, Dandelion Mané, Rajat Monga, Sherry Moore, Derek Murray, Chris Olah, Mike Schuster, Jonathon Shlens, Benoit Steiner, Ilya Sutskever, Kunal Talwar, Paul Tucker, Vincent Vanhoucke, Vijay Vasudevan, Fernanda Viégas, Oriol Vinyals, Pete Warden, Martin Wattenberg, Martin Wicke, Yuan Yu, and Xiaoqiang Zheng. TensorFlow: Largescale machine learning on heterogeneous systems, 2015. URL https://www.tensorflow. org/. Software available from tensorflow.org.</rawText>
+                     </reference>
+                     <reference position="40">
+                        <rawText>[42] Yonatan Geifman. cifar-vgg. https://github.com/geifmany/cifar-vgg, 2015.</rawText>
+                     </reference>
+                     <reference position="41">
+                        <rawText>[43] A. W. van der Vaart. Asymptotic statistics. Cambridge University Press, 1998.</rawText>
+                     </reference>
+                     <reference position="42">
+                        <rawText>[44] J. H. Hubbard and B. B. Hubbard. Vector Calculus, Linear Algebra, And Differential Forms. Prentice Hall, 1998.</rawText>
+                     </reference>
+                     <reference position="43">
+                        <rawText>[45] M. Kull, T. M. S. Filho, and P. Flach. Beyond sigmoids: How to obtain well-calibrated probabilities from binary classifiers with beta calibration. Electronic Journal of Statistics, 11: 5052-5080, 2017.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>[1] X. Jiang, M. Osl, J. Kim, and L. Ohno-Machado. Calibrating predictive model estimates to support personalized medicine. Journal of the American Medical Informatics Association, 19 (2):263-274, 2012.</rawText>
+                        <id value="doi_________::a789bd49b67873f13743bffdd3aabbba" type="openaire"
+                            trustLevel="0.7659645"/>
+                     </reference>
+                     <reference position="2">
+                        <rawText>[2] A. H. Murphy. A new vector partition of the probability score. Journal of Applied Meteorology, 12(4):595-600, 1973.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>[3] A. H. Murphy and R. L. Winkler. Reliability of subjective probability forecasts of precipitation and temperature. Journal of the Royal Statistical Society. Series C (Applied Statistics), 26: 41-47, 1977.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>[4] M. H. DeGroot and S. E. Fienberg. The comparison and evaluation of forecasters. Journal of the Royal Statistical Society. Series D (The Statistician), 32:12-22, 1983.</rawText>
+                        <id value="doi_________::2a3047b7152dcf118054c7b54d56b957" type="openaire"
+                            trustLevel="0.6377155"/>
+                     </reference>
+                     <reference position="5">
+                        <rawText>[5] T. Gneiting and A. E. Raftery. Weather forecasting with ensemble methods. Science, 310, 2005.</rawText>
+                        <id value="pmid________::c6ea0315ff1887cdfd821aa787ba55d8" type="openaire"
+                            trustLevel="0.65861017"/>
+                     </reference>
+                     <reference position="6">
+                        <rawText>[6] J. Brocker. Reliability, sufficiency, and the decomposition of proper scores. Quarterly Journal of the Royal Meteorological Society, 135(643):1512-1519, 2009.</rawText>
+                        <id value="doi_________::4566e0f7fc7e6de21c7ce85cecde2412" type="openaire"
+                            trustLevel="0.7045789"/>
+                     </reference>
+                     <reference position="7">
+                        <rawText>[7] K. Nguyen and B. O'Connor. Posterior calibration and exploratory analysis for natural language processing models. In Empirical Methods in Natural Language Processing (EMNLP), pages 1587-1598, 2015.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>[8] D. Card and N. A. Smith. The importance of calibration for estimating proportions from annotations. In Association for Computational Linguistics (ACL), 2018.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>[9] C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger. On calibration of modern neural networks. In International Conference on Machine Learning (ICML), pages 1321-1330, 2017.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>[10] B. Zadrozny and C. Elkan. Obtaining calibrated probability estimates from decision trees and naive bayesian classifiers. In International Conference on Machine Learning (ICML), pages 609-616, 2001.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>[11] V. Kuleshov, N. Fenner, and S. Ermon. Accurate uncertainties for deep learning using calibrated regression. In International Conference on Machine Learning (ICML), 2018.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>[12] J. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods. Advances in Large Margin Classifiers, 10(3):61-74, 1999.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>[13] B. Zadrozny and C. Elkan. Transforming classifier scores into accurate multiclass probability estimates. In International Conference on Knowledge Discovery and Data Mining (KDD), pages 694-699, 2002.</rawText>
+                        <id value="doi_________::ce2090b63cc14d4a8ac79e649e389c9b" type="openaire"
+                            trustLevel="0.68390507"/>
+                     </reference>
+                     <reference position="14">
+                        <rawText>[14] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Binary classifier calibration: Non-parametric approach. arXiv, 2014.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>[15] D. Hendrycks, M. Mazeika, and T. Dietterich. Deep anomaly detection with outlier exposure. In International Conference on Learning Representations (ICLR), 2019.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>[16] V. Kuleshov and P. Liang. Calibrated structured prediction. In Advances in Neural Information Processing Systems (NeurIPS), 2015.</rawText>
+                     </reference>
+                     <reference position="17">
+                        <rawText>[17] D. Hendrycks, K. Lee, and M. Mazeika. Using pre-training can improve model robustness and uncertainty. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="18">
+                        <rawText>[18] J. Brocker. Estimating reliability and resolution of probability forecasts through decomposition of the empirical score. Climate Dynamics, 39:655-667, 2012.</rawText>
+                     </reference>
+                     <reference position="19">
+                        <rawText>[19] C. A. T. Ferro and T. E. Fricker. A bias-corrected decomposition of the brier score. Quarterly Journal of the Royal Meteorological Society, 138(668):1954-1960, 2012.</rawText>
+                     </reference>
+                     <reference position="20">
+                        <rawText>[20] A. Krizhevsky. Learning multiple layers of features from tiny images. Technical report, University of Toronto, 2009.</rawText>
+                     </reference>
+                     <reference position="21">
+                        <rawText>[21] J. Deng, W. Dong, R. Socher, L. Li, K. Li, and L. Fei-Fei. ImageNet: A large-scale hierarchical image database. In Computer Vision and Pattern Recognition (CVPR), pages 248-255, 2009.</rawText>
+                     </reference>
+                     <reference position="22">
+                        <rawText>[22] G. W. Brier. Verification of forecasts expressed in terms of probability. Monthly weather review, 78(1):1-3, 1950.</rawText>
+                     </reference>
+                     <reference position="23">
+                        <rawText>[23] M. P. Naeini, G. F. Cooper, and M. Hauskrecht. Obtaining well calibrated probabilities using bayesian binning. In Association for the Advancement of Artificial Intelligence (AAAI), 2015.</rawText>
+                     </reference>
+                     <reference position="24">
+                        <rawText>[24] J. V. Nixon, M. W. Dusenberry, L. Zhang, G. Jerfel, and D. Tran. Measuring calibration in deep learning. arXiv, 2019.</rawText>
+                        <id value="arXiv_______::c0add8ba807c7a07eae6a734bf2ca727" type="openaire"
+                            trustLevel="0.620763"/>
+                     </reference>
+                     <reference position="25">
+                        <rawText>[25] T. Gneiting, F. Balabdaoui, and A. E. Raftery. Probabilistic forecasts, calibration and sharpness. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 69(2):243-268, 2007.</rawText>
+                        <id value="c2b0b933574d::659a688c9130012a17de0642a350205b" type="openaire"
+                            trustLevel="0.690935"/>
+                     </reference>
+                     <reference position="26">
+                        <rawText>[26] L. Paninski. Estimation of entropy and mutual information. Neural Computation, 15:1191-1253, 2003.</rawText>
+                        <id value="doi_________::84eaf71d1078c43fb7c1a11e31c8cb31" type="openaire"
+                            trustLevel="0.71227634"/>
+                     </reference>
+                     <reference position="27">
+                        <rawText>[27] C. S. Crowson, E. J. Atkinson, and T. M. Therneau. Assessing calibration of prognostic risk scores. Statistical Methods in Medical Research, 25:1692-1706, 2017.</rawText>
+                     </reference>
+                     <reference position="28">
+                        <rawText>[28] F. E. Harrell, K. L. Lee, and D. B. Mark. Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors. Statistics in medicine, 15(4):361-387, 1996.</rawText>
+                     </reference>
+                     <reference position="29">
+                        <rawText>[29] A. Malik, V. Kuleshov, J. Song, D. Nemer, H. Seymour, and S. Ermon. Calibrated model-based deep reinforcement learning. In International Conference on Machine Learning (ICML), 2019.</rawText>
+                     </reference>
+                     <reference position="30">
+                        <rawText>[30] D. Yu, J. Li, and L. Deng. Calibration of confidence measures in speech recognition. Trans. Audio, Speech and Lang. Proc., 19(8):2461-2473, 2011.</rawText>
+                     </reference>
+                     <reference position="31">
+                        <rawText>[31] S. Lichtenstein, B. Fischhoff, and L. D. Phillips. Judgement under Uncertainty: Heuristics and Biases. Cambridge University Press, 1982.</rawText>
+                     </reference>
+                     <reference position="32">
+                        <rawText>[32] D. W. Hosmer and S. Lemeshow. Goodness of fit tests for the multiple logistic regression model. Communications in Statistics - Theory and Methods, 9:1043-1069, 1980.</rawText>
+                        <id value="doi_________::d87b1cb945ea7814dbffd0cb5ab52bb6" type="openaire"
+                            trustLevel="0.63179713"/>
+                     </reference>
+                     <reference position="33">
+                        <rawText>[33] J. Bröcker and L. A. Smith. Increasing the reliability of reliability diagrams. Weather and Forecasting, 22(3):651-661, 2007.</rawText>
+                     </reference>
+                     <reference position="34">
+                        <rawText>[34] A. Gelman, J. B. Carlin, H. S. Stern, and D. B. Rubin. Bayesian data analysis. Chapman and Hall/CRC Chapman and Hall/CRC, 1995 1995.</rawText>
+                     </reference>
+                     <reference position="35">
+                        <rawText>[35] G. Shafer and V. Vovk. A tutorial on conformal prediction. Journal of Machine Learning Research (JMLR), 9:371-421, 2008.</rawText>
+                     </reference>
+                     <reference position="36">
+                        <rawText>[36] J. Lei, M. G'Sell, A. Rinaldo, R. J. Tibshirani, and L. Wasserman. Distribution-free predictive inference for regression. Journal of the American Statistical Association, 113:1094-1111, 2016.</rawText>
+                     </reference>
+                     <reference position="37">
+                        <rawText>[37] Larry Wasserman. Density estimation. densityestimation.pdf, 2019.</rawText>
+                     </reference>
+                     <reference position="38">
+                        <rawText>[40] François Chollet. keras. https://github.com/fchollet/keras, 2015.</rawText>
+                     </reference>
+                     <reference position="39">
+                        <rawText>[41] Martín Abadi, Ashish Agarwal, Paul Barham, Eugene Brevdo, Zhifeng Chen, Craig Citro, Greg S. Corrado, Andy Davis, Jeffrey Dean, Matthieu Devin, Sanjay Ghemawat, Ian Goodfellow, Andrew Harp, Geoffrey Irving, Michael Isard, Yangqing Jia, Rafal Jozefowicz, Lukasz Kaiser, Manjunath Kudlur, Josh Levenberg, Dandelion Mané, Rajat Monga, Sherry Moore, Derek Murray, Chris Olah, Mike Schuster, Jonathon Shlens, Benoit Steiner, Ilya Sutskever, Kunal Talwar, Paul Tucker, Vincent Vanhoucke, Vijay Vasudevan, Fernanda Viégas, Oriol Vinyals, Pete Warden, Martin Wattenberg, Martin Wicke, Yuan Yu, and Xiaoqiang Zheng. TensorFlow: Largescale machine learning on heterogeneous systems, 2015. URL https://www.tensorflow. org/. Software available from tensorflow.org.</rawText>
+                     </reference>
+                     <reference position="40">
+                        <rawText>[42] Yonatan Geifman. cifar-vgg. https://github.com/geifmany/cifar-vgg, 2015.</rawText>
+                     </reference>
+                     <reference position="41">
+                        <rawText>[43] A. W. van der Vaart. Asymptotic statistics. Cambridge University Press, 1998.</rawText>
+                     </reference>
+                     <reference position="42">
+                        <rawText>[44] J. H. Hubbard and B. B. Hubbard. Vector Calculus, Linear Algebra, And Differential Forms. Prentice Hall, 1998.</rawText>
+                     </reference>
+                     <reference position="43">
+                        <rawText>[45] M. Kull, T. M. S. Filho, and P. Flach. Beyond sigmoids: How to obtain well-calibrated probabilities from binary classifiers with beta calibration. Electronic Journal of Statistics, 11: 5052-5080, 2017.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+            </oaf:entity>
+         </metadata>
+      </result>
+						</results>
+	  <browseResults>
+								</browseResults>
+</response>

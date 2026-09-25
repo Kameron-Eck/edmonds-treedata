@@ -309,15 +309,27 @@ NO_REQUEST = ("(status = 'api-error' AND coalesce(cardinality(http_codes), 0) = 
               "AND terminal_status_code IS NULL)")
 
 
+#: A POST-LANDING identifier call that left file candidates UNASKED (S4.5 fix wave FX-B: `run.acquire`'s harvest pass;
+#: `detail.harvest_only.not_asked`, `stage_b.fetch_candidates`): the rung's service was asked for identifiers, never for
+#: the file — its `no-oa-copy` is no miss of the rung's yield. One that was listed no candidate IS a full answer (the
+#: service knows the work and lists no free copy — what a metadata-only rung's row always is) and stays asked. Such a
+#: row can never be a conversion (nothing was fetched), so excluding it from both counts moves `asked` alone.
+HARVEST_ONLY_UNASKED = ("(CASE WHEN jsonb_typeof(detail -> 'harvest_only' -> 'not_asked') = 'array' "
+                        "THEN jsonb_array_length(detail -> 'harvest_only' -> 'not_asked') > 0 ELSE false END)")
+
+
 def rung_counts(conn, manifest, route):
     """(converted, asked) works for `route` in the run: asked = a work with an attempt that is not a skip or a
-    budget row, and on which the rung made a request (:data:`NO_REQUEST`); converted = a work with an `ok` or
-    `measured` attempt."""
+    budget row, on which the rung made a request (:data:`NO_REQUEST`), and which did not leave its file candidates
+    unasked after a landing (:data:`HARVEST_ONLY_UNASKED`); converted = a work with an `ok` or `measured` attempt."""
     frozen, ws = _scope(manifest)
     unasked = ""
     # BEGIN guard: a row on which the rung made no request is never counted asked
     unasked = f" AND NOT {NO_REQUEST}"
     # END guard: a row on which the rung made no request is never counted asked
+    # BEGIN guard: a harvest-only row that left file candidates unasked is no ask of the rung's file
+    unasked += f" AND NOT {HARVEST_ONLY_UNASKED}"
+    # END guard: a harvest-only row that left file candidates unasked is no ask of the rung's file
     asked, conv = conn.execute(
         "SELECT count(DISTINCT work_id) FILTER (WHERE status NOT IN ('skipped', 'budget-stop')), "
         "       count(DISTINCT work_id) FILTER (WHERE status IN ('ok', 'measured')) "
@@ -509,14 +521,15 @@ def no_misses(*clients):
 class ReplayClient:
     """A `netutil.Client` replaying `CASSETTE_INDEX` under one row tag, with CONSTRUCTED answers for the URLs that
     were never recorded (a PDF never enters the repository): `stubs` maps a URL fragment to (status, headers,
-    body). A request neither answers raises the cassette's own CassetteMiss — never the network."""
+    body). A request neither answers raises the cassette's own CassetteMiss — never the network. `index` / `bodies`: another
+    tracked recording than CASSETTE_INDEX (S4.5 fix wave FX-B: the ladder-1 run's own lines, `FXB_INDEX`)."""
     base = ""
 
-    def __init__(self, row, stubs=None):
+    def __init__(self, row, stubs=None, index=None, bodies=None):
         from litkb import cassette as CAS
         from litkb.netutil import Client
 
-        self.cassette = CAS.Cassette(CASSETTE_INDEX, "replay")
+        self.cassette = CAS.Cassette(index or CASSETTE_INDEX, "replay", bodies=bodies)
         self.cassette.begin_row(row)
         self.client = Client(base="", cassette=self.cassette)
         self.stubs, self.calls = dict(stubs or {}), []
@@ -758,6 +771,113 @@ FIRES = {
     "harvest_disabled_crosswalk_c2a": {"counter": "crosswalk_rows_without_identifier",
                                        "run": fire_harvest_disabled_crosswalk},
 }
+
+
+# ── S4.5 fix wave, builder FX-B: two fires on the ladder-1 run's RECORDED bytes (referee-stage-b N2, N3) ──────────
+#: The FX-B fixture: the ladder-1 run's own index lines and stored bodies for the rows FX-B replays
+#: (qc/fixtures/litkb_cassettes/stage_b_fx/provenance.json names each entry's run row and sha256).
+FXB_INDEX = FIXTURES / "litkb_cassettes" / "stage_b_fx" / "index.jsonl"
+FXB_BODIES = FIXTURES / "litkb_cassettes" / "stage_b_fx" / "bodies"
+#: L082 as the LIVE base holds it (read 2026-09-24 as litkb_reader; one of referee-stage-b N2's 17 rows).
+FXB_L082 = {"key": "Polunchenko_2011_state-art-sequential-change", "doi": "10.1007/s11009-011-9256-5",
+            "type": "article", "title": "State-of-the-Art in Sequential Change-Point Detection",
+            "author": "Polunchenko", "year": 2011}
+#: the live run's unowned copy of Kats_2019's arXiv PDF (ladder-1 attempt 01a0d28f-6533's `on_disk`)
+FXB_KATS_ON_DISK = "Validation/Kats_2019b_soft-staple-algorithm-combined.pdf"
+
+
+def fxb_s2_answer(row):
+    """CONSTRUCTED: Semantic Scholar's answer for a crosswalk row the run never asked S2 for (the N2 defect), built from
+    the crosswalk probe CSV's MEASURED S2 values for that work (`s2_arxiv`, `s2_corpus`, `s2_mag`)."""
+    cw = next(r for r in _csv(REPO / "phase4" / "qc" / CROSSWALK_PROBE) if r["key"] == row["key"])
+    return {"paperId": f"CONSTRUCTED-fxb-{row['key']}",
+            "externalIds": {"ArXiv": cw["s2_arxiv"], "DOI": row["doi"], "CorpusId": int(cw["s2_corpus"]),
+                            "MAG": cw["s2_mag"]},
+            "title": row["title"], "year": row["year"], "openAccessPdf": None}
+
+
+def _fxb_json(obj):
+    return 200, {"Content-Type": "application/json"}, json.dumps(obj).encode()
+
+
+# fire: the post-landing identifier pass removed (every rung's `harvests` false) -> L082 -> crosswalk_rows_without_identifier
+def fire_wave1_landing_harvest_l082(conn, arm, workdir):
+    """L082 Polunchenko_2011 on its RECORDED ladder-1 take (Unpaywall names the arXiv copy; open_access lands it at Wave 1
+    — the PDF's bytes CONSTRUCTED, a PDF never enters the repository), the whole Stage A + B ladder. Control: the
+    identifier waves complete after the landing, S2 (CONSTRUCTED from the probe CSV's measured values) writes the arXiv
+    1109.2938 edge -> builder B1's `crosswalk_rows_without_identifier` over that row -> 0. Known-bad: the registry handed
+    to the ladder marks no rung `harvests` (the first-landing stop as the run had it) -> S2 never asked -> 1."""
+    import dataclasses
+
+    from litkb.acquire import policy as P
+    from litkb.acquire import run as R
+
+    B1 = _load("litkb_hardening_b1")
+    w = World(conn, workdir)
+    try:
+        with _no_secrets_read():
+            ws = w.ws("fxb-l082")
+            work = w.admit(ws, FXB_L082)
+            pdf = constructed_pdf(FXB_L082["title"], "A. S. Polunchenko")
+            client = ReplayClient(FXB_L082["doi"], index=FXB_INDEX, bodies=FXB_BODIES, stubs={
+                "arxiv.org/pdf/1109.2938": (200, {"Content-Type": "application/pdf"}, pdf),
+                "api.semanticscholar.org/": _fxb_json(fxb_s2_answer(FXB_L082)),
+                "pmc.ncbi.nlm.nih.gov/tools/idconv/": _fxb_json({"status": "ok", "records": [
+                    {"doi": FXB_L082["doi"], "status": "error", "errmsg": "CONSTRUCTED: invalid article id"}]})})
+            routes = tuple(r for r in R.ladder_routes() if P.STAGE_OF[r] in ("A", "B"))
+            rungs = list(R.RUNGS) if arm == "control" else [dataclasses.replace(r, harvests=False) for r in R.RUNGS]
+            w.acquire(ws, work, {r: client for r in routes}, routes=routes, rungs=rungs)
+            no_misses(client)
+        manifest = {"repo": str(REPO), "probe_csvs": {CROSSWALK_PROBE: str(REPO / "phase4" / "qc" / CROSSWALK_PROBE)},
+                    "rows": [{"key": FXB_L082["key"], "source": ["crosswalk"]}]}
+        return B1.crosswalk_rows_without_identifier(conn, manifest)
+    finally:
+        w.close()
+
+
+# fire: the pre-FX-B disk rule restored in-process -> Kats_2019 with an unowned copy -> free_ceiling_measured_unconverted
+def fire_unowned_copy_kats(conn, arm, workdir):
+    """Kats_2019 (L005, register E03) on its RECORDED ladder-1 Semantic Scholar answer; the arXiv PDF CONSTRUCTED (Kats'
+    title and first author) and an UNOWNED copy of the same bytes at the live run's path, no `files` row holding it.
+    Control: only bytes a files row holds make a duplicate -> the bytes land -> 0. Known-bad: `run.land_and_attach`
+    wrapped with the pre-FX-B rule (a copy anywhere on disk is `duplicate-held`) -> the work stays without a file -> 1."""
+    import hashlib
+
+    from litkb.acquire import run as R
+
+    real = R.land_and_attach
+
+    def pre_fxb_rule(conn_, ws_, token_, work_, data, *, index, **kw):
+        sha = hashlib.sha256(data).hexdigest()
+        if sha in index["sha256"]:
+            return "duplicate-held", {"sha256": sha, "on_disk": index["sha256"][sha],
+                                      "note": "CONSTRUCTED known-bad: the pre-FX-B disk rule"}
+        return real(conn_, ws_, token_, work_, data, index=index, **kw)
+
+    w = World(conn, workdir)
+    try:
+        with _no_secrets_read():
+            ws = w.ws("fxb-kats")
+            work = w.admit(ws, ROWS["kats"])
+            pdf = constructed_pdf(ROWS["kats"]["title"], ROWS["kats"]["author"])
+            (w.store.root / FXB_KATS_ON_DISK).write_bytes(pdf)
+            client = ReplayClient(ROWS["kats"]["doi"], index=FXB_INDEX, bodies=FXB_BODIES,
+                                  stubs={"arxiv.org/pdf/1910.12077": (200, {"Content-Type": "application/pdf"}, pdf)})
+            patch = mock.patch.object(R, "land_and_attach", pre_fxb_rule) if arm == "known_bad" \
+                else contextlib.nullcontext()
+            with patch:
+                w.acquire(ws, work, {"s2": client, "arxiv": client}, routes=("s2", "arxiv"))
+            no_misses(client)
+        manifest = {"repo": str(REPO), "probe_csvs": {HEAD_PROBE: str(_head_csv(workdir, ROWS["kats"]["doi"]))},
+                    "wayback_positive_dois": []}
+        return free_ceiling_measured_unconverted(conn, manifest)
+    finally:
+        w.close()
+
+
+FIRES["wave1_landing_harvest_l082"] = {"counter": "crosswalk_rows_without_identifier",
+                                       "run": fire_wave1_landing_harvest_l082}
+FIRES["unowned_copy_kats"] = {"counter": "free_ceiling_measured_unconverted", "run": fire_unowned_copy_kats}
 
 
 def main(argv=None):

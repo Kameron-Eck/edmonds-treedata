@@ -345,10 +345,23 @@ def test_d42_the_replay_budget_is_the_whole_ladders_the_live_hunt_resolved(E):
     assert narrow.attempts < b.attempts                 # what resolving over the row's routes alone gives
 
 
-def test_d42_a_switched_off_line_is_switched_on_only_for_a_replayed_row_that_asked_its_route(C, E, tmp_path):
+@pytest.fixture
+def hardening_1_table(C2C):
+    """S4.5 decision D53 (integrator-w4) put E5's two lines back ON in the module table; D42's per-row switch is a
+    replay of hardening-1's world, so these tests install hardening-1's table (E5 off with D39's measured reason) for
+    the test only (`litkb_hardening_c2c.route_switched_off`), never editing the module table."""
+    from litkb.acquire import policy as P
+
+    with C2C.route_switched_off("commoncrawl", P.COMMONCRAWL_OFF_WHY):
+        yield
+
+
+def test_d42_a_switched_off_line_is_switched_on_only_for_a_replayed_row_that_asked_its_route(C, E, tmp_path,
+                                                                                               hardening_1_table):
     """`_recorded_policy` switches on EXACTLY the lines of the routes the row names that carry an `off_why`, and
     ONLY under a REPLAY cassette. No cassette (a live hunt), a RECORD cassette (the live pass) or a replayed row that
-    does not name the route: today's table, unchanged, nothing named. The module table is never edited."""
+    does not name the route: today's table, unchanged, nothing named. The module table is never edited. Under
+    hardening-1's table (S4.5 decision D53: the module table has no line off since)."""
     from litkb.acquire import policy as P
     from litkb.acquire import run as R  # noqa: F401 — the rungs' own lines are in the table first
 
@@ -370,7 +383,7 @@ def test_d42_a_switched_off_line_is_switched_on_only_for_a_replayed_row_that_ask
 
 @pg_only
 def test_d42_a_replayed_row_asks_what_its_recording_asked_and_a_live_decision_still_refuses(
-        C, E, C2C, HA, tmp_path, litkb_pg_base, monkeypatch):
+        C, E, C2C, HA, tmp_path, litkb_pg_base, monkeypatch, hardening_1_table):
     """On the REAL ladder. A CONSTRUCTED recording made while Common Crawl was ON (the world of E07's and E20's
     takes, before D39/D40's mid-run switch): the rung asked the crawl list and the index. Replayed through the
     replay's acquirer the route is asked again from the cassette (not `skipped/policy_refused`), nothing is left
@@ -471,9 +484,9 @@ def test_d42_a_replayed_row_asks_what_its_recording_asked_and_a_live_decision_st
 
 # ── Q1: the world the live row met on disk (register-editor Q1) ──────────────────────────────────────
 
-def _world_row(doi, title, author, mirrors, world=None):
+def _world_row(doi, title, author, mirrors, world=None, expected=("held", "duplicate-held")):
     return {"id": "WORLD", "class": "constructed-replay-world", "ref": doi, "ref_scheme": "doi",
-            "expected": {"state": "held", "reason": "duplicate-held"}, "live": {"mode": "replay-only", "spend": False},
+            "expected": {"state": expected[0], "reason": expected[1]}, "live": {"mode": "replay-only", "spend": False},
             "replay": {"inputs": {"spend": True, "extract": False}, "seed": None,
                        "registry": {"kind": "record", "title": title, "author": author, "year": 2026},
                        "fetch": {"kind": "explode"}, "extract": {"kind": "off"},
@@ -487,13 +500,17 @@ def _landing(doi):
 
 
 @pg_only
-def test_q1_a_row_whose_bytes_were_on_disk_replays_duplicate_held_only_with_its_world(C, E, HA, tmp_path,
-                                                                                    litkb_pg_base):
+def test_q1_a_row_whose_bytes_were_on_disk_replays_with_its_world_in_place(C, E, HA, tmp_path, litkb_pg_base):
     """CONSTRUCTED on a loopback 'mirror', the shape of E03: the LIVE world already held the paper on disk (an
-    unbound topic-folder file), so the recorded row answered held/duplicate-held. Replayed with no world, the fresh
-    store lacks the file and the same bytes land and bind (the disagreement Q1 predicted, measured here); replayed
-    with `replay.world.disk` naming that file, the replay's store holds it again — written from the row's recorded
-    bytes — and the row answers held/duplicate-held with the same attempts, the seed named in the summary."""
+    unbound topic-folder file). Replayed with `replay.world.disk` naming that file, the replay's store holds it again —
+    written from the row's recorded bytes — and the seed is named in the summary; replayed with no world, it does not.
+
+    S4.5 fix wave FX-B (referee-stage-b N3; brief-FIXWAVE FX-B item 3) CHANGED WHAT THE WORLD DECIDES: only bytes a
+    `files` row holds make a duplicate, so an unbound topic-folder copy no longer turns the row `held/duplicate-held`
+    — the live row and both replays bind the bytes (`bound-unextracted/fresh-bound`) and the unowned copy stays where
+    it lies. Until FX-B this test asserted held/duplicate-held for the live row and the world replay. The world
+    mechanism itself is unchanged and still graded: its seed is placed and named (FX8i-FX8l), and the replay with the
+    world agrees with the live row."""
     _psycopg, conn, _ran = litkb_pg_base
     title, author = "A replay world work for S4.5 builder-fix8", "Worldseed"
     doi = "10.5555/constructed-fix8-world"
@@ -505,14 +522,15 @@ def test_q1_a_row_whose_bytes_were_on_disk_replays_duplicate_held_only_with_its_
         _reset(conn)
         with _Server({f"/{doi}": (200, "text/html", _landing(doi)),
                       f"/files/{doi}.pdf": (200, "application/pdf", pdf)}) as srv:
-            row = _world_row(doi, title, author, [srv.base])
+            row = _world_row(doi, title, author, [srv.base], expected=("bound-unextracted", "fresh-bound"))
             held = tmp_path / "t1" / "lit_WORLD" / rel         # CONSTRUCTED: the live disk held the paper already
             held.parent.mkdir(parents=True, exist_ok=True)
             held.write_bytes(pdf)
             (live,) = E.run_replay({"kind": "litkb-hunt-edge-cases", "rows": [row]}, tmp_path / "live.csv",
                                    db=conn.info.dbname, tmp=str(tmp_path / "t1"), conn=conn,
                                    cassette=C.Cassette(idx, "record", bodies=bodies))[2]
-        assert (live["observed_state"], live["observed_reason"]) == ("held", "duplicate-held"), live
+        assert (live["observed_state"], live["observed_reason"]) == ("bound-unextracted", "fresh-bound"), live
+        assert held.read_bytes() == pdf                          # the unowned copy is left where it lies
 
         def replay(r, wd):
             _reset(conn)
@@ -528,8 +546,10 @@ def test_q1_a_row_whose_bytes_were_on_disk_replays_duplicate_held_only_with_its_
         with_world["replay"]["world"] = {"disk": [{"rel_path": rel, "sha256": sha, "evidence": "CONSTRUCTED"}]}
         s1 = replay(with_world, "t3")
         (r1,) = s1["rows"]
-        assert (r1["observed_state"], r1["observed_reason"], r1["traceback"]) == ("held", "duplicate-held", "0"), r1
+        assert (r1["observed_state"], r1["observed_reason"], r1["traceback"]) == ("bound-unextracted", "fresh-bound",
+                                                                                "0"), r1
         assert s1["world_seeds"] == [{"row": "WORLD", "rel_path": rel, "sha256": sha, "bytes": len(pdf)}], s1
+        assert (tmp_path / "t3" / "lit_WORLD" / rel).read_bytes() == pdf   # the world is in place, left untouched
         assert (HA.count_network(s1), HA.count_stale(s1), HA.count_disagreeing(s1)) == (0, 0, 0), s1
         replayed = E.existing_rows(s1["replay_csv"])[0]
         assert replayed["attempt_statuses"] == live["attempt_statuses"], (replayed, live)

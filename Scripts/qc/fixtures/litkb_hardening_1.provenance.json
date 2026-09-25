@@ -1,0 +1,22 @@
+{
+ "what": "REAL, not constructed: byte copies of the ladder-1 live pass's frozen manifest (hardening-1) and its finished run CSV, the source a `hardening --freeze --rows-from` re-run copies its rows from (S4.5 decision D49). Read by qc/test_litkb_s45_rerun.py; never written.",
+ "copied_by": "builder FX-R (litkb S4.5 fix wave), 2026-09-24, from the orchestrator's READ-ONLY evidence",
+ "files": {
+  "litkb_hardening_1_manifest.json": {
+   "source": "D:\\edmonds-pipeline\\treedata\\_derived\\hardening\\hardening-1-manifest.json",
+   "bytes": 80332,
+   "sha256_bytes": "5873d3fc2cb3c04f063a0681fd120a1d9c4020e7330f57b7c2297b196c8d946e",
+   "sha256_content_crlf_folded": "5a813fc6d275201e37e1f535e44819d0eaa1040e7dc83114df3a39ff601b25ae",
+   "manifest_sha256": "3c918f64f16fb41974df24f710f6bbd22e91acd9569112109a840bdbbb3ddc5a",
+   "facts": "kind litkb-hardening; frozen_at 2026-09-24T08:22:40.799077+00:00 on db litkb (oid 30778); repo_head cd2f23b8f7b5; workstream ladder-1; 198 rows (hunt 166, measure 32; schemes doi 187, arxiv 8, url 3); unhuntable 0"
+  },
+  "litkb_hardening_1_run.csv": {
+   "source": "D:\\edmonds-pipeline\\treedata\\_derived\\hardening\\LITKB_LADDER1_2026-09-24_run.csv",
+   "bytes": 37275,
+   "sha256_bytes": "8ddad087dc867a9e200cf1f3cdef86903ee69e2638a4b1742e025c1a648dbdb7",
+   "sha256_content_crlf_folded": "ee5cac3b66cbbc37566593dd61ddbded3102955f860abdaf71d417295fdb97a5",
+   "facts": "195 rows (the manifest's 198 less the three URL rows L004 L008 L009 the orchestrator dropped, jobs/litkb-s4-5/live/run-drops.txt); the pass finished 2026-09-24 ~11:18 local; register takes L002 (E13) bound-unextracted/fresh-bound, L003 (E20) blocked/challenge, L005 (E03) held/duplicate-held, L006 (E07) blocked/challenge"
+  }
+ },
+ "hashes": "the tests assert CONTENT hashes with CRLF folded (litkb_acceptance._register_sha256) and the manifest's own canonical manifest_sha256, never the byte hash: git hands a Windows checkout CRLF (brief-COMMON hard rule 4)"
+}

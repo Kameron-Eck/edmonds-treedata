@@ -1,9 +1,11 @@
 """builder-C2b's counters and known-bads for `litkb_acceptance.py hardening` (LITKB_WORKPLAN.md "### S4.5" (b)/(c);
 the S4.5 CONTRACTS module contract). Loaded BY PATH (qc/instruments is not a package).
 
-    COUNTERS  gated:    landing_pages_booked_bad_file (RUN-SCOPED, S4.5 decision D1)
+    COUNTERS  gated:    landing_pages_booked_bad_file (RUN-SCOPED, S4.5 decision D1; a page of a work bound in the
+                        run is excused by S4.5 decision D50)
     REPORTED            bronze_landing_unconverted, manual_step_rows (RUN-SCOPED); and, beyond the plan's (b) names,
                         landing_pages_after_stage_c (the pages the gate leaves to a later stage, auditor-C2b round 2 F1)
+                        and landing_pages_excused_bound_in_run (the pages D50 excused, counted and named)
     FIRES     stage_c_disabled, mdpi_cdn_rule_disabled, paywalled_probe_disabled, e13_challenge_rule_disabled
     DETAILS             the rows behind each counter, for the report
 
@@ -35,6 +37,10 @@ from unittest import mock
 SCRIPTS = Path(__file__).resolve().parents[2]
 REPO = SCRIPTS.parent
 LANDING_FIXTURES = SCRIPTS / "qc" / "fixtures" / "litkb_landing_pages"
+#: The live run's recorded bytes for the real rows referee-stage-c named (S4.5 fix wave, builder-FX-C): the same
+#: recording shape as LANDING_FIXTURES (recording.json + hop<N>.body, read through `load_recording`), each hop with
+#: its provenance (the ladder-1 cassette line and key, or the FX-C live probe). `binary` in the repo-root .gitattributes.
+ROW_FIXTURES = SCRIPTS / "qc" / "fixtures" / "litkb_fxc_rows"
 E13_FIXTURE = SCRIPTS / "qc" / "fixtures" / "litkb_e13_challenge_b65a33b17354.html"
 MDPI_AKAMAI_PDF = SCRIPTS / "qc" / "fixtures" / "litkb_mdpi_pdf_akamai_a3b93f589df6.html"
 NO_OA_COPY_CSV = "litkb_acq_probe_no_oa_copy.csv"
@@ -79,6 +85,35 @@ def recorded_answers(rec, *, rewrite_doi=None):
         first = L.doi_url(old)
         if first in out:
             out[L.doi_url(new)] = out[first]
+    return out
+
+
+def row_answers(rec, *, rewrite_doi=None, salt=False):
+    """{url: answer} of one RECORDED ROW (ROW_FIXTURES): like `recorded_answers`, except that a URL recorded twice —
+    once asked with a `Range` header (the rung's 4 KB probe) and once without (the whole GET) — answers each request
+    with the hop of its own shape. `salt` appends `salted`'s comment to every HTML body (never to a PDF's bytes: a
+    PDF answer is served exactly as recorded)."""
+    from litkb.acquire import landing as L
+
+    by_url = {}
+    for h in rec["hops"]:
+        body = h["body"]
+        if salt and not body.lstrip()[:5] == b"%PDF-":
+            body = salted(body)
+        rng = "range" in {k.lower() for k in (h["request"].get("headers") or {})}
+        by_url.setdefault(h["request"]["url"], {})[rng] = (h["response"]["status"], dict(h["response"]["headers"]),
+                                                           body)
+    out = {}
+    for url, shapes in by_url.items():
+        if len(shapes) == 1:
+            out[url] = next(iter(shapes.values()))
+        else:
+            out[url] = (lambda s: lambda _u, headers: s[
+                "range" in {k.lower() for k in (headers or {})}])(shapes)
+    if rewrite_doi:
+        old, new = rewrite_doi
+        if L.doi_url(old) in out:
+            out[L.doi_url(new)] = out[L.doi_url(old)]
     return out
 
 
@@ -152,6 +187,13 @@ def _scope(manifest):
 #: then 0 on the same page served twice with Stage C off) — hence the other two sources below.
 #: WHICH rows the gate reads is `_routes_after_stage_c`'s: a page served by a rung the ladder runs AFTER Stage C is
 #: reported (`landing_pages_after_stage_c`), never gated (auditor-C2b round 2 F1).
+#: S4.5 decision D50 (the orchestrator's RULING, 2026-09-24, on referee-stage-c's RED reading 3 on the live run: L062
+#: L139 L146, `doaj` pages of works `open_access` bound in the same concurrent Stage B wave, so the ladder stopped
+#: before Stage C): a page counts only when the work was ALSO not bound in the run — "a work another rung bound in the
+#: same wave loses nothing". `bound_in_run` is the run's own binding of the work, read exactly as
+#: `litkb_hardening_c1b._BOUND_SQL` reads "bound in the run" (an active file version in a proposed / prepared /
+#: promoted state, created after `frozen_at` in the run's workstreams); a file the work held BEFORE the run does not
+#: excuse a page the run lost. `_gated` applies it; `landing_pages_excused_bound_in_run` counts and names the excused.
 _LANDING_BAD_FILE_SQL = """
 SELECT a.id::text, a.work_id::text, a.route, a.at, w.key,
        a.detail -> 'acceptance' -> 'facts' -> 'landing' ->> 'pdf_pointer' AS own_fact,
@@ -163,7 +205,11 @@ SELECT a.id::text, a.work_id::text, a.route, a.at, w.key,
          ORDER BY s.at, s.id LIMIT 1) AS same_bytes_fact,
        a.detail -> 'known_bad' ->> 'rel_path' AS refused_copy,
        a.detail ->> 'quarantined' AS own_copy,
-       coalesce(a.terminal_url, a.detail ->> 'source_url') AS page_url
+       coalesce(a.terminal_url, a.detail ->> 'source_url') AS page_url,
+       EXISTS (SELECT 1 FROM litkb.file_versions fv
+                WHERE fv.work_id = a.work_id
+                  AND fv.status = 'active' AND fv.state IN ('proposed', 'prepared', 'promoted')
+                  AND fv.created_at > %(frozen)s AND fv.workstream_id::text = ANY(%(ws)s)) AS bound_in_run
   FROM litkb.acquisition_attempts a LEFT JOIN litkb.works w ON w.id = a.work_id
  WHERE a.at > %(frozen)s AND a.workstream_id::text = ANY(%(ws)s)
    AND a.status = 'bad-file' AND a.sub_status = 'html_response' AND a.route <> 'landing'
@@ -246,7 +292,8 @@ def _routes_after_stage_c():
 def _unfollowed(conn, manifest):
     """-> [(row, carried, basis, after_c)] for every unfollowed html_response row of the run whose page carried a PDF
     pointer, or whose pointer fact cannot be read (FAIL CLOSED: a page the counter cannot read is not a page it may
-    call pointer-free); `after_c` = the row's route is staged after Stage C (`_routes_after_stage_c`)."""
+    call pointer-free); `after_c` = the row's route is staged after Stage C (`_routes_after_stage_c`). `row[11]` is
+    the SQL's `bound_in_run` (S4.5 decision D50) — read by the GATED path only (`_gated`)."""
     frozen, ws = _scope(manifest)
     root = _literature_root(manifest)
     later = set(_routes_after_stage_c())
@@ -262,19 +309,46 @@ def _unfollowed(conn, manifest):
     return out
 
 
+def _gated(conn, manifest):
+    """-> ([(row, carried, basis)] the gate counts, [(row, carried, basis)] it EXCUSES by S4.5 decision D50) over the
+    unfollowed rows of a rung staged before Stage C. Excused: the work was bound in the same run (`bound_in_run`) — a
+    work another rung bound in the same wave loses nothing (the ruling's own case: L062 L139 L146, `doaj` pages beside
+    an `open_access` binding in one concurrent Stage B wave). The REPORTED `landing_pages_after_stage_c` is not
+    touched by the ruling and keeps its rows."""
+    counted, excused = [], []
+    for row, carried, basis, after_c in _unfollowed(conn, manifest):
+        if after_c:
+            continue
+        bound = False                     # the unguarded default: a binding in the run excuses nothing
+        # BEGIN guard: a page of a work bound in the same run is excused, never counted (S4.5 decision D50)
+        bound = bool(row[11])
+        # END guard: a page of a work bound in the same run is excused, never counted (S4.5 decision D50)
+        (excused if bound else counted).append((row, carried, basis))
+    return counted, excused
+
+
 def landing_pages_unfollowed(conn, manifest, *, with_basis=False):
     """-> the GATED rows: unfollowed html_response rows served by a rung the ladder runs BEFORE Stage C (or by a
-    route no stage names) whose page carried a PDF pointer, or whose pointer fact cannot be read. With `with_basis`,
-    each row is (row, carried, basis)."""
-    return [(row, carried, basis) if with_basis else row
-            for row, carried, basis, after_c in _unfollowed(conn, manifest) if not after_c]
+    route no stage names) whose page carried a PDF pointer, or whose pointer fact cannot be read, of a work NOT bound
+    in the run (S4.5 decision D50). With `with_basis`, each row is (row, carried, basis)."""
+    return [(row, carried, basis) if with_basis else row for row, carried, basis in _gated(conn, manifest)[0]]
 
 
 def landing_pages_booked_bad_file(conn, manifest):
     """GATED =0 (run-scoped): html_response attempts whose page carried a PDF pointer (or whose pointer fact cannot
-    be read: fail closed) and no Stage C attempt on the same work followed — pages served by a rung staged before
-    Stage C only (a later stage's are `landing_pages_after_stage_c`'s)."""
+    be read: fail closed), no Stage C attempt on the same work followed, AND the work was not bound in the run (S4.5
+    decision D50) — pages served by a rung staged before Stage C only (a later stage's are
+    `landing_pages_after_stage_c`'s)."""
     return len(landing_pages_unfollowed(conn, manifest))
+
+
+def landing_pages_excused_bound_in_run(conn, manifest):
+    """REPORTED (run-scoped; beyond the plan's (b) names): the pages `landing_pages_booked_bad_file` EXCUSES by S4.5
+    decision D50 — an unfollowed pointer-carrying page of a work bound in the same run. Counted and named (`DETAILS`)
+    so the exclusion is never silent (the `free_ceiling_named_exceptions` / `bad_file_misbooked` precedent: a counter
+    that leaves rows out REPORTS them); the harness prints a module's detail lines only for a non-zero counter, and a
+    gate at 0 prints none."""
+    return len(_gated(conn, manifest)[1])
 
 
 _ASKED_SQL = """
@@ -386,12 +460,15 @@ def manual_step_rows(conn, manifest):
 
 COUNTERS = {"landing_pages_booked_bad_file": landing_pages_booked_bad_file}
 REPORTED = {"bronze_landing_unconverted": bronze_landing_unconverted, "manual_step_rows": manual_step_rows,
-            "landing_pages_after_stage_c": landing_pages_after_stage_c}
+            "landing_pages_after_stage_c": landing_pages_after_stage_c,
+            "landing_pages_excused_bound_in_run": landing_pages_excused_bound_in_run}
 #: The REPORTED names this module adds beyond the plan's (b) list (litkb_acceptance.HARDENING_REPORTED), each with its
 #: reason; the harness prints a module's own reported counters after the plan's (builder A's `cassette_interactions`
 #: is the precedent). Pinned by qc/test_litkb_landing.py::test_the_counter_module_names_only_plan_counters_and_every_fire_has_a_bound.
 REPORTED_BEYOND_PLAN = {"landing_pages_after_stage_c": "auditor-C2b round 2 F1: the pages the gate leaves to a "
-                                                       "stage the ladder runs after Stage C"}
+                                                       "stage the ladder runs after Stage C",
+                        "landing_pages_excused_bound_in_run": "S4.5 decision D50 (builder-FX-C): the pages the gate "
+                                                              "excuses because their work was bound in the run"}
 
 
 def _pointer_word(carried):
@@ -402,6 +479,12 @@ def _details_landing(conn, manifest):
     return [f"landing_pages_booked_bad_file: attempt {r[0]} work {r[4]} route {r[2]} at {r[3]} "
             f"pointer={_pointer_word(carried)} ({basis})"
             for r, carried, basis in landing_pages_unfollowed(conn, manifest, with_basis=True)]
+
+
+def _details_excused(conn, manifest):
+    return [f"landing_pages_excused_bound_in_run: attempt {r[0]} work {r[4]} route {r[2]} at {r[3]} "
+            f"pointer={_pointer_word(carried)} ({basis}) — EXCUSED by S4.5 decision D50: the work was bound in the run"
+            for r, carried, basis in _gated(conn, manifest)[1]]
 
 
 def _details_after_stage_c(conn, manifest):
@@ -421,7 +504,8 @@ def _details_bronze(conn, manifest):
 
 
 DETAILS = {"landing_pages_booked_bad_file": _details_landing, "bronze_landing_unconverted": _details_bronze,
-           "landing_pages_after_stage_c": _details_after_stage_c}
+           "landing_pages_after_stage_c": _details_after_stage_c,
+           "landing_pages_excused_bound_in_run": _details_excused}
 
 
 # ── the fires' world: a worker database only, recorded pages and CONSTRUCTED answers only ─────────

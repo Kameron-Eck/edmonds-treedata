@@ -1,0 +1,196 @@
+row_id,ref,ref_scheme,mode,source,state,reason,attempts_written,wall_seconds,traceback,started_at,message
+L001,10.1101/357798,doi,measure,register,measured,measured,27,234.36,0,2026-09-24T08:30:52Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""measured""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""measured""], [""doaj"", ""unresolved""], [""openaire"", ""blocked""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""unresolved""], "
+L002,10.1145/3534678.3539043,doi,hunt,register;pending-recording;bad-file;blocked;crosswalk,bound-unextracted,fresh-bound,17,5.14,0,2026-09-24T08:34:47Z,
+L003,10.1201/9781315374321,doi,hunt,register;pending-recording;no-oa-copy;blocked;bban;crosswalk,blocked,challenge,25,112.66,0,2026-09-24T08:34:52Z,
+L005,10.1007/978-3-030-32248-9_57,doi,hunt,pending-recording;free-pdf;no-oa-copy;blocked;bban;crosswalk,held,duplicate-held,17,2.62,0,2026-09-24T08:36:45Z,
+L006,10.17863/cam.133934,doi,hunt,pending-recording;no-oa-copy;blocked,blocked,challenge,26,240.67,0,2026-09-24T08:36:48Z,
+L007,10.5067/doc/ceoswgcv/lpv/lc.001,doi,hunt,ruled;wayback;no-oa-copy;blocked,blocked,challenge,25,289.27,0,2026-09-24T08:40:49Z,
+L010,1906.02530,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.61,0,2026-09-24T08:45:38Z,"the registry answered arxiv 406 for 1906.02530 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L011,2501.15377,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.42,0,2026-09-24T08:45:39Z,"the registry answered arxiv 406 for 2501.15377 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L012,2505.24038,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.28,0,2026-09-24T08:45:39Z,"the registry answered arxiv 406 for 2505.24038 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L013,2506.03114,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.41,0,2026-09-24T08:45:40Z,"the registry answered arxiv 406 for 2506.03114 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L014,2507.00170,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.33,0,2026-09-24T08:45:40Z,"the registry answered arxiv 406 for 2507.00170 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L015,2601.02126,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.31,0,2026-09-24T08:45:41Z,"the registry answered arxiv 406 for 2601.02126 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L016,2602.06503,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.55,0,2026-09-24T08:45:41Z,"the registry answered arxiv 406 for 2602.06503 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L017,2606.13896,arxiv,hunt,ruled-registry-transient,api-error,registry-transient,0,0.3,0,2026-09-24T08:45:42Z,"the registry answered arxiv 406 for 2606.13896 — a transient answer, not a verdict on the record. Nothing was admitted and nothing was written; hunt the reference again."
+L018,10.1016/j.rse.2024.114101,doi,hunt,post-freeze-probe,blocked,403,24,642.33,0,2026-09-24T08:45:42Z,
+L019,10.1109/igarss.2019.8898071,doi,measure,free-pdf;no-oa-copy,measured,measured,24,31.7,0,2026-09-24T10:17:05Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""bad-file""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""bad-file""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"""
+L020,10.1109/jcdl52503.2021.00029,doi,measure,free-pdf;no-oa-copy,measured,measured,25,126.34,0,2026-09-24T10:17:37Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""bad-file""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""api-error""], [""ncbi-idconv"", ""n"
+L021,10.1142/s2382626615500057,doi,measure,free-pdf;no-oa-copy,measured,measured,24,61.06,0,2026-09-24T10:19:43Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""no-oa-copy""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L022,10.1002/wics.1317,doi,measure,wayback;no-oa-copy,measured,measured,24,61.14,0,2026-09-24T10:20:44Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""blocked""],"
+L023,10.1016/j.isprsjprs.2018.06.002,doi,measure,bronze-landing;no-oa-copy,measured,measured,24,71.48,0,2026-09-24T10:21:46Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""bad-file""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-cop"
+L024,10.1016/j.rse.2019.111261,doi,measure,bronze-landing;no-oa-copy,measured,measured,24,84.67,0,2026-09-24T10:22:57Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""bad-file""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-cop"
+L025,10.1016/j.rse.2021.112806,doi,hunt,bronze-landing;no-oa-copy;blocked,blocked,403,24,75.91,0,2026-09-24T10:24:22Z,
+L026,10.1016/j.ufug.2018.03.006,doi,measure,bronze-landing;no-oa-copy,measured,measured,24,56.67,0,2026-09-24T10:25:38Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""bad-file""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-cop"
+L027,10.1007/0-387-69505-2_13,doi,hunt,no-oa-copy;bban;crosswalk,blocked,challenge,25,115.45,0,2026-09-24T10:26:35Z,
+L028,10.1007/978-3-031-43849-3_5,doi,measure,no-oa-copy,measured,measured,24,8.17,0,2026-09-24T10:28:30Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""crossref-link"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L029,10.1007/bf00531768,doi,hunt,no-oa-copy;bban,held,duplicate-held,20,25.0,0,2026-09-24T10:28:39Z,
+L030,10.1007/s00267-023-01934-6,doi,hunt,no-oa-copy;blocked,blocked,challenge,24,50.19,0,2026-09-24T10:29:04Z,
+L031,10.1007/s10980-012-9719-2,doi,measure,no-oa-copy,measured,measured,24,149.19,0,2026-09-24T10:29:54Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L032,10.1016/j.agrformet.2023.109809,doi,hunt,no-oa-copy;blocked,blocked,403,24,58.23,0,2026-09-24T10:32:23Z,
+L033,10.1016/j.isprsjprs.2013.10.007,doi,measure,no-oa-copy,measured,measured,25,180.0,0,2026-09-24T10:33:22Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-c"
+L034,10.1016/j.rse.2010.07.008,doi,measure,no-oa-copy,measured,measured,25,31.94,0,2026-09-24T10:36:22Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-c"
+L035,10.1016/j.rse.2010.07.010,doi,measure,no-oa-copy,measured,measured,25,37.8,0,2026-09-24T10:36:54Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-c"
+L036,10.1016/s0034-4257(98)00010-8,doi,hunt,no-oa-copy;bban,blocked,403,26,73.91,0,2026-09-24T10:37:32Z,
+L037,10.1017/s0003055418000783,doi,hunt,no-oa-copy;bban,blocked,challenge,24,145.75,0,2026-09-24T10:38:46Z,
+L038,10.1023/a:1003403601725,doi,measure,no-oa-copy,measured,measured,24,157.09,0,2026-09-24T10:41:12Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L039,10.1080/01621459.1969.10501049,doi,measure,no-oa-copy,measured,measured,24,162.83,0,2026-09-24T10:43:49Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""blocked""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L040,10.1088/0266-5611/19/6/059,doi,hunt,no-oa-copy;bad-file;bban,blocked,challenge,24,147.67,0,2026-09-24T10:46:32Z,
+L041,10.1093/biomet/asq010,doi,measure,no-oa-copy,measured,measured,24,128.8,0,2026-09-24T10:49:00Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L042,10.1109/icip55913.2025.11084679,doi,hunt,no-oa-copy;blocked,bound-unextracted,fresh-bound,21,160.36,0,2026-09-24T10:51:09Z,
+L043,10.1109/tpami.2024.3498346,doi,hunt,no-oa-copy;blocked;crosswalk,bound-unextracted,fresh-bound,17,8.36,0,2026-09-24T10:53:49Z,
+L044,10.1111/ectj.12097,doi,measure,no-oa-copy,measured,measured,24,167.97,0,2026-09-24T10:53:58Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""blocked""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""unresolved""],"
+L045,10.1126/science.1148783,doi,measure,no-oa-copy,measured,measured,25,312.14,0,2026-09-24T10:56:46Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""no-oa-copy""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L046,10.1137/1.9781611978032.28,doi,hunt,no-oa-copy;blocked;crosswalk,blocked,403,25,411.09,0,2026-09-24T11:01:58Z,
+L047,10.1145/3347146.3359068,doi,measure,no-oa-copy,measured,measured,24,296.94,0,2026-09-24T11:08:49Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""blocked""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-c"
+L048,10.14778/1920841.1920904,doi,hunt,no-oa-copy;bban,blocked,403,21,533.5,0,2026-09-24T11:13:46Z,
+L049,10.14778/2994509.2994535,doi,hunt,no-oa-copy;bban,blocked,403,21,614.06,0,2026-09-24T11:22:40Z,
+L050,10.1007/s11192-024-05034-y,doi,measure,bad-file,measured,measured,24,23.09,0,2026-09-24T16:38:18Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""skipped""], [""crossref-link"", ""skipped""], [""opencitations"", ""no-oa-copy""], [""openalex"", ""blocked""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy""], ["""
+L051,10.1007/s11192-025-05293-3,doi,measure,bad-file,measured,measured,24,40.01,0,2026-09-24T16:38:41Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""blocked""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy""],"
+L052,10.1016/j.jag.2024.103848,doi,hunt,bad-file;crosswalk,bound-unextracted,fresh-bound,17,18.83,0,2026-09-24T16:39:22Z,
+L053,10.1016/j.rse.2011.04.022,doi,measure,bad-file,measured,measured,25,96.2,0,2026-09-24T16:39:41Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""bad-file""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""bad-file"""
+L054,10.1016/j.rse.2019.111492,doi,measure,bad-file,measured,measured,25,157.0,0,2026-09-24T16:41:17Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""bad-file""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""blocked""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy""]"
+L055,10.1016/j.rse.2021.112308,doi,measure,bad-file,measured,measured,24,64.77,0,2026-09-24T16:43:54Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""bad-file""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-cop"
+L056,10.1016/j.rse.2025.115091,doi,hunt,bad-file;blocked,blocked,403,24,72.58,0,2026-09-24T16:44:59Z,
+L057,10.1045/july2014-hickey,doi,hunt,bad-file;bban,api-error,route-raised,25,81.72,0,2026-09-24T16:46:12Z,
+L058,10.1093/biomet/41.1-2.100,doi,measure,bad-file,measured,measured,24,119.89,0,2026-09-24T16:47:34Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""no-oa-copy""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy"
+L059,10.1109/34.192465,doi,hunt,bad-file;bban,blocked,403,25,214.12,0,2026-09-24T16:49:34Z,
+L060,10.1175/aies-d-22-0055.1,doi,hunt,bad-file;blocked,bound-unextracted,fresh-bound,20,41.97,0,2026-09-24T16:53:08Z,
+L061,10.13003/ief7aibi,doi,hunt,bad-file;preprint-archive-miss;crosswalk,blocked,challenge,24,123.86,0,2026-09-24T16:53:50Z,
+L062,10.1371/journal.pone.0326562,doi,hunt,bad-file;blocked,bound-unextracted,fresh-bound,10,4.97,0,2026-09-24T16:55:54Z,
+L063,10.64000/e6ey2-wce96,doi,hunt,bad-file;bban;preprint-archive-miss;crosswalk,bound-unextracted,fresh-bound,10,4.09,0,2026-09-24T16:55:59Z,
+L064,10.64000/vgpgj-j8126,doi,hunt,bad-file;preprint-archive-miss;crosswalk,blocked,challenge,24,74.36,0,2026-09-24T16:56:03Z,
+L065,10.1016/j.jag.2022.102909,doi,hunt,blocked,bound-unextracted,already-bound,0,0.14,0,2026-09-24T16:57:18Z,
+L066,10.1038/s41467-020-18321-y,doi,measure,blocked,measured,measured,24,39.77,0,2026-09-24T16:57:18Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""blocked""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""no-oa-copy""], [""doaj"", ""blocked""], [""openaire"", ""measured""], [""hal"", ""bad-file""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy""], [""euro"
+L067,10.1080/15481603.2018.1489446,doi,measure,blocked,measured,measured,24,106.48,0,2026-09-24T16:57:58Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""blocked""], [""open_access"", ""blocked""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""no-oa-copy""], [""openalex"", ""blocked""], [""doaj"", ""blocked""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy""], ["""
+L068,10.1080/17538947.2023.2257636,doi,hunt,blocked,blocked,403,24,37.38,0,2026-09-24T16:59:44Z,
+L069,10.1080/22797254.2025.2609404,doi,hunt,blocked,blocked,403,24,37.58,0,2026-09-24T17:00:22Z,
+L070,10.2139/ssrn.4979539,doi,hunt,blocked;preprint-archive-miss,blocked,403,24,32.7,0,2026-09-24T17:01:00Z,
+L071,10.3390/geomatics4040022,doi,hunt,blocked,blocked,403,24,42.01,0,2026-09-24T17:01:33Z,
+L072,10.3390/plants14111677,doi,hunt,blocked,bound-unextracted,fresh-bound,19,25.8,0,2026-09-24T17:02:15Z,
+L073,10.3390/rs15030765,doi,hunt,blocked,bound-unextracted,fresh-bound,19,20.05,0,2026-09-24T17:02:41Z,
+L074,10.3390/s8042161,doi,measure,blocked,measured,measured,24,94.81,0,2026-09-24T17:03:01Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""blocked""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""blocked""], [""openalex"", ""blocked""], [""doaj"", ""unresolved""], [""openaire"", ""measured""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""skipped""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""no-oa-copy""], [""eu"
+L075,10.48550/arxiv.2104.08663,doi,hunt,blocked;bban;preprint-archive-miss,held,not-acquired,24,69.84,0,2026-09-24T17:04:36Z,
+L076,10.1007/978-1-4757-3803-2_12,doi,hunt,bban;crosswalk,blocked,challenge,25,108.48,0,2026-09-24T17:05:46Z,
+L077,10.1007/978-3-030-01252-6_6,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,17,9.95,0,2026-09-24T17:07:35Z,
+L078,10.1007/s00180-012-0311-7,doi,hunt,bban,bound-unextracted,already-bound,0,0.22,0,2026-09-24T17:07:45Z,
+L079,10.1007/s00267-017-0934-0,doi,hunt,bban,api-error,route-raised,24,28.59,0,2026-09-24T17:07:45Z,
+L080,10.1007/s10661-021-08898-2,doi,hunt,bban,blocked,403,25,47.2,0,2026-09-24T17:08:14Z,
+L081,10.1007/s10994-013-5355-6,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,17,6.48,0,2026-09-24T17:09:01Z,
+L082,10.1007/s11009-011-9256-5,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,4.12,0,2026-09-24T17:09:08Z,
+L083,10.1016/j.agrformet.2011.09.009,doi,hunt,bban,blocked,403,25,43.67,0,2026-09-24T17:09:12Z,
+L084,10.1016/j.cities.2014.06.012,doi,hunt,bban,blocked,403,25,42.8,0,2026-09-24T17:09:56Z,
+L085,10.1016/j.compag.2008.03.009,doi,hunt,bban,blocked,403,25,41.23,0,2026-09-24T17:10:39Z,
+L086,10.1016/j.ecoinf.2020.101061,doi,hunt,bban,blocked,403,25,38.83,0,2026-09-24T17:11:20Z,
+L087,10.1016/j.isprsjprs.2017.06.013,doi,hunt,bban,blocked,403,25,82.95,0,2026-09-24T17:11:59Z,
+L088,10.1016/j.isprsjprs.2018.11.022,doi,hunt,bban,blocked,403,25,70.53,0,2026-09-24T17:13:22Z,
+L089,10.1016/j.isprsjprs.2020.07.005,doi,hunt,bban,bound-unextracted,fresh-bound,10,5.88,0,2026-09-24T17:14:33Z,
+L090,10.1016/j.isprsjprs.2021.10.008,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,46.2,0,2026-09-24T17:14:39Z,
+L091,10.1016/j.patcog.2018.03.005,doi,hunt,bban,blocked,403,25,42.42,0,2026-09-24T17:15:25Z,
+L092,10.1016/j.rse.2007.07.013,doi,hunt,bban,bound-unextracted,fresh-bound,10,9.05,0,2026-09-24T17:16:08Z,
+L093,10.1016/j.rse.2009.08.014,doi,hunt,bban,blocked,403,25,42.64,0,2026-09-24T17:16:17Z,
+L094,10.1016/j.rse.2014.01.011,doi,hunt,bban,blocked,403,25,43.84,0,2026-09-24T17:17:00Z,
+L095,10.1016/j.rse.2014.02.015,doi,hunt,bban,blocked,403,25,45.55,0,2026-09-24T17:17:44Z,
+L096,10.1016/j.rse.2015.06.027,doi,hunt,bban,blocked,403,25,43.97,0,2026-09-24T17:18:29Z,
+L097,10.1016/j.rse.2016.05.028,doi,hunt,bban,blocked,403,25,96.97,0,2026-09-24T17:19:13Z,
+L098,10.1016/j.rse.2017.11.015,doi,hunt,bban,blocked,403,25,41.38,0,2026-09-24T17:20:50Z,
+L099,10.1016/j.rse.2017.11.024,doi,hunt,bban,blocked,403,25,45.12,0,2026-09-24T17:21:32Z,
+L100,10.1016/j.rse.2018.02.046,doi,hunt,bban,blocked,403,25,45.8,0,2026-09-24T17:22:17Z,
+L101,10.1016/j.rse.2018.12.013,doi,hunt,bban,blocked,403,25,41.11,0,2026-09-24T17:23:03Z,
+L102,10.1016/j.rse.2020.112244,doi,hunt,bban,blocked,403,25,46.16,0,2026-09-24T17:23:44Z,
+L103,10.1016/j.scitotenv.2017.08.103,doi,hunt,bban,blocked,403,25,40.38,0,2026-09-24T17:24:30Z,
+L104,10.1016/j.ufug.2013.07.003,doi,hunt,bban,blocked,403,25,39.88,0,2026-09-24T17:25:11Z,
+L105,10.1016/j.ufug.2016.03.001,doi,hunt,bban,blocked,403,25,76.69,0,2026-09-24T17:25:51Z,
+L106,10.1016/j.ufug.2016.08.011,doi,hunt,bban,blocked,403,25,74.64,0,2026-09-24T17:27:08Z,
+L107,10.1016/s0167-5877(03)00103-x,doi,hunt,bban,blocked,403,25,96.76,0,2026-09-24T17:28:23Z,
+L108,10.1038/s41586-020-2824-5,doi,hunt,bban,blocked,challenge,25,147.01,0,2026-09-24T17:30:00Z,
+L109,10.1038/s41598-017-07200-0,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,5.44,0,2026-09-24T17:32:27Z,
+L110,10.1045/september2002-hickey,doi,hunt,bban,held,not-acquired,24,33.7,0,2026-09-24T17:32:32Z,
+L111,10.1061/40794(179)45,doi,hunt,bban,blocked,403,25,60.19,0,2026-09-24T17:33:06Z,
+L112,10.1080/01431160903131018,doi,hunt,bban,blocked,403,25,77.05,0,2026-09-24T17:34:06Z,
+L113,10.1080/01431161.2010.494184,doi,hunt,bban,blocked,403,25,88.0,0,2026-09-24T17:35:24Z,
+L114,10.1080/01431161.2010.541950,doi,hunt,bban,blocked,403,25,79.34,0,2026-09-24T17:36:52Z,
+L115,10.1080/01431161.2011.552923,doi,hunt,bban,bound-unextracted,fresh-bound,19,18.72,0,2026-09-24T17:38:11Z,
+L116,10.1080/01431161.2014.930207,doi,hunt,bban,blocked,403,25,74.67,0,2026-09-24T17:38:30Z,
+L117,10.1080/01431161.2020.1731002,doi,hunt,bban,blocked,403,25,92.53,0,2026-09-24T17:39:45Z,
+L118,10.1080/02664763.2020.1753025,doi,hunt,bban,blocked,403,25,263.83,0,2026-09-24T17:41:17Z,
+L119,10.1080/15481603.2016.1235009,doi,hunt,bban,blocked,403,25,30.28,0,2026-09-24T17:45:41Z,
+L120,10.1080/1747423x.2017.1338768,doi,hunt,bban,bound-unextracted,fresh-bound,10,6.83,0,2026-09-24T17:46:12Z,
+L121,10.1080/17538947.2020.1729878,doi,hunt,bban,bound-unextracted,fresh-bound,10,15.47,0,2026-09-24T17:46:19Z,
+L122,10.1080/2150704x.2013.798708,doi,hunt,bban,blocked,403,25,35.73,0,2026-09-24T17:46:34Z,
+L123,10.1080/22797254.2017.1387505,doi,hunt,bban,blocked,403,25,35.95,0,2026-09-24T17:47:10Z,
+L124,10.1093/forestscience/13.1.72,doi,hunt,bban,blocked,403,25,34.74,0,2026-09-24T17:47:46Z,
+L125,10.1097/00001648-200005000-00016,doi,hunt,bban,api-error,route-raised,25,40.8,0,2026-09-24T17:48:21Z,
+L126,10.1109/cvpr.2019.00753,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,17,3.59,0,2026-09-24T17:49:02Z,
+L127,10.1109/cvpr42600.2020.00414,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,17,4.41,0,2026-09-24T17:49:06Z,
+L128,10.1109/iccv48922.2021.00681,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,3.81,0,2026-09-24T17:49:10Z,
+L129,10.1109/iccvw54120.2021.00125,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,4.58,0,2026-09-24T17:49:14Z,
+L130,10.1109/ijcnn48605.2020.9207304,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,5.86,0,2026-09-24T17:49:19Z,
+L131,10.1109/jcdl.2017.7991564,doi,hunt,bban,blocked,403,25,77.55,0,2026-09-24T17:49:25Z,
+L132,10.1109/jstsp.2011.2139193,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,6.86,0,2026-09-24T17:50:42Z,
+L133,10.1109/tac.2004.834121,doi,hunt,bban,blocked,challenge,27,181.89,0,2026-09-24T17:50:49Z,
+L134,10.1109/tip.2008.2001404,doi,hunt,bban,bound-unextracted,fresh-bound,10,12.78,0,2026-09-24T17:53:51Z,
+L135,10.1109/tmi.2017.2665165,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,10,12.73,0,2026-09-24T17:54:04Z,
+L136,10.1111/2041-210x.13472,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,19,47.88,0,2026-09-24T17:54:17Z,
+L137,10.1117/1.jrs.14.034501,doi,hunt,bban,bound-unextracted,fresh-bound,15,12.44,0,2026-09-24T17:55:05Z,
+L138,10.1371/journal.pone.0054776,doi,hunt,bban,bound-unextracted,fresh-bound,10,4.56,0,2026-09-24T17:55:18Z,
+L139,10.1371/journal.pone.0065808,doi,hunt,bban,bound-unextracted,fresh-bound,10,4.38,0,2026-09-24T17:55:23Z,
+L140,10.1371/journal.pone.0077231,doi,hunt,bban,bound-unextracted,fresh-bound,10,4.91,0,2026-09-24T17:55:27Z,
+L141,10.14358/pers.71.9.1037,doi,hunt,bban,blocked,403,25,141.58,0,2026-09-24T17:55:32Z,
+L142,10.14358/pers.82.9.711,doi,hunt,bban,blocked,403,25,32.94,0,2026-09-24T17:57:54Z,
+L143,10.14778/3229863.3229867,doi,hunt,bban,blocked,403,25,26.28,0,2026-09-24T17:58:27Z,
+L144,10.18653/v1/p18-1031,doi,hunt,bban,bound-unextracted,fresh-bound,10,4.51,0,2026-09-24T17:58:53Z,
+L145,10.32614/rj-2016-014,doi,hunt,bban,bound-unextracted,fresh-bound,10,4.59,0,2026-09-24T17:58:58Z,
+L146,10.3389/fonc.2021.704850,doi,hunt,bban,bound-unextracted,fresh-bound,10,8.67,0,2026-09-24T17:59:03Z,
+L147,10.3390/ijgi6100292,doi,hunt,bban,blocked,403,25,40.0,0,2026-09-24T17:59:12Z,
+L148,10.3390/rs10040581,doi,hunt,bban,bound-unextracted,fresh-bound,19,28.98,0,2026-09-24T17:59:52Z,
+L149,10.3390/rs11111309,doi,hunt,bban;crosswalk,bound-unextracted,fresh-bound,19,22.94,0,2026-09-24T18:00:21Z,
+L150,10.3390/rs12091505,doi,hunt,bban,bound-unextracted,fresh-bound,19,24.41,0,2026-09-24T18:00:44Z,
+L151,10.3390/rs12223815,doi,hunt,bban,bound-unextracted,fresh-bound,19,19.36,0,2026-09-24T18:01:08Z,
+L152,10.3390/rs13091749,doi,hunt,bban,bound-unextracted,fresh-bound,19,21.19,0,2026-09-24T18:01:28Z,
+L153,10.3390/rs13091789,doi,hunt,bban,bound-unextracted,fresh-bound,19,25.34,0,2026-09-24T18:01:49Z,
+L154,10.3390/rs13245084,doi,hunt,bban,bound-unextracted,fresh-bound,19,21.33,0,2026-09-24T18:02:15Z,
+L155,10.3390/rs2092240,doi,hunt,bban,bound-unextracted,fresh-bound,20,62.81,0,2026-09-24T18:02:36Z,
+L156,10.3390/rs2102369,doi,hunt,bban,bound-unextracted,fresh-bound,20,66.02,0,2026-09-24T18:03:39Z,
+L157,10.3390/s17102427,doi,hunt,bban,bound-unextracted,fresh-bound,19,32.33,0,2026-09-24T18:04:46Z,
+L158,10.3390/s20195500,doi,hunt,bban,bound-unextracted,fresh-bound,19,25.03,0,2026-09-24T18:05:18Z,
+L159,10.48044/jauf.2013.009,doi,hunt,bban,bound-unextracted,fresh-bound,10,6.14,0,2026-09-24T18:05:43Z,
+L160,10.48044/jauf.2020.005,doi,hunt,bban,bound-unextracted,fresh-bound,10,8.89,0,2026-09-24T18:05:50Z,
+L161,10.48550/arxiv.2002.06048,doi,hunt,bban,bound-unextracted,fresh-bound,10,6.05,0,2026-09-24T18:05:59Z,
+L162,10.48550/arxiv.2004.05745,doi,hunt,bban,bound-unextracted,fresh-bound,10,3.92,0,2026-09-24T18:06:05Z,
+L163,10.5194/isprs-annals-v-2-2020-845-2020,doi,hunt,bban,bound-unextracted,fresh-bound,10,42.38,0,2026-09-24T18:06:09Z,
+L164,10.5194/isprsannals-i-7-129-2012,doi,hunt,bban,bound-unextracted,fresh-bound,10,5.47,0,2026-09-24T18:06:51Z,
+L165,10.5194/isprsarchives-xl-3-67-2014,doi,hunt,bban,held,not-acquired,25,53.88,0,2026-09-24T18:06:57Z,
+L166,10.64000/hg7jm-xyk95,doi,hunt,bban;crosswalk,blocked,challenge,25,74.36,0,2026-09-24T18:07:51Z,
+L167,10.31235/osf.io/cxp4q,doi,hunt,preprint-archive-miss,blocked,challenge,24,39.17,0,2026-09-24T18:09:05Z,
+L168,10.48550/arxiv.0710.3980,doi,measure,preprint-archive-miss,measured,measured,24,31.48,0,2026-09-24T18:09:45Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""measured""], [""opencitations"", ""unresolved""], [""crossref-link"", ""unresolved""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""blocked""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""no-oa-copy""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""unresolve"
+L169,10.48550/arxiv.1407.7644,doi,measure,preprint-archive-miss,measured,measured,24,31.2,0,2026-09-24T18:10:16Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""measured""], [""opencitations"", ""unresolved""], [""crossref-link"", ""unresolved""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""no-oa-copy""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""unreso"
+L170,10.48550/arxiv.1909.10155,doi,measure,preprint-archive-miss,measured,measured,24,29.94,0,2026-09-24T18:10:48Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""measured""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""unresolved""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""blocked""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""no-oa-copy""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""unresolve"
+L171,10.48550/arxiv.2007.01434,doi,measure,preprint-archive-miss,measured,measured,24,29.77,0,2026-09-24T18:11:18Z,"[[""eartharxiv"", ""no-oa-copy""], [""publisher-url"", ""skipped""], [""open_access"", ""measured""], [""opencitations"", ""no-oa-copy""], [""crossref-link"", ""unresolved""], [""openalex"", ""no-oa-copy""], [""doaj"", ""unresolved""], [""openaire"", ""no-oa-copy""], [""hal"", ""unresolved""], [""osf"", ""skipped""], [""datacite"", ""no-oa-copy""], [""zenodo"", ""skipped""], [""figshare"", ""skipped""], [""ncbi-idconv"", ""no-oa-copy""], [""s2"", ""unreso"
+L172,10.1002/rse2.332,doi,hunt,crosswalk,bound-unextracted,already-bound,0,0.12,0,2026-09-24T18:11:48Z,
+L173,10.1007/978-3-032-04965-0_8,doi,hunt,crosswalk,blocked,challenge,25,25.86,0,2026-09-24T18:11:48Z,
+L174,10.1007/978-3-032-21582-6_2,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,2.08,0,2026-09-24T18:12:14Z,
+L175,10.1007/s00521-021-06615-1,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,2.84,0,2026-09-24T18:12:16Z,
+L176,10.1007/s10462-024-10922-z,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,13.08,0,2026-09-24T18:12:19Z,
+L177,10.1007/s10980-026-02358-3,doi,hunt,crosswalk,blocked,403,25,31.39,0,2026-09-24T18:12:32Z,
+L178,10.1007/s11263-024-02141-4,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,9.11,0,2026-09-24T18:13:04Z,
+L179,10.1016/j.isprsjprs.2026.05.022,doi,hunt,crosswalk,bound-unextracted,fresh-bound,17,9.39,0,2026-09-24T18:13:13Z,
+L180,10.1016/j.rse.2023.113888,doi,hunt,crosswalk,bound-unextracted,fresh-bound,17,12.7,0,2026-09-24T18:13:22Z,
+L181,10.1038/s41559-023-02206-6,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,27.14,0,2026-09-24T18:13:35Z,
+L182,10.1038/s41597-025-04655-z,doi,hunt,crosswalk,blocked,403,25,28.39,0,2026-09-24T18:14:02Z,
+L183,10.1038/s41598-024-65954-w,doi,hunt,crosswalk,bound-unextracted,fresh-bound,17,13.53,0,2026-09-24T18:14:31Z,
+L184,10.1109/cvpr52688.2022.00706,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,4.59,0,2026-09-24T18:14:45Z,
+L185,10.1109/cvpr52688.2022.00780,doi,hunt,crosswalk,bound-unextracted,fresh-bound,17,6.23,0,2026-09-24T18:14:49Z,
+L186,10.1109/igarss53475.2024.10642432,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,2.69,0,2026-09-24T18:14:56Z,
+L187,10.1109/jstars.2023.3340412,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,18.58,0,2026-09-24T18:14:59Z,
+L188,10.1109/jstars.2024.3502461,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,9.95,0,2026-09-24T18:15:17Z,
+L189,10.1109/tmi.2026.3679618,doi,hunt,crosswalk,bound-unextracted,fresh-bound,17,12.12,0,2026-09-24T18:15:27Z,
+L190,10.1109/tpami.2025.3649001,doi,hunt,crosswalk,bound-unextracted,fresh-bound,17,17.75,0,2026-09-24T18:15:40Z,
+L191,10.1109/wacv51458.2022.00297,doi,hunt,crosswalk,blocked,challenge,25,84.16,0,2026-09-24T18:15:58Z,
+L192,10.1186/s12874-024-02432-x,doi,hunt,crosswalk,blocked,403,25,36.55,0,2026-09-24T18:17:22Z,
+L193,10.1214/23-aos2276,doi,hunt,crosswalk,bound-unextracted,fresh-bound,17,5.78,0,2026-09-24T18:17:59Z,
+L194,10.1214/25-aoas2134,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,3.2,0,2026-09-24T18:18:05Z,
+L195,10.3390/rs14081777,doi,hunt,crosswalk,bound-unextracted,fresh-bound,19,31.7,0,2026-09-24T18:18:08Z,
+L196,10.48550/arxiv.2203.05482,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,4.06,0,2026-09-24T18:18:40Z,
+L197,10.48550/arxiv.2312.07559,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,2.78,0,2026-09-24T18:18:44Z,
+L198,10.48550/arxiv.2602.10045,doi,hunt,crosswalk,bound-unextracted,fresh-bound,10,4.78,0,2026-09-24T18:18:47Z,

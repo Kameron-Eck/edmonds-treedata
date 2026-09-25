@@ -808,7 +808,7 @@ def _seed(conn, ws_id, spec, row):
 
 
 def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cassettes_used=None,
-               defer_recorded=False, policy_switches=None, world_seeds=None):
+               defer_recorded=False, policy_switches=None, world_seeds=None, row_cassettes=None):
     """One register row, re-run against stubs on the worker database. -> the CSV row dict.
 
     `cassette` is the run's recorded index (a replay-mode `litkb.cassette.Cassette`) that `ladder`
@@ -820,7 +820,10 @@ def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cass
     :data:`GRADED_BY_HARDENING_REPLAY` and not hunted — before the database is touched.
     `policy_switches` and `world_seeds` (lists, optional) collect, per row, every policy line the replay
     switched on for it (S4.5 decision D42, `_recorded_policy`) and every file its `replay.world` put on the
-    replay's disk (`_seed_world`, register-editor Q1) — the replay summary names both."""
+    replay's disk (`_seed_world`, register-editor Q1) — the replay summary names both. `row_cassettes` ({register
+    row id: a replay-mode Cassette}, optional; S4.5 decision D57, integrator-w4): the recorded index a row's KEPT take
+    lives in when it is not the run's own — a `ladder` row with no `routes.cassette` of its own replays from it instead
+    of `cassette` (`litkb_acceptance.take_cassettes` decides which rows, from the run CSV's `take_from`)."""
     if hunt is None:
         import litkb.hunt as H
         hunt = H.hunt
@@ -884,7 +887,7 @@ def replay_row(row, *, conn, db, tmp, hunt=None, cassette=None, guard=None, cass
     elif rkind == "real-oa-raises":
         kwargs["acquirer"] = _real_oa_acquirer()
     elif rkind == "ladder":
-        row_cassette = _row_cassette(routes, cassette)
+        row_cassette = _row_cassette(routes, (row_cassettes or {}).get(row["id"], cassette))
         # BEGIN guard: a ladder row is answered by its recorded cassette or not at all
         if row_cassette is None:
             out["traceback"] = "1"
@@ -1075,8 +1078,9 @@ def _replay_budget(clock):
 
 def run_replay(register, out_csv, *, db, tmp, only=None, hunt=None, db_tip=None, conn=None,
                policy_switches=None, world_seeds=None,
-               cassette=None, guard=None, cassettes_used=None, defer_recorded=False):
-    """Every non-held, hunt-shaped row, on a WORKER database. `policy_switches` / `world_seeds`: `replay_row`'s.
+               cassette=None, guard=None, cassettes_used=None, defer_recorded=False, row_cassettes=None):
+    """Every non-held, hunt-shaped row, on a WORKER database. `policy_switches` / `world_seeds` / `row_cassettes`:
+    `replay_row`'s.
 
     `defer_recorded` is the EDGES PYTEST's flag and nobody else's (S4.5 run-plan §8 Q3): with no run
     `cassette`, a row the live pass recorded (:func:`graded_by_hardening_replay`) is written
@@ -1126,7 +1130,8 @@ def run_replay(register, out_csv, *, db, tmp, only=None, hunt=None, db_tip=None,
                                           cassette=cassette, guard=guard,
                                           cassettes_used=cassettes_used,
                                           defer_recorded=defer_recorded,
-                                          policy_switches=policy_switches, world_seeds=world_seeds))
+                                          policy_switches=policy_switches, world_seeds=world_seeds,
+                                          row_cassettes=row_cassettes))
                 write_csv(out_csv, written)
     finally:
         if own:

@@ -12,13 +12,16 @@ WHAT ONE CALL DOES, in order (one attempt row; the ladder loop records it — a 
   1  LEADS. Every non-PDF page an earlier rung of THIS ladder run was served (`RungContext.leads`, filled by the
      loop for every refused body: an Unpaywall OA location that answered HTML, a publisher /pdf URL that answered a
      challenge) is a lead: its URL feeds the per-publisher URL rules, and a lead page that is a real landing page
-     (citation metadata, no challenge) is read for its PDF pointers. This is what makes `landing_pages_booked_bad_file`
-     a statement about Stage C following THAT page, not merely running.
+     (citation metadata, no challenge) — or a plain page (neither citation metadata nor a challenge signature) — is
+     read for its PDF pointers. This is what makes `landing_pages_booked_bad_file` a statement about Stage C
+     following THAT page, not merely running.
   2  THE DOI's LANDING PAGE. `https://doi.org/<doi>` walked hop by hop (`walk`: redirects followed by hand, so every
      URL of the chain is known; a meta refresh followed like a redirect — Zotero's C8 walk, which is exactly
      ScienceDirect's linkinghub page; guard 9: no hop to a private or loopback address). The final page is typed by
-     `classify` with purpose "page": a real landing page carries citation metadata, and C6-RG's marker-free rule
-     makes "200 + text/html + no citation metadata at all" an interstitial that is NEVER recorded as the landing page.
+     `classify` with purpose "page": a real landing page carries citation metadata; "200 + text/html + no citation
+     metadata at all" with no challenge signature is a `plain_page` — read for its pointers, NEVER recorded as the
+     landing page. (C6-RG's marker-free rule, which typed such a page an interstitial, was removed by builder-FX-V:
+     it decided 5 DOI pages of the ladder-1 run and 0 of them was an interstitial.)
   3  CANDIDATES. The per-publisher rules of `landing_rules.json` that the DOI prefix or a seen host selects, each
      rule's candidates in the table's own order, then the default rule — the generic `citation_pdf_url` rung — as a
      fall-through (C8-RG: "run the specific rule, then FALL THROUGH to the generic citation_pdf_url rung"). The
@@ -34,7 +37,8 @@ WHAT ONE CALL DOES, in order (one attempt row; the ladder loop records it — a 
      binds and never re-implements a byte rule); else `blocked` with the strongest refusal any request met
      (challenge > identity > html_or_reader > not_found: a challenge anywhere means some candidate could not be
      evaluated, the reading open_access's own route rule already takes — builder-C2b's choice, stated); a
-     landing page read with no pointer and no rule candidate is `not-in-archive/no_pdf_link`, and so is a work asked
+     landing page (or plain page) read with no pointer and no rule candidate is `not-in-archive/no_pdf_link`, and so
+     is a work asked
      without a DOI (an arXiv-only work) that no earlier rung was served a page for — nothing to follow; a transient answer
      (0, 408, 429, 5xx) STOPS the rung as `api-error`, retriable, with that response as the terminal one, so the
      ladder's scheduled retry honours its Retry-After (guard 2) and no further candidate is asked of a host that
@@ -479,9 +483,11 @@ def classify(status, headers, body, url, *, rules=(), purpose="candidate", chain
       transient            HTTP 0 / 408 / 429 / 5xx (litkb.acquire.backoff's transient codes)
       pdf                  2xx and the PDF magic (or a gzip / tar wrapper the acceptance test unwraps)
       landing              (page) 2xx HTML carrying citation metadata — a real landing page, whatever its scripts say
+      plain_page           (page) 2xx HTML with no citation metadata and no challenge signature: read for its pointers,
+                           never recorded as the landing page, never a refusal (builder-FX-V: C6-RG's marker-free
+                           rule, which typed such a page a challenge, is removed)
       html_or_reader       (candidate) a 2xx page with citation metadata, or plain HTML with no paywall marker
-      challenge_or_bot_check  a challenge signature (headers, markers, WAF status, cookie wall), or (page) C6-RG's
-                           marker-free rule: 2xx + HTML + no citation metadata at all
+      challenge_or_bot_check  a challenge signature (headers, markers, WAF status, cookie wall)
       identity_required    401, a login-wall URL anywhere on the chain, a 403 with no challenge signature
                            (litkb.acquire.ledger.type_blocked's rule), or (candidate) a paywall marker in an HTML answer
       not_found            404 / 410
@@ -523,10 +529,17 @@ def classify(status, headers, body, url, *, rules=(), purpose="candidate", chain
     if 200 <= st < 300 and html:
         if purpose == "page" and real_page:
             return "landing", "a page with citation metadata"
-        # BEGIN guard: an HTML page with no citation metadata is an interstitial, never recorded as the landing page
+        # C6-RG's marker-free rule ("200 + text/html + no citation metadata at all = an interstitial") is REMOVED
+        # (builder-FX-V, S4.5 fix wave; referee-stage-c C6-RG and referee-vocabulary class C): on the ladder-1 run it
+        # decided 5 DOI pages and was wrong on all 5 — three Crossref blog posts (the HTML IS the work, D12), OSF's app
+        # shell and NASA's LPV document index — while every real interstitial of the run (96 landing attempts) was named
+        # by a vendor signature, which `_challenge` above reads first. Such a page is a PLAIN page: read for its PDF
+        # pointers like a landing page (`Page.readable`), never recorded as THE landing page (C6-RG's other half
+        # stands: `landing_page` is a page with citation metadata), never a refusal of the article.
+        # BEGIN guard: an HTML page with no citation metadata is a plain page, never a challenge and never the landing page
         if purpose == "page":
-            return "challenge_or_bot_check", "C6-RG: 200 + text/html + no citation metadata at all = an interstitial"
-        # END guard: an HTML page with no citation metadata is an interstitial, never recorded as the landing page
+            return "plain_page", "a 2xx HTML page with no citation metadata and no challenge signature"
+        # END guard: an HTML page with no citation metadata is a plain page, never a challenge and never the landing page
         head = body[:_ledger.MARKER_WINDOW].lower()
         # BEGIN guard: a paywall marker in an HTML answer to a PDF candidate is typed identity_required
         for m in (table["global"].get("paywall_body_markers") or []) if not real_page else []:
@@ -597,7 +610,9 @@ class Page:
 
     @property
     def readable(self):
-        return self.verdict in ("landing", "html_or_reader") and bool(self.body)
+        # `plain_page`: builder-FX-V (C6-RG's marker-free rule removed) — a page with no citation metadata and no
+        # challenge signature is read for its PDF pointers too
+        return self.verdict in ("landing", "plain_page", "html_or_reader") and bool(self.body)
 
 
 @dataclass
@@ -939,7 +954,8 @@ def fetch_landing(work, ctx):
             return _downloaded(final, final.body, "doi.resolves-to-pdf", None, ev, tried, codes)
         page = Page(final.url, final.status, final.headers, final.body, "doi", verdict, why, [h.url for h in hops])
         if verdict == "landing":
-            # never an interstitial: C6-RG — only a page with citation metadata is recorded as the landing page
+            # C6-RG's half that stands: only a page with citation metadata is recorded as the landing page (a
+            # `plain_page` is read for its pointers, below, and is never recorded here)
             ev["landing_page"] = evidence_url(final.url)
             codes.append(int(final.status or 0))
             tried.append(f"{host_of(final.url)}:{final.status}=landing")

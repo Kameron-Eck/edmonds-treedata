@@ -1,0 +1,88 @@
+{
+ "what": "export.arxiv.org's REAL recorded answers to litkb's id_list requests for the hardening-1 rows L010-L017 (the ladder-1 live run, 2026-09-24T08:45:39-42Z, RECORD mode): the header line and the 8 entry lines of the run's cassette index, copied byte for byte by builder FX-S (S4.5 fix wave). Not constructed.",
+ "source": "D:/edmonds-pipeline/treedata/_derived/hardening/cassettes/ladder-1/index.jsonl (read-only evidence)",
+ "source_sha256": "4566ea2892447398ea3f96e441cb20eebe6ec5592d03973e7b6a65511a17074e",
+ "index_sha256": "fb20ec67cca79a33daab88f215fa9968b6ea1b9e8e49c57b5c24183504d13126",
+ "entries": [
+  {
+   "row": "L010",
+   "arxiv_id": "1906.02530",
+   "source_line": 271,
+   "key_sha256": "e5e956ed5f13b7ed7b56ae7e686a708da917096a0f3afe907aa86db365d59af5",
+   "recorded_at": "2026-09-24T08:45:39.220310+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "1969ca9aa8f57585138687d612f10cde3f016f942fedf411afe9e3f2e9ced8e9"
+  },
+  {
+   "row": "L011",
+   "arxiv_id": "2501.15377",
+   "source_line": 272,
+   "key_sha256": "fdef0d95e9198bc2fe37556f560ccb5cb47eb5eaae3d3a0ddbc9ddc4c689c125",
+   "recorded_at": "2026-09-24T08:45:39.844274+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "205610811048fe1ba050399ab545e8675e3ad8c7f595e9db9ac7ae9ca22c0188"
+  },
+  {
+   "row": "L012",
+   "arxiv_id": "2505.24038",
+   "source_line": 273,
+   "key_sha256": "2e9566fed63494834e3e0061d33af0fe2b67cec0de419d93bd558d29e86ffae1",
+   "recorded_at": "2026-09-24T08:45:40.332026+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "18d008a8d7aa6a8142df075f40a8693d6de532421184bffc2623295c27a4f4c9"
+  },
+  {
+   "row": "L013",
+   "arxiv_id": "2506.03114",
+   "source_line": 274,
+   "key_sha256": "257f000de02bb582728702c7e28dfe67719c6a09921ba6fd39c3ffaa90ff67c3",
+   "recorded_at": "2026-09-24T08:45:40.936754+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "8f55589020c932c82104b956303a5ad2b0936555ecf988435efc36bb5cf20825"
+  },
+  {
+   "row": "L014",
+   "arxiv_id": "2507.00170",
+   "source_line": 275,
+   "key_sha256": "7d9ff5306a930429d3c01faea69faf6ac3038abca33d979d1762bbb37de748fa",
+   "recorded_at": "2026-09-24T08:45:41.345411+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "8fda739f05373abdeec4541c7369f659dea57cf998285b09842f639d8baedd9c"
+  },
+  {
+   "row": "L015",
+   "arxiv_id": "2601.02126",
+   "source_line": 276,
+   "key_sha256": "6d9be427983cb77d6414fc539226ba103b8316ce8af5eb1960075798897bc96f",
+   "recorded_at": "2026-09-24T08:45:41.776555+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "60bd61db0de944977bc544858f9d997eb8a8277847c7e727ea395551723963b9"
+  },
+  {
+   "row": "L016",
+   "arxiv_id": "2602.06503",
+   "source_line": 277,
+   "key_sha256": "31ee84e45f54a9957a771562208b902e388ddf487df9cdfbf97badec9ced8a58",
+   "recorded_at": "2026-09-24T08:45:42.400022+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "05e55214d104bc2fb372c50873129d5d1a677a25eb9a2d1e7bd5656d08619005"
+  },
+  {
+   "row": "L017",
+   "arxiv_id": "2606.13896",
+   "source_line": 278,
+   "key_sha256": "526f1114534c7dfc96f49e5fe7839fc1d9f2fcafbcf6bfff6942b68104ac5908",
+   "recorded_at": "2026-09-24T08:45:42.810012+00:00",
+   "status": 406,
+   "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "line_sha256": "3096410e5739b00aa062c2ba500eee929cec170db97c8d8fee4548219f33e56e"
+  }
+ ]
+}

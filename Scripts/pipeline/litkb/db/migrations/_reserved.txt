@@ -22,6 +22,13 @@
 #   (separator: each S4.5 branch deletes only its own line; this line stays)
 #   (separator: each S4.5 branch deletes only its own line; this line stays)
 #
+# 0036 was taken 2026-09-24 on work/20260924-s45-fx-substrate (S4.5 fix wave, builder FX-S: the route_backoff
+# backfill) with nothing to reserve, on the same rule as 0035 below. Checked rather than assumed: `git log --all
+# --diff-filter=A --name-only` over this directory lists 0035 as the highest migration ever added on any local ref,
+# and no fix-wave worktree (wt-s45-fx-*) holds a 0036 file on disk. 0036 replaces no function body (it adds
+# litkb.backfill_route_backoff and replaces one CHECK, acquisition_backfills_op_check), so the
+# two-branches-one-function hazard below does not apply to it.
+#
 # 0035 was taken 2026-09-23 on cand/20260923-s45-w3 (S4.5 integrator-w3, decision D25) with nothing to
 # reserve, on the rule 0028 and 0023 below record: the file lands in the SAME commit that takes the number,
 # and a number on disk must not also be reserved (qc/test_litkb_p1.py::test_migration_files_are_named_and_numbered).

@@ -4,8 +4,17 @@ orchestrator's measured reason (`policy.COMMONCRAWL_OFF_WHY`) carried into every
 deleted line. Measured by the orchestrator in the live run hardening-1 (2026-09-24): the index answered 502/504 on every
 request, each only after ~270 s, and closed a direct probe's connection in 0.3 s.
 
+S4.5 decision D53 (2026-09-24 ~14:40; integrator-w4): the index was measured serving again and E5 is back ON for
+hardening-2 — the module table's two lines carry no `off_why` now. The SWITCH stays (it is how the orchestrator turns
+E5 off again if the index fails again), so every test below of the switch itself runs against hardening-1's table,
+installed for its block only by `litkb_hardening_c2c.route_switched_off("commoncrawl", policy.COMMONCRAWL_OFF_WHY)`
+(the module table is never edited); the first test holds D53 itself — both lines ON in the module table.
+
 What these tests hold:
-  * the two lines stay IN the table, switched off, and `decide` refuses each with the reason; every line WITHOUT
+  * D53: the module table's two E5 lines are ON (no `off_why`), `decide` allows both hosts and the ladder's host-less
+    pre-check; no line of the table is switched off; the hardening-1 reason is kept as history;
+  * under hardening-1's table: the two lines stay IN the table, switched off, and `decide` refuses each with the
+    reason; every line WITHOUT
     `off_why` is decided exactly as before (Wayback, IA and every legitimate line still allowed);
   * the off switch is read BEFORE the shadow checks, whatever the line's tier (CONSTRUCTED line);
   * the rung itself asks nothing and carries the reason when handed the real policy;
@@ -62,22 +71,45 @@ def _policy():
     return P
 
 
-# ── the table and decide ────────────────────────────────────────────────────────────────────
+def _hardening_1_table():
+    """hardening-1's table after D39 (E5's two lines off with the measured reason), for the with-block only."""
+    P = _policy()
+    return C2C.route_switched_off("commoncrawl", P.COMMONCRAWL_OFF_WHY)
 
-def test_the_commoncrawl_lines_stay_in_the_table_switched_off_with_the_measured_reason():
+
+def test_d53_the_commoncrawl_lines_are_on_again_and_no_line_is_switched_off():
+    """S4.5 decision D53: E5's two lines are in the module table, ON — `decide` allows each host and the ladder's
+    host-less pre-check — and no line of the table carries an `off_why`. D39's measured reason stays as history (the
+    text the switch would carry again)."""
     P = _policy()
     lines = [(i, p) for i, p in enumerate(P.POLICY) if p.route == "commoncrawl"]
     assert [p.host for _i, p in lines] == list(CC_HOSTS), lines
     for i, p in lines:
-        assert (p.off_why, p.tier) == (P.COMMONCRAWL_OFF_WHY, P.LEGITIMATE), p
+        assert (p.off_why, p.tier) == ("", P.LEGITIMATE), p
         d = P.decide("commoncrawl", p.host)
-        assert (d.allowed, d.reason, d.line, d.tier) == (False, P.COMMONCRAWL_OFF_WHY, i, P.LEGITIMATE), d
-        assert P.measure_decision(d) == d, "MEASURE mode keeps the refusal and its reason"
-    d = P.decide("commoncrawl")                    # the ladder's own pre-check (`run._skip_reason`) names no host
-    assert (d.allowed, d.reason) == (False, P.COMMONCRAWL_OFF_WHY), d
+        assert (d.allowed, d.line, d.tier) == (True, i, P.LEGITIMATE), d
+    assert P.decide("commoncrawl").allowed        # the ladder's own pre-check (`run._skip_reason`) names no host
+    assert [p for p in P.POLICY if p.off_why] == [], "D53: no line of the table is switched off"
     assert "2026-09-24" in P.COMMONCRAWL_OFF_WHY and "D39" in P.COMMONCRAWL_OFF_WHY
-    assert {(p.route, p.host) for p in P.POLICY if p.off_why} == {("commoncrawl", h) for h in CC_HOSTS}, \
-        "D39 switches off E5's two hosts and nothing else"
+
+
+# ── the table and decide ────────────────────────────────────────────────────────────────────
+
+def test_the_commoncrawl_lines_stay_in_the_table_switched_off_with_the_measured_reason():
+    """Under hardening-1's table (D39's switch; D53 put the module table back ON)."""
+    P = _policy()
+    with _hardening_1_table():
+        lines = [(i, p) for i, p in enumerate(P.POLICY) if p.route == "commoncrawl"]
+        assert [p.host for _i, p in lines] == list(CC_HOSTS), lines
+        for i, p in lines:
+            assert (p.off_why, p.tier) == (P.COMMONCRAWL_OFF_WHY, P.LEGITIMATE), p
+            d = P.decide("commoncrawl", p.host)
+            assert (d.allowed, d.reason, d.line, d.tier) == (False, P.COMMONCRAWL_OFF_WHY, i, P.LEGITIMATE), d
+            assert P.measure_decision(d) == d, "MEASURE mode keeps the refusal and its reason"
+        d = P.decide("commoncrawl")                    # the ladder's own pre-check (`run._skip_reason`) names no host
+        assert (d.allowed, d.reason) == (False, P.COMMONCRAWL_OFF_WHY), d
+        assert {(p.route, p.host) for p in P.POLICY if p.off_why} == {("commoncrawl", h) for h in CC_HOSTS}, \
+            "D39 switches off E5's two hosts and nothing else"
 
 
 def test_a_line_without_off_why_is_decided_as_before():
@@ -92,7 +124,7 @@ def test_a_line_without_off_why_is_decided_as_before():
         hit = P.POLICY[d.line]
         assert d.allowed and d.tier == p.tier and (hit.route, hit.host, hit.off_why) == (p.route, p.host, ""), (p, d)
         checked += 1
-    assert checked == len(P.POLICY) - len(CC_HOSTS)
+    assert checked == len(P.POLICY)           # S4.5 decision D53: no line of the module table is switched off
 
 
 def test_the_off_switch_is_read_before_the_shadow_checks_whatever_the_tier():
@@ -125,12 +157,13 @@ def test_the_rung_asks_nothing_and_carries_the_reason_when_its_hosts_are_off():
 
     P = _policy()
     stub = FailingClient()
-    r = commoncrawl.fetch_commoncrawl([C2C.CENSUS_URL], stub, decide=lambda h: P.decide("commoncrawl", h))
+    with _hardening_1_table():
+        r = commoncrawl.fetch_commoncrawl([C2C.CENSUS_URL], stub, decide=lambda h: P.decide("commoncrawl", h))
     assert stub.calls == [] and (r["status"], r.get("sub_status")) == ("skipped", "policy_refused"), r
     assert [x["reason"] for x in r["policy"]] == [P.COMMONCRAWL_OFF_WHY] and r["tried"] == ["collinfo=policy-refused"]
     # the test's explicit override (CONSTRUCTED answers): the rung asks again, so the refusal above is the switch
     live = _cc_answers()
-    with C2C.route_switched_on("commoncrawl"):
+    with _hardening_1_table(), C2C.route_switched_on("commoncrawl"):
         r = commoncrawl.fetch_commoncrawl([C2C.CENSUS_URL], live, decide=lambda h: P.decide("commoncrawl", h),
                                           indexes_asked=1)
     assert len(live.calls) == 2 and (r["status"], r.get("sub_status")) == ("not-in-archive", "not_in_corpus"), r
@@ -138,14 +171,18 @@ def test_the_rung_asks_nothing_and_carries_the_reason_when_its_hosts_are_off():
 
 def test_the_override_is_the_test_s_alone_and_lifts_after_its_block():
     P = _policy()
-    before = P.POLICY
-    with C2C.route_switched_on("commoncrawl"):
-        assert P.decide("commoncrawl", CC_HOSTS[0]).allowed and P.decide("commoncrawl", CC_HOSTS[1]).allowed
-        assert len(P.POLICY) == len(before)
-    assert P.POLICY is before and not P.decide("commoncrawl", CC_HOSTS[0]).allowed
+    table = P.POLICY
+    with _hardening_1_table():
+        before = P.POLICY
+        with C2C.route_switched_on("commoncrawl"):
+            assert P.decide("commoncrawl", CC_HOSTS[0]).allowed and P.decide("commoncrawl", CC_HOSTS[1]).allowed
+            assert len(P.POLICY) == len(before)
+        assert P.POLICY is before and not P.decide("commoncrawl", CC_HOSTS[0]).allowed
+    assert P.POLICY is table and P.decide("commoncrawl", CC_HOSTS[0]).allowed   # the D53 table again
     for py in (SCRIPTS / "pipeline" / "litkb").rglob("*.py"):
         text = py.read_text(encoding="utf-8")
         assert "route_switched_on" not in text and "policy_with_route_on" not in text, py
+        assert "route_switched_off" not in text and "policy_with_route_off" not in text, py
 
 
 # ── the real ladder on a worker database ────────────────────────────────────────────────────
@@ -173,7 +210,8 @@ def test_measure_mode_records_the_skip_with_the_reason_and_asks_nothing(world):
     work = world.work(ws)
     world.dead_link(ws, work, C2C.CONSTRUCTED_DEAD_URL)
     cc, wb = FailingClient(), C2C.constructed_never_archived()
-    out = world.ladder(ws, work, {"wayback": wb, "commoncrawl": cc}, routes=("wayback", "commoncrawl"))
+    with _hardening_1_table():
+        out = world.ladder(ws, work, {"wayback": wb, "commoncrawl": cc}, routes=("wayback", "commoncrawl"))
     rows = _cc_rows(world, work)
     assert out["outcome"] == "measured" and [(s, sub) for s, sub, _d in rows] == [("skipped", "policy_refused")], rows
     policy = rows[0][2]["policy"]
@@ -185,7 +223,7 @@ def test_measure_mode_records_the_skip_with_the_reason_and_asks_nothing(world):
     work2 = world.work(ws)
     world.dead_link(ws, work2, C2C.CONSTRUCTED_DEAD_URL)
     cc2 = FailingClient()
-    with C2C.route_switched_on("commoncrawl"):
+    with _hardening_1_table(), C2C.route_switched_on("commoncrawl"):
         world.ladder(ws, work2, {"commoncrawl": cc2}, routes=("commoncrawl",))
     assert cc2.calls and all(s != "skipped" for s, _sub, _d in _cc_rows(world, work2)), cc2.calls
 
@@ -211,8 +249,9 @@ def test_the_hunt_s_acquirer_records_the_skip_with_the_reason_and_asks_nothing(w
     ws = world.ws("cc-off-hunt")
     work = world.work(ws)
     world.dead_link(ws, work, C2C.CONSTRUCTED_DEAD_URL)
-    out = H._default_acquire(world.writer, ws, world.tokens[ws], work, store=world.store, agent="cc-off",
-                             session="cc-off-1")
+    with _hardening_1_table():
+        out = H._default_acquire(world.writer, ws, world.tokens[ws], work, store=world.store, agent="cc-off",
+                                 session="cc-off-1")
     rows = _cc_rows(world, work)
     assert [(s, sub) for s, sub, _d in rows] == [("skipped", "policy_refused")], rows
     assert rows[0][2]["policy"]["reason"] == P.COMMONCRAWL_OFF_WHY
@@ -220,7 +259,7 @@ def test_the_hunt_s_acquirer_records_the_skip_with_the_reason_and_asks_nothing(w
     # control: the rung ACTIVE under the explicit override -> the failing client IS reached
     work2 = world.work(ws)
     world.dead_link(ws, work2, C2C.CONSTRUCTED_DEAD_URL)
-    with C2C.route_switched_on("commoncrawl"):
+    with _hardening_1_table(), C2C.route_switched_on("commoncrawl"):
         H._default_acquire(world.writer, ws, world.tokens[ws], work2, store=world.store, agent="cc-off",
                            session="cc-off-1")
     assert cc.calls and all(s != "skipped" for s, _sub, _d in _cc_rows(world, work2)), cc.calls

@@ -1,0 +1,2697 @@
+{
+ "kind": "litkb-hardening",
+ "frozen_at": "2026-09-24T08:22:40.799077+00:00",
+ "frozen_at_source": "db",
+ "repo": "D:\\edmonds-pipeline\\treedata",
+ "repo_head": "cd2f23b8f7b5309ddb864792804447a0c195cea2",
+ "code_committed": true,
+ "db": "litkb",
+ "db_name": "litkb",
+ "db_oid": 30778,
+ "reader_role": "litkb_reader",
+ "repo_migration_tip": 35,
+ "db_migration_tip": 35,
+ "db_migration_tip_note": null,
+ "workstream_slug": "ladder-1",
+ "workstream_id": "01a0ce84-b7ee-7437-9eee-2f44b65692ef",
+ "run_workstream_ids": [
+  "01a0ce84-b7ee-7437-9eee-2f44b65692ef"
+ ],
+ "worktree": "D:\\edmonds-pipeline\\treedata",
+ "literature_root": "D:\\edmonds-pipeline\\Literture",
+ "ladder_budget": {
+  "seconds": 505,
+  "attempts": null
+ },
+ "shadow_tier": {
+  "enabled": false,
+  "code_default": true,
+  "ruling": "S4.5 decision D27 / Scope ruling 2026-09-23: item 5b not built; the live run runs with the shadow tier switched OFF"
+ },
+ "probe_csvs": {
+  "litkb_acq_probe_badfile.csv": "phase4/qc/litkb_acq_probe_badfile.csv",
+  "litkb_acq_probe_baselines.md": "phase4/qc/litkb_acq_probe_baselines.md",
+  "litkb_acq_probe_bban.csv": "phase4/qc/litkb_acq_probe_bban.csv",
+  "litkb_acq_probe_blocked.csv": "phase4/qc/litkb_acq_probe_blocked.csv",
+  "litkb_acq_probe_crosswalk.csv": "phase4/qc/litkb_acq_probe_crosswalk.csv",
+  "litkb_acq_probe_elsevier_key.csv": "phase4/qc/litkb_acq_probe_elsevier_key.csv",
+  "litkb_acq_probe_head.csv": "phase4/qc/litkb_acq_probe_head.csv",
+  "litkb_acq_probe_no_oa_copy.csv": "phase4/qc/litkb_acq_probe_no_oa_copy.csv",
+  "litkb_acq_probe_relation.csv": "phase4/qc/litkb_acq_probe_relation.csv"
+ },
+ "probe_csvs_sha256": {
+  "litkb_acq_probe_badfile.csv": "b61a90a72fbad1ae6aaf1af2104bab814081119229eea73160e627e751590d8d",
+  "litkb_acq_probe_baselines.md": "e28942ffd398c4d1c8b1b20b8baa04fb6afff9d32bcd42657d29f5719b03cdb5",
+  "litkb_acq_probe_bban.csv": "131723479968c29d996d23d4cc0d391b732fadaf9fb506879949f8c7a230d78d",
+  "litkb_acq_probe_blocked.csv": "353b38d8183603c599da6a48f7deb007162e378cc21185ead2d7f7a5a7ee4a2b",
+  "litkb_acq_probe_crosswalk.csv": "ce7778c45b180e8a0cddb47617cf82f776a6adda5598af2362ce13019f7f748a",
+  "litkb_acq_probe_elsevier_key.csv": "6a8e38250c78ccb937f856eb5fb8263921d1d856de5e7ecec5d1ce7bc599ef15",
+  "litkb_acq_probe_head.csv": "6eca28d3255f03a62f2b489eb9a0e2db7260617799492e01c86a0e1638b4b2a2",
+  "litkb_acq_probe_no_oa_copy.csv": "cd9cc5ca4dbc6fe648166162dea8385d31550b837e13d33489eca23e5c30d21a",
+  "litkb_acq_probe_relation.csv": "ec58a62020a0f20e3bd39f0f80deb2d461cfd35ae84ca9ce80f9bca541c48600"
+ },
+ "register": {
+  "path": "Scripts/qc/fixtures/litkb_hunt_edge_cases.json",
+  "sha256": "a9ec40ee3a440b62d85bd8b9b1f70a81428a479975b91a26cc97a20485d0c32d"
+ },
+ "constructed_register": {
+  "path": "Scripts/qc/fixtures/litkb_hardening_constructed_register.json",
+  "sha256": "5c82688036b1e15d137e95e19a290155d32df6b4d200320cf88432db34b4ddc2"
+ },
+ "ruled_hunts": {
+  "path": "Reports/LITKB_RULED_HUNTS_2026-09-21.csv",
+  "sha256": "3a51c4851ebc07bbd355c7971169375d7d7bd5d11c4825217425337fb0182931"
+ },
+ "report_path": "Reports/LITKB_LADDER1_2026-09-24.md",
+ "referee_reports": {
+  "substrate": "Reports/LITKB_REFEREE_S45_SUBSTRATE_2026-09-24.md",
+  "vocabulary": "Reports/LITKB_REFEREE_S45_VOCABULARY_2026-09-24.md",
+  "stage-a": "Reports/LITKB_REFEREE_S45_STAGE-A_2026-09-24.md",
+  "stage-b": "Reports/LITKB_REFEREE_S45_STAGE-B_2026-09-24.md",
+  "stage-c": "Reports/LITKB_REFEREE_S45_STAGE-C_2026-09-24.md",
+  "scihub-1": "Reports/LITKB_REFEREE_S45_SCIHUB-1_2026-09-24.md",
+  "stage-e": "Reports/LITKB_REFEREE_S45_STAGE-E_2026-09-24.md",
+  "replay": "Reports/LITKB_REFEREE_S45_REPLAY_2026-09-24.md",
+  "badfile-read": "Reports/LITKB_REFEREE_S45_BADFILE-READ_2026-09-24.md"
+ },
+ "cassette_index": {
+  "path": "_derived/hardening/cassettes/ladder-1/index.jsonl",
+  "sha256": null,
+  "bodies": "D:\\edmonds-pipeline\\litkb_derived\\cassette_bodies",
+  "inline_max_bytes": 65536
+ },
+ "run_csv": "_derived/hardening/LITKB_LADDER1_2026-09-24_run.csv",
+ "recording_report": "_derived/hardening/LITKB_LADDER1_2026-09-24_recording.json",
+ "replay_csv": "_derived/hardening/LITKB_LADDER1_2026-09-24_replay.csv",
+ "replay_report": "_derived/hardening/LITKB_LADDER1_2026-09-24_replay.json",
+ "gated": [
+  {
+   "name": "rehunt_route_spends",
+   "bound": "=0"
+  },
+  {
+   "name": "relation_probe_rows",
+   "bound": ">=1"
+  },
+  {
+   "name": "key_derivation_crashes",
+   "bound": "=0"
+  },
+  {
+   "name": "known_bad_relands",
+   "bound": "=0"
+  },
+  {
+   "name": "proposals_unadjudicated",
+   "bound": "=0"
+  },
+  {
+   "name": "bad_file_untyped",
+   "bound": "=0"
+  },
+  {
+   "name": "blocked_untyped",
+   "bound": "=0"
+  },
+  {
+   "name": "quarantines_without_reason",
+   "bound": "=0"
+  },
+  {
+   "name": "operator_binds_unproposed",
+   "bound": "=0"
+  },
+  {
+   "name": "preprints_sent_to_shadow",
+   "bound": "=0"
+  },
+  {
+   "name": "post_freeze_sent",
+   "bound": "=0"
+  },
+  {
+   "name": "shadow_miss_booked_blocked",
+   "bound": "=0"
+  },
+  {
+   "name": "bban_probe_hits_not_landed",
+   "bound": "=0"
+  },
+  {
+   "name": "challenge_at_200_unbooked",
+   "bound": "=0"
+  },
+  {
+   "name": "landing_pages_booked_bad_file",
+   "bound": "=0"
+  },
+  {
+   "name": "stubs_bound",
+   "bound": "=0"
+  },
+  {
+   "name": "volumes_bound_as_article",
+   "bound": "=0"
+  },
+  {
+   "name": "free_ceiling_measured_unconverted",
+   "bound": "=0"
+  },
+  {
+   "name": "budget_exceeded_silently",
+   "bound": "=0"
+  },
+  {
+   "name": "stage_b_rungs_unmeasured",
+   "bound": "=0"
+  },
+  {
+   "name": "crosswalk_rows_without_identifier",
+   "bound": "=0"
+  },
+  {
+   "name": "identifiers_without_provenance",
+   "bound": "=0"
+  },
+  {
+   "name": "conflicts_uncounted",
+   "bound": "=0"
+  },
+  {
+   "name": "nondistinct_schemes_in_unique_index",
+   "bound": "=0"
+  },
+  {
+   "name": "unvalidated_items",
+   "bound": "=0"
+  },
+  {
+   "name": "replay_rows_graded_against_stubs",
+   "bound": "=0"
+  },
+  {
+   "name": "replay_network_calls",
+   "bound": "=0"
+  },
+  {
+   "name": "cassettes_stale",
+   "bound": "=0"
+  },
+  {
+   "name": "promotions_prepared",
+   "bound": ">=1"
+  },
+  {
+   "name": "replay_rows_disagreeing",
+   "bound": "=0"
+  }
+ ],
+ "reported": [
+  "promotions_committed",
+  "page_ranges_unparsed",
+  "transient_rows_unretried",
+  "relation_edges_missing",
+  "identifier_first_refusals",
+  "books_without_isbn",
+  "attempts_without_sha",
+  "unowned_landings",
+  "attempts_without_terminal",
+  "files_without_word_count",
+  "hits_without_version",
+  "bronze_landing_unconverted",
+  "manual_step_rows",
+  "operator_binds_historical"
+ ],
+ "selectors": {
+  "register": 4,
+  "pending-recording": 4,
+  "ruled": 3,
+  "ruled-registry-transient": 8,
+  "post-freeze-probe": 1,
+  "free-pdf": 4,
+  "wayback": 2,
+  "bronze-landing": 4,
+  "no-oa-copy": 35,
+  "bad-file": 17,
+  "blocked": 25,
+  "bban": 104,
+  "preprint-archive-miss": 10,
+  "crosswalk": 53
+ },
+ "rows": [
+  {
+   "id": "L001",
+   "ref": "10.1101/357798",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "register"
+   ],
+   "why": "register: register row E21 (sibling-edition)",
+   "work_id": "01a0a4c5-1378-7d19-9320-cb8bdc1e0eac",
+   "key": "Valavi_2018_blockcv-r-package-generating"
+  },
+  {
+   "id": "L002",
+   "ref": "10.1145/3534678.3539043",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "register",
+    "pending-recording",
+    "bad-file",
+    "blocked",
+    "crosswalk"
+   ],
+   "why": "register: register row E13 (403-or-challenge); pending-recording: register row E13 is pending a recording (403-or-challenge); bad-file: bad-file attempts: annas=3; blocked: blocked attempts: open_access=3, scihub=3; crosswalk: crosswalk, no file: s2_arxiv=2206.01062",
+   "work_id": "01a0adc7-eab1-75c0-ad81-ba8a9569a467",
+   "key": "Pfitzmann_2022_doclaynet-large-human-annotated"
+  },
+  {
+   "id": "L003",
+   "ref": "10.1201/9781315374321",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "register",
+    "pending-recording",
+    "no-oa-copy",
+    "blocked",
+    "bban",
+    "crosswalk"
+   ],
+   "why": "register: register row E20 (book); pending-recording: register row E20 is pending a recording (book); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1; bban: bban probe not-in-corpus (tried 10.1201/9781315374321, 404); crosswalk: crosswalk, no file: cr_isbn=9781466568419",
+   "work_id": "01a0a4db-0697-7b50-b00f-e00ce008a385",
+   "key": "VanDenHout_2016_multi-state-survival-models"
+  },
+  {
+   "id": "L004",
+   "ref": "https://www.crossref.org/blog/how-good-is-your-matching/",
+   "ref_scheme": "url",
+   "mode": "hunt",
+   "source": [
+    "register"
+   ],
+   "why": "register: register row E06 (url-html-only)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L005",
+   "ref": "10.1007/978-3-030-32248-9_57",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "pending-recording",
+    "free-pdf",
+    "no-oa-copy",
+    "blocked",
+    "bban",
+    "crosswalk"
+   ],
+   "why": "pending-recording: register row E03 is pending a recording (unobtainable-doi); free-pdf: head probe FREE-PDF via s2 (must convert); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=2; bban: bban probe not-in-corpus (tried 10.1007/978-3-030-32248-9_57, 404); crosswalk: crosswalk, no file: s2_arxiv=1910.12077; cr_isbn=9783030322472;9783030322489",
+   "work_id": "01a0a865-18e9-7b8a-9e9d-949739a51508",
+   "key": "Kats_2019_soft-staple-algorithm-combined"
+  },
+  {
+   "id": "L006",
+   "ref": "10.17863/cam.133934",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "pending-recording",
+    "no-oa-copy",
+    "blocked"
+   ],
+   "why": "pending-recording: register row E07 is pending a recording (grey-report-with-an-html-oa-link); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=2",
+   "work_id": "01a0a85a-18f5-7ea2-9961-e86409875ef4",
+   "key": "AllenMatthew_2026_manual-labelling-artificially-inflates"
+  },
+  {
+   "id": "L007",
+   "ref": "10.5067/doc/ceoswgcv/lpv/lc.001",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "ruled",
+    "wayback",
+    "no-oa-copy",
+    "blocked"
+   ],
+   "why": "ruled: ruled run tracker 187 (E24-datacite): ended blocked/403; wayback: head probe: the openalex URL answered 404 (Stage E1's input); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1",
+   "work_id": "01a0c72c-42bd-7c3d-b93e-7c6ace8ff514",
+   "key": "LPVSubgroup_2025_land-cover-change-accuracy-protocol"
+  },
+  {
+   "id": "L008",
+   "ref": "https://lpvs.gsfc.nasa.gov/PDF/CEOS_WGCV_LPV_Land_Cover_protocol_Nov2025_V1.1.pdf",
+   "ref_scheme": "url",
+   "mode": "hunt",
+   "source": [
+    "ruled"
+   ],
+   "why": "ruled: ruled run tracker 187 (E24-datacite): ended refused/admission-refused",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L009",
+   "ref": "https://www5.kingcounty.gov/sdc/Metadata.aspx?Layer=ortho_image15c",
+   "ref_scheme": "url",
+   "mode": "hunt",
+   "source": [
+    "ruled"
+   ],
+   "why": "ruled: ruled run tracker 194 (E23-url): ended bound-unextracted/fresh-bound",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L010",
+   "ref": "1906.02530",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 117: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L011",
+   "ref": "2501.15377",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 49: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L012",
+   "ref": "2505.24038",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 122: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L013",
+   "ref": "2506.03114",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 174: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L014",
+   "ref": "2507.00170",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 28: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L015",
+   "ref": "2601.02126",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 193: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L016",
+   "ref": "2602.06503",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 242: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L017",
+   "ref": "2606.13896",
+   "ref_scheme": "arxiv",
+   "mode": "hunt",
+   "source": [
+    "ruled-registry-transient"
+   ],
+   "why": "ruled-registry-transient: ruled run tracker 132: api-error/registry-transient (the back-off rows, item 1)",
+   "work_id": null,
+   "key": null
+  },
+  {
+   "id": "L018",
+   "ref": "10.1016/j.rse.2024.114101",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "post-freeze-probe"
+   ],
+   "why": "post-freeze-probe: plan item 5b NEGATIVE, REAL: post-freeze, refused before any shadow request",
+   "work_id": "01a0a4b3-5333-713f-bc2b-0416a3446ee6",
+   "key": "He_2024_time-series-land-cover"
+  },
+  {
+   "id": "L019",
+   "ref": "10.1109/igarss.2019.8898071",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "free-pdf",
+    "no-oa-copy"
+   ],
+   "why": "free-pdf: head probe FREE-PDF via s2 (must convert); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a85f-f9ee-7ff9-ac39-bffecdc108ef",
+   "key": "Girard_2019_noisy-supervision-correcting-misaligned"
+  },
+  {
+   "id": "L020",
+   "ref": "10.1109/jcdl52503.2021.00029",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "free-pdf",
+    "no-oa-copy"
+   ],
+   "why": "free-pdf: head probe FREE-PDF via s2 (must convert); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a7c1-b31c-7a82-b5ff-b03ac788dd1d",
+   "key": "Subramanian_2021_s2and-benchmark-evaluation-system"
+  },
+  {
+   "id": "L021",
+   "ref": "10.1142/s2382626615500057",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "free-pdf",
+    "no-oa-copy"
+   ],
+   "why": "free-pdf: head probe FREE-PDF via s2 (must convert); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a861-2656-79bb-8caa-2b92d131bcf5",
+   "key": "Bacry_2015_hawkes-processes-finance"
+  },
+  {
+   "id": "L022",
+   "ref": "10.1002/wics.1317",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "wayback",
+    "no-oa-copy"
+   ],
+   "why": "wayback: head probe: the s2 URL answered 404 (Stage E1's input); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a7c2-4c82-7796-abb7-c5580d8d5952",
+   "key": "Winkler_2014_matching-record-linkage"
+  },
+  {
+   "id": "L023",
+   "ref": "10.1016/j.isprsjprs.2018.06.002",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bronze-landing",
+    "no-oa-copy"
+   ],
+   "why": "bronze-landing: Unpaywall answer is a doi.org landing page (Stage C, reported); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a06e-a563-7f01-9b92-8c522b92743b",
+   "key": "McRoberts_2018_effects-imperfect-reference-data"
+  },
+  {
+   "id": "L024",
+   "ref": "10.1016/j.rse.2019.111261",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bronze-landing",
+    "no-oa-copy"
+   ],
+   "why": "bronze-landing: Unpaywall answer is a doi.org landing page (Stage C, reported); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a06e-a098-77ed-94ab-8a4e51bf8667",
+   "key": "Pengra_2020_quality-control-assessment-interpreter"
+  },
+  {
+   "id": "L025",
+   "ref": "10.1016/j.rse.2021.112806",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bronze-landing",
+    "no-oa-copy",
+    "blocked"
+   ],
+   "why": "bronze-landing: Unpaywall answer is a doi.org landing page (Stage C, reported); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1",
+   "work_id": "01a0a079-56e9-7f24-b8ce-de9e4469b64d",
+   "key": "Stehman_2022_incorporating-interpreter-variability"
+  },
+  {
+   "id": "L026",
+   "ref": "10.1016/j.ufug.2018.03.006",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bronze-landing",
+    "no-oa-copy"
+   ],
+   "why": "bronze-landing: Unpaywall answer is a doi.org landing page (Stage C, reported); no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a855-dd9a-77b0-92b8-6dbec9c4bb4a",
+   "key": "Nowak_2018_declining-urban-community-tree"
+  },
+  {
+   "id": "L027",
+   "ref": "10.1007/0-387-69505-2_13",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "bban",
+    "crosswalk"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); bban: bban probe not-in-corpus (tried 10.1007/0-387-69505-2_13, 404); crosswalk: crosswalk, no file: cr_isbn=9780387695020",
+   "work_id": "01a0a7c2-5331-7790-ad51-89395303f7fe",
+   "key": "Herzog_2007_string-comparator-metrics-typographical"
+  },
+  {
+   "id": "L028",
+   "ref": "10.1007/978-3-031-43849-3_5",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a7c1-9bdd-7572-8726-b62a846d816a",
+   "key": "Bloch_2023_preprintresolver-improving-citation-quality"
+  },
+  {
+   "id": "L029",
+   "ref": "10.1007/bf00531768",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "bban"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); bban: bban probe served (tried 10.1007/bf00531768, 200)",
+   "work_id": "01a0a151-7ada-7ff3-8276-bb8afac645e9",
+   "key": "Kingman_1962_imbedding-problem-finite-markov"
+  },
+  {
+   "id": "L030",
+   "ref": "10.1007/s00267-023-01934-6",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "blocked"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1",
+   "work_id": "01a0c720-878a-75d7-b346-2766504c81e9",
+   "key": "Kropp_2024_historical-changes-tree-impervious"
+  },
+  {
+   "id": "L031",
+   "ref": "10.1007/s10980-012-9719-2",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0c719-b5c0-7121-80c9-df92d4daf529",
+   "key": "Burnicki_2012_impact-error-landscape-pattern"
+  },
+  {
+   "id": "L032",
+   "ref": "10.1016/j.agrformet.2023.109809",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "blocked"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1",
+   "work_id": "01a0c723-2fca-7082-aa10-ad10e4488f6b",
+   "key": "Guo_2024_tracking-photosynthetic-phenology-spectral"
+  },
+  {
+   "id": "L033",
+   "ref": "10.1016/j.isprsjprs.2013.10.007",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a857-299e-743e-938b-da4898341326",
+   "key": "Chen_2014_assessment-image-misregistration-effects"
+  },
+  {
+   "id": "L034",
+   "ref": "10.1016/j.rse.2010.07.008",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0c721-6c44-76d4-a754-15d818351805",
+   "key": "Kennedy_2010_detecting-trends-forest-disturbance"
+  },
+  {
+   "id": "L035",
+   "ref": "10.1016/j.rse.2010.07.010",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0c721-f994-73bd-bd47-944ed91bd2c3",
+   "key": "Cohen_2010_detecting-trends-forest-disturbance"
+  },
+  {
+   "id": "L036",
+   "ref": "10.1016/s0034-4257(98)00010-8",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "bban"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); bban: bban probe not-in-corpus (tried 10.1016/S0034-4257(98)00010-8, 404)",
+   "work_id": "01a0a85c-ac3e-786b-b4fc-a9e49fb61a62",
+   "key": "Stehman_1998_design-analysis-thematic-map"
+  },
+  {
+   "id": "L037",
+   "ref": "10.1017/s0003055418000783",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "bban"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); bban: bban probe served (tried 10.1017/S0003055418000783, 200)",
+   "work_id": "01a0a7c2-6018-722d-880b-ac3dc7e63132",
+   "key": "Enamorado_2019_probabilistic-model-assist-merging"
+  },
+  {
+   "id": "L038",
+   "ref": "10.1023/a:1003403601725",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a861-9980-7834-a9d8-d77e1d60a2f1",
+   "key": "Ogata_1998_space-time-point-process"
+  },
+  {
+   "id": "L039",
+   "ref": "10.1080/01621459.1969.10501049",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a7c2-4579-7dd5-8b70-09fb52fc3e03",
+   "key": "Fellegi_1969_theory-record-linkage"
+  },
+  {
+   "id": "L040",
+   "ref": "10.1088/0266-5611/19/6/059",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "bad-file",
+    "bban"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); bad-file: bad-file attempts: annas=2; bban: bban probe not-in-corpus (tried 10.1088/0266-5611/19/6/059, 404)",
+   "work_id": "01a0a870-1b49-73a3-933c-01b356fbb1d5",
+   "key": "Strong_2003_edge-preserving-scale-dependent"
+  },
+  {
+   "id": "L041",
+   "ref": "10.1093/biomet/asq010",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a863-7178-7ec0-8851-1953e2afe838",
+   "key": "Mei_2010_efficient-scalable-schemes-monitoring"
+  },
+  {
+   "id": "L042",
+   "ref": "10.1109/icip55913.2025.11084679",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "blocked"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1",
+   "work_id": "01a0c718-ebe7-7f13-b982-064433182068",
+   "key": "Sosa_2025_multimae-meets-earth-observation"
+  },
+  {
+   "id": "L043",
+   "ref": "10.1109/tpami.2024.3498346",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "blocked",
+    "crosswalk"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1; crosswalk: crosswalk, no file: s2_arxiv=2307.09218",
+   "work_id": "01a0c714-db79-7a4f-b67f-78b0c00fe5cc",
+   "key": "Wang_2025_comprehensive-survey-forgetting-deep"
+  },
+  {
+   "id": "L044",
+   "ref": "10.1111/ectj.12097",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a85d-b64c-76b5-ad5b-325d2881c7d2",
+   "key": "Chernozhukov_2018_double-debiased-machine-learning"
+  },
+  {
+   "id": "L045",
+   "ref": "10.1126/science.1148783",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0a863-261f-7a26-b4cd-7fd322bee98b",
+   "key": "Marsan_2008_extending-earthquakes-reach-through"
+  },
+  {
+   "id": "L046",
+   "ref": "10.1137/1.9781611978032.28",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "blocked",
+    "crosswalk"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); blocked: blocked attempts: scihub=1; crosswalk: crosswalk, no file: cr_isbn=9781611978032",
+   "work_id": "01a0c717-6674-732a-8066-1424b54bed25",
+   "key": "Lu_2024_optimization-model-selection-domain"
+  },
+  {
+   "id": "L047",
+   "ref": "10.1145/3347146.3359068",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "no-oa-copy"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung)",
+   "work_id": "01a0c71c-a172-7005-89c4-a25aae67b3a0",
+   "key": "Liu_2019_misregistration-tolerant-change-detection"
+  },
+  {
+   "id": "L048",
+   "ref": "10.14778/1920841.1920904",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "bban"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); bban: bban probe served (tried 10.14778/1920841.1920904, 200)",
+   "work_id": "01a0a7c2-2a79-72d6-a3e5-270da26aec7f",
+   "key": "Kopcke_2010_evaluation-entity-resolution-approaches"
+  },
+  {
+   "id": "L049",
+   "ref": "10.14778/2994509.2994535",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "no-oa-copy",
+    "bban"
+   ],
+   "why": "no-oa-copy: an open_access/no-oa-copy DOI (Stage B asks every rung); bban: bban probe served (tried 10.14778/2994509.2994535, 200)",
+   "work_id": "01a0a7c2-30cc-7607-a722-c1045b4ce23b",
+   "key": "Konda_2016_magellan-work"
+  },
+  {
+   "id": "L050",
+   "ref": "10.1007/s11192-024-05034-y",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bad-file"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=2",
+   "work_id": "01a0a7c1-cbcc-78cf-8e0e-d373d8a6bad7",
+   "key": "Ortega_2024_indexation-retracted-literature-seven"
+  },
+  {
+   "id": "L051",
+   "ref": "10.1007/s11192-025-05293-3",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bad-file"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=2",
+   "work_id": "01a0a7c1-bcd6-7edb-aaa6-3d1dec5a1a6a",
+   "key": "Culbert_2025_reference-coverage-analysis-openalex"
+  },
+  {
+   "id": "L052",
+   "ref": "10.1016/j.jag.2024.103848",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "crosswalk"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=1; crosswalk: crosswalk, no file: s2_arxiv=2208.10607",
+   "work_id": "01a0a854-3dea-717e-937d-ccf74385d288",
+   "key": "Ventura_2024_individual-tree-detection-large"
+  },
+  {
+   "id": "L053",
+   "ref": "10.1016/j.rse.2011.04.022",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bad-file"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=1",
+   "work_id": "01a0a856-b6ad-79e7-8e02-8bc4f044a4ae",
+   "key": "Tuia_2011_active-learning-adapt-remote"
+  },
+  {
+   "id": "L054",
+   "ref": "10.1016/j.rse.2019.111492",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bad-file"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=1",
+   "work_id": "01a0a070-31dc-7002-8355-75cc6a959892",
+   "key": "Olofsson_2020_mitigating-effects-omission-errors"
+  },
+  {
+   "id": "L055",
+   "ref": "10.1016/j.rse.2021.112308",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bad-file"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=1",
+   "work_id": "01a0c71d-1a30-764e-8139-7aa08c696f78",
+   "key": "Liu_2021_change-detection-deep-learning"
+  },
+  {
+   "id": "L056",
+   "ref": "10.1016/j.rse.2025.115091",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "blocked"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=1; blocked: blocked attempts: scihub=1",
+   "work_id": "01a0c71d-873b-7b12-92d7-40fff9513442",
+   "key": "Zhu_2026_scalable-sub-meter-mapping"
+  },
+  {
+   "id": "L057",
+   "ref": "10.1045/july2014-hickey",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "bban"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=2; bban: bban probe not-in-corpus (tried 10.1045/JULY2014-HICKEY, 404)",
+   "work_id": "01a0a7c1-a920-7806-b2a6-a693ee7f8157",
+   "key": "Hickey_2014_managing-ambiguity-viaf"
+  },
+  {
+   "id": "L058",
+   "ref": "10.1093/biomet/41.1-2.100",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "bad-file"
+   ],
+   "why": "bad-file: bad-file attempts: annas=2",
+   "work_id": "01a0a151-f270-71e6-93fc-7cb94809847d",
+   "key": "Page_1954_continuous-inspection-schemes"
+  },
+  {
+   "id": "L059",
+   "ref": "10.1109/34.192465",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "bban"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=1; bban: bban probe served (tried 10.1109/34.192465, 200)",
+   "work_id": "01a0a151-a9ba-7580-b64f-abbac7c11662",
+   "key": "Maragos_1989_pattern-spectrum-multiscale-shape"
+  },
+  {
+   "id": "L060",
+   "ref": "10.1175/aies-d-22-0055.1",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "blocked"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=1; blocked: blocked attempts: scihub=1",
+   "work_id": "01a0c717-c5be-7edb-b67f-675422b98244",
+   "key": "Appel_2024_efficient-data-driven-gap"
+  },
+  {
+   "id": "L061",
+   "ref": "10.13003/ief7aibi",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "preprint-archive-miss",
+    "crosswalk"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=2; preprint-archive-miss: a preprint (main_works.type) the archive missed; crosswalk: crosswalk, no file: cr_relation_types=is-part-of;is-version-of",
+   "work_id": "01a0a7c1-662e-7e5c-9b57-7d44c578c59f",
+   "key": "Tkaczyk_2024_how-good-your-matching"
+  },
+  {
+   "id": "L062",
+   "ref": "10.1371/journal.pone.0326562",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "blocked"
+   ],
+   "why": "bad-file: bad-file attempts: scihub=1; blocked: blocked attempts: open_access=1",
+   "work_id": "01a0a070-2a1b-70ba-9746-f75407d6d04c",
+   "key": "VelasquezCamacho_2025_monitoring-temporal-changes-large"
+  },
+  {
+   "id": "L063",
+   "ref": "10.64000/e6ey2-wce96",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "bban",
+    "preprint-archive-miss",
+    "crosswalk"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=2; bban: bban probe not-in-corpus (tried 10.64000/E6EY2-WCE96, 404); preprint-archive-miss: a preprint (main_works.type) the archive missed; crosswalk: crosswalk, no file: cr_relation_types=is-part-of;is-version-of",
+   "work_id": "01a0a7c1-5f45-7e28-af8b-8964f72907f6",
+   "key": "Tkaczyk_2018_reference-matching-real-this"
+  },
+  {
+   "id": "L064",
+   "ref": "10.64000/vgpgj-j8126",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bad-file",
+    "preprint-archive-miss",
+    "crosswalk"
+   ],
+   "why": "bad-file: bad-file attempts: open_access=2; preprint-archive-miss: a preprint (main_works.type) the archive missed; crosswalk: crosswalk, no file: cr_relation_types=has-version;is-part-of",
+   "work_id": "01a0a7c1-6d4d-707b-9dc6-9d1ebf2b6e43",
+   "key": "Tkaczyk_2025_metadata-matching-beyond-correctness"
+  },
+  {
+   "id": "L065",
+   "ref": "10.1016/j.jag.2022.102909",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1, scihub=1",
+   "work_id": "01a0c71a-5e16-7b79-90b7-aa3eb519bbb1",
+   "key": "Li_2022_identification-undocumented-buildings-cadastral"
+  },
+  {
+   "id": "L066",
+   "ref": "10.1038/s41467-020-18321-y",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1",
+   "work_id": "01a0a070-2df8-7721-88bc-d210455652f1",
+   "key": "Ploton_2020_spatial-validation-reveals-poor"
+  },
+  {
+   "id": "L067",
+   "ref": "10.1080/15481603.2018.1489446",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1",
+   "work_id": "01a0c718-8eb0-7b9a-9883-7852e6e8465d",
+   "key": "Storey_2018_normalizing-shadows-multi-temporal"
+  },
+  {
+   "id": "L068",
+   "ref": "10.1080/17538947.2023.2257636",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1, scihub=1",
+   "work_id": "01a0c71b-bdcf-787f-ace6-46c6f7a2c46e",
+   "key": "Hao_2023_co-effect-image-resolution"
+  },
+  {
+   "id": "L069",
+   "ref": "10.1080/22797254.2025.2609404",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1, scihub=1",
+   "work_id": "01a0c71e-e089-7ed6-b55f-399c6da02e31",
+   "key": "He_2025_samois-efficient-fine-tuned"
+  },
+  {
+   "id": "L070",
+   "ref": "10.2139/ssrn.4979539",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked",
+    "preprint-archive-miss"
+   ],
+   "why": "blocked: blocked attempts: open_access=1, scihub=1; preprint-archive-miss: a preprint (main_works.type) the archive missed",
+   "work_id": "01a0c71b-52a4-787a-9c01-0c8eddb602d7",
+   "key": "Schindler_2024_efficient-tree-mapping-through"
+  },
+  {
+   "id": "L071",
+   "ref": "10.3390/geomatics4040022",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1, scihub=1",
+   "work_id": "01a0c716-f0db-78b6-9d71-3c1674d7ba3e",
+   "key": "Morgan_2024_deep-learning-urban-tree"
+  },
+  {
+   "id": "L072",
+   "ref": "10.3390/plants14111677",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1, scihub=1",
+   "work_id": "01a0c71f-fc9c-7611-9549-131d1889de48",
+   "key": "Wang_2025_unmanned-aerial-vehicle-uav"
+  },
+  {
+   "id": "L073",
+   "ref": "10.3390/rs15030765",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1, scihub=1",
+   "work_id": "01a0c101-b227-7417-a60d-d932fb1b118d",
+   "key": "Chen_2023_urban-tree-canopy-mapping"
+  },
+  {
+   "id": "L074",
+   "ref": "10.3390/s8042161",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "blocked"
+   ],
+   "why": "blocked: blocked attempts: open_access=1",
+   "work_id": "01a0c722-b25d-75aa-a158-80ec90f89e69",
+   "key": "Coulter_2008_assessment-spatial-co-registration"
+  },
+  {
+   "id": "L075",
+   "ref": "10.48550/arxiv.2104.08663",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "blocked",
+    "bban",
+    "preprint-archive-miss"
+   ],
+   "why": "blocked: blocked attempts: scihub=1; bban: bban probe not-in-corpus (tried 10.48550/ARXIV.2104.08663, 404); preprint-archive-miss: a preprint (main_works.type) the archive missed",
+   "work_id": "01a0add7-76b5-7a1d-8fdf-d45494c5fda4",
+   "key": "Thakur_2021_beir-heterogenous-benchmark-zero"
+  },
+  {
+   "id": "L076",
+   "ref": "10.1007/978-1-4757-3803-2_12",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1007/978-1-4757-3803-2_12, 404); crosswalk: crosswalk, no file: cr_isbn=9781441918482;9781475738032",
+   "work_id": "01a0a4db-8364-71a6-89dd-42112b8d713b",
+   "key": "Lahiri_2003_resampling-methods-spatial-data"
+  },
+  {
+   "id": "L077",
+   "ref": "10.1007/978-3-030-01252-6_6",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1007/978-3-030-01252-6_6, 404); crosswalk: crosswalk, no file: s2_arxiv=1804.07723; cr_isbn=9783030012519;9783030012526",
+   "work_id": "01a0a4c2-cfbb-7f81-951e-cff7d85ad23d",
+   "key": "Liu_2018_image-inpainting-irregular-holes"
+  },
+  {
+   "id": "L078",
+   "ref": "10.1007/s00180-012-0311-7",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1007/s00180-012-0311-7, 200)",
+   "work_id": "01a0a4bf-f6a8-7546-8777-0457e345fcee",
+   "key": "Ross_2012_sequential-monitoring-bernoulli-sequence"
+  },
+  {
+   "id": "L079",
+   "ref": "10.1007/s00267-017-0934-0",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1007/s00267-017-0934-0, 200)",
+   "work_id": "01a0a49e-d520-7550-9360-69eafea3ca61",
+   "key": "Roman_2017_growing-canopy-college-campus"
+  },
+  {
+   "id": "L080",
+   "ref": "10.1007/s10661-021-08898-2",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1007/s10661-021-08898-2, 200)",
+   "work_id": "01a0a49f-6184-79ac-a368-4fb0b394090d",
+   "key": "Majasalmi_2021_representation-tree-cover-global"
+  },
+  {
+   "id": "L081",
+   "ref": "10.1007/s10994-013-5355-6",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1007/s10994-013-5355-6, 200); crosswalk: crosswalk, no file: s2_arxiv=1209.2673",
+   "work_id": "01a0a4aa-1f7b-72cf-8251-7dfc885b34ad",
+   "key": "Vovk_2013_conditional-validity-inductive-conformal"
+  },
+  {
+   "id": "L082",
+   "ref": "10.1007/s11009-011-9256-5",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1007/s11009-011-9256-5, 200); crosswalk: crosswalk, no file: s2_arxiv=1109.2938",
+   "work_id": "01a0a4b7-f011-7149-a539-41a23f7c0505",
+   "key": "Polunchenko_2011_state-art-sequential-change"
+  },
+  {
+   "id": "L083",
+   "ref": "10.1016/j.agrformet.2011.09.009",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.agrformet.2011.09.009, 200)",
+   "work_id": "01a0a49e-8ec5-7eff-b206-4e0347aa493f",
+   "key": "Sonnentag_2012_digital-repeat-photography-phenological"
+  },
+  {
+   "id": "L084",
+   "ref": "10.1016/j.cities.2014.06.012",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.cities.2014.06.012, 200)",
+   "work_id": "01a0a49e-ccf3-7787-b55b-cc808503d0cd",
+   "key": "Merry_2014_urban-tree-cover-change"
+  },
+  {
+   "id": "L085",
+   "ref": "10.1016/j.compag.2008.03.009",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.compag.2008.03.009, 200)",
+   "work_id": "01a0a49d-8596-77fb-9d2a-1d920031e82a",
+   "key": "Meyer_2008_verification-color-vegetation-indices"
+  },
+  {
+   "id": "L086",
+   "ref": "10.1016/j.ecoinf.2020.101061",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.ecoinf.2020.101061, 200)",
+   "work_id": "01a0a498-622f-78cd-9fae-ed5a46f8f5fa",
+   "key": "Weinstein_2020_cross-site-learning-deep"
+  },
+  {
+   "id": "L087",
+   "ref": "10.1016/j.isprsjprs.2017.06.013",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.isprsjprs.2017.06.013, 200)",
+   "work_id": "01a0a4b3-6b48-7207-bc3d-5f5c64e5b097",
+   "key": "Zhu_2017_change-detection-landsat-time"
+  },
+  {
+   "id": "L088",
+   "ref": "10.1016/j.isprsjprs.2018.11.022",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.isprsjprs.2018.11.022, 200)",
+   "work_id": "01a0a4be-97a4-74b2-bbd3-b01fd2e05347",
+   "key": "Li_2019_improving-lidar-classification-accuracy"
+  },
+  {
+   "id": "L089",
+   "ref": "10.1016/j.isprsjprs.2020.07.005",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.isprsjprs.2020.07.005, 200)",
+   "work_id": "01a0a4b6-2211-795c-9d41-ce70dbe76aab",
+   "key": "Mboga_2020_fully-convolutional-networks-land"
+  },
+  {
+   "id": "L090",
+   "ref": "10.1016/j.isprsjprs.2021.10.008",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1016/J.ISPRSJPRS.2021.10.008, 404); crosswalk: crosswalk, no file: s2_arxiv=2112.04255",
+   "work_id": "01a0a4b3-725f-78ea-9f3c-838730ed41de",
+   "key": "Zhang_2021_feature-matching-multi-epoch"
+  },
+  {
+   "id": "L091",
+   "ref": "10.1016/j.patcog.2018.03.005",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.patcog.2018.03.005, 200)",
+   "work_id": "01a0a4ad-ebe8-7be3-928f-da9b3b78c731",
+   "key": "Li_2018_adaptive-batch-normalization-practical"
+  },
+  {
+   "id": "L092",
+   "ref": "10.1016/j.rse.2007.07.013",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2007.07.013, 200)",
+   "work_id": "01a0a4b6-3911-799c-ba92-c03f494d6be5",
+   "key": "Canty_2008_automatic-radiometric-normalization"
+  },
+  {
+   "id": "L093",
+   "ref": "10.1016/j.rse.2009.08.014",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2009.08.014, 200)",
+   "work_id": "01a0a4b8-0f9f-72b9-b425-9171a8fbea9f",
+   "key": "Verbesselt_2010_detecting-trend-seasonal-changes"
+  },
+  {
+   "id": "L094",
+   "ref": "10.1016/j.rse.2014.01.011",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2014.01.011, 200)",
+   "work_id": "01a0a4b8-1ef2-7fdb-9de9-86aa979f7310",
+   "key": "Zhu_2014_continuous-change-detection-classification"
+  },
+  {
+   "id": "L095",
+   "ref": "10.1016/j.rse.2014.02.015",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2014.02.015, 200)",
+   "work_id": "01a0a49e-fbde-79ee-8d49-466983e616dc",
+   "key": "Olofsson_2014_good-practices-estimating-area"
+  },
+  {
+   "id": "L096",
+   "ref": "10.1016/j.rse.2015.06.027",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2015.06.027, 200)",
+   "work_id": "01a0a49f-1ae1-790d-9aad-4e6455fe8733",
+   "key": "Wagner_2015_optimizing-sample-size-allocation"
+  },
+  {
+   "id": "L097",
+   "ref": "10.1016/j.rse.2016.05.028",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2016.05.028, 200)",
+   "work_id": "01a0a49f-7a59-7b36-9385-0e48cc56c932",
+   "key": "Ferraz_2016_lidar-detection-individual-tree"
+  },
+  {
+   "id": "L098",
+   "ref": "10.1016/j.rse.2017.11.015",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2017.11.015, 200)",
+   "work_id": "01a0a4b7-d882-7de4-af6e-dbff63621f62",
+   "key": "Cohen_2018_landtrendr-multispectral-ensemble-forest"
+  },
+  {
+   "id": "L099",
+   "ref": "10.1016/j.rse.2017.11.024",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2017.11.024, 200)",
+   "work_id": "01a0a4af-aa4b-7c3c-bef5-5fa056bdd781",
+   "key": "Costa_2018_supervised-methods-image-segmentation"
+  },
+  {
+   "id": "L100",
+   "ref": "10.1016/j.rse.2018.02.046",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2018.02.046, 200)",
+   "work_id": "01a0a4ad-dc48-7a8b-aca1-2481fe6f019b",
+   "key": "Vogeler_2018_extracting-full-value-landsat"
+  },
+  {
+   "id": "L101",
+   "ref": "10.1016/j.rse.2018.12.013",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2018.12.013, 200)",
+   "work_id": "01a0a4b7-8ac8-7631-a3f3-66496b585750",
+   "key": "SullaMenashe_2019_hierarchical-mapping-annual-global"
+  },
+  {
+   "id": "L102",
+   "ref": "10.1016/j.rse.2020.112244",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.rse.2020.112244, 200)",
+   "work_id": "01a0a4b8-07ee-7b5c-aefa-6fcd9151c4c3",
+   "key": "Rodman_2021_disturbance-detection-landsat-time"
+  },
+  {
+   "id": "L103",
+   "ref": "10.1016/j.scitotenv.2017.08.103",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.scitotenv.2017.08.103, 200)",
+   "work_id": "01a0a4b9-1b0d-7420-8fc0-e33b468d4a8c",
+   "key": "Ossola_2018_measuring-urban-tree-loss"
+  },
+  {
+   "id": "L104",
+   "ref": "10.1016/j.ufug.2013.07.003",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.ufug.2013.07.003, 200)",
+   "work_id": "01a0a4b0-c66c-7c07-a8e9-5d837e5e82ca",
+   "key": "Richardson_2014_uncertainty-urban-forest-canopy"
+  },
+  {
+   "id": "L105",
+   "ref": "10.1016/j.ufug.2016.03.001",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.ufug.2016.03.001, 200)",
+   "work_id": "01a0a4b0-ce45-7a57-a504-0ed5a4f05dc6",
+   "key": "Ucar_2016_comparison-two-sampling-approaches"
+  },
+  {
+   "id": "L106",
+   "ref": "10.1016/j.ufug.2016.08.011",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1016/j.ufug.2016.08.011, 200)",
+   "work_id": "01a0a4a0-0d93-7906-8821-63fb6961631d",
+   "key": "Parmehr_2016_estimation-urban-tree-canopy"
+  },
+  {
+   "id": "L107",
+   "ref": "10.1016/s0167-5877(03)00103-x",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1016/S0167-5877(03)00103-X, 404)",
+   "work_id": "01a0a4b3-7a31-74e7-b2ec-fa4220d4f89c",
+   "key": "Radke_2003_demonstration-interval-censored-survival"
+  },
+  {
+   "id": "L108",
+   "ref": "10.1038/s41586-020-2824-5",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1038/s41586-020-2824-5, 200)",
+   "work_id": "01a0a495-dc8d-7519-b6b7-6713f6ca34b4",
+   "key": "Brandt_2020_unexpectedly-large-count-trees"
+  },
+  {
+   "id": "L109",
+   "ref": "10.1038/s41598-017-07200-0",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1038/s41598-017-07200-0, 200); crosswalk: crosswalk, no file: s2_arxiv=1702.06188",
+   "work_id": "01a0a49f-80ff-7e5c-a1a2-fa6cf829e386",
+   "key": "Hamraz_2017_forest-understory-trees-can"
+  },
+  {
+   "id": "L110",
+   "ref": "10.1045/september2002-hickey",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1045/SEPTEMBER2002-HICKEY, 404)",
+   "work_id": "01a0a7c1-a2c7-74eb-a30c-a4af7b29791d",
+   "key": "Hickey_2002_experiments-ifla-functional-requirements"
+  },
+  {
+   "id": "L111",
+   "ref": "10.1061/40794(179)45",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1061/40794(179)45, 404)",
+   "work_id": "01a0a4be-aef9-7385-960d-04f3aca445a1",
+   "key": "Abellera_2005_impervious-surface-detection-satellite"
+  },
+  {
+   "id": "L112",
+   "ref": "10.1080/01431160903131018",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/01431160903131018, 200)",
+   "work_id": "01a0a49f-9fda-7061-b788-5138f3562136",
+   "key": "Liu_2009_effects-different-classification-models"
+  },
+  {
+   "id": "L113",
+   "ref": "10.1080/01431161.2010.494184",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/01431161.2010.494184, 200)",
+   "work_id": "01a0a496-3ac8-7d7b-b0f8-654fef195d1b",
+   "key": "Ke_2011_review-methods-automatic-individual"
+  },
+  {
+   "id": "L114",
+   "ref": "10.1080/01431161.2010.541950",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/01431161.2010.541950, 200)",
+   "work_id": "01a0a4b3-b867-7b59-9e8c-f3eed03e9b3e",
+   "key": "Stehman_2012_impact-sample-size-allocation"
+  },
+  {
+   "id": "L115",
+   "ref": "10.1080/01431161.2011.552923",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/01431161.2011.552923, 200)",
+   "work_id": "01a0a49f-3241-72c6-b184-9186b43f7c4f",
+   "key": "Pontius_2011_death-kappa-birth-quantity"
+  },
+  {
+   "id": "L116",
+   "ref": "10.1080/01431161.2014.930207",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/01431161.2014.930207, 200)",
+   "work_id": "01a0a49f-12f1-7935-bc6b-f61ad856edaa",
+   "key": "Stehman_2014_estimating-area-map-accuracy"
+  },
+  {
+   "id": "L117",
+   "ref": "10.1080/01431161.2020.1731002",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/01431161.2020.1731002, 200)",
+   "work_id": "01a0a49f-cf55-7f66-9b96-6518630e5e15",
+   "key": "Kwong_2020_tree-height-mapping-crown"
+  },
+  {
+   "id": "L118",
+   "ref": "10.1080/02664763.2020.1753025",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/02664763.2020.1753025, 200)",
+   "work_id": "01a0a4b3-8988-73a3-94d7-f5ce7e469480",
+   "key": "Pires_2020_interval-censored-data-misclassification"
+  },
+  {
+   "id": "L119",
+   "ref": "10.1080/15481603.2016.1235009",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/15481603.2016.1235009, 200)",
+   "work_id": "01a0a4db-25a9-74e0-ac4b-9d9d50073909",
+   "key": "Maclaurin_2016_temporal-replication-national-land"
+  },
+  {
+   "id": "L120",
+   "ref": "10.1080/1747423x.2017.1338768",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/1747423X.2017.1338768, 200)",
+   "work_id": "01a0a4b3-c823-76ee-b92d-77f935e0a7ef",
+   "key": "Pontius_2017_methods-summarize-change-among"
+  },
+  {
+   "id": "L121",
+   "ref": "10.1080/17538947.2020.1729878",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/17538947.2020.1729878, 200)",
+   "work_id": "01a0a49f-fe58-7d1d-b1b1-769e47682e6d",
+   "key": "Tarko_2020_producing-consistent-visually-interpreted"
+  },
+  {
+   "id": "L122",
+   "ref": "10.1080/2150704x.2013.798708",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/2150704x.2013.798708, 200)",
+   "work_id": "01a0a4b3-9939-7a56-8f4a-1da78b3d3020",
+   "key": "Foody_2013_ground-reference-data-error"
+  },
+  {
+   "id": "L123",
+   "ref": "10.1080/22797254.2017.1387505",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1080/22797254.2017.1387505, 200)",
+   "work_id": "01a0a4b0-ee13-79e2-bf0c-9626827e8cd1",
+   "key": "Mas_2017_land-use-land-cover"
+  },
+  {
+   "id": "L124",
+   "ref": "10.1093/forestscience/13.1.72",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1093/FORESTSCIENCE/13.1.72, 404)",
+   "work_id": "01a0a4b0-ddf6-70d2-92cb-423863b1f3a7",
+   "key": "Frayer_1967_area-change-estimates-sampling"
+  },
+  {
+   "id": "L125",
+   "ref": "10.1097/00001648-200005000-00016",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1097/00001648-200005000-00016, 404)",
+   "work_id": "01a0a4da-fe86-74d3-939e-5e315e1179e5",
+   "key": "Schwartz_2000_distributed-lag-air-pollution"
+  },
+  {
+   "id": "L126",
+   "ref": "10.1109/cvpr.2019.00753",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/cvpr.2019.00753, 200); crosswalk: crosswalk, no file: s2_arxiv=1906.03950",
+   "work_id": "01a0a4ad-f58a-7950-ac04-9f5cec2ef0c9",
+   "key": "Chang_2019_domain-specific-batch-normalization"
+  },
+  {
+   "id": "L127",
+   "ref": "10.1109/cvpr42600.2020.00414",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/CVPR42600.2020.00414, 200); crosswalk: crosswalk, no file: s2_arxiv=2004.05498",
+   "work_id": "01a0a4ad-c294-7e55-aef6-37a0b2c8dcb7",
+   "key": "Yang_2020_fda-fourier-domain-adaptation"
+  },
+  {
+   "id": "L128",
+   "ref": "10.1109/iccv48922.2021.00681",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1109/ICCV48922.2021.00681, 404); crosswalk: crosswalk, no file: s2_arxiv=2008.05105",
+   "work_id": "01a0a4a3-c14e-78d8-8f99-a02eef15d1d1",
+   "key": "Ding_2021_local-temperature-scaling-probability"
+  },
+  {
+   "id": "L129",
+   "ref": "10.1109/iccvw54120.2021.00125",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1109/ICCVW54120.2021.00125, 404); crosswalk: crosswalk, no file: s2_arxiv=2108.13122",
+   "work_id": "01a0a4ad-d416-7293-aeb6-6164ef0d0fa2",
+   "key": "Brigato_2021_tune-it-don-t"
+  },
+  {
+   "id": "L130",
+   "ref": "10.1109/ijcnn48605.2020.9207304",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/IJCNN48605.2020.9207304, 200); crosswalk: crosswalk, no file: s2_arxiv=1908.02983",
+   "work_id": "01a0a49f-9813-76ba-a19e-07de8f4d6ffa",
+   "key": "Arazo_2020_pseudo-labeling-confirmation-bias"
+  },
+  {
+   "id": "L131",
+   "ref": "10.1109/jcdl.2017.7991564",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/JCDL.2017.7991564, 200)",
+   "work_id": "01a0add7-3581-7e12-afc7-ba1273ea1257",
+   "key": "Bast_2017_benchmark-evaluation-text-extraction"
+  },
+  {
+   "id": "L132",
+   "ref": "10.1109/jstsp.2011.2139193",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/jstsp.2011.2139193, 200); crosswalk: crosswalk, no file: s2_arxiv=2104.07784",
+   "work_id": "01a0a496-2a85-79a3-be49-26f6e86c55ae",
+   "key": "Tuia_2011_survey-active-learning-algorithms"
+  },
+  {
+   "id": "L133",
+   "ref": "10.1109/tac.2004.834121",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/tac.2004.834121, 200)",
+   "work_id": "01a0a4c2-dede-73a8-ad95-ec2cd546b9e2",
+   "key": "Sinopoli_2004_kalman-filtering-intermittent-observations"
+  },
+  {
+   "id": "L134",
+   "ref": "10.1109/tip.2008.2001404",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/tip.2008.2001404, 200)",
+   "work_id": "01a0a4c1-9682-76a7-81a1-853258f02138",
+   "key": "Ramani_2008_monte-carlo-sure-black"
+  },
+  {
+   "id": "L135",
+   "ref": "10.1109/tmi.2017.2665165",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1109/TMI.2017.2665165, 200); crosswalk: crosswalk, no file: s2_arxiv=1702.03407",
+   "work_id": "01a0a4af-8a00-7e04-af50-62ee686b306e",
+   "key": "Valindria_2017_reverse-classification-accuracy-predicting"
+  },
+  {
+   "id": "L136",
+   "ref": "10.1111/2041-210x.13472",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.1111/2041-210X.13472, 200); crosswalk: crosswalk, no file: cr_relation_types=has-preprint;has-review",
+   "work_id": "01a0a495-c4d3-73b5-b170-27bd118372e7",
+   "key": "Weinstein_2020_deepforest-python-package-rgb"
+  },
+  {
+   "id": "L137",
+   "ref": "10.1117/1.jrs.14.034501",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.1117/1.JRS.14.034501, 404)",
+   "work_id": "01a0c101-a6f7-75a7-a282-3b01b2b025bc",
+   "key": "Berra_2020_individual-tree-crown-detection"
+  },
+  {
+   "id": "L138",
+   "ref": "10.1371/journal.pone.0054776",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1371/journal.pone.0054776, 200)",
+   "work_id": "01a0c101-b4ff-760c-b484-2abbc64e36ed",
+   "key": "Wasser_2013_influence-vegetation-structure-lidar"
+  },
+  {
+   "id": "L139",
+   "ref": "10.1371/journal.pone.0065808",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1371/journal.pone.0065808, 200)",
+   "work_id": "01a0a4b7-706a-78c2-8352-40d9b9a149df",
+   "key": "Miller_2013_determining-occurrence-dynamics-when"
+  },
+  {
+   "id": "L140",
+   "ref": "10.1371/journal.pone.0077231",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.1371/journal.pone.0077231, 200)",
+   "work_id": "01a0a4b9-2a77-74c7-8376-a0b949192e91",
+   "key": "Rosa_2013_predictive-modelling-contagious-deforestation"
+  },
+  {
+   "id": "L141",
+   "ref": "10.14358/pers.71.9.1037",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.14358/pers.71.9.1037, 200)",
+   "work_id": "01a0a498-5abe-75c7-884a-e24233e3ca2a",
+   "key": "Wang_2005_image-misregistration-error-change"
+  },
+  {
+   "id": "L142",
+   "ref": "10.14358/pers.82.9.711",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.14358/pers.82.9.711, 200)",
+   "work_id": "01a0a49f-3a64-7936-bec0-96c8c9bd4f9b",
+   "key": "McCombs_2016_accuracy-assessment-noaa-coastal"
+  },
+  {
+   "id": "L143",
+   "ref": "10.14778/3229863.3229867",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.14778/3229863.3229867, 200)",
+   "work_id": "01a0adcc-a11a-75c8-ba50-e763dc1b26f8",
+   "key": "Schelter_2018_automating-large-scale-data"
+  },
+  {
+   "id": "L144",
+   "ref": "10.18653/v1/p18-1031",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.18653/V1/P18-1031, 404)",
+   "work_id": "01a0a49b-d998-76d2-93a8-0b32f78c33ee",
+   "key": "Howard_2018_universal-language-model-fine"
+  },
+  {
+   "id": "L145",
+   "ref": "10.32614/rj-2016-014",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.32614/RJ-2016-014, 404)",
+   "work_id": "01a0a4be-fd38-72b2-956f-c5c2dc3f8e40",
+   "key": "Graler_2016_spatio-temporal-interpolation-gstat"
+  },
+  {
+   "id": "L146",
+   "ref": "10.3389/fonc.2021.704850",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.3389/FONC.2021.704850, 404)",
+   "work_id": "01a0a4bd-44c6-7016-8635-c68ce16c6a5b",
+   "key": "Ma_2021_multi-task-deep-supervision"
+  },
+  {
+   "id": "L147",
+   "ref": "10.3390/ijgi6100292",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/ijgi6100292, 200)",
+   "work_id": "01a0a4b7-684a-72f7-a835-f577cf51ba2b",
+   "key": "Gong_2017_hidden-markov-model-improving"
+  },
+  {
+   "id": "L148",
+   "ref": "10.3390/rs10040581",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs10040581, 200)",
+   "work_id": "01a0a4b6-0e5f-700a-9cb4-88ccff7aac23",
+   "key": "Gharibi_2018_true-orthophoto-generation-aerial"
+  },
+  {
+   "id": "L149",
+   "ref": "10.3390/rs11111309",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs11111309, 200); crosswalk: crosswalk, no file: cr_relation_types=has-preprint",
+   "work_id": "01a0a495-cc8c-784a-82c8-24a99732b4b9",
+   "key": "Weinstein_2019_individual-tree-crown-detection"
+  },
+  {
+   "id": "L150",
+   "ref": "10.3390/rs12091505",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs12091505, 200)",
+   "work_id": "01a0a4ae-2286-75c4-a9f2-b914b909b9c9",
+   "key": "Kokubu_2020_mapping-seasonal-tree-canopy"
+  },
+  {
+   "id": "L151",
+   "ref": "10.3390/rs12223815",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs12223815, 200)",
+   "work_id": "01a0a4ae-2ac7-7a31-97ca-b8f27f9532f4",
+   "key": "Kou_2020_progressive-domain-adaptation-change"
+  },
+  {
+   "id": "L152",
+   "ref": "10.3390/rs13091749",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs13091749, 200)",
+   "work_id": "01a0a499-89c5-780a-9e29-1cf47e685fcb",
+   "key": "Wang_2021_application-evaluation-deep-learning"
+  },
+  {
+   "id": "L153",
+   "ref": "10.3390/rs13091789",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs13091789, 200)",
+   "work_id": "01a0a4db-358c-76ed-8b9b-8c19dffb3cc2",
+   "key": "Pearse_2021_deep-learning-phenology-enhance"
+  },
+  {
+   "id": "L154",
+   "ref": "10.3390/rs13245084",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.3390/RS13245084, 404)",
+   "work_id": "01a0a4db-2da1-714e-90e2-2d51335beaa5",
+   "key": "Torres_2021_deforestation-detection-fully-convolutional"
+  },
+  {
+   "id": "L155",
+   "ref": "10.3390/rs2092240",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs2092240, 200)",
+   "work_id": "01a0a4b7-d0bb-7989-b91b-a2fe5f8c878f",
+   "key": "Martinis_2010_hierarchical-spatio-temporal-markov"
+  },
+  {
+   "id": "L156",
+   "ref": "10.3390/rs2102369",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/rs2102369, 200)",
+   "work_id": "01a0a49c-4b41-7d9b-b379-a3908f926e40",
+   "key": "Motohka_2010_applicability-green-red-vegetation"
+  },
+  {
+   "id": "L157",
+   "ref": "10.3390/s17102427",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/s17102427, 200)",
+   "work_id": "01a0a4af-a158-7e39-9276-4986a0dae340",
+   "key": "Gao_2017_novel-unsupervised-segmentation-quality"
+  },
+  {
+   "id": "L158",
+   "ref": "10.3390/s20195500",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe served (tried 10.3390/s20195500, 200)",
+   "work_id": "01a0a4be-8fe4-7c1e-a170-4d4849c2113e",
+   "key": "Cheng_2020_novel-post-processing-method"
+  },
+  {
+   "id": "L159",
+   "ref": "10.48044/jauf.2013.009",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.48044/JAUF.2013.009, 404)",
+   "work_id": "01a0a4be-be7f-791c-b1fe-314cc841807b",
+   "key": "King_2013_comparison-three-methods-measuring"
+  },
+  {
+   "id": "L160",
+   "ref": "10.48044/jauf.2020.005",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.48044/JAUF.2020.005, 404)",
+   "work_id": "01a0a4a0-14de-7a1b-bddc-3bc9a16c9c2d",
+   "key": "Hwang_2020_geospatial-methods-tree-canopy"
+  },
+  {
+   "id": "L161",
+   "ref": "10.48550/arxiv.2002.06048",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.48550/ARXIV.2002.06048, 404)",
+   "work_id": "01a0a49b-f346-7047-8188-53d1d0218d18",
+   "key": "Ro_2020_autolr-layer-wise-pruning"
+  },
+  {
+   "id": "L162",
+   "ref": "10.48550/arxiv.2004.05745",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.48550/ARXIV.2004.05745, 404)",
+   "work_id": "01a0a49b-82bb-78cc-b487-5313a31ec37d",
+   "key": "Chen_2020_deep-siamese-domain-adaptation"
+  },
+  {
+   "id": "L163",
+   "ref": "10.5194/isprs-annals-v-2-2020-845-2020",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.5194/ISPRS-ANNALS-V-2-2020-845-2020, 404)",
+   "work_id": "01a0a496-1aee-7035-be81-cce0cc58fade",
+   "key": "Hessel_2020_relative-radiometric-normalization-several"
+  },
+  {
+   "id": "L164",
+   "ref": "10.5194/isprsannals-i-7-129-2012",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.5194/ISPRSANNALS-I-7-129-2012, 404)",
+   "work_id": "01a0a4b7-c0dd-709d-94ab-407b84ab4682",
+   "key": "Hoberg_2012_context-models-crf-based"
+  },
+  {
+   "id": "L165",
+   "ref": "10.5194/isprsarchives-xl-3-67-2014",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.5194/ISPRSARCHIVES-XL-3-67-2014, 404)",
+   "work_id": "01a0a4b6-199f-7a64-8b49-4f7355a8bced",
+   "key": "Chen_2014_true-orthophoto-generation-multi"
+  },
+  {
+   "id": "L166",
+   "ref": "10.64000/hg7jm-xyk95",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "bban",
+    "crosswalk"
+   ],
+   "why": "bban: bban probe not-in-corpus (tried 10.64000/HG7JM-XYK95, 404); crosswalk: crosswalk, no file: cr_relation_types=has-version;is-part-of",
+   "work_id": "01a0adcc-0d37-7c47-8aee-98d8dd1b792b",
+   "key": "Tkaczyk_2018_matchmaker-matchmaker-make-me"
+  },
+  {
+   "id": "L167",
+   "ref": "10.31235/osf.io/cxp4q",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "preprint-archive-miss"
+   ],
+   "why": "preprint-archive-miss: a preprint (main_works.type) the archive missed",
+   "work_id": "01a0a7c1-c3c0-7307-82ba-6abd5baf03ac",
+   "key": "DelgadoQuiros_2025_research-entity-information-coverage"
+  },
+  {
+   "id": "L168",
+   "ref": "10.48550/arxiv.0710.3980",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "preprint-archive-miss"
+   ],
+   "why": "preprint-archive-miss: a preprint (main_works.type) the archive missed",
+   "work_id": "01a0a85e-35de-7cc1-9aea-ad295e673c18",
+   "key": "Vixie_2007_some-properties-minimizers-chan"
+  },
+  {
+   "id": "L169",
+   "ref": "10.48550/arxiv.1407.7644",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "preprint-archive-miss"
+   ],
+   "why": "preprint-archive-miss: a preprint (main_works.type) the archive missed",
+   "work_id": "01a0a862-3fae-7012-8cc2-ef2795d6e559",
+   "key": "Jaffe_2014_estimating-accuracies-multiple-classifiers"
+  },
+  {
+   "id": "L170",
+   "ref": "10.48550/arxiv.1909.10155",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "preprint-archive-miss"
+   ],
+   "why": "preprint-archive-miss: a preprint (main_works.type) the archive missed",
+   "work_id": "01a0a85b-b499-7622-aad3-61c97a21695c",
+   "key": "Kumar_2019_verified-uncertainty-calibration"
+  },
+  {
+   "id": "L171",
+   "ref": "10.48550/arxiv.2007.01434",
+   "ref_scheme": "doi",
+   "mode": "measure",
+   "source": [
+    "preprint-archive-miss"
+   ],
+   "why": "preprint-archive-miss: a preprint (main_works.type) the archive missed",
+   "work_id": "01a0a858-e92f-761e-889d-8de7ee4b604c",
+   "key": "Gulrajani_2020_search-lost-domain-generalization"
+  },
+  {
+   "id": "L172",
+   "ref": "10.1002/rse2.332",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: cr_relation_types=has-preprint",
+   "work_id": "01a0a495-d478-7c3f-b18f-da3005c042c6",
+   "key": "Ball_2023_accurate-delineation-individual-tree"
+  },
+  {
+   "id": "L173",
+   "ref": "10.1007/978-3-032-04965-0_8",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: cr_isbn=9783032049643;9783032049650",
+   "work_id": "01a0a4a5-a741-7d99-be9b-1cb38b109bc2",
+   "key": "Mossina_2025_conformal-prediction-image-segmentation"
+  },
+  {
+   "id": "L174",
+   "ref": "10.1007/978-3-032-21582-6_2",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: cr_isbn=9783032215819;9783032215826",
+   "work_id": "01a0a4b7-58b5-7649-aff8-e41f3af3d669",
+   "key": "Ranabhat_2026_promoting-shape-bias-cnns"
+  },
+  {
+   "id": "L175",
+   "ref": "10.1007/s00521-021-06615-1",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2010.01184",
+   "work_id": "01a0a4a8-347f-7d77-92e2-01946f7b5e1c",
+   "key": "MaiaPolo_2022_effective-sample-size-dimensionality"
+  },
+  {
+   "id": "L176",
+   "ref": "10.1007/s10462-024-10922-z",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2404.02785",
+   "work_id": "01a0a4af-3805-7f81-a714-e3012190e3a1",
+   "key": "Khoee_2024_domain-generalization-through-meta"
+  },
+  {
+   "id": "L177",
+   "ref": "10.1007/s10980-026-02358-3",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: cr_relation_types=has-preprint",
+   "work_id": "01a0a4a0-1d1c-772d-a70e-fad2bb554300",
+   "key": "Liu_2026_geoai-machine-learning-tools"
+  },
+  {
+   "id": "L178",
+   "ref": "10.1007/s11263-024-02141-4",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2406.15694",
+   "work_id": "01a0a4b3-d033-792c-86c3-148acb0d7a66",
+   "key": "Zheng_2024_single-temporal-supervised-learning"
+  },
+  {
+   "id": "L179",
+   "ref": "10.1016/j.isprsjprs.2026.05.022",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2604.25432",
+   "work_id": "01a0a4ae-3abb-74d0-9037-d9d12a4b7528",
+   "key": "Bo_2026_saru-shadow-aware-removal"
+  },
+  {
+   "id": "L180",
+   "ref": "10.1016/j.rse.2023.113888",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2304.07213",
+   "work_id": "01a0a4bc-edc9-72ca-8098-d56d5da38259",
+   "key": "Tolan_2024_very-high-resolution-canopy"
+  },
+  {
+   "id": "L181",
+   "ref": "10.1038/s41559-023-02206-6",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2204.08322",
+   "work_id": "01a0a4ba-fd08-7fce-be7b-8895e60f7cc2",
+   "key": "Lang_2023_high-resolution-canopy-height"
+  },
+  {
+   "id": "L182",
+   "ref": "10.1038/s41597-025-04655-z",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: cr_relation_types=has-preprint",
+   "work_id": "01a0a49f-c706-7c61-90d4-7d92c98fb3f1",
+   "key": "Allred_2025_canopy-height-model-naip"
+  },
+  {
+   "id": "L183",
+   "ref": "10.1038/s41598-024-65954-w",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2401.06421",
+   "work_id": "01a0a4a3-c926-7847-8318-6f0e8aafbee7",
+   "key": "Singh_2024_uncertainty-quantification-probabilistic-machine"
+  },
+  {
+   "id": "L184",
+   "ref": "10.1109/cvpr52688.2022.00706",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2203.13591",
+   "work_id": "01a0a4a2-b91b-7d37-a887-34222488850c",
+   "key": "Wang_2022_continual-test-time-domain"
+  },
+  {
+   "id": "L185",
+   "ref": "10.1109/cvpr52688.2022.00780",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2109.01903",
+   "work_id": "01a0a4af-8171-7064-b834-1e3972b517d5",
+   "key": "Wortsman_2022_robust-fine-tuning-zero"
+  },
+  {
+   "id": "L186",
+   "ref": "10.1109/igarss53475.2024.10642432",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2510.07008",
+   "work_id": "01a0a4b7-8291-7bb7-8668-a34879f706ac",
+   "key": "Perantoni_2024_bayesian-modelling-multi-year"
+  },
+  {
+   "id": "L187",
+   "ref": "10.1109/jstars.2023.3340412",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2104.14032",
+   "work_id": "01a0a4ae-0314-78d1-8348-6c23170eb755",
+   "key": "Yaras_2024_randomized-histogram-matching-simple"
+  },
+  {
+   "id": "L188",
+   "ref": "10.1109/jstars.2024.3502461",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2305.12106",
+   "work_id": "01a0a49f-afa4-76f7-b693-3c277a2afcf0",
+   "key": "Peng_2025_human-annotated-label-noise"
+  },
+  {
+   "id": "L189",
+   "ref": "10.1109/tmi.2026.3679618",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2503.04522",
+   "work_id": "01a0a4af-996a-77ce-9fbf-0622c2f840ce",
+   "key": "Cosarinsky_2026_confic-rca-statistically-grounded"
+  },
+  {
+   "id": "L190",
+   "ref": "10.1109/tpami.2025.3649001",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2410.22629",
+   "work_id": "01a0a4a0-5165-79f5-9615-edd5aae10a8f",
+   "key": "Gong_2026_crossearth-geospatial-vision-foundation"
+  },
+  {
+   "id": "L191",
+   "ref": "10.1109/wacv51458.2022.00297",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2110.14010",
+   "work_id": "01a0a4c2-f143-7115-bdbe-6e2835809143",
+   "key": "Likowski_2022_misconv-convolutional-neural-networks"
+  },
+  {
+   "id": "L192",
+   "ref": "10.1186/s12874-024-02432-x",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: cr_relation_types=has-preprint",
+   "work_id": "01a0a4af-b988-7cc5-8fc2-6227aa30f8d1",
+   "key": "Okkaoglu_2024_detecting-departures-conditional-independence"
+  },
+  {
+   "id": "L193",
+   "ref": "10.1214/23-aos2276",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2202.13415",
+   "work_id": "01a0a4a8-2cdd-7774-9834-4d8f38602cde",
+   "key": "Barber_2023_conformal-prediction-beyond-exchangeability"
+  },
+  {
+   "id": "L194",
+   "ref": "10.1214/25-aoas2134",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2601.07044",
+   "work_id": "01a0a4b3-91c5-7be1-ac5a-79dfcd861ef3",
+   "key": "Deng_2026_semiparametric-analysis-interval-censored"
+  },
+  {
+   "id": "L195",
+   "ref": "10.3390/rs14081777",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: cr_relation_types=correction",
+   "work_id": "01a0a496-2338-7b02-825a-5e4caaf977b5",
+   "key": "Moghimi_2022_automatic-relative-radiometric-normalization"
+  },
+  {
+   "id": "L196",
+   "ref": "10.48550/arxiv.2203.05482",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2203.05482",
+   "work_id": "01a0a4af-7ad5-7970-8ad1-94150a04a066",
+   "key": "Wortsman_2022_model-soups-averaging-weights"
+  },
+  {
+   "id": "L197",
+   "ref": "10.48550/arxiv.2312.07559",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2312.07559",
+   "work_id": "01a0adcc-83e4-7a1c-933b-0698acd6d0a1",
+   "key": "Lala_2023_paperqa-retrieval-augmented-generative"
+  },
+  {
+   "id": "L198",
+   "ref": "10.48550/arxiv.2602.10045",
+   "ref_scheme": "doi",
+   "mode": "hunt",
+   "source": [
+    "crosswalk"
+   ],
+   "why": "crosswalk: crosswalk, no file: s2_arxiv=2602.10045",
+   "work_id": "01a0a4a6-bfa7-7f68-9b22-73b74f3e8131",
+   "key": "Lu_2026_conformal-prediction-sets-instance"
+  }
+ ],
+ "unhuntable": [],
+ "manifest_sha256": "3c918f64f16fb41974df24f710f6bbd22e91acd9569112109a840bdbbb3ddc5a"
+}

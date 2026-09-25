@@ -1,0 +1,1427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<response>
+	  <header>
+		    <query>(oaftype exact result) and (resulttypeid exact publication) and ((pidclassid exact "doi" and pid exact "10.3390/s8042161"))</query>
+				  <locale>en_US</locale>	
+					<size>10</size>
+			   <page>1</page>
+			   <total>1</total>
+							<fields>
+							</fields>
+			</header>
+	  <results>
+										<result xmlns:dri="http://www.driver-repository.eu/namespace/dri"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+         <header>
+            <dri:objIdentifier>doi_dedup___::47ef79434332c94bf79c5edf20137c0e</dri:objIdentifier>
+            <dri:dateOfCollection>2026-08-19T06:52:40.016092243</dri:dateOfCollection>
+            <dri:dateOfTransformation/>
+         </header>
+         <metadata>
+            <oaf:entity xmlns:oaf="http://namespace.openaire.eu/oaf"
+                        xsi:schemaLocation="http://namespace.openaire.eu/oaf https://www.openaire.eu/schema/1.0/oaf-1.0.xsd">
+               <oaf:result>
+                  <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                  <collectedfrom name="Multidisciplinary Digital Publishing Institute"
+                                 id="openaire____::c2cdfa5866e03cdd07d313cbc8fb8311"/> 
+                  <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                  <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                  <collectedfrom name="Microsoft Academic Graph"
+                                 id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                  <collectedfrom name="Europe PubMed Central"
+                                 id="opendoar____::8b6dd7db9af49e67306feb59a8bdc52c"/> 
+                  <originalId>s8042161</originalId> 
+                  <originalId>10.3390/s8042161</originalId> 
+                  <originalId>50|doiboost____|47ef79434332c94bf79c5edf20137c0e</originalId> 
+                  <originalId>od_______267::8a7affb5ef3ca6ca45a9e52c2224e51d</originalId> 
+                  <originalId>27879815</originalId> 
+                  <originalId>PMC3673411</originalId> 
+                  <originalId>50|doajarticles::6d39de7c3f031f144791de79dcfa63f4</originalId> 
+                  <originalId>oai:doaj.org/article:d05e7a427dee41ed9bc473e1a62f59d8</originalId> 
+                  <originalId>2111355994</originalId> 
+                  <originalId>50|multidiscipl::123cc5989b3bb0d5357237d8520f122a</originalId> 
+                  <originalId>oai:mdpi.com:/1424-8220/8/4/2161/</originalId> 
+                  <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types">10.3390/s8042161</pid> 
+                  <pid classid="pmid" classname="PubMed ID" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types"
+                       inferred="false"
+                       provenanceaction="sysimport:actionset"
+                       trust="0.9">27879815</pid> 
+                  <pid classid="pmc" classname="PubMed Central ID" schemeid="dnet:pid_types"
+                       schemename="dnet:pid_types"
+                       inferred="false"
+                       provenanceaction="sysimport:actionset"
+                       trust="0.9">PMC3673411</pid> 
+                  <measure id="influence" score="3.8182115E-9" class="C4"/> 
+                  <measure id="popularity" score="5.3453353E-9" class="C4"/> 
+                  <measure id="influence_alt" score="21" class="C4"/> 
+                  <measure id="citationCount" score="25" class="C4"/> 
+                  <measure id="popularity_alt" score="1.7243552" class="C4"/> 
+                  <measure id="impulse" score="3" class="C5"/> 
+                  <fulltext>https://www.mdpi.com/1424-8220/8/4/2161/pdf</fulltext> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">Assessment of the Spatial Co-registration of Multitemporal Imagery from Large Format Digital Cameras in the Context of Detailed Change Detection</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title"
+                         inferred="false"
+                         provenanceaction="sysimport:actionset"
+                         trust="0.9">Assessment of the Spatial Co-registration of Multitemporal Imagery from Large Format Digital Cameras in the Context of Detailed Change Detection.</title> 
+                  <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                         schemename="dnet:dataCite_title">assessment of the spatial co registration of multitemporal imagery from large format digital cameras in the context of detailed change detection</title> 
+                  <bestaccessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                   schemename="dnet:access_modes"/> 
+                  <creator rank="1" name="Lloyd L." surname="Coulter">Coulter, Lloyd L.</creator> 
+                  <creator rank="2" name="Douglas A." surname="Stow">Stow, Douglas A.</creator> 
+                  <dateofacceptance>2008-03-28</dateofacceptance> 
+                  <description>&lt;jats:p&gt;Large format digital camera (LFDC) systems are becoming more broadly available and regularly collect image data over large areas. Spectral and radiometric attributes of imagery from LFDC systems make this type of image data appropriate for semi-automated change detection. However, achieving accurate spatial co-registration between multitemporal image sets is necessary for semi-automated change detection. This study investigates the accuracy of co-registration between multitemporal image sets acquired using the Leica Geosystems ADS40, Intergraph Z/I Imaging® DMC, and Vexcel UltraCam-D sensors in areas of gentle, moderate, and extreme terrain relief. Custom image sets were collected and orthorectified by imagery vendors, with guidance from the authors. Results indicate that imagery acquired by vendors operating LFDC systems may be coregistered with pixel or sub-pixel level accuracy, even for environments with high terrain relief. Specific image acquisition and processing procedures facilitating this level of coregistration are discussed.&lt;/jats:p&gt;</description> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">ADS40</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">co-registration</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">large format</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">DMC</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">Chemical technology</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">0211 other engineering and technologies</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">0207 environmental engineering</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">UltraCam</subject> 
+                  <subject classid="FOS" classname="Fields of Science and Technology classification"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="true"
+                           inferenceprovenance="update"
+                           provenanceaction="subject:fos">02 engineering and technology</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">TP1-1185</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">multitemporal</subject> 
+                  <subject classid="keyword" classname="keyword"
+                           schemeid="dnet:subject_classification_typologies"
+                           schemename="dnet:subject_classification_typologies"
+                           inferred="false"
+                           provenanceaction="sysimport:crosswalk:repository"
+                           trust="0.9">change detection</subject> 
+                  <language classid="eng" classname="English" schemeid="dnet:languages"
+                            schemename="dnet:languages"/> 
+                  <relevantdate classid="created" classname="created" schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2008-12-01</relevantdate> 
+                  <relevantdate classid="published-online" classname="published-online"
+                                schemeid="dnet:dataCite_date"
+                                schemename="dnet:dataCite_date">2008-03-28</relevantdate> 
+                  <publisher>MDPI AG</publisher> 
+                  <source>Crossref</source> 
+                  <source>Sensors</source> 
+                  <source>Sensors, Vol 8, Iss 4, Pp 2161-2173 (2008)</source> 
+                  <source>Issue 4</source> 
+                  <source>Pages: 2161-2173</source> 
+                  <source>Volume 8</source> 
+                  <format>application/pdf</format> 
+                  <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                              schemename="dnet:result_typologies"/> 
+                  <resourcetype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                schemename="dnet:result_typologies"/> 
+                  <isgreen>false</isgreen> 
+                  <openaccesscolor>gold</openaccesscolor> 
+                  <isindiamondjournal>false</isindiamondjournal> 
+                  <publiclyfunded>false</publiclyfunded> 
+                  <journal eissn="1424-8220" ep="2173" sp="2161" vol="8">Sensors</journal> 
+                  <datainfo>
+                     <inferred>true</inferred>
+                     <deletedbyinference>false</deletedbyinference>
+                     <trust>0.8</trust>
+                     <inferenceprovenance>dedup-result-decisiontree-v4</inferenceprovenance>
+                     <provenanceaction classid="sysimport:dedup" classname="Inferred by OpenAIRE"
+                                       schemeid="dnet:provenanceActions"
+                                       schemename="dnet:provenanceActions"/>
+                  </datainfo> 
+                  <rels>
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::74eaf5da85da947172922e3d210a1855</to>
+                        <collectedfrom name="Copernicus Publications"
+                                       id="openaire____::5a38cb462ac487bf26bdb86009fe3e74"/> 
+                        <dateofacceptance>2014-11-28</dateofacceptance> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.5194/isprsarchives-xl-8-1159-2014</pid> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.5194/isprsarchives-xl-8-1159-2014</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.5194/isprsarchives-xl-8-1159-2014</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Udayalakshmi, M.</creator> 
+                        <creator>Srinivas, P.</creator> 
+                        <creator>Muralikrishnan, S.</creator> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Quality Metrics of Semi Automatic DTM from Large Format Digital Camera</title> 
+                        <description>&lt;jats:p&gt;Abstract. The high resolution digital images from Ultracam-D Large Format Digital Camera (LFDC) was used for near automatic DTM generation. In the past, manual method for DTM generation was used which are time consuming and labour intensive. In this study LFDC in synergy with accurate position and orientation system and processes like image matching algorithms, distributed processing and filtering techniques for near automatic DTM generation. Traditionally the DTM accuracy is reported us</description> 
+                        <publisher>Copernicus GmbH</publisher> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences"
+                                     id="doajarticles::6956208d9de4d6e64a66fc0a212bc9df"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://www.int-arch-photogramm-remote-sens-spatial-inf-sci.net/XL-8/1159/2014/isprsarchives-XL-8-1159-2014.pdf</url> 
+                	          <webresource>
+                	             <url>https://www.int-arch-photogramm-remote-sens-spatial-inf-sci.net/XL-8/1159/2014/isprsarchives-XL-8-1159-2014.pdf</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences"
+                                     id="doajarticles::6956208d9de4d6e64a66fc0a212bc9df"/> 
+                           <dateofacceptance>2014-11-28</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://doi.org/10.5194/isprsarchives-xl-8-1159-2014</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.5194/isprsarchives-xl-8-1159-2014</url>
+                	          </webresource> 
+                        </instance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <creator>Narendran, J.</creator> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Copernicus Publications"
+                                     id="openaire____::5a38cb462ac487bf26bdb86009fe3e74"/> 
+                           <dateofacceptance>2019-03-05</dateofacceptance> 
+                           <instancetype classid="0038" classname="Other literature type"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://isprs-archives.copernicus.org/articles/XL-8/1159/2014/</url> 
+                	          <webresource>
+                	             <url>https://isprs-archives.copernicus.org/articles/XL-8/1159/2014/</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::490c34147aae41590fdae59a4b21641a</to>
+                        <creator>Paul Reding</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2021-07-22</dateofacceptance> 
+                           <instancetype classid="0013" classname="Part of book or chapter of book"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1093/oso/9780198854715.003.0004</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1093/oso/9780198854715.003.0004</url>
+                	          </webresource> 
+                        </instance> 
+                        <dateofacceptance>2021-07-22</dateofacceptance> 
+                        <publisher>Oxford University Press (OUP)</publisher> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <creator>Juan Antonio Morales</creator> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Monetary Policy Trade-Offs and Monetary Policy Credibility</title> 
+                        <description>&lt;p&gt;This chapter focuses on two key aspects of the monetary policy process: the trade-offs between the three goals that fall into the purview of central banks, price stability, output stabilization, and financial stability; and the role of central bank independence and transparency in enhancing the credibility and the efficacy of monetary policy. The chapter presents the theoretical background for each issue and discusses related empirical studies. The emphasis is on how the specific features of </description> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1093/oso/9780198854715.003.0004</pid> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::69f03480c3c0d6910c5e68bd7d15cd90</to>
+                        <creator>Mohammad Hosein Holakooie</creator> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="International Journal of Electrical Power &amp;amp; Energy Systems"
+                                     id="doajarticles::a4057017e6ae6a2781ac080d833e7a71"/> 
+                           <dateofacceptance>2017-02-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>Elsevier TDM</license> 
+                           <url>https://doi.org/10.1016/j.ijepes.2016.06.014</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1016/j.ijepes.2016.06.014</url>
+                	          </webresource> 
+                        </instance> 
+                        <dateofacceptance>2017-02-01</dateofacceptance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1016/j.ijepes.2016.06.014</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1016/j.ijepes.2016.06.014</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Abbas Rabiee</creator> 
+                        <creator>Mohsen Bakhshi</creator> 
+                        <description>Abstract   This paper proposes a local fuzzy based damping controller (LFDC) for thyristor controlled series capacitor (TCSC) to improve transient stability of power systems. In order to implement the proposed scheme, detailed model of TCSC, based on actual behavior of thyristor valves, is adopted. The LFDC uses the frequency at the TCSC bus as a local feedback signal, to control the firing angle. The parameters of fuzzy controller are tuned using an off-line method through chaotic optimization </description> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1016/j.ijepes.2016.06.014</pid> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Fuzzy based damping controller for TCSC using local measurements to enhance transient stability of power systems</title> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <publisher>Elsevier BV</publisher> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_________::43d98644e1f946a08304f5c0b3e01002</to>
+                        <description>&lt;p&gt;While we were finalizing this book, the corona virus pandemic struck. It affected all countries around the world, causing heavy human suffering everywhere.&lt;/p&gt;                &lt;p&gt;Its economic consequences can probably be expected to be dire for many LFDCs, of which most are low-income countries.&lt;/p&gt;                &lt;p&gt;At the time of writing, the severity of the longer-term consequences of the pandemic for these countries is difficult to gauge. We nevertheless feel it necessary to briefly assess</description> 
+                        <creator>Paul Reding</creator> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1093/oso/9780198854715.003.0008</pid> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Afterword</title> 
+                        <dateofacceptance>2021-07-22</dateofacceptance> 
+                        <publisher>Oxford University Press (OUP)</publisher> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <creator>Juan Antonio Morales</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <dateofacceptance>2021-07-22</dateofacceptance> 
+                           <instancetype classid="0013" classname="Part of book or chapter of book"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1093/oso/9780198854715.003.0008</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1093/oso/9780198854715.003.0008</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="1.0" inferenceprovenance="openaire:affiliation:iis"
+                          provenanceaction="result:organization:openaireinference">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">openorgs____::950d361c5c26e1728174c8d7a937fc01</to>
+                        <legalshortname>SDSU</legalshortname> 
+                        <country classid="US" classname="United States" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <websiteurl>http://www.sdsu.edu/</websiteurl> 
+                        <legalname>San Diego State University</legalname> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9" inferenceprovenance="iis::document_affiliations"
+                          provenanceaction="iis">
+                        <to class="hasAuthorInstitution" scheme="dnet:result_organization_relations"
+                            type="organization">pending_org_::d742e2dadfe00593882b6988140bc236</to>
+                        <country classid="US" classname="United States" schemeid="dnet:countries"
+                                 schemename="dnet:countries"/> 
+                        <legalname>Department of Geography San Diego State University</legalname> 
+                        <legalshortname>Department of Geography San Diego State University</legalshortname> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::a06d781f22ed2af3499c016c4ae7253d</to>
+                        <creator>Trávníčková, T. (Tereza)</creator> 
+                        <publisher>AIP Publishing</publisher> 
+                        <collectedfrom name="Repository of the Czech Academy of Sciences"
+                                       id="opendoar____::8643c8e2107ba86c47371e037059c4b7"/> 
+                        <creator>Ždímal, V. (Vladimír)</creator> 
+                        <pid classid="handle" classname="Handle" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:crosswalk:repository"
+                             trust="0.9">11104/0225691</pid> 
+                        <instance>
+                           <accessright classid="RESTRICTED" classname="Restricted" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Repository of the Czech Academy of Sciences"
+                                     id="opendoar____::8643c8e2107ba86c47371e037059c4b7"/> 
+                           <dateofacceptance>2013-01-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>http://hdl.handle.net/11104/0225691</url> 
+                	          <webresource>
+                	             <url>http://hdl.handle.net/11104/0225691</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="The Journal of Chemical Physics"
+                                     id="issn___print::230a353c819d0e72344507b52a8e2dfa"/> 
+                           <dateofacceptance>2013-08-09</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1063/1.4816963</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1063/1.4816963</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Havlica, J. (Jaromír)</creator> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1063/1.4816963</pid> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Description of fluid dynamics and coupled transports in models of a laminar flow diffusion chamber</title> 
+                        <description>&lt;jats:p&gt;The aim of this study is to assess how much the results of nucleation experiments in a laminar flow diffusion chamber (LFDC) are influenced by the complexity of the model of the transport properties. The effects of the type of fluid dynamic model (the steady state compressible Navier-Stokes system for an ideal gas/parabolic profile approximation) and the contributions of the coupled terms describing the Dufour effects and thermodiffusion on the predicted magnitude of the nucleation maxim</description> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <collectedfrom name="Europe PubMed Central"
+                                       id="opendoar____::8b6dd7db9af49e67306feb59a8bdc52c"/> 
+                        <pid classid="pmid" classname="PubMed ID" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">23947874</pid> 
+                        <dateofacceptance>2013-08-09</dateofacceptance> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1063/1.4816963</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1063/1.4816963</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="The Journal of Chemical Physics"
+                                     id="issn___print::230a353c819d0e72344507b52a8e2dfa"/> 
+                           <dateofacceptance>2014-09-19</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://pubmed.ncbi.nlm.nih.gov/23947874</url> 
+                	          <webresource>
+                	             <url>https://pubmed.ncbi.nlm.nih.gov/23947874</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::31ad6aeb72e8d315169fd57b885a3a98</to>
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="GHMJ (Global Health Management Journal)"
+                                     id="doajarticles::d33168f448eb1205716774ec499d8b73"/> 
+                           <dateofacceptance>2019-10-31</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY NC SA</license> 
+                           <url>https://doi.org/10.35898/ghmj-33456</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.35898/ghmj-33456</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="GHMJ (Global Health Management Journal)"
+                                     id="doajarticles::d33168f448eb1205716774ec499d8b73"/> 
+                           <dateofacceptance>2022-07-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doaj.org/article/58219fdaa3e94ab6ad5575a9aac2892b</url> 
+                	          <webresource>
+                	             <url>https://doaj.org/article/58219fdaa3e94ab6ad5575a9aac2892b</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="GHMJ (Global Health Management Journal)"
+                                     id="doajarticles::d33168f448eb1205716774ec499d8b73"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY NC SA</license> 
+                           <url>https://doi.org/10.35898/ghmj-33456</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.35898/ghmj-33456</url>
+                	          </webresource> 
+                        </instance> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0038" classname="Other literature type"
+                                         schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.35898/ghmj-33456</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.35898/ghmj-33456</url>
+                	          </webresource> 
+                        </instance> 
+                        <description>&lt;jats:p&gt;Background: Recently, there has been considerable interest in increasing the dietary fiber content in food products because of inadequate dietary fiber consump on when considering the daily recommended intake. To in- crease dietary fiber intake, dietary fiber for fied foods are recommended. This study aimed to develop a high fiber snack bar (HFSB) using a combina on of Jerusalem ar choke powder (JAP) and low-fat desiccated coconut (LFDC) as sources of dietary fiber. Methods: The changes </description> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Storage Stability of High Fiber Snack Bar</title> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.35898/ghmj-33585</pid> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.35898/ghmj-33456</pid> 
+                        <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                        <creator>Ivana Aprilia Pratiwi</creator> 
+                        <publisher>Yayasan Aliansi Cendekiawan Indonesia Thailand</publisher> 
+                        <creator>Varongsiri Kemsawasd</creator> 
+                        <dateofacceptance>2019-10-31</dateofacceptance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="GHMJ (Global Health Management Journal)"
+                                     id="doajarticles::d33168f448eb1205716774ec499d8b73"/> 
+                           <dateofacceptance>2019-10-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doaj.org/article/69bdd4d2d33c4855bae97d9e3bb9fd56</url> 
+                	          <webresource>
+                	             <url>https://doaj.org/article/69bdd4d2d33c4855bae97d9e3bb9fd56</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>Thunnalin Winuprasith</creator> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <instance>
+                           <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="GHMJ (Global Health Management Journal)"
+                                     id="doajarticles::d33168f448eb1205716774ec499d8b73"/> 
+                           <dateofacceptance>2022-07-04</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY NC SA</license> 
+                           <url>https://doi.org/10.35898/ghmj-33585</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.35898/ghmj-33585</url>
+                	          </webresource> 
+                        </instance> 
+                     </rel> 
+                     <rel inferred="true" trust="0.9"
+                          inferenceprovenance="iis::document_similarities_standard"
+                          provenanceaction="iis">
+                        <to class="IsAmongTopNSimilarDocuments" scheme="dnet:result_result_relations"
+                            type="publication">doi_dedup___::974bc40ac340c9f080a7fb9134cf901a</to>
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="The Journal of Chemical Physics"
+                                     id="issn___print::230a353c819d0e72344507b52a8e2dfa"/> 
+                           <dateofacceptance>2008-09-26</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://pubmed.ncbi.nlm.nih.gov/18698910</url> 
+                	          <webresource>
+                	             <url>https://pubmed.ncbi.nlm.nih.gov/18698910</url>
+                	          </webresource> 
+                        </instance> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.1063/1.2953330</pid> 
+                        <publisher>AIP Publishing</publisher> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Data evaluation of laminar flow diffusion chamber nucleation experiments with different computational methods</title> 
+                        <creator>C, Housiadas</creator> 
+                        <pid classid="pmid" classname="PubMed ID" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">18698910</pid> 
+                        <creator>D, Brus</creator> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://dx.doi.org/10.1063/1.2953330</url> 
+                	          <webresource>
+                	             <url>https://dx.doi.org/10.1063/1.2953330</url>
+                	          </webresource> 
+                        </instance> 
+                        <creator>V, Zdímal</creator> 
+                        <creator>D, Mitrakos</creator> 
+                        <dateofacceptance>2008-08-01</dateofacceptance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <collectedfrom name="Europe PubMed Central"
+                                       id="opendoar____::8b6dd7db9af49e67306feb59a8bdc52c"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <instance>
+                           <accessright classid="UNKNOWN" classname="unspecified" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="The Journal of Chemical Physics"
+                                     id="issn___print::230a353c819d0e72344507b52a8e2dfa"/> 
+                           <dateofacceptance>2008-08-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doi.org/10.1063/1.2953330</url> 
+                	          <webresource>
+                	             <url>https://doi.org/10.1063/1.2953330</url>
+                	          </webresource> 
+                        </instance> 
+                        <description>&lt;jats:p&gt;In order to evaluate the experimental data from laminar flow diffusion chamber (LFDC) experiments on homogeneous nucleation, an extensive postmeasurement computational analysis is required. The present work investigates the influence of the used computational methodology on the derived nucleation curves. To this end a reanalysis is made of previous LFDC experiments of 1-butanol nucleation in helium [D. Brus et al., J. Chem. Phys. 122, 214506 (2005)] using two different methods. The first</description> 
+                     </rel> 
+                  </rels>
+                  <children>
+                     <result objidentifier="multidiscipl::123cc5989b3bb0d5357237d8520f122a">
+            	           <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Assessment of the Spatial Co-registration of Multitemporal Imagery from Large Format Digital Cameras in the Context of Detailed Change Detection</title> 
+                        <publisher>Molecular Diversity Preservation International</publisher> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                           <dateofacceptance>2008-03-28</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <fulltext>https://www.mdpi.com/1424-8220/8/4/2161/pdf</fulltext> 
+                           <url>https://dx.doi.org/10.3390/s8042161</url> 
+            		             <webresource>
+            		                <url>https://dx.doi.org/10.3390/s8042161</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>Stow, Douglas A.</creator> 
+                        <collectedfrom name="Multidisciplinary Digital Publishing Institute"
+                                       id="openaire____::c2cdfa5866e03cdd07d313cbc8fb8311"/> 
+                        <description>Large format digital camera (LFDC) systems are becoming more broadly available and regularly collect image data over large areas. Spectral and radiometric attributes of imagery from LFDC systems make this type of image data appropriate for semi-automated change detection. However, achieving accurate spatial co-registration between multitemporal image sets is necessary for semi-automated change detection. This study investigates the accuracy of co-registration between multitemporal image sets acq</description> 
+                        <dateofacceptance>2008-03-28</dateofacceptance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <creator>Coulter, Lloyd L.</creator> 
+                     </result> 
+                     <result objidentifier="doajarticles::6d39de7c3f031f144791de79dcfa63f4">
+            	           <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:crosswalk:repository"
+                               trust="0.9">Assessment of the Spatial Co-registration of Multitemporal Imagery from Large Format Digital Cameras in the Context of Detailed Change Detection</title> 
+                        <creator>Douglas A. Stow</creator> 
+                        <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                        <description>Large format digital camera (LFDC) systems are becoming more broadly available and regularly collect image data over large areas. Spectral and radiometric attributes of imagery from LFDC systems make this type of image data appropriate for semi-automated change detection. However, achieving accurate spatial co-registration between multitemporal image sets is necessary for semi-automated change detection. This study investigates the accuracy of co-registration between multitemporal image sets acq</description> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <publisher>MDPI AG</publisher> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                           <dateofacceptance>2008-03-01</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://doaj.org/article/d05e7a427dee41ed9bc473e1a62f59d8</url> 
+            		             <webresource>
+            		                <url>https://doaj.org/article/d05e7a427dee41ed9bc473e1a62f59d8</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>Lloyd L. Coulter</creator> 
+                        <dateofacceptance>2008-03-01</dateofacceptance> 
+                     </result> 
+                     <result objidentifier="pmid________::aa1b5998603dfcd58ef28b30360bb0b9">
+            	           <creator>Douglas A, Stow</creator> 
+                        <creator>Lloyd L, Coulter</creator> 
+                        <description>Large format digital camera (LFDC) systems are becoming more broadly available and regularly collect image data over large areas. Spectral and radiometric attributes of imagery from LFDC systems make this type of image data appropriate for semi-automated change detection. However, achieving accurate spatial co-registration between multitemporal image sets is necessary for semi-automated change detection. This study investigates the accuracy of co-registration between multitemporal image sets acq</description> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Europe PubMed Central"
+                                       id="opendoar____::8b6dd7db9af49e67306feb59a8bdc52c"/> 
+                        <pid classid="pmid" classname="PubMed ID" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">27879815</pid> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                           <dateofacceptance>2018-01-04</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <url>https://pubmed.ncbi.nlm.nih.gov/27879815</url> 
+            		             <webresource>
+            		                <url>https://pubmed.ncbi.nlm.nih.gov/27879815</url>
+            		             </webresource> 
+            	           </instance> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title"
+                               inferred="false"
+                               provenanceaction="sysimport:actionset"
+                               trust="0.9">Assessment of the Spatial Co-registration of Multitemporal Imagery from Large Format Digital Cameras in the Context of Detailed Change Detection.</title> 
+                        <dateofacceptance>2018-01-04</dateofacceptance> 
+                        <pid classid="pmc" classname="PubMed Central ID" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">PMC3673411</pid> 
+                     </result> 
+                     <result objidentifier="doi_________::47ef79434332c94bf79c5edf20137c0e">
+            	           <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://www.mdpi.com/1424-8220/8/4/2161/pdf</url> 
+            		             <webresource>
+            		                <url>https://www.mdpi.com/1424-8220/8/4/2161/pdf</url>
+            		             </webresource> 
+            	           </instance> 
+                        <creator>Douglas A. Stow</creator> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.3390/s8042161</pid> 
+                        <title classid="main title" classname="main title" schemeid="dnet:dataCite_title"
+                               schemename="dnet:dataCite_title">Assessment of the Spatial Co-registration of Multitemporal Imagery from Large Format Digital Cameras in the Context of Detailed Change Detection</title> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <instance>
+            	              <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                        schemename="dnet:access_modes"/> 
+                           <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                           <dateofacceptance>2008-03-28</dateofacceptance> 
+                           <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                         schemename="dnet:publication_resource"/> 
+                           <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                     schemename="dnet:review_levels"/> 
+                           <license>CC BY</license> 
+                           <url>https://doi.org/10.3390/s8042161</url> 
+            		             <webresource>
+            		                <url>https://doi.org/10.3390/s8042161</url>
+            		             </webresource> 
+            	           </instance> 
+                        <description>&lt;jats:p&gt;Large format digital camera (LFDC) systems are becoming more broadly available and regularly collect image data over large areas. Spectral and radiometric attributes of imagery from LFDC systems make this type of image data appropriate for semi-automated change detection. However, achieving accurate spatial co-registration between multitemporal image sets is necessary for semi-automated change detection. This study investigates the accuracy of co-registration between multitemporal image </description> 
+                        <dateofacceptance>2008-03-28</dateofacceptance> 
+                        <resulttype classid="publication" classname="publication" schemeid="dnet:result_typologies"
+                                    schemename="dnet:result_typologies"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <publisher>MDPI AG</publisher> 
+                        <creator>Lloyd L. Coulter</creator> 
+                     </result> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="UnpayWall" id="openaire____::8ac8380272269217cb09a928c8caa993"/> 
+                        <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.3390/s8042161</pid> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>CC BY</license> 
+            	           <webresource>
+            	              <url>https://www.mdpi.com/1424-8220/8/4/2161/pdf</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Europe PubMed Central"
+                                       id="opendoar____::8b6dd7db9af49e67306feb59a8bdc52c"/> 
+                        <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                        <dateofacceptance>2018-01-04</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="pmc" classname="PubMed Central ID" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">PMC3673411</pid> 
+                        <pid classid="pmid" classname="PubMed ID" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types"
+                             inferred="false"
+                             provenanceaction="sysimport:actionset"
+                             trust="0.9">27879815</pid> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/s8042161</alternateidentifier> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://pubmed.ncbi.nlm.nih.gov/27879815</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="DOAJ" id="driver______::bee53aa31dc2cbb538c10c2b65fa5824"/> 
+                        <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                        <dateofacceptance>2008-03-01</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <refereed classid="0002" classname="nonPeerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+            	           <webresource>
+            	              <url>https://doaj.org/article/d05e7a427dee41ed9bc473e1a62f59d8</url>
+            	           </webresource> 
+                     </instance> 
+                     <instance>
+                        <accessright classid="OPEN" classname="Open Access" schemeid="dnet:access_modes"
+                                     schemename="dnet:access_modes"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <collectedfrom name="Crossref" id="openaire____::081b82f96300b6a6e3d282bad31cb6e2"/> 
+                        <collectedfrom name="Multidisciplinary Digital Publishing Institute"
+                                       id="openaire____::c2cdfa5866e03cdd07d313cbc8fb8311"/> 
+                        <collectedfrom name="Microsoft Academic Graph"
+                                       id="openaire____::5f532a3fc4f1ea403f37070f59a7a53a"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <hostedby name="Unknown Repository" id="openaire____::55045bd2a65019fd8e6741a755395c8c"/> 
+                        <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                        <hostedby name="Sensors" id="doajarticles::31ead5598158eb984a066a2c02f73def"/> 
+                        <dateofacceptance>2008-03-28</dateofacceptance> 
+                        <instancetype classid="0001" classname="Article" schemeid="dnet:publication_resource"
+                                      schemename="dnet:publication_resource"/> 
+                        <pid classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                             schemename="dnet:pid_types">10.3390/s8042161</pid> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">2111355994</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/s8042161</alternateidentifier> 
+                        <alternateidentifier classid="mag_id" classname="Microsoft Academic Graph Identifier"
+                                             schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">2111355994</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/s8042161</alternateidentifier> 
+                        <alternateidentifier classid="doi" classname="Digital Object Identifier" schemeid="dnet:pid_types"
+                                             schemename="dnet:pid_types">10.3390/s8042161</alternateidentifier> 
+                        <refereed classid="0001" classname="peerReviewed" schemeid="dnet:review_levels"
+                                  schemename="dnet:review_levels"/> 
+                        <license>CC BY</license> 
+                        <fulltext>https://www.mdpi.com/1424-8220/8/4/2161/pdf</fulltext> 
+            	           <webresource>
+            	              <url>https://doi.org/10.3390/s8042161</url>
+            	           </webresource> 
+                     </instance> 
+                  </children>
+               </oaf:result>
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>1. Petrie, G. Airborne digital frame cameras: the technology is really improving! Geoinformatics 2003, 6, 18-27.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>2. Williams, K. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine, Dec. 2004. URL: http://www.eomonline.com/Common /Archives/2004Dec/04dec_AgriculturalImagery.html.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>3. Chavez, P.S.; MacKinnon, D.J. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing 1994, 60(5), 571-583.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>4. Sachs, D.L.; Sollins, P.; Cohen, W.B. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research 1998, 28(1), 23-36.</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>5. Jensen, J.R. Urban change detection mapping using Landsat digital data. The American Cartographer 1981, 8, 127-147.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>6. Gong, P.; LeDrew, E.F.; Miller, J.R. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing 1992, 13(4), 773-779.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>7. Coulter, L.; Stow, D.; Baer, S. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing 2003, 41(11), 2436-2444.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>8. Baker, W.L.; Honaker, J.J.; Weisberg, P.J. Using aerial photography and GIS to map the foresttundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing 1995, 61(3), 313-320.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>9. Stow, D.; Coulter, L.; Baer, S. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing 2003, 24(19), 3873-3879.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>10. Leica Geosystems. ADS40_2ndGeneration_datasheet[1].pdf 2007. Available for download from http://www.leica-geosystems.com/corporate/en/ndef/lgs_57627.htm.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>11. ASPRS. Manual of photogrammetry, fifth edition 2004. American Society for Photogrammetry and Remote Sensing, Bethesda, Maryland, USA.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>12. Tang, L.; Dörstel, C.; Jacobsen, K.; Heipke, C.; Hinz, A. Geometric accuracy potential of the digital modular camera. In: IAPRS Proceedings, Vol. XXXIII, 2000, Amsterdam.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>13. Gruber, M.; Meixner, H. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. International Symposium on Modern Technologies, Education and Professional Practice in Geodesy and Related Fields, 04 - 05 November 2004, Sofia.</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>14. Heier, H.; Dörstel, C.; Hinz, A. The new digital modular camera embedded into the Z/I Imaging workflow. In Proceedings of the ASPRS 2001 Conference: From Imagery to Geodata, 26 April 2001, St. Louis, Missouri, USA.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>15. Witztum, E.; Stow, D. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing 2004, 25(17), 3477-3496.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>16. Townshend, J.R.G.; Justice, C.O.; Gurney, C.; McManus, J. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing 1992, 30(5), 1054-1060.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Petrie, G.. Airborne digital frame cameras: the technology is really improving!. Geoinformatics. 2003; 6: 18-27</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>Williams, K.. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine. 2004</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>Chavez, P.S., MacKinnon, D.J.. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing. 1994; 60 (5): 571-583</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>Sachs, D.L., Sollins, P., Cohen, W.B.. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research. 1998; 28 (1): 23-36</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>Jensen, J.R.. Urban change detection mapping using Landsat digital data. The American Cartographer. 1981; 8: 127-147</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>Gong, P., LeDrew, E.F., Miller, J.R.. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing. 1992; 13 (4): 773-779</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>Coulter, L., Stow, D., Baer, S.. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing. 2003; 41 (11): 2436-2444</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>Baker, W.L., Honaker, J.J., Weisberg, P.J.. Using aerial photography and GIS to map the forest- tundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing. 1995; 61 (3): 313-320</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>Stow, D., Coulter, L., Baer, S.. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing. 2003; 24 (19): 3873-3879</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>ADS40_2ndGeneration_datasheet[1].pdf. 2007</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>Manual of photogrammetry, fifth edition. 2004</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>Tang, L., Dörstel, C., Jacobsen, K., Heipke, C., Hinz, A.. Geometric accuracy potential of the digital modular camera. 2000</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>Gruber, M., Meixner, H.. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. </rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>Heier, H., Dörstel, C., Hinz, A.. The new digital modular camera embedded into the Z/I Imaging workflow. </rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>Witztum, E., Stow, D.. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing. 2004; 25 (17): 3477-3496</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>Townshend, J.R.G., Justice, C.O., Gurney, C., McManus, J.. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing. 1992; 30 (5): 1054-1060</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>1. Petrie, G. Airborne digital frame cameras: the technology is really improving! Geoinformatics 2003, 6, 18-27.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>2. Williams, K. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine, Dec. 2004. URL: http://www.eomonline.com/Common /Archives/2004Dec/04dec_AgriculturalImagery.html.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>3. Chavez, P.S.; MacKinnon, D.J. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing 1994, 60(5), 571-583.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>4. Sachs, D.L.; Sollins, P.; Cohen, W.B. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research 1998, 28(1), 23-36.</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>5. Jensen, J.R. Urban change detection mapping using Landsat digital data. The American Cartographer 1981, 8, 127-147.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>6. Gong, P.; LeDrew, E.F.; Miller, J.R. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing 1992, 13(4), 773-779.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>7. Coulter, L.; Stow, D.; Baer, S. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing 2003, 41(11), 2436-2444.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>8. Baker, W.L.; Honaker, J.J.; Weisberg, P.J. Using aerial photography and GIS to map the foresttundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing 1995, 61(3), 313-320.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>9. Stow, D.; Coulter, L.; Baer, S. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing 2003, 24(19), 3873-3879.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>10. Leica Geosystems. ADS40_2ndGeneration_datasheet[1].pdf 2007. Available for download from http://www.leica-geosystems.com/corporate/en/ndef/lgs_57627.htm.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>11. ASPRS. Manual of photogrammetry, fifth edition 2004. American Society for Photogrammetry and Remote Sensing, Bethesda, Maryland, USA.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>12. Tang, L.; Dörstel, C.; Jacobsen, K.; Heipke, C.; Hinz, A. Geometric accuracy potential of the digital modular camera. In: IAPRS Proceedings, Vol. XXXIII, 2000, Amsterdam.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>13. Gruber, M.; Meixner, H. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. International Symposium on Modern Technologies, Education and Professional Practice in Geodesy and Related Fields, 04 - 05 November 2004, Sofia.</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>14. Heier, H.; Dörstel, C.; Hinz, A. The new digital modular camera embedded into the Z/I Imaging workflow. In Proceedings of the ASPRS 2001 Conference: From Imagery to Geodata, 26 April 2001, St. Louis, Missouri, USA.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>15. Witztum, E.; Stow, D. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing 2004, 25(17), 3477-3496.</rawText>
+                        <id value="doi_________::758f050d8b3d0ad63139e6ec75a53b48" type="openaire"
+                            trustLevel="0.6403745"/>
+                     </reference>
+                     <reference position="16">
+                        <rawText>16. Townshend, J.R.G.; Justice, C.O.; Gurney, C.; McManus, J. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing 1992, 30(5), 1054-1060.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>1. Petrie, G. Airborne digital frame cameras: the technology is really improving! Geoinformatics 2003, 6, 18-27.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>2. Williams, K. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine, Dec. 2004. URL: http://www.eomonline.com/Common /Archives/2004Dec/04dec_AgriculturalImagery.html.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>3. Chavez, P.S.; MacKinnon, D.J. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing 1994, 60(5), 571-583.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>4. Sachs, D.L.; Sollins, P.; Cohen, W.B. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research 1998, 28(1), 23-36.</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>5. Jensen, J.R. Urban change detection mapping using Landsat digital data. The American Cartographer 1981, 8, 127-147.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>6. Gong, P.; LeDrew, E.F.; Miller, J.R. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing 1992, 13(4), 773-779.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>7. Coulter, L.; Stow, D.; Baer, S. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing 2003, 41(11), 2436-2444.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>8. Baker, W.L.; Honaker, J.J.; Weisberg, P.J. Using aerial photography and GIS to map the foresttundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing 1995, 61(3), 313-320.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>9. Stow, D.; Coulter, L.; Baer, S. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing 2003, 24(19), 3873-3879.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>10. Leica Geosystems. ADS40_2ndGeneration_datasheet[1].pdf 2007. Available for download from http://www.leica-geosystems.com/corporate/en/ndef/lgs_57627.htm.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>11. ASPRS. Manual of photogrammetry, fifth edition 2004. American Society for Photogrammetry and Remote Sensing, Bethesda, Maryland, USA.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>12. Tang, L.; Dörstel, C.; Jacobsen, K.; Heipke, C.; Hinz, A. Geometric accuracy potential of the digital modular camera. In: IAPRS Proceedings, Vol. XXXIII, 2000, Amsterdam.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>13. Gruber, M.; Meixner, H. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. International Symposium on Modern Technologies, Education and Professional Practice in Geodesy and Related Fields, 04 - 05 November 2004, Sofia.</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>14. Heier, H.; Dörstel, C.; Hinz, A. The new digital modular camera embedded into the Z/I Imaging workflow. In Proceedings of the ASPRS 2001 Conference: From Imagery to Geodata, 26 April 2001, St. Louis, Missouri, USA.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>15. Witztum, E.; Stow, D. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing 2004, 25(17), 3477-3496.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>16. Townshend, J.R.G.; Justice, C.O.; Gurney, C.; McManus, J. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing 1992, 30(5), 1054-1060.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Petrie, G.. Airborne digital frame cameras: the technology is really improving!. Geoinformatics. 2003; 6: 18-27</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>Williams, K.. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine. 2004</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>Chavez, P.S., MacKinnon, D.J.. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing. 1994; 60 (5): 571-583</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>Sachs, D.L., Sollins, P., Cohen, W.B.. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research. 1998; 28 (1): 23-36</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>Jensen, J.R.. Urban change detection mapping using Landsat digital data. The American Cartographer. 1981; 8: 127-147</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>Gong, P., LeDrew, E.F., Miller, J.R.. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing. 1992; 13 (4): 773-779</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>Coulter, L., Stow, D., Baer, S.. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing. 2003; 41 (11): 2436-2444</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>Baker, W.L., Honaker, J.J., Weisberg, P.J.. Using aerial photography and GIS to map the forest- tundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing. 1995; 61 (3): 313-320</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>Stow, D., Coulter, L., Baer, S.. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing. 2003; 24 (19): 3873-3879</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>ADS40_2ndGeneration_datasheet[1].pdf. 2007</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>Manual of photogrammetry, fifth edition. 2004</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>Tang, L., Dörstel, C., Jacobsen, K., Heipke, C., Hinz, A.. Geometric accuracy potential of the digital modular camera. 2000</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>Gruber, M., Meixner, H.. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. </rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>Heier, H., Dörstel, C., Hinz, A.. The new digital modular camera embedded into the Z/I Imaging workflow. </rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>Witztum, E., Stow, D.. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing. 2004; 25 (17): 3477-3496</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>Townshend, J.R.G., Justice, C.O., Gurney, C., McManus, J.. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing. 1992; 30 (5): 1054-1060</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>1. Petrie, G. Airborne digital frame cameras: the technology is really improving! Geoinformatics 2003, 6, 18-27.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>2. Williams, K. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine, Dec. 2004. URL: http://www.eomonline.com/Common /Archives/2004Dec/04dec_AgriculturalImagery.html.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>3. Chavez, P.S.; MacKinnon, D.J. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing 1994, 60(5), 571-583.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>4. Sachs, D.L.; Sollins, P.; Cohen, W.B. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research 1998, 28(1), 23-36.</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>5. Jensen, J.R. Urban change detection mapping using Landsat digital data. The American Cartographer 1981, 8, 127-147.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>6. Gong, P.; LeDrew, E.F.; Miller, J.R. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing 1992, 13(4), 773-779.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>7. Coulter, L.; Stow, D.; Baer, S. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing 2003, 41(11), 2436-2444.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>8. Baker, W.L.; Honaker, J.J.; Weisberg, P.J. Using aerial photography and GIS to map the foresttundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing 1995, 61(3), 313-320.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>9. Stow, D.; Coulter, L.; Baer, S. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing 2003, 24(19), 3873-3879.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>10. Leica Geosystems. ADS40_2ndGeneration_datasheet[1].pdf 2007. Available for download from http://www.leica-geosystems.com/corporate/en/ndef/lgs_57627.htm.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>11. ASPRS. Manual of photogrammetry, fifth edition 2004. American Society for Photogrammetry and Remote Sensing, Bethesda, Maryland, USA.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>12. Tang, L.; Dörstel, C.; Jacobsen, K.; Heipke, C.; Hinz, A. Geometric accuracy potential of the digital modular camera. In: IAPRS Proceedings, Vol. XXXIII, 2000, Amsterdam.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>13. Gruber, M.; Meixner, H. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. International Symposium on Modern Technologies, Education and Professional Practice in Geodesy and Related Fields, 04 - 05 November 2004, Sofia.</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>14. Heier, H.; Dörstel, C.; Hinz, A. The new digital modular camera embedded into the Z/I Imaging workflow. In Proceedings of the ASPRS 2001 Conference: From Imagery to Geodata, 26 April 2001, St. Louis, Missouri, USA.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>15. Witztum, E.; Stow, D. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing 2004, 25(17), 3477-3496.</rawText>
+                        <id value="doi_________::758f050d8b3d0ad63139e6ec75a53b48" type="openaire"
+                            trustLevel="0.6403745"/>
+                     </reference>
+                     <reference position="16">
+                        <rawText>16. Townshend, J.R.G.; Justice, C.O.; Gurney, C.; McManus, J. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing 1992, 30(5), 1054-1060.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>1. Petrie, G. Airborne digital frame cameras: the technology is really improving! Geoinformatics 2003, 6, 18-27.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>2. Williams, K. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine, Dec. 2004. URL: http://www.eomonline.com/Common /Archives/2004Dec/04dec_AgriculturalImagery.html.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>3. Chavez, P.S.; MacKinnon, D.J. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing 1994, 60(5), 571-583.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>4. Sachs, D.L.; Sollins, P.; Cohen, W.B. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research 1998, 28(1), 23-36.</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>5. Jensen, J.R. Urban change detection mapping using Landsat digital data. The American Cartographer 1981, 8, 127-147.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>6. Gong, P.; LeDrew, E.F.; Miller, J.R. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing 1992, 13(4), 773-779.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>7. Coulter, L.; Stow, D.; Baer, S. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing 2003, 41(11), 2436-2444.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>8. Baker, W.L.; Honaker, J.J.; Weisberg, P.J. Using aerial photography and GIS to map the foresttundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing 1995, 61(3), 313-320.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>9. Stow, D.; Coulter, L.; Baer, S. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing 2003, 24(19), 3873-3879.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>10. Leica Geosystems. ADS40_2ndGeneration_datasheet[1].pdf 2007. Available for download from http://www.leica-geosystems.com/corporate/en/ndef/lgs_57627.htm.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>11. ASPRS. Manual of photogrammetry, fifth edition 2004. American Society for Photogrammetry and Remote Sensing, Bethesda, Maryland, USA.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>12. Tang, L.; Dörstel, C.; Jacobsen, K.; Heipke, C.; Hinz, A. Geometric accuracy potential of the digital modular camera. In: IAPRS Proceedings, Vol. XXXIII, 2000, Amsterdam.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>13. Gruber, M.; Meixner, H. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. International Symposium on Modern Technologies, Education and Professional Practice in Geodesy and Related Fields, 04 - 05 November 2004, Sofia.</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>14. Heier, H.; Dörstel, C.; Hinz, A. The new digital modular camera embedded into the Z/I Imaging workflow. In Proceedings of the ASPRS 2001 Conference: From Imagery to Geodata, 26 April 2001, St. Louis, Missouri, USA.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>15. Witztum, E.; Stow, D. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing 2004, 25(17), 3477-3496.</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>16. Townshend, J.R.G.; Justice, C.O.; Gurney, C.; McManus, J. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing 1992, 30(5), 1054-1060.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>Petrie, G.. Airborne digital frame cameras: the technology is really improving!. Geoinformatics. 2003; 6: 18-27</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>Williams, K.. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine. 2004</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>Chavez, P.S., MacKinnon, D.J.. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing. 1994; 60 (5): 571-583</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>Sachs, D.L., Sollins, P., Cohen, W.B.. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research. 1998; 28 (1): 23-36</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>Jensen, J.R.. Urban change detection mapping using Landsat digital data. The American Cartographer. 1981; 8: 127-147</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>Gong, P., LeDrew, E.F., Miller, J.R.. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing. 1992; 13 (4): 773-779</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>Coulter, L., Stow, D., Baer, S.. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing. 2003; 41 (11): 2436-2444</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>Baker, W.L., Honaker, J.J., Weisberg, P.J.. Using aerial photography and GIS to map the forest- tundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing. 1995; 61 (3): 313-320</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>Stow, D., Coulter, L., Baer, S.. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing. 2003; 24 (19): 3873-3879</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>ADS40_2ndGeneration_datasheet[1].pdf. 2007</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>Manual of photogrammetry, fifth edition. 2004</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>Tang, L., Dörstel, C., Jacobsen, K., Heipke, C., Hinz, A.. Geometric accuracy potential of the digital modular camera. 2000</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>Gruber, M., Meixner, H.. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. </rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>Heier, H., Dörstel, C., Hinz, A.. The new digital modular camera embedded into the Z/I Imaging workflow. </rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>Witztum, E., Stow, D.. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing. 2004; 25 (17): 3477-3496</rawText>
+                     </reference>
+                     <reference position="16">
+                        <rawText>Townshend, J.R.G., Justice, C.O., Gurney, C., McManus, J.. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing. 1992; 30 (5): 1054-1060</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+               <extraInfo name="result reference list" typology="reference list"
+                          provenance="iis::document_referencedDocuments"
+                          trust="0.9">
+                  <references>
+                     <reference position="1">
+                        <rawText>1. Petrie, G. Airborne digital frame cameras: the technology is really improving! Geoinformatics 2003, 6, 18-27.</rawText>
+                     </reference>
+                     <reference position="2">
+                        <rawText>2. Williams, K. Imagery to Support USDA Agricultural Programs: The National Agricultural Imagery. Earth Observation Magazine, Dec. 2004. URL: http://www.eomonline.com/Common /Archives/2004Dec/04dec_AgriculturalImagery.html.</rawText>
+                     </reference>
+                     <reference position="3">
+                        <rawText>3. Chavez, P.S.; MacKinnon, D.J. Automatic detection of vegetation changes in the Southwestern United States using remotely sensed images. Photogrammetric Engineering and Remote Sensing 1994, 60(5), 571-583.</rawText>
+                     </reference>
+                     <reference position="4">
+                        <rawText>4. Sachs, D.L.; Sollins, P.; Cohen, W.B. Detecting landscape changes in the interior of British Columbia from 1975 to 1992 using satellite images. Canadian Journal of Forest Research 1998, 28(1), 23-36.</rawText>
+                     </reference>
+                     <reference position="5">
+                        <rawText>5. Jensen, J.R. Urban change detection mapping using Landsat digital data. The American Cartographer 1981, 8, 127-147.</rawText>
+                     </reference>
+                     <reference position="6">
+                        <rawText>6. Gong, P.; LeDrew, E.F.; Miller, J.R. Registration-noise reduction in difference images for change detection. International Journal of Remote Sensing 1992, 13(4), 773-779.</rawText>
+                     </reference>
+                     <reference position="7">
+                        <rawText>7. Coulter, L.; Stow, D.; Baer, S. A frame center matching technique for precise registration of multitemporal airborne frame imagery. IEEE Transactions on Geoscience and Remote Sensing 2003, 41(11), 2436-2444.</rawText>
+                     </reference>
+                     <reference position="8">
+                        <rawText>8. Baker, W.L.; Honaker, J.J.; Weisberg, P.J. Using aerial photography and GIS to map the foresttundra ecotone in Rocky Mountain National Park, Colorado, for global change research. Photogrammetric Engineering and Remote Sensing 1995, 61(3), 313-320.</rawText>
+                     </reference>
+                     <reference position="9">
+                        <rawText>9. Stow, D.; Coulter, L.; Baer, S. A frame centre matching approach to registration for change detection with fine spatial resolution multi-temporal imagery. International Journal of Remote Sensing 2003, 24(19), 3873-3879.</rawText>
+                     </reference>
+                     <reference position="10">
+                        <rawText>10. Leica Geosystems. ADS40_2ndGeneration_datasheet[1].pdf 2007. Available for download from http://www.leica-geosystems.com/corporate/en/ndef/lgs_57627.htm.</rawText>
+                     </reference>
+                     <reference position="11">
+                        <rawText>11. ASPRS. Manual of photogrammetry, fifth edition 2004. American Society for Photogrammetry and Remote Sensing, Bethesda, Maryland, USA.</rawText>
+                     </reference>
+                     <reference position="12">
+                        <rawText>12. Tang, L.; Dörstel, C.; Jacobsen, K.; Heipke, C.; Hinz, A. Geometric accuracy potential of the digital modular camera. In: IAPRS Proceedings, Vol. XXXIII, 2000, Amsterdam.</rawText>
+                     </reference>
+                     <reference position="13">
+                        <rawText>13. Gruber, M.; Meixner, H. Practical Experiences with the Large Format Digital Aerial Camera UltraCamD. International Symposium on Modern Technologies, Education and Professional Practice in Geodesy and Related Fields, 04 - 05 November 2004, Sofia.</rawText>
+                     </reference>
+                     <reference position="14">
+                        <rawText>14. Heier, H.; Dörstel, C.; Hinz, A. The new digital modular camera embedded into the Z/I Imaging workflow. In Proceedings of the ASPRS 2001 Conference: From Imagery to Geodata, 26 April 2001, St. Louis, Missouri, USA.</rawText>
+                     </reference>
+                     <reference position="15">
+                        <rawText>15. Witztum, E.; Stow, D. Analysing direct impacts of recreation activity on coastal sage scrub habitat with very high resolution multi-spectral imagery. International Journal of Remote Sensing 2004, 25(17), 3477-3496.</rawText>
+                        <id value="doi_________::758f050d8b3d0ad63139e6ec75a53b48" type="openaire"
+                            trustLevel="0.6403745"/>
+                     </reference>
+                     <reference position="16">
+                        <rawText>16. Townshend, J.R.G.; Justice, C.O.; Gurney, C.; McManus, J. The impact of misregistration on change detection. IEEE Transactions on Geoscience and Remote Sensing 1992, 30(5), 1054-1060.</rawText>
+                     </reference>
+                  </references>
+               </extraInfo> 
+            </oaf:entity>
+         </metadata>
+      </result>
+						</results>
+	  <browseResults>
+								</browseResults>
+</response>

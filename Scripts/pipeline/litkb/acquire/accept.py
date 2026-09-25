@@ -23,6 +23,15 @@ THE ORDER, and where each rule comes from (Reports/LITKB_PDF_SOURCES_SURVEY_2026
 is VERIFIED-in-source there and NONE is calibrated on litkb's rows — a RELAYED design, UNVALIDATED until an
 independent referee scores it, CLAUDE.md §3.4c):
 
+  0  transport  a body the response declares HTTP-content-coded (`Content-Encoding: gzip`, RFC 9110 §8.4) is
+              decoded FIRST: that coding is the transport's, not a wrapper the server put round a file, and
+              `netutil.Client` does not undo it (urllib never does). Builder-FX-V (S4.5 fix wave; referee-vocabulary
+              class F): 7 Wayback `id_` captures of article HTML pages kept their origin's gzip coding
+              (`Content-Encoding: gzip` on the replayed response) and step 1 refused them
+              `compressed_or_archived_payload` — C18's word for a PDF inside a wrapper — while the other 11 Wayback
+              HTML captures were `html_response`. Decoded, they are the HTML pages they are. Only gzip (and its
+              `x-gzip` alias) is decoded — the one coding MEASURED on the run; the inflation cap is step 1's. A body
+              that does not decode, or a header with no gzip magic behind it, is left to step 1 as it came.
   1  unwrap   gzip / tar (and a tar inside gzip) — C18. The plan lists decompression after the MIME check, but a
               wrapped PDF fails every header step before it, and C18 itself says "BEFORE the %PDF- check": the
               sniff that recognises the wrapper is what decides to unwrap, so unwrapping comes first. A wrapper
@@ -281,6 +290,29 @@ def mime_of(data):
     except ImportError:
         return _FALLBACK_MIME[sniff(data)], "fallback-sniff"
     return magic.from_buffer((data or b"")[:1 << 20], mime=True), "libmagic"
+
+
+#: The HTTP content-codings step 0 decodes (RFC 9110 §8.4.1.3: `x-gzip` is gzip's alias). Only gzip: the one coding
+#: MEASURED on the ladder-1 run (builder-FX-V: 7 Wayback captures served `Content-Encoding: gzip`).
+TRANSPORT_GZIP = ("gzip", "x-gzip")
+
+
+def decode_transport(data, headers):
+    """Step 0: (bytes, coding) — `data` with its declared HTTP content-coding undone, and the coding's name; or (data,
+    None) when no gzip coding is declared, the bytes carry no gzip magic, or they do not decode within
+    UNWRAP_MAX_BYTES (step 1 then judges them as they came)."""
+    data = data or b""
+    coding = (_header(headers, "content-encoding") or "").strip().lower()
+    if coding not in TRANSPORT_GZIP or data[:2] != b"\x1f\x8b":
+        return data, None
+    d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    try:
+        inner = d.decompress(data, UNWRAP_MAX_BYTES + 1)
+    except zlib.error:
+        return data, None
+    if len(inner) > UNWRAP_MAX_BYTES:
+        return data, None
+    return inner, coding
 
 
 def unwrap(data):
@@ -638,6 +670,14 @@ def accept(data, *, headers=None, url=None, terminal_url=None, doi=None, record_
     data = data or b""
     v.facts.update(served_bytes=len(data), served_sha256=hashlib.sha256(data).hexdigest(),
                    evidence=evidence_of(headers, url, terminal_url))
+    # 0 transport (builder-FX-V): an HTTP content-coding is the transport's, undone before any byte rule reads the body
+    coding = None
+    # BEGIN guard: a body under a declared HTTP content-coding is decoded before it is typed
+    data, coding = decode_transport(data, headers)
+    # END guard: a body under a declared HTTP content-coding is decoded before it is typed
+    if coding:
+        v.facts["content_encoding"] = coding
+        v.step("transport", f"decoded {coding} ({len(data)} bytes)")
     # 1 unwrap (C18)
     if sniff(data) in ARCHIVE_KINDS:
         inner, how = unwrap(data)

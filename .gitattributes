@@ -89,3 +89,8 @@ Scripts/qc/fixtures/litkb_landing_pages/**  binary
 # page 7 of its ListRecords feed, pinned by sha256 in qc/test_litkb_s45_prerun.py. Same reason as the .html rule above:
 # `* text=auto` would newline-convert it on checkout, and a fixture that hashes two ways is not a record.
 Scripts/qc/fixtures/litkb_eartharxiv_oai_*.xml  binary
+
+# ── Recorded rows of the live run (litkb S4.5 fix wave, builder-FX-C, Stage C) ──
+# Added 2026-09-24 with qc/fixtures/litkb_fxc_rows/: the ladder-1 recording's bytes for the real rows referee-stage-c
+# named (recording.json + hopN.body, each body pinned by the sha256 of its BYTES). Same reason as the landing pages.
+Scripts/qc/fixtures/litkb_fxc_rows/**  binary

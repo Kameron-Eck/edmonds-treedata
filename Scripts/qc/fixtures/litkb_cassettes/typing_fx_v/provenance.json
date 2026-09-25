@@ -1,0 +1,1712 @@
+{
+ "what": "REAL recorded answers of the ladder-1 live run (manifest hardening-1, 2026-09-24): every response the REAL rung of each named attempt consumed when replayed from its own recorded take, for the referee-vocabulary / referee-stage-c REJECT rows builder-FX-V re-types. Not constructed. No request was made to build it: copied from the run's cassette index and body store.",
+ "source_index": "_derived/hardening/cassettes/ladder-1/index.jsonl",
+ "source_index_sha256": "4566ea2892447398ea3f96e441cb20eebe6ec5592d03973e7b6a65511a17074e",
+ "source_bodies": "the live run's body store (litkb_derived/cassette_bodies, outside the repo)",
+ "manifest_sha256": "3c918f64f16fb41974df24f710f6bbd22e91acd9569112109a840bdbbb3ddc5a",
+ "rows": "each case is its own cassette ROW (`row` = the case tag): two attempts of one work replay apart. `take` and `seq` are the recorded ones.",
+ "scrub": "the client's public address, inferred as qc/instruments/litkb_landing_record.py infers it (a public IPv4 echoed by two or more hosts) and masked by its `scrub_ips` (<CLIENT-IP> / <PAGE-IP> / <CLIENT-IP-B64>) in every body and header: 18 entries changed (their fixture sha differs from the recorded one; both are named). A gzip-coded capture is masked inside its DECODED page and re-gzipped: 2 capture(s), ladder-1 entries [789, 859] (IOP's captured page: a Radware token naming the archive crawler's address in base64; Cambridge's: four other visitors' addresses under its page state's `remoteAddress` keys, the rule auditor-C2b F9 added).",
+ "undetermined": "class U (L092) is pinned as recorded and never graded: the plan's word for a bare 403 is open",
+ "cases": [
+  {
+   "case": "fxv-01a0d284-f605",
+   "attempt": "01a0d284-f605-7cb7-91af-a03fbda3ebb9",
+   "run_row": "L065",
+   "mode": "hunt",
+   "work_key": "Li_2022_identification-undocumented-buildings-cadastral",
+   "doi": "10.1016/j.jag.2022.102909",
+   "route": "openalex",
+   "class": "B",
+   "what": "ScienceDirect's 832 KB Cloudflare block page at 403, its CLOUDFLARE_ERROR box at byte ~773 K",
+   "recorded": [
+    "blocked",
+    "identity_required"
+   ],
+   "recorded_at": "2026-09-24 01:25:24.229636-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class B (D24: one detector; landing typed the same page a challenge on 37 rows)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 34,
+     "key_sha256": "5257edc92e92ff89bab6e41e91d77b857555a18cb377f7930bdf6ab8f5b4d32c",
+     "take": "d2921c9345e0",
+     "seq": 0,
+     "url": "https://api.openalex.org/works/doi:10.1016/j.jag.2022.102909?mailto=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "71a39f458ed167100ea70981912a51c5984c9184085798aa539fd1035808e1a3",
+     "fixture_body_sha256": "71a39f458ed167100ea70981912a51c5984c9184085798aa539fd1035808e1a3",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 41,
+     "key_sha256": "c8bd4ba2814a6b84c842ac8971520d69dcff95a99cba2eb23b84163ed739f925",
+     "take": "d2921c9345e0",
+     "seq": 1,
+     "url": "https://www.sciencedirect.com/science/article/pii/S156984322200111X/pdf",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 403,
+     "recorded_body_sha256": "c53b00b4b60483ff351203c2a4558554835fa0083260cecfb9c2091e4a323cae",
+     "fixture_body_sha256": "cf0f5a2166d07d025509a52c8b969ffbff212e5938aba8cf86202e57a3333677",
+     "masked_client_address": true
+    }
+   ],
+   "swapped": [
+    [
+     40,
+     41
+    ]
+   ]
+  },
+  {
+   "case": "fxv-01a0d284-f70c",
+   "attempt": "01a0d284-f70c-740c-b7a0-f2eac1d526cb",
+   "run_row": "L065",
+   "mode": "hunt",
+   "work_key": "Li_2022_identification-undocumented-buildings-cadastral",
+   "doi": "10.1016/j.jag.2022.102909",
+   "route": "doaj",
+   "class": "B",
+   "what": "ScienceDirect's 832 KB Cloudflare block page at 403, its CLOUDFLARE_ERROR box at byte ~773 K",
+   "recorded": [
+    "blocked",
+    "identity_required"
+   ],
+   "recorded_at": "2026-09-24 01:25:24.492032-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class B (D24: one detector; landing typed the same page a challenge on 37 rows)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 32,
+     "key_sha256": "60722ebe7f49bbdf62cf8fb58d8e8c1a9587155d5b8c7524065fb1e7c399d376",
+     "take": "d2921c9345e0",
+     "seq": 0,
+     "url": "https://doaj.org/api/search/articles/doi:10.1016/j.jag.2022.102909",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "d101972df4a43faa150dcb943498e1ea284281a702a881019e0c92b3d7f59ed9",
+     "fixture_body_sha256": "d101972df4a43faa150dcb943498e1ea284281a702a881019e0c92b3d7f59ed9",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 35,
+     "key_sha256": "3a43011f605ea6124be88ec42234c972a5f668f430e3ab71860df95f644bc00b",
+     "take": "d2921c9345e0",
+     "seq": 0,
+     "url": "http://www.sciencedirect.com/science/article/pii/S156984322200111X",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 403,
+     "recorded_body_sha256": "a70304963449e75c7cc8626652dea3c807cec87d7f6d65892c35baa7f1c79b93",
+     "fixture_body_sha256": "486f35d415419f5ce64482aa67fa675d90e569f020fa9ff5e2371e30934893cd",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d293-8334",
+   "attempt": "01a0d293-8334-7e31-9464-b2d6410df80e",
+   "run_row": "L007",
+   "mode": "hunt",
+   "work_key": "LPVSubgroup_2025_land-cover-change-accuracy-protocol",
+   "doi": "10.5067/doc/ceoswgcv/lpv/lc.001",
+   "route": "landing",
+   "class": "C",
+   "what": "an ordinary 200 HTML page with no citation metadata (C6-RG's marker-free rule typed it a challenge)",
+   "recorded": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "recorded_at": "2026-09-24 01:41:17.876698-07",
+   "expected": [
+    "not-in-archive",
+    "no_pdf_link"
+   ],
+   "expected_source": "referee-vocabulary class C + referee-stage-c (C6-RG CONTRADICTED; its oracle: a page read with no citation_pdf_url / rel=alternate PDF is no_pdf_link; open question 1: 'type such pages html_or_reader/no_pdf_link')",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 252,
+     "key_sha256": "8f6dc9145e46489e1b7e31042eacee3fb9a4dab23306c31ba3a094aa506c2892",
+     "take": "053bab537c4e",
+     "seq": 0,
+     "url": "https://doi.org/10.5067/doc/ceoswgcv/lpv/lc.001",
+     "accept": "text/html",
+     "status": 302,
+     "recorded_body_sha256": "3ce590a2a427df0884fdbb47249fdc9577ebe71338b5c622e895b2a8a1104f08",
+     "fixture_body_sha256": "3ce590a2a427df0884fdbb47249fdc9577ebe71338b5c622e895b2a8a1104f08",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 253,
+     "key_sha256": "a272f78bcf77425d337a00bd8ed4bec10515962e77eeb1f04de1695298d89b32",
+     "take": "053bab537c4e",
+     "seq": 0,
+     "url": "http://lpvs.gsfc.nasa.gov/documents.html",
+     "accept": "text/html",
+     "status": 301,
+     "recorded_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "fixture_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 254,
+     "key_sha256": "f9faf8bb63aff6f2de6e3c9b7b5c9a8be928bc27d59975495f6dafb9fdc301fb",
+     "take": "053bab537c4e",
+     "seq": 0,
+     "url": "https://lpvs.gsfc.nasa.gov/documents.html",
+     "accept": "text/html",
+     "status": 200,
+     "recorded_body_sha256": "f0bc3bf6473c5c1086a9a4bb0c1b5e59473ba5dee45c0f63d844bb3b18a41f99",
+     "fixture_body_sha256": "f0bc3bf6473c5c1086a9a4bb0c1b5e59473ba5dee45c0f63d844bb3b18a41f99",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d2a1-64a4",
+   "attempt": "01a0d2a1-64a4-75ed-bf5d-deef0281019f",
+   "run_row": "L019",
+   "mode": "measure",
+   "work_key": "Girard_2019_noisy-supervision-correcting-misaligned",
+   "doi": "10.1109/igarss.2019.8898071",
+   "route": "hal",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 01:56:27.556263-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 307,
+     "key_sha256": "65fc624ac083b3b25dd34f5972ae9aa77ac7360ecad342fe4217ff1a1827ef45",
+     "take": "1e759179662c",
+     "seq": 0,
+     "url": "https://api.archives-ouvertes.fr/search/?q=doiId_s:%2210.1109/igarss.2019.8898071%22&fl=halId_s,fileMain_s,linkExtUrl_s,doiId_s&wt=json",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "ba0bb8cf18b55008af12ecd6bad60ef15ca99c747231d51791cde1146f310345",
+     "fixture_body_sha256": "ba0bb8cf18b55008af12ecd6bad60ef15ca99c747231d51791cde1146f310345",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 310,
+     "key_sha256": "d7eb8e0d81776a09a4f5a26f1766632a56ffc733f91bf466ad5788f55ef7f803",
+     "take": "1e759179662c",
+     "seq": 0,
+     "url": "https://inria.hal.science/hal-02065211/document",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "6fc56fe4108297098b3dd4d6b9ee0a1e16f7ab345e328511ac40589bd5e1ebca",
+     "fixture_body_sha256": "1a1cec5fedff4df3af8f0ba7a2b74bdc62e31b8649e9accca934ded79204a07d",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d2eb-4068",
+   "attempt": "01a0d2eb-4068-7237-864e-6df1036cdc06",
+   "run_row": "L019",
+   "mode": "measure",
+   "work_key": "Girard_2019_noisy-supervision-correcting-misaligned",
+   "doi": "10.1109/igarss.2019.8898071",
+   "route": "hal",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 03:17:07.944016-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 344,
+     "key_sha256": "65fc624ac083b3b25dd34f5972ae9aa77ac7360ecad342fe4217ff1a1827ef45",
+     "take": "9237b725f1a2",
+     "seq": 0,
+     "url": "https://api.archives-ouvertes.fr/search/?q=doiId_s:%2210.1109/igarss.2019.8898071%22&fl=halId_s,fileMain_s,linkExtUrl_s,doiId_s&wt=json",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "1e5eaad2d6809e0a76066e32d5eb020b226490b1cd202ca03543a4a873e08e49",
+     "fixture_body_sha256": "1e5eaad2d6809e0a76066e32d5eb020b226490b1cd202ca03543a4a873e08e49",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 347,
+     "key_sha256": "d7eb8e0d81776a09a4f5a26f1766632a56ffc733f91bf466ad5788f55ef7f803",
+     "take": "9237b725f1a2",
+     "seq": 0,
+     "url": "https://inria.hal.science/hal-02065211/document",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "a5b841dcd443f54004a69bce4d57ecab3dd01cf28edd3427f9fa704b1fcaed71",
+     "fixture_body_sha256": "15303c001365ede36e15f3e5bca4c89866589a88d368b2c560998a85974e6ca3",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d301-47d3",
+   "attempt": "01a0d301-47d3-7e25-8880-44249c68f454",
+   "run_row": "L037",
+   "mode": "hunt",
+   "work_key": "Enamorado_2019_probabilistic-model-assist-merging",
+   "doi": "10.1017/s0003055418000783",
+   "route": "wayback",
+   "class": "F",
+   "what": "a Wayback id_ capture of an article's HTML page served with `Content-Encoding: gzip`",
+   "recorded": [
+    "bad-file",
+    "compressed_or_archived_payload"
+   ],
+   "recorded_at": "2026-09-24 03:41:11.635675-07",
+   "expected": [
+    "bad-file",
+    "html_response"
+   ],
+   "expected_source": "referee-vocabulary class F (decoded, each is an HTML page; the other 11 Wayback HTML captures are html_response)",
+   "replayed": "the capture only (the Wayback rung needs the run's dead-URL input; the ladder types the recorded capture)",
+   "entries": [
+    {
+     "ladder1_entry": 789,
+     "key_sha256": "eefc625f2efcd078d5ae7f850c82ab6b5ebb29f4af971b2d65358911f2a352c8",
+     "take": "0cf4abd8f43b",
+     "seq": 0,
+     "url": "https://web.archive.org/web/20260507234520id_/https://www.cambridge.org/core/journals/american-political-science-review/article/abs/using-a-probabilistic-model-to-assist-merging-of-largescale-administrative-records/DB2955F64A1F4E262C5B9B26C6D7552E",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "e2db9822b726498b67a110b082713a3e6729a0adaecd2c24fd881c5d26cfd5eb",
+     "fixture_body_sha256": "23dba06513d0a3c2826ad7c34b8accbe09037d57465fb1daf8c967618973e8db",
+     "masked_client_address": true,
+     "regzipped": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d308-6c4d",
+   "attempt": "01a0d308-6c4d-7d8d-ab55-3a0a836de035",
+   "run_row": "L040",
+   "mode": "hunt",
+   "work_key": "Strong_2003_edge-preserving-scale-dependent",
+   "doi": "10.1088/0266-5611/19/6/059",
+   "route": "wayback",
+   "class": "F",
+   "what": "a Wayback id_ capture of an article's HTML page served with `Content-Encoding: gzip`",
+   "recorded": [
+    "bad-file",
+    "compressed_or_archived_payload"
+   ],
+   "recorded_at": "2026-09-24 03:48:59.725657-07",
+   "expected": [
+    "bad-file",
+    "html_response"
+   ],
+   "expected_source": "referee-vocabulary class F (decoded, each is an HTML page; the other 11 Wayback HTML captures are html_response)",
+   "replayed": "the capture only (the Wayback rung needs the run's dead-URL input; the ladder types the recorded capture)",
+   "entries": [
+    {
+     "ladder1_entry": 859,
+     "key_sha256": "c6d895ed9db46df61ee76994bc41c71a3b50d8f6351b61045327e889822f77b2",
+     "take": "7e396b20d825",
+     "seq": 0,
+     "url": "https://web.archive.org/web/20260623175854id_/https://iopscience.iop.org/article/10.1088/0266-5611/19/6/059/pdf",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "a5df33a749c5f61c9c25bb68cecaab7242b5cf659d119b2eaf03c6e1ca873b88",
+     "fixture_body_sha256": "36308810b573d5218129639e73b6adf01378c05fa6f2cffa79e10de8d7586ba8",
+     "masked_client_address": true,
+     "regzipped": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d30f-889d",
+   "attempt": "01a0d30f-889d-7fa8-8c17-71a04e1f7ba8",
+   "run_row": "L044",
+   "mode": "measure",
+   "work_key": "Chernozhukov_2018_double-debiased-machine-learning",
+   "doi": "10.1111/ectj.12097",
+   "route": "wayback",
+   "class": "F",
+   "what": "a Wayback id_ capture of an article's HTML page served with `Content-Encoding: gzip`",
+   "recorded": [
+    "bad-file",
+    "compressed_or_archived_payload"
+   ],
+   "recorded_at": "2026-09-24 03:56:45.725831-07",
+   "expected": [
+    "bad-file",
+    "html_response"
+   ],
+   "expected_source": "referee-vocabulary class F (decoded, each is an HTML page; the other 11 Wayback HTML captures are html_response)",
+   "replayed": "the capture only (the Wayback rung needs the run's dead-URL input; the ladder types the recorded capture)",
+   "entries": [
+    {
+     "ladder1_entry": 972,
+     "key_sha256": "8cf81d2c263fd0837f6c09eb89c5fa00f34a764334cc12ed6fb4fffeebb0637c",
+     "take": "81b2c973e0cf",
+     "seq": 0,
+     "url": "https://web.archive.org/web/20260909083339id_/https://academic.oup.com/ectj/article/21/1/C1/5056401",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "b77952e2948d361015cec2cf261c562874e528ed7795db64ddc908595bc8a192",
+     "fixture_body_sha256": "b77952e2948d361015cec2cf261c562874e528ed7795db64ddc908595bc8a192",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d314-4ba3",
+   "attempt": "01a0d314-4ba3-7637-a4fc-8a8bb1f53c51",
+   "run_row": "L045",
+   "mode": "measure",
+   "work_key": "Marsan_2008_extending-earthquakes-reach-through",
+   "doi": "10.1126/science.1148783",
+   "route": "wayback",
+   "class": "F",
+   "what": "a Wayback id_ capture of an article's HTML page served with `Content-Encoding: gzip`",
+   "recorded": [
+    "bad-file",
+    "compressed_or_archived_payload"
+   ],
+   "recorded_at": "2026-09-24 04:01:57.791586-07",
+   "expected": [
+    "bad-file",
+    "html_response"
+   ],
+   "expected_source": "referee-vocabulary class F (decoded, each is an HTML page; the other 11 Wayback HTML captures are html_response)",
+   "replayed": "the capture only (the Wayback rung needs the run's dead-URL input; the ladder types the recorded capture)",
+   "entries": [
+    {
+     "ladder1_entry": 998,
+     "key_sha256": "17f97c4b28d16e2365d56dc9689309904a3145688fb50746f032a405338e4267",
+     "take": "3d88bc850c40",
+     "seq": 0,
+     "url": "https://web.archive.org/web/20250629153615id_/https://www.science.org/doi/10.1126/science.1148783",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "a35b4ecace034ba397b47a0149ae3aa35bbf6c451d2677df071d890f137c1fb4",
+     "fixture_body_sha256": "a35b4ecace034ba397b47a0149ae3aa35bbf6c451d2677df071d890f137c1fb4",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d449-3c9c",
+   "attempt": "01a0d449-3c9c-701d-8a73-69bd1b091b0b",
+   "run_row": "L052",
+   "mode": "hunt",
+   "work_key": "Ventura_2024_individual-tree-detection-large",
+   "doi": "10.1016/j.jag.2024.103848",
+   "route": "doaj",
+   "class": "B",
+   "what": "ScienceDirect's 832 KB Cloudflare block page at 403, its CLOUDFLARE_ERROR box at byte ~773 K",
+   "recorded": [
+    "blocked",
+    "identity_required"
+   ],
+   "recorded_at": "2026-09-24 09:39:24.571788-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class B (D24: one detector; landing typed the same page a challenge on 37 rows)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1127,
+     "key_sha256": "aed95969c39d3317110d9620a6802a476fbaba975fb6e1773618879022146962",
+     "take": "b4b512df3df6",
+     "seq": 0,
+     "url": "https://doaj.org/api/search/articles/doi:10.1016/j.jag.2024.103848",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "ba41e377adc5793ce2fddeb0267b8089d19a042173ba9fcca84a3257a1baf86a",
+     "fixture_body_sha256": "ba41e377adc5793ce2fddeb0267b8089d19a042173ba9fcca84a3257a1baf86a",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1130,
+     "key_sha256": "d21fcae460620afcc1314527c795f01a912eb20721a97017e6e48556d6076110",
+     "take": "b4b512df3df6",
+     "seq": 0,
+     "url": "http://www.sciencedirect.com/science/article/pii/S1569843224002024",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 403,
+     "recorded_body_sha256": "8405105f52ad6769bf4a2f01455506f93abcfefd5c5d4dbcd2c98077cdc3cc3a",
+     "fixture_body_sha256": "d2514dcecb3d245b2f5208e0bc79734380a311ff56c2b6f5609b43fcb187f0e9",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d44b-089e",
+   "attempt": "01a0d44b-089e-749e-8a02-3bf3b864f3b6",
+   "run_row": "L054",
+   "mode": "measure",
+   "work_key": "Olofsson_2020_mitigating-effects-omission-errors",
+   "doi": "10.1016/j.rse.2019.111492",
+   "route": "open_access",
+   "class": "A4",
+   "what": "a reCAPTCHA gate at HTTP 404 ('Verificación de seguridad') plus ScienceDirect's 403 block pages",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 09:41:22.333791-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A4",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1169,
+     "key_sha256": "f9b026b904102d6d4751790ea954f0fbfcd5c28bfbb35373bc0ea66de348e01d",
+     "take": "b9c09ed61e04",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1016/j.rse.2019.111492?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "9c6df86d67256dd648014c532d5ff4256c9b45e795c0f3b0a0bd49daf0c5e0e2",
+     "fixture_body_sha256": "9c6df86d67256dd648014c532d5ff4256c9b45e795c0f3b0a0bd49daf0c5e0e2",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1171,
+     "key_sha256": "b21a1306068ce620a47ecba56f61c5885c4bd5da39ff4309ff7326a5b8c4ad39",
+     "take": "b9c09ed61e04",
+     "seq": 0,
+     "url": "https://www.sciencedirect.com/science/article/am/pii/S0034425719305115?via%3Dihub",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 403,
+     "recorded_body_sha256": "1fc257ee9bcb064e082eb92ce95f2d718f27b14d17394215bf3bea83810cdcce",
+     "fixture_body_sha256": "0b561c79007567f1550620ba4ef0225134d425a3ba33a18617ffd2ff46cff25b",
+     "masked_client_address": true
+    },
+    {
+     "ladder1_entry": 1177,
+     "key_sha256": "b728ef91f563218ec451a55698b9933fb9b8b07eeb2d4e6ba69ce4859e750519",
+     "take": "b9c09ed61e04",
+     "seq": 0,
+     "url": "http://hdl.handle.net/10810/59883",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 404,
+     "recorded_body_sha256": "370ad249c0d59bffda3ead83846219a224cc5555f063a91f0cf98785449c1ff7",
+     "fixture_body_sha256": "370ad249c0d59bffda3ead83846219a224cc5555f063a91f0cf98785449c1ff7",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d44b-08c8",
+   "attempt": "01a0d44b-08c8-7e09-8874-99a0ebf6b281",
+   "run_row": "L054",
+   "mode": "measure",
+   "work_key": "Olofsson_2020_mitigating-effects-omission-errors",
+   "doi": "10.1016/j.rse.2019.111492",
+   "route": "openalex",
+   "class": "B",
+   "what": "ScienceDirect's 832 KB Cloudflare block page at 403, its CLOUDFLARE_ERROR box at byte ~773 K",
+   "recorded": [
+    "blocked",
+    "identity_required"
+   ],
+   "recorded_at": "2026-09-24 09:41:22.376721-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class B (D24: one detector; landing typed the same page a challenge on 37 rows)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1173,
+     "key_sha256": "b21a1306068ce620a47ecba56f61c5885c4bd5da39ff4309ff7326a5b8c4ad39",
+     "take": "b9c09ed61e04",
+     "seq": 1,
+     "url": "https://www.sciencedirect.com/science/article/am/pii/S0034425719305115?via%3Dihub",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 403,
+     "recorded_body_sha256": "68d80fcb8968c49c46a4563963cbd23e62298e0e66d0bbb7e0d5206c959c91b4",
+     "fixture_body_sha256": "cccac5cb4524dd1306bd73548ebd77728e7b8f965dffcbcc4b0a8b0ee4b3412d",
+     "masked_client_address": true
+    },
+    {
+     "ladder1_entry": 1172,
+     "key_sha256": "76de1fd99e77c34aebae2c4e13ad0072dd8755e3b7951a7db5ca0650e10eb0b8",
+     "take": "b9c09ed61e04",
+     "seq": 0,
+     "url": "https://api.openalex.org/works/doi:10.1016/j.rse.2019.111492?mailto=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "611e25f8613028ac8155db210b329bc715957aba05baed55d424da38e3f91c73",
+     "fixture_body_sha256": "611e25f8613028ac8155db210b329bc715957aba05baed55d424da38e3f91c73",
+     "masked_client_address": false
+    }
+   ],
+   "swapped": [
+    [
+     1171,
+     1173
+    ]
+   ]
+  },
+  {
+   "case": "fxv-01a0d452-9124",
+   "attempt": "01a0d452-9124-7576-9853-04b499db0464",
+   "run_row": "L059",
+   "mode": "hunt",
+   "work_key": "Maragos_1989_pattern-spectrum-multiscale-shape",
+   "doi": "10.1109/34.192465",
+   "route": "open_access",
+   "class": "A2",
+   "what": "AWS WAF's challenge: a 202 with `x-amzn-waf-action: challenge` (empty body, or a 2 KB script page)",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 09:49:36.036008-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A2",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1294,
+     "key_sha256": "c9cd4749885d244600b5ae64b07b7bb8bf5c5e91cee4578b4f93db78b6d8576c",
+     "take": "2c446663f4d1",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1109/34.192465?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "8dd9bed5c82e87661195e80f17f56c442cf63ea5eac903c160af5bd09a1c646b",
+     "fixture_body_sha256": "8dd9bed5c82e87661195e80f17f56c442cf63ea5eac903c160af5bd09a1c646b",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1297,
+     "key_sha256": "cd928ceefed553eecdf61e551ff633ba1460b88414af35498ea0a4607ef9b623",
+     "take": "2c446663f4d1",
+     "seq": 0,
+     "url": "http://doi.org/10.1109/34.192465",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 202,
+     "recorded_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "fixture_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d455-d67c",
+   "attempt": "01a0d455-d67c-70e9-b208-4957ba0dd06c",
+   "run_row": "L060",
+   "mode": "hunt",
+   "work_key": "Appel_2024_efficient-data-driven-gap",
+   "doi": "10.1175/aies-d-22-0055.1",
+   "route": "open_access",
+   "class": "A2",
+   "what": "AWS WAF's challenge: a 202 with `x-amzn-waf-action: challenge` (empty body, or a 2 KB script page)",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 09:53:10.395522-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A2",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1334,
+     "key_sha256": "7ba3bd9a9bed7157e051af68f86a0997ca402d7c7dc50181f10549b26cc9ab1a",
+     "take": "bca71863b822",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1175/aies-d-22-0055.1?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "e801ed707331ead0579621d103c3d0c197e73975c77cfce79eb63c8c0b8af13c",
+     "fixture_body_sha256": "e801ed707331ead0579621d103c3d0c197e73975c77cfce79eb63c8c0b8af13c",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1336,
+     "key_sha256": "3ca994f3f2662839ba03fefb0ce7fe31907118d57b003702c925a4c52ef2caf5",
+     "take": "bca71863b822",
+     "seq": 0,
+     "url": "https://journals.ametsoc.org/downloadpdf/view/journals/aies/3/2/AIES-D-22-0055.1.pdf",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 202,
+     "recorded_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "fixture_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d455-d69a",
+   "attempt": "01a0d455-d69a-7b64-b752-7f9675b05b8a",
+   "run_row": "L060",
+   "mode": "hunt",
+   "work_key": "Appel_2024_efficient-data-driven-gap",
+   "doi": "10.1175/aies-d-22-0055.1",
+   "route": "crossref-link",
+   "class": "A2",
+   "what": "AWS WAF's challenge: a 202 with `x-amzn-waf-action: challenge` (empty body, or a 2 KB script page)",
+   "recorded": [
+    "api-error",
+    null
+   ],
+   "recorded_at": "2026-09-24 09:53:10.426551-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A2",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1337,
+     "key_sha256": "d76f1e19e7f7981695aa14a8ec0917c01fa1a794eeaa105c3b269bcf45cc1f05",
+     "take": "bca71863b822",
+     "seq": 0,
+     "url": "https://api.crossref.org/works/10.1175/aies-d-22-0055.1?mailto=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "07b45d4958e7227d538ed1666cd2d4546ae8cb507fa36353dba1304859b0c558",
+     "fixture_body_sha256": "07b45d4958e7227d538ed1666cd2d4546ae8cb507fa36353dba1304859b0c558",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1338,
+     "key_sha256": "d0b006a2fd9cde2372f945378f19556a4b068296ff8609d9fe182c7377d1daed",
+     "take": "bca71863b822",
+     "seq": 0,
+     "url": "https://journals.ametsoc.org/downloadpdf/journals/aies/3/2/AIES-D-22-0055.1.xml",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 202,
+     "recorded_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "fixture_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d455-d69e",
+   "attempt": "01a0d455-d69e-7ab3-ae0c-699ff9cd83f2",
+   "run_row": "L060",
+   "mode": "hunt",
+   "work_key": "Appel_2024_efficient-data-driven-gap",
+   "doi": "10.1175/aies-d-22-0055.1",
+   "route": "openalex",
+   "class": "A2",
+   "what": "AWS WAF's challenge: a 202 with `x-amzn-waf-action: challenge` (empty body, or a 2 KB script page)",
+   "recorded": [
+    "api-error",
+    null
+   ],
+   "recorded_at": "2026-09-24 09:53:10.430526-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A2",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1336,
+     "key_sha256": "3ca994f3f2662839ba03fefb0ce7fe31907118d57b003702c925a4c52ef2caf5",
+     "take": "bca71863b822",
+     "seq": 0,
+     "url": "https://journals.ametsoc.org/downloadpdf/view/journals/aies/3/2/AIES-D-22-0055.1.pdf",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 202,
+     "recorded_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "fixture_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1339,
+     "key_sha256": "cd56be349c31d8db3dfb0baea282ea0c3266e810455f0b1c59e99fbeaadbfcbf",
+     "take": "bca71863b822",
+     "seq": 0,
+     "url": "https://api.openalex.org/works/doi:10.1175/aies-d-22-0055.1?mailto=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "970ecf0aa2dbd458d0541641d68bf21f238f7c6e5c28ed4036ad3accc5994e1e",
+     "fixture_body_sha256": "970ecf0aa2dbd458d0541641d68bf21f238f7c6e5c28ed4036ad3accc5994e1e",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d456-9293",
+   "attempt": "01a0d456-9293-7873-a096-1486f2d78f35",
+   "run_row": "L061",
+   "mode": "hunt",
+   "work_key": "Tkaczyk_2024_how-good-your-matching",
+   "doi": "10.13003/ief7aibi",
+   "route": "landing",
+   "class": "C",
+   "what": "an ordinary 200 HTML page with no citation metadata (C6-RG's marker-free rule typed it a challenge)",
+   "recorded": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "recorded_at": "2026-09-24 09:53:58.547379-07",
+   "expected": [
+    "not-in-archive",
+    "no_pdf_link"
+   ],
+   "expected_source": "referee-vocabulary class C + referee-stage-c (C6-RG CONTRADICTED; its oracle: a page read with no citation_pdf_url / rel=alternate PDF is no_pdf_link; open question 1: 'type such pages html_or_reader/no_pdf_link')",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1362,
+     "key_sha256": "8ac6e9d19d12704fb8738526b95f4ac72ecb52fe7763a8ecd40280007c2ff459",
+     "take": "e6e9132b4445",
+     "seq": 0,
+     "url": "https://doi.org/10.13003/ief7aibi",
+     "accept": "text/html",
+     "status": 302,
+     "recorded_body_sha256": "1f77222db9aa90f70900d0b24e0916de1be4e90bedc2e5087d16251ad524b6f5",
+     "fixture_body_sha256": "1f77222db9aa90f70900d0b24e0916de1be4e90bedc2e5087d16251ad524b6f5",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1363,
+     "key_sha256": "84903e3aea9257581ed32cc716f5bade357dbf642700c1e83f1088ee6079b3f4",
+     "take": "e6e9132b4445",
+     "seq": 0,
+     "url": "https://www.crossref.org/blog/how-good-is-your-matching/",
+     "accept": "text/html",
+     "status": 200,
+     "recorded_body_sha256": "53b2e5a480a07d90aee4d3a1d5d87e42d7796f3c3741d666367a215e1de5e770",
+     "fixture_body_sha256": "53b2e5a480a07d90aee4d3a1d5d87e42d7796f3c3741d666367a215e1de5e770",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d458-535e",
+   "attempt": "01a0d458-535e-7ec6-9a95-ce0481d8d7e2",
+   "run_row": "L061",
+   "mode": "hunt",
+   "work_key": "Tkaczyk_2024_how-good-your-matching",
+   "doi": "10.13003/ief7aibi",
+   "route": "wayback",
+   "class": "F",
+   "what": "a Wayback id_ capture of an article's HTML page served with `Content-Encoding: gzip`",
+   "recorded": [
+    "bad-file",
+    "compressed_or_archived_payload"
+   ],
+   "recorded_at": "2026-09-24 09:55:53.438751-07",
+   "expected": [
+    "bad-file",
+    "html_response"
+   ],
+   "expected_source": "referee-vocabulary class F (decoded, each is an HTML page; the other 11 Wayback HTML captures are html_response)",
+   "replayed": "the capture only (the Wayback rung needs the run's dead-URL input; the ladder types the recorded capture)",
+   "entries": [
+    {
+     "ladder1_entry": 1369,
+     "key_sha256": "c47914e49d3e6097c5608bd638a8789a7b178b0fca39e944bf8f9e34648b7998",
+     "take": "e6e9132b4445",
+     "seq": 0,
+     "url": "https://web.archive.org/web/20260621220559id_/https://www.crossref.org/blog/how-good-is-your-matching/",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "6182b772967e5ac39b57f7790b6218cd2d16b3d3268714c3ac46659fd135b1fb",
+     "fixture_body_sha256": "6182b772967e5ac39b57f7790b6218cd2d16b3d3268714c3ac46659fd135b1fb",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d458-989b",
+   "attempt": "01a0d458-989b-72c1-8ab0-b3ec479df807",
+   "run_row": "L064",
+   "mode": "hunt",
+   "work_key": "Tkaczyk_2025_metadata-matching-beyond-correctness",
+   "doi": "10.64000/vgpgj-j8126",
+   "route": "landing",
+   "class": "C",
+   "what": "an ordinary 200 HTML page with no citation metadata (C6-RG's marker-free rule typed it a challenge)",
+   "recorded": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "recorded_at": "2026-09-24 09:56:11.163029-07",
+   "expected": [
+    "not-in-archive",
+    "no_pdf_link"
+   ],
+   "expected_source": "referee-vocabulary class C + referee-stage-c (C6-RG CONTRADICTED; its oracle: a page read with no citation_pdf_url / rel=alternate PDF is no_pdf_link; open question 1: 'type such pages html_or_reader/no_pdf_link')",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1403,
+     "key_sha256": "fa0f05c2b43bebe8b58bde83b09868c7224f068596391d6bf0d3d9916c847c26",
+     "take": "06b508fdef84",
+     "seq": 0,
+     "url": "https://doi.org/10.64000/vgpgj-j8126",
+     "accept": "text/html",
+     "status": 302,
+     "recorded_body_sha256": "505348f1885e40e86ebc9a21c54fb73b58b9e9501fc2e41573c9b729e38636ec",
+     "fixture_body_sha256": "505348f1885e40e86ebc9a21c54fb73b58b9e9501fc2e41573c9b729e38636ec",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1404,
+     "key_sha256": "d71df99aea0ad48edb6132662ab208bfa37ceff3500589cdcab04fe8ca24abc2",
+     "take": "06b508fdef84",
+     "seq": 0,
+     "url": "https://www.crossref.org/blog/metadata-matching-beyond-correctness/",
+     "accept": "text/html",
+     "status": 200,
+     "recorded_body_sha256": "40fd62a056c2e211cebc444103ffcc7544fe984f3bc8c4305e24944d6029f7c1",
+     "fixture_body_sha256": "40fd62a056c2e211cebc444103ffcc7544fe984f3bc8c4305e24944d6029f7c1",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d459-c890",
+   "attempt": "01a0d459-c890-78d6-a026-5b047a89e109",
+   "run_row": "L066",
+   "mode": "measure",
+   "work_key": "Ploton_2020_spatial-validation-reveals-poor",
+   "doi": "10.1038/s41467-020-18321-y",
+   "route": "hal",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 09:57:28.976427-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1421,
+     "key_sha256": "944f78bfbf128b08734d62bfbe3d645f448b6334887e3ef8d90d7b6955d80b97",
+     "take": "80cca74c9e28",
+     "seq": 0,
+     "url": "https://api.archives-ouvertes.fr/search/?q=doiId_s:%2210.1038/s41467-020-18321-y%22&fl=halId_s,fileMain_s,linkExtUrl_s,doiId_s&wt=json",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "f576ca10370344f5dbeaeba571ac0577514fcb64260c2ccc6b272c92231848b2",
+     "fixture_body_sha256": "f576ca10370344f5dbeaeba571ac0577514fcb64260c2ccc6b272c92231848b2",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1424,
+     "key_sha256": "0b45155dc6b08b455cfe454a724e11d50b582ffc4e50c9a486dccc0ea12dd2bc",
+     "take": "80cca74c9e28",
+     "seq": 0,
+     "url": "https://hal.inrae.fr/hal-02936567/document",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "67b397b01cd739dd8b58474a0673ce4d30fe5df41dfbab206333c276ae652dd8",
+     "fixture_body_sha256": "bfffbead0b37c623c0166fc0f237267475ca3745e4444c9ead75ecd0df3731eb",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d46a-3509",
+   "attempt": "01a0d46a-3509-7483-a254-3b14070b32e8",
+   "run_row": "L090",
+   "mode": "hunt",
+   "work_key": "Zhang_2021_feature-matching-multi-epoch",
+   "doi": "10.1016/j.isprsjprs.2021.10.008",
+   "route": "hal",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:15:25.321092-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1859,
+     "key_sha256": "25301a48409c62a6a23af3e07099551b85b59f70a2ec26a7c15e28d9f4a10742",
+     "take": "1d74af846156",
+     "seq": 0,
+     "url": "https://api.archives-ouvertes.fr/search/?q=doiId_s:%2210.1016/j.isprsjprs.2021.10.008%22&fl=halId_s,fileMain_s,linkExtUrl_s,doiId_s&wt=json",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "90551129e575c4f90cb05d9905e0c27a2e6d175ed28f68e78e426dff30066c42",
+     "fixture_body_sha256": "90551129e575c4f90cb05d9905e0c27a2e6d175ed28f68e78e426dff30066c42",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1863,
+     "key_sha256": "64c0ad0dc0b942ec766916266a2ac1c6a7e943a84f6192512d7f29f9b7a6fd89",
+     "take": "1d74af846156",
+     "seq": 0,
+     "url": "https://hal.science/hal-04205371/document",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "1a1bd692d24872132ee442c1b828e697848572e8a73f75b8672bab04e07e5b17",
+     "fixture_body_sha256": "72d3d5b8d582016593a27996c52a71acdb423f084d4feb43a776644b9c8b6de9",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d46a-fc20",
+   "attempt": "01a0d46a-fc20-7d44-8e29-3055566b8d41",
+   "run_row": "L092",
+   "mode": "hunt",
+   "work_key": "Canty_2008_automatic-radiometric-normalization",
+   "doi": "10.1016/j.rse.2007.07.013",
+   "route": "open_access",
+   "class": "U",
+   "what": "linkinghub.elsevier.com's bare 403 '403 Forbidden' page (520 B, no marker)",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:16:16.288458-07",
+   "expected": null,
+   "expected_source": "referee-vocabulary class U: UNDETERMINED — the plan text does not say which word a bare 403 takes; pinned as recorded, never graded",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1884,
+     "key_sha256": "f1f99a94e49ae42b776f11afe8a0cf84632b918a857aa12ea295dc94267add58",
+     "take": "b3caf5136052",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1016/j.rse.2007.07.013?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "eea1b5f0250a8879e8fccda85f86e982bc8a81aaee02381a2db2cb30e036bbf2",
+     "fixture_body_sha256": "eea1b5f0250a8879e8fccda85f86e982bc8a81aaee02381a2db2cb30e036bbf2",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1887,
+     "key_sha256": "068e8b2de1ab94d75b0c2e2fe444c895ccd4c1333fd47c3d6b36f2700f5bf0fd",
+     "take": "b3caf5136052",
+     "seq": 0,
+     "url": "https://linkinghub.elsevier.com/science/article/pii/S0034425707003495",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 403,
+     "recorded_body_sha256": "8b73b6ccd7091d6d9d23adaab2baae3c4abf6de06df8efdd03215ee9376fa035",
+     "fixture_body_sha256": "8b73b6ccd7091d6d9d23adaab2baae3c4abf6de06df8efdd03215ee9376fa035",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d46a-fc4c",
+   "attempt": "01a0d46a-fc4c-72e2-9bd1-6d12c705b4fa",
+   "run_row": "L092",
+   "mode": "hunt",
+   "work_key": "Canty_2008_automatic-radiometric-normalization",
+   "doi": "10.1016/j.rse.2007.07.013",
+   "route": "openalex",
+   "class": "U",
+   "what": "linkinghub.elsevier.com's bare 403 '403 Forbidden' page (520 B, no marker)",
+   "recorded": [
+    "blocked",
+    "identity_required"
+   ],
+   "recorded_at": "2026-09-24 10:16:16.332025-07",
+   "expected": null,
+   "expected_source": "referee-vocabulary class U: UNDETERMINED — the plan text does not say which word a bare 403 takes; pinned as recorded, never graded",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 1887,
+     "key_sha256": "068e8b2de1ab94d75b0c2e2fe444c895ccd4c1333fd47c3d6b36f2700f5bf0fd",
+     "take": "b3caf5136052",
+     "seq": 0,
+     "url": "https://linkinghub.elsevier.com/science/article/pii/S0034425707003495",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 403,
+     "recorded_body_sha256": "8b73b6ccd7091d6d9d23adaab2baae3c4abf6de06df8efdd03215ee9376fa035",
+     "fixture_body_sha256": "8b73b6ccd7091d6d9d23adaab2baae3c4abf6de06df8efdd03215ee9376fa035",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 1888,
+     "key_sha256": "ebdba54a786c61e78e80331efd083e1f6197fda2fb86ff67133af7d70a5f9ecb",
+     "take": "b3caf5136052",
+     "seq": 0,
+     "url": "https://api.openalex.org/works/doi:10.1016/j.rse.2007.07.013?mailto=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "2317dc1adca807e3b44fdbac149412e61e3a849e4f0db1b5208b6b451057a24f",
+     "fixture_body_sha256": "2317dc1adca807e3b44fdbac149412e61e3a849e4f0db1b5208b6b451057a24f",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d477-973f",
+   "attempt": "01a0d477-973f-708d-8f22-748f2e0b9a3f",
+   "run_row": "L108",
+   "mode": "hunt",
+   "work_key": "Brandt_2020_unexpectedly-large-count-trees",
+   "doi": "10.1038/s41586-020-2824-5",
+   "route": "open_access",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:30:02.430659-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 2203,
+     "key_sha256": "450eafdfce2ae680932385b723717ac7b7d4be73d29c605b6b159c1c21199a04",
+     "take": "8b24d2e40776",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1038/s41586-020-2824-5?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "e2d78da6daa7008b2c6329bae4949faa02dc559d1756ae9008d4cf8f5d90e1bc",
+     "fixture_body_sha256": "e2d78da6daa7008b2c6329bae4949faa02dc559d1756ae9008d4cf8f5d90e1bc",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 2210,
+     "key_sha256": "ff8457b06c94891cca212e6e43fe4a985bf29755ae522fd6952ea6e1ba7c8cac",
+     "take": "8b24d2e40776",
+     "seq": 0,
+     "url": "https://hal.science/hal-02997632",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "50ca8edcd51c2b37ec6db57d6a80f29d20ecb652fbaffb1c3130ed1c62c7378f",
+     "fixture_body_sha256": "21258724a89c813544e79a0441672b829b5c06e9db71877a16e20ea73ba948cf",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d477-97c2",
+   "attempt": "01a0d477-97c2-7424-826b-8f2c8691c6e1",
+   "run_row": "L108",
+   "mode": "hunt",
+   "work_key": "Brandt_2020_unexpectedly-large-count-trees",
+   "doi": "10.1038/s41586-020-2824-5",
+   "route": "hal",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:30:02.562075-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 2208,
+     "key_sha256": "0c652804f6e2e92f39bdf1b0016a1de9d2d9fccffadb47dd4961b83d31ed5435",
+     "take": "8b24d2e40776",
+     "seq": 0,
+     "url": "https://api.archives-ouvertes.fr/search/?q=doiId_s:%2210.1038/s41586-020-2824-5%22&fl=halId_s,fileMain_s,linkExtUrl_s,doiId_s&wt=json",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "2c20c2dc6ad944a3716744aba64660fbec3b001e73f44df5be521b40ecab9831",
+     "fixture_body_sha256": "2c20c2dc6ad944a3716744aba64660fbec3b001e73f44df5be521b40ecab9831",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 2212,
+     "key_sha256": "ac9880d38c6477c01387f9c1e96b16b45f91e998becd48cf27cec92c223deb6a",
+     "take": "8b24d2e40776",
+     "seq": 0,
+     "url": "https://hal.science/hal-02997632/document",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "226bcec32301b16175797ef743df1715a62af226192d128dbef9a907dac3ff6e",
+     "fixture_body_sha256": "d22a44aa33d457d2f45c4f741dc801425f86aa75b723483acf789895e657ef11",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d477-9cdc",
+   "attempt": "01a0d477-9cdc-73b4-910f-5cf2ac803497",
+   "run_row": "L108",
+   "mode": "hunt",
+   "work_key": "Brandt_2020_unexpectedly-large-count-trees",
+   "doi": "10.1038/s41586-020-2824-5",
+   "route": "s2",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:30:03.868088-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 2215,
+     "key_sha256": "ff8457b06c94891cca212e6e43fe4a985bf29755ae522fd6952ea6e1ba7c8cac",
+     "take": "8b24d2e40776",
+     "seq": 1,
+     "url": "https://hal.science/hal-02997632",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "91c4bfd3f722d9c06bbe5f4c3532bad79db3aeea4188c30e58dc5bd034b5b901",
+     "fixture_body_sha256": "dd55ff26e66c3ac04b5a5a1657ceb4387722b9200a3fd68d3e33461ca450b2b2",
+     "masked_client_address": true
+    },
+    {
+     "ladder1_entry": 2214,
+     "key_sha256": "d93788d6a361b58597f4596dcf1877d77b82ff4df2537cf24b4a739610ad04a7",
+     "take": "8b24d2e40776",
+     "seq": 0,
+     "url": "https://api.semanticscholar.org/graph/v1/paper/DOI:10.1038/s41586-020-2824-5?fields=externalIds,openAccessPdf,title,year",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "c10ce796c3e629f0097c9d3f21a14c7bc0fe2ca84f6c066a669cb377815b5229",
+     "fixture_body_sha256": "c10ce796c3e629f0097c9d3f21a14c7bc0fe2ca84f6c066a669cb377815b5229",
+     "masked_client_address": false
+    }
+   ],
+   "swapped": [
+    [
+     2210,
+     2215
+    ]
+   ]
+  },
+  {
+   "case": "fxv-01a0d47d-d440",
+   "attempt": "01a0d47d-d440-73d4-b632-49c1eab86077",
+   "run_row": "L113",
+   "mode": "hunt",
+   "work_key": "Ke_2011_review-methods-automatic-individual",
+   "doi": "10.1080/01431161.2010.494184",
+   "route": "wayback",
+   "class": "F",
+   "what": "a Wayback id_ capture of an article's HTML page served with `Content-Encoding: gzip`",
+   "recorded": [
+    "bad-file",
+    "compressed_or_archived_payload"
+   ],
+   "recorded_at": "2026-09-24 10:36:51.264062-07",
+   "expected": [
+    "bad-file",
+    "html_response"
+   ],
+   "expected_source": "referee-vocabulary class F (decoded, each is an HTML page; the other 11 Wayback HTML captures are html_response)",
+   "replayed": "the capture only (the Wayback rung needs the run's dead-URL input; the ladder types the recorded capture)",
+   "entries": [
+    {
+     "ladder1_entry": 2325,
+     "key_sha256": "94fcf4721658272995583ce23656180cb18ce865597d030294a9bdba59acbb47",
+     "take": "83c7c066b28a",
+     "seq": 0,
+     "url": "https://web.archive.org/web/20240709183627id_/https://www.tandfonline.com/doi/full/10.1080/01431161.2010.494184",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "3b99ed0878c7fd7feb88d8eee04a38e8d37a32087854c73e4c8f3ce83ca5f13f",
+     "fixture_body_sha256": "3b99ed0878c7fd7feb88d8eee04a38e8d37a32087854c73e4c8f3ce83ca5f13f",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d47f-09fe",
+   "attempt": "01a0d47f-09fe-7712-a121-bf9614d65192",
+   "run_row": "L114",
+   "mode": "hunt",
+   "work_key": "Stehman_2012_impact-sample-size-allocation",
+   "doi": "10.1080/01431161.2010.541950",
+   "route": "wayback",
+   "class": "F",
+   "what": "a Wayback id_ capture of an article's HTML page served with `Content-Encoding: gzip`",
+   "recorded": [
+    "bad-file",
+    "compressed_or_archived_payload"
+   ],
+   "recorded_at": "2026-09-24 10:38:10.556533-07",
+   "expected": [
+    "bad-file",
+    "html_response"
+   ],
+   "expected_source": "referee-vocabulary class F (decoded, each is an HTML page; the other 11 Wayback HTML captures are html_response)",
+   "replayed": "the capture only (the Wayback rung needs the run's dead-URL input; the ladder types the recorded capture)",
+   "entries": [
+    {
+     "ladder1_entry": 2353,
+     "key_sha256": "2c6183b38bb54435b530eea8b0aa43305caa41877778c502ce675aedf883f24e",
+     "take": "aa490948bd61",
+     "seq": 0,
+     "url": "https://web.archive.org/web/20250710084725id_/https://www.tandfonline.com/doi/abs/10.1080/01431161.2010.541950",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "4ac56709ce68828e9d74b2c6a94b46f0f4635e4a6e6b9800fa32a7094b97b677",
+     "fixture_body_sha256": "4ac56709ce68828e9d74b2c6a94b46f0f4635e4a6e6b9800fa32a7094b97b677",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d48d-9507",
+   "attempt": "01a0d48d-9507-7c1d-8e0e-099f0e81c4d5",
+   "run_row": "L134",
+   "mode": "hunt",
+   "work_key": "Ramani_2008_monte-carlo-sure-black",
+   "doi": "10.1109/tip.2008.2001404",
+   "route": "open_access",
+   "class": "A2",
+   "what": "AWS WAF's challenge: a 202 with `x-amzn-waf-action: challenge` (empty body, or a 2 KB script page)",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:54:03.652619-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A2",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 2703,
+     "key_sha256": "ebf2b4f519bb05438513c7798bad8b731a73e2b726187e15eb77ba6bb53fe727",
+     "take": "2947a570bbc7",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1109/tip.2008.2001404?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "f196aac0db043c974b81230ff1a63328a21b64c98998041774a92e54c4daf77b",
+     "fixture_body_sha256": "f196aac0db043c974b81230ff1a63328a21b64c98998041774a92e54c4daf77b",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 2707,
+     "key_sha256": "b4d19cb1b76384fcc7809769a7abeb4361a01ca4fd6517b20bcddba638a0f85c",
+     "take": "2947a570bbc7",
+     "seq": 0,
+     "url": "http://infoscience.epfl.ch/record/130360",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 202,
+     "recorded_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "fixture_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d48d-c187",
+   "attempt": "01a0d48d-c187-78bb-88cc-21711316353d",
+   "run_row": "L135",
+   "mode": "hunt",
+   "work_key": "Valindria_2017_reverse-classification-accuracy-predicting",
+   "doi": "10.1109/tmi.2017.2665165",
+   "route": "open_access",
+   "class": "A2",
+   "what": "AWS WAF's challenge: a 202 with `x-amzn-waf-action: challenge` (empty body, or a 2 KB script page)",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:54:15.044423-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A2",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 2713,
+     "key_sha256": "7f7a8443be7676eb62e73ca936493a25994d80230028460294344e34116ca9f6",
+     "take": "249170cd98e8",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1109/tmi.2017.2665165?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "c174c40553622115fe669b3eb860cf4f9e288aca523ce0d166ea43f1ed83a112",
+     "fixture_body_sha256": "c174c40553622115fe669b3eb860cf4f9e288aca523ce0d166ea43f1ed83a112",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 2716,
+     "key_sha256": "be33398f75545bfad2c6a3b80306ccd1e1b6e08a1a1f96a095b8f9bc8f7f31ea",
+     "take": "249170cd98e8",
+     "seq": 0,
+     "url": "https://doi.org/10.1109/tmi.2017.2665165",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 202,
+     "recorded_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "fixture_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 2722,
+     "key_sha256": "126e12a9ede63148d531982c762a7245031a9584f32b455c7b5c0e352d1972f8",
+     "take": "249170cd98e8",
+     "seq": 0,
+     "url": "http://hdl.handle.net/10044/1/44259",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "f889c8966dd928946269c21b1c68d671448334adb6a70c0e7fe0e44f713a734b",
+     "fixture_body_sha256": "f889c8966dd928946269c21b1c68d671448334adb6a70c0e7fe0e44f713a734b",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d48d-f721",
+   "attempt": "01a0d48d-f721-7a41-9185-7fafc831b28e",
+   "run_row": "L136",
+   "mode": "hunt",
+   "work_key": "Weinstein_2020_deepforest-python-package-rgb",
+   "doi": "10.1111/2041-210x.13472",
+   "route": "openaire",
+   "class": "D",
+   "what": "bioRxiv's 429 rate-limit page ('a high number of requests from this session')",
+   "recorded": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "recorded_at": "2026-09-24 10:54:28.769427-07",
+   "expected": [
+    "api-error",
+    null
+   ],
+   "expected_source": "referee-vocabulary class D (a rate notice; landing typed the same page class api-error, retriable)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 2732,
+     "key_sha256": "cf5b5f4d45c6bd08b39d7e2be7d806cb67372810f6423bc6f88fc6662d233f91",
+     "take": "eec6b31954eb",
+     "seq": 0,
+     "url": "https://api.openaire.eu/search/publications?doi=10.1111/2041-210x.13472&format=xml",
+     "accept": "application/xml",
+     "status": 200,
+     "recorded_body_sha256": "0b09d56da6c9efbc042f29b19489f11ef907981fd47c36295711e0083c6e4d71",
+     "fixture_body_sha256": "0b09d56da6c9efbc042f29b19489f11ef907981fd47c36295711e0083c6e4d71",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 2733,
+     "key_sha256": "a607ad4656ccf14f694bdf007a54047f6977478dd855f03d8ac235203d7aab92",
+     "take": "eec6b31954eb",
+     "seq": 0,
+     "url": "https://www.biorxiv.org/content/biorxiv/early/2020/07/08/2020.07.07.191551.full.pdf",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 429,
+     "recorded_body_sha256": "9602409f48e9f6ab4d21f4112fae5b89909df6c1b0ed6ad2f1e9a28deb2eb4ba",
+     "fixture_body_sha256": "cf259c85364e8adb5e1ea430e2bfd695a62c4b7f572ae11a93e07d91508da108",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d48d-f774",
+   "attempt": "01a0d48d-f774-7235-bd36-38ddc9654754",
+   "run_row": "L136",
+   "mode": "hunt",
+   "work_key": "Weinstein_2020_deepforest-python-package-rgb",
+   "doi": "10.1111/2041-210x.13472",
+   "route": "hal",
+   "class": "A1",
+   "what": "Anubis's proof-of-work page at HTTP 200 ('Making sure you're not a bot!')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 10:54:28.851943-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A1 (plan item 2: a challenge page is a challenge at ANY status)",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 2730,
+     "key_sha256": "f487e67a0cf2c1d03fa147a89422343e2e8c7979570a81e444c26011d67487e2",
+     "take": "eec6b31954eb",
+     "seq": 0,
+     "url": "https://api.archives-ouvertes.fr/search/?q=doiId_s:%2210.1111/2041-210x.13472%22&fl=halId_s,fileMain_s,linkExtUrl_s,doiId_s&wt=json",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "1b4bac373b9522ed73f5088557c9aba619d6234770aaa6ee6e201180152cbaad",
+     "fixture_body_sha256": "1b4bac373b9522ed73f5088557c9aba619d6234770aaa6ee6e201180152cbaad",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 2735,
+     "key_sha256": "123b758651a2b3016383ba8708622dfa87750e32de3ad153929e1b858fa00286",
+     "take": "eec6b31954eb",
+     "seq": 0,
+     "url": "https://hal.inrae.fr/hal-03073497/document",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "d1cc225273f82d32bfde363827b7f3fefd450704db9ebfbcc40653aa3c9c5cbf",
+     "fixture_body_sha256": "3a26c2cdc394294daa1129bd79e3f2bf13da99c918b610524dbeba6db1c1447d",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d49a-5965",
+   "attempt": "01a0d49a-5965-7a61-bba4-a5aa7d2835ab",
+   "run_row": "L166",
+   "mode": "hunt",
+   "work_key": "Tkaczyk_2018_matchmaker-matchmaker-make-me",
+   "doi": "10.64000/hg7jm-xyk95",
+   "route": "landing",
+   "class": "C",
+   "what": "an ordinary 200 HTML page with no citation metadata (C6-RG's marker-free rule typed it a challenge)",
+   "recorded": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "recorded_at": "2026-09-24 11:08:00.357469-07",
+   "expected": [
+    "not-in-archive",
+    "no_pdf_link"
+   ],
+   "expected_source": "referee-vocabulary class C + referee-stage-c (C6-RG CONTRADICTED; its oracle: a page read with no citation_pdf_url / rel=alternate PDF is no_pdf_link; open question 1: 'type such pages html_or_reader/no_pdf_link')",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 3210,
+     "key_sha256": "d8619aee348fc8312cf3830bfe83cfb268db885064d1774873ba9405127d59ca",
+     "take": "71c6871eb60b",
+     "seq": 0,
+     "url": "https://doi.org/10.64000/hg7jm-xyk95",
+     "accept": "text/html",
+     "status": 302,
+     "recorded_body_sha256": "b23aef0841837a4675e6f26f6f1cdee4b6242158f9cf1826e48eb44080cfa0f8",
+     "fixture_body_sha256": "b23aef0841837a4675e6f26f6f1cdee4b6242158f9cf1826e48eb44080cfa0f8",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 3211,
+     "key_sha256": "dba60ff094fbbffbca9dfd904165340c592773cd9b3cbbec532d7242089d2796",
+     "take": "71c6871eb60b",
+     "seq": 0,
+     "url": "https://www.crossref.org/blog/matchmaker-matchmaker-make-me-a-match/",
+     "accept": "text/html",
+     "status": 200,
+     "recorded_body_sha256": "d97f6461c7db89bbd2c847aecead5c3552ce632d4ae3a87c40a74432df1df13d",
+     "fixture_body_sha256": "d97f6461c7db89bbd2c847aecead5c3552ce632d4ae3a87c40a74432df1df13d",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d49b-bf42",
+   "attempt": "01a0d49b-bf42-7b87-a01f-13c16f540ed1",
+   "run_row": "L167",
+   "mode": "hunt",
+   "work_key": "DelgadoQuiros_2025_research-entity-information-coverage",
+   "doi": "10.31235/osf.io/cxp4q",
+   "route": "landing",
+   "class": "C",
+   "what": "an ordinary 200 HTML page with no citation metadata (C6-RG's marker-free rule typed it a challenge)",
+   "recorded": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "recorded_at": "2026-09-24 11:09:31.970552-07",
+   "expected": [
+    "not-in-archive",
+    "no_pdf_link"
+   ],
+   "expected_source": "referee-vocabulary class C + referee-stage-c (C6-RG CONTRADICTED; its oracle: a page read with no citation_pdf_url / rel=alternate PDF is no_pdf_link; open question 1: 'type such pages html_or_reader/no_pdf_link')",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 3232,
+     "key_sha256": "f240a68dedc8a1722c403644c4caf460f0ea1ddbe064a929897d2edcbc3b9240",
+     "take": "3d2a43b214cf",
+     "seq": 0,
+     "url": "https://doi.org/10.31235/osf.io/cxp4q",
+     "accept": "text/html",
+     "status": 302,
+     "recorded_body_sha256": "fb76ce94954a034eddf7c689738ef52daf448c61562ab679ad9d591544c4173f",
+     "fixture_body_sha256": "fb76ce94954a034eddf7c689738ef52daf448c61562ab679ad9d591544c4173f",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 3233,
+     "key_sha256": "e5638d5857d2dc10cfa59d3ba96b7a5f47684b04c156ce2117277bf728c8e940",
+     "take": "3d2a43b214cf",
+     "seq": 0,
+     "url": "https://osf.io/cxp4q",
+     "accept": "text/html",
+     "status": 200,
+     "recorded_body_sha256": "325e26f627083b0051850a9b2bd2eb66d236c761e9390f263ffb25b05e898773",
+     "fixture_body_sha256": "325e26f627083b0051850a9b2bd2eb66d236c761e9390f263ffb25b05e898773",
+     "masked_client_address": false
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d4a3-83a6",
+   "attempt": "01a0d4a3-83a6-797f-aa36-cc00b255f18d",
+   "run_row": "L193",
+   "mode": "hunt",
+   "work_key": "Barber_2023_conformal-prediction-beyond-exchangeability",
+   "doi": "10.1214/23-aos2276",
+   "route": "open_access",
+   "class": "A3",
+   "what": "Imperva Incapsula's untitled block page at HTTP 200 ('Request unsuccessful. Incapsula incident ID')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 11:18:00.997861-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A3",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 3567,
+     "key_sha256": "d3da3ebf3371e3e25df436558e8cd5fa396279125afc752410dd85d9026ac98e",
+     "take": "766daf1c1003",
+     "seq": 0,
+     "url": "https://api.unpaywall.org/v2/10.1214/23-aos2276?email=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "dc367cb219e7bbad9cc257f75d3653eba194db58d8e36d716372049a141e9d76",
+     "fixture_body_sha256": "dc367cb219e7bbad9cc257f75d3653eba194db58d8e36d716372049a141e9d76",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 3571,
+     "key_sha256": "8f538a514e8b6084a68232e18ab12df1f71dfda0e80e99df8092e4c7d4591b2a",
+     "take": "766daf1c1003",
+     "seq": 0,
+     "url": "https://projecteuclid.org/journals/annals-of-statistics/volume-51/issue-2/Conformal-prediction-beyond-exchangeability/10.1214/23-AOS2276.pdf",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "cbd6f7cd2f9495769680711e666a161411854b38b0de53a119c1bc380f81b985",
+     "fixture_body_sha256": "9637ef2ddf66d8eab8b307c5dbf16396bc94045ab61b0f853ea167a4255bccb2",
+     "masked_client_address": true
+    }
+   ]
+  },
+  {
+   "case": "fxv-01a0d4a3-8401",
+   "attempt": "01a0d4a3-8401-7ff8-8d81-43d26767738b",
+   "run_row": "L193",
+   "mode": "hunt",
+   "work_key": "Barber_2023_conformal-prediction-beyond-exchangeability",
+   "doi": "10.1214/23-aos2276",
+   "route": "openalex",
+   "class": "A3",
+   "what": "Imperva Incapsula's untitled block page at HTTP 200 ('Request unsuccessful. Incapsula incident ID')",
+   "recorded": [
+    "bad-file",
+    "html_response"
+   ],
+   "recorded_at": "2026-09-24 11:18:01.089747-07",
+   "expected": [
+    "blocked",
+    "challenge_or_bot_check"
+   ],
+   "expected_source": "referee-vocabulary table 2.2 class A3",
+   "replayed": "the real rung",
+   "entries": [
+    {
+     "ladder1_entry": 3570,
+     "key_sha256": "fa3163ef1ada3563b9ab5d24fafb3ed866b5c0577cc72c739205fba76c5852ed",
+     "take": "766daf1c1003",
+     "seq": 0,
+     "url": "https://api.openalex.org/works/doi:10.1214/23-aos2276?mailto=<KEY>",
+     "accept": "application/json",
+     "status": 200,
+     "recorded_body_sha256": "0d8006158d1f67a6b764c8c424835497fff494831af72e04a04d9cfa1058d1ea",
+     "fixture_body_sha256": "0d8006158d1f67a6b764c8c424835497fff494831af72e04a04d9cfa1058d1ea",
+     "masked_client_address": false
+    },
+    {
+     "ladder1_entry": 3572,
+     "key_sha256": "8f538a514e8b6084a68232e18ab12df1f71dfda0e80e99df8092e4c7d4591b2a",
+     "take": "766daf1c1003",
+     "seq": 1,
+     "url": "https://projecteuclid.org/journals/annals-of-statistics/volume-51/issue-2/Conformal-prediction-beyond-exchangeability/10.1214/23-AOS2276.pdf",
+     "accept": "application/pdf,*/*;q=0.5",
+     "status": 200,
+     "recorded_body_sha256": "cd16f34e574f6a93870d0cb3862a6fd452ccb39760328d5d5ab987a9cf702428",
+     "fixture_body_sha256": "85819a7fe61d348e2e8a8b9ca22a37d06729d6f99698b86f974db0aa78118b9a",
+     "masked_client_address": true
+    }
+   ],
+   "swapped": [
+    [
+     3571,
+     3572
+    ]
+   ]
+  }
+ ]
+}

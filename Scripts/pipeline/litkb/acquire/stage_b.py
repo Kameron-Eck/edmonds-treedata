@@ -27,6 +27,10 @@ attempt rows) and zero is an allowed answer. The ORDER and the CLOSURE RULE are 
   A Wave-2 rung whose condition fails asks nothing and returns a `skipped` answer the ladder records
   (`no_identifier`: the identifier it keys on is absent; `policy_refused`: the closure rule — every scheme it
   fills is already held), with the condition in the row's `policy` detail.
+  A LANDING STOPS THE FILE RUNGS, NEVER THE IDENTIFIER WAVES (S4.5 fix wave FX-B; referee-stage-b N2): once a rung
+  has landed the file, `run.acquire` still asks every rung of :data:`HARVESTS` it had not reached, in HARVEST-ONLY
+  mode — the identifier call is made and written, no file candidate is asked (`fetch_candidates`), each one named
+  on the row (`harvest_only.not_asked`).
 
 B1 — "the identifier already carries the file" (`carried_files`): an arXiv id (arxiv.org/pdf/<id>: B10's
 export.arxiv.org rewrite MEASURED 406 for a PDF — see ARXIV_PDF), and Semantic Scholar's `openAccessPdf` when it is
@@ -223,8 +227,25 @@ def fetch_candidates(route, candidates, ctx, work=None, *, html_status="bad-file
     kept, kept_url, kept_term, last_term = None, "", None, None
     challenge = False
     cooled = []                 # S4.5 decision D44: candidates not asked because their host is cooling
+    harvest_only = False        # the unguarded default: every candidate is asked, whatever the ladder has landed
+    # BEGIN guard: a harvest-only call asks no file candidate
+    # (S4.5 fix wave FX-B, referee-stage-b N2: after the ladder has landed the file, the identifier waves complete —
+    # `run.acquire`'s post-landing pass — but "PDF-fetching rungs still stop at the first landing": a rung asked in
+    # that pass (`RungContext.harvest_only`) makes its identifier call and asks NONE of its candidates. Each one it
+    # did not ask is named on the row (`harvest_only.not_asked`), never a silent miss.)
+    harvest_only = bool(getattr(ctx, "harvest_only", False))
+    # END guard: a harvest-only call asks no file candidate
+    not_asked = []
     for url, meta in candidates:
         h = host_of(url)
+        if harvest_only:
+            if h in shadow:
+                notes.append(f"{h}: a shadow host, never asked by a legitimate rung")
+            elif url in asked:
+                notes.append(f"{h}: already asked in this ladder run by {asked[url]}")
+            elif url not in not_asked:
+                not_asked.append(url)
+            continue
         # BEGIN guard: a legitimate rung never asks a shadow host, and never asks one URL twice in a run
         if h in shadow:
             notes.append(f"{h}: a shadow host, never asked by a legitimate rung")
@@ -250,7 +271,7 @@ def fetch_candidates(route, candidates, ctx, work=None, *, html_status="bad-file
         # END guard: a candidate on a cooling host is skipped and the other hosts are asked
         st, hd, body, term = get(ctx, route, url, accept=PDF_ACCEPT, timeout=PDF_TIMEOUT)
         # BEGIN guard: a transient answer is no answer, and the scheduled retry may ask its URL again
-        own = "blocked" if st and Client.is_challenge(st, url, body) else "api-error"
+        own = "blocked" if st and Client.is_challenge(st, url, body, hd) else "api-error"
         if _backoff.classify(own, [st]) == "transient":
             with _ASKED_LOCK:
                 asked.pop(url, None)
@@ -265,7 +286,7 @@ def fetch_candidates(route, candidates, ctx, work=None, *, html_status="bad-file
             tried.append(f"{h}:0")
             continue
         tried.append(f"{h}:{st}")
-        if Client.is_challenge(st, url, body):
+        if Client.is_challenge(st, url, body, hd):     # the headers too: AWS WAF's empty 202 (builder-FX-V)
             challenge = True
         if body and kept is None:
             kept, kept_url, kept_term = body, url, term
@@ -273,6 +294,15 @@ def fetch_candidates(route, candidates, ctx, work=None, *, html_status="bad-file
             "terminal": kept_term or last_term or {"url": "", "status_code": None, "at": _now()}}
     if kept is not None:
         base.update({"rejected": kept, "rejected_url": kept_url})
+    if harvest_only:
+        # no request was made: the service's own answer decides the row (`answered`), and a candidate left unasked
+        # makes it retriable — asking the file could change it (guard 15's `retriable` fact)
+        out = {**base, "status": "no-oa-copy", "harvest_only": {"not_asked": not_asked, "why": HARVEST_ONLY_WHY},
+               "detail": "; ".join(notes + ([f"harvest only: {len(not_asked)} file candidate(s) not asked"]
+                                            if not_asked else [])) or "harvest only: no file candidate"}
+        if not_asked:
+            out["retriable"] = True
+        return out
     if not codes:
         # BEGIN guard: candidates skipped for a cooling host make a retriable answer, never a miss
         if cooled:
@@ -760,6 +790,19 @@ RUNG_TABLE = (
 )
 
 
+#: The rungs whose answer carries a HARVEST (their service's identifiers, written through builder B1's one path,
+#: `write_harvest`): the identifier waves. S4.5 fix wave FX-B (referee-stage-b N2): the ladder's first-landing stop cut
+#: these waves short of the plan's closure rule ("STOP when a full pass adds nothing", LINKAGE §2.3) — on the ladder-1
+#: run all 17 crosswalk rows still without their arXiv sibling had landed at Wave 1 and never asked S2. So after a
+#: landing `run.acquire` still asks every one of these the ladder had not reached, in HARVEST-ONLY mode
+#: (`RungContext.harvest_only`: the identifier call is made, no file candidate is asked — `fetch_candidates`); every
+#: other rung stops at the first landing as before. Registered as `run.Rung.harvests`.
+HARVESTS = frozenset({"opencitations", "crossref-link", "openalex", "datacite", "ncbi-idconv", "s2", "europepmc"})
+#: What a harvest-only row says of itself (`detail.harvest_only.why`).
+HARVEST_ONLY_WHY = ("the ladder had landed the file: this identifier call completes the closure rule's waves and asks "
+                    "none of its file candidates (S4.5 fix wave FX-B; referee-stage-b N2)")
+
+
 #: The ASK CONDITION of every rung that asks only under one (the closure rule's Wave-2 conditions and A4's template
 #: condition, stated as the rung's own `closure_skip` states it). It is registered as `run.Rung.ask_condition`; a rung
 #: skipped by it on EVERY row it reached asked nobody, and the report says so in a `not-asked:` line instead of a
@@ -807,7 +850,8 @@ def register_all(rungs=None):
         # every rung of this module retries a transient answer once (C1a's scheduled retry): a 429 or a 5xx
         # from an identifier service is the commonest answer an unauthenticated client gets (survey B5)
         R.register(R.Rung(route, _lazy(fn), needs=needs, concurrent=concurrent, retry_transient=True,
-                          metadata_only=metadata_only, ask_condition=ASK_CONDITIONS.get(route, "")), target)
+                          metadata_only=metadata_only, ask_condition=ASK_CONDITIONS.get(route, ""),
+                          harvests=route in HARVESTS), target)
     return target
 
 
